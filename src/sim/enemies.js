@@ -3,6 +3,7 @@
 import { enemyDef } from '../data/enemies.js';
 import { RULES } from '../data/rules.js';
 import { positionAt } from './route.js';
+import { enemySpeed } from './effects.js';
 
 /**
  * Spawns an enemy at distance `d` along the route of its kind. Health and
@@ -36,6 +37,11 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
     /** Seconds of hit flash left, and the flag the death pass looks for. */
     flash: 0,
     dead: false,
+    /** Status effects (sim/effects.js): slow fraction, its end, frozen until. */
+    slow: 0,
+    slowUntil: 0,
+    stunUntil: 0,
+    burn: null,
     /** Distance travelled along the route, in cells. */
     d,
     x: 0,
@@ -81,7 +87,7 @@ export function updateEnemies(state, dt) {
   for (let read = 0; read < state.enemies.length; read++) {
     const e = state.enemies[read];
     const line = e.flying ? flyer : ground;
-    e.d += e.speed * dt;
+    e.d += enemySpeed(state, e) * dt;
     if (e.d >= line.length) {
       const cost = e.boss ? RULES.bossLeakCost : RULES.leakCost;
       lost += cost;

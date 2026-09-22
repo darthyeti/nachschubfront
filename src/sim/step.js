@@ -6,6 +6,8 @@ import { updateSpawns, waveCleared, totalWaves } from './waves.js';
 import { updatePods, salvoDone } from './pods.js';
 import { updateEnemies, removeDead } from './enemies.js';
 import { updateCombat } from './combat.js';
+import { updateProjectiles } from './projectiles.js';
+import { updateEffects } from './effects.js';
 import { updateShields, updateFlashes } from './damage.js';
 import { updateStress } from './debug.js';
 
@@ -27,6 +29,8 @@ export function stepSimulation(state, dt) {
     updateSpawns(state);
     updateEnemies(state, dt);
     updateCombat(state, dt);
+    updateProjectiles(state, dt);
+    updateEffects(state, dt);
     updateShields(state, dt);
     updateFlashes(state, dt);
     removeDead(state);

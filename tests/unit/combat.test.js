@@ -5,9 +5,11 @@ import assert from 'node:assert/strict';
 
 import { createGameState } from '../../src/core/state.js';
 import { addTower, towerStats, towerCentre } from '../../src/sim/towers.js';
-import { spawnEnemy, removeDead } from '../../src/sim/enemies.js';
+import { spawnEnemy, removeDead, updateEnemies } from '../../src/sim/enemies.js';
 import { updateCombat } from '../../src/sim/combat.js';
 import { damageEnemy, healEnemy, updateShields } from '../../src/sim/damage.js';
+import { applyBurn, applyStun, updateEffects, enemySpeed } from '../../src/sim/effects.js';
+import { updateProjectiles } from '../../src/sim/projectiles.js';
 import { bestTarget, canTarget, inRange, targetsInRange } from '../../src/sim/targeting.js';
 import { createPolyline } from '../../src/sim/route.js';
 import { DOCTRINES } from '../../src/data/doctrines.js';
@@ -220,4 +222,127 @@ test('the same situation always produces the same fight', () => {
     return JSON.stringify({ enemies: state.enemies, requisition: state.requisition });
   };
   assert.equal(run(), run());
+});
+
+test('the flame cone catches everything in front of it and sets it alight', () => {
+  const state = battlefield();
+  const flame = addTower(state, { x: 8, y: 10, doctrine: 'flame', rank: 1 });
+  // In front of the tower, along the route, within the 2 cell range.
+  const a = put(state, 'warrior', 9);
+  const b = put(state, 'warrior', 9.6);
+  // Behind the tower, the other way: outside the cone.
+  const behind = put(state, 'warrior', 7);
+  updateCombat(state, SIM_STEP);
+  assert.ok(a.health < a.maxHealth && b.health < b.maxHealth, 'the cone hits several enemies');
+  assert.equal(behind.health, behind.maxHealth, 'nothing behind the muzzle');
+  assert.ok(a.burn, 'and leaves them burning');
+  const before = a.health;
+  updateEffects(state, 1);
+  const burn = DOCTRINES.flame.burn.damagePerSecond * 1.5; // one second against flesh
+  assert.ok(Math.abs(before - a.health - burn) < 0.001, 'the burn ticks on its own');
+  assert.ok(flame.damage > 0, 'the burn is booked on the tower that lit it');
+});
+
+test('a burn runs out after its time', () => {
+  const state = battlefield();
+  const enemy = put(state, 'warrior', 1);
+  applyBurn(state, enemy, DOCTRINES.flame.burn, 'flame', null);
+  for (let i = 0; i < 60 * 4; i++) {
+    state.time += SIM_STEP;
+    updateEffects(state, SIM_STEP);
+  }
+  assert.equal(enemy.burn, null);
+  const burned = enemy.maxHealth - enemy.health;
+  const expected = DOCTRINES.flame.burn.damagePerSecond * DOCTRINES.flame.burn.seconds * 1.5;
+  assert.ok(Math.abs(burned - expected) < 0.5, `${burned} vs ${expected}`);
+});
+
+test('the laser pierces every enemy on its line', () => {
+  const state = battlefield();
+  const laser = addTower(state, { x: 6, y: 10, doctrine: 'laser', rank: 1 });
+  const near = put(state, 'warrior', 7);
+  const far = put(state, 'warrior', 9);
+  const aside = put(state, 'warrior', 8);
+  aside.y += 2; // two cells off the beam
+  updateCombat(state, SIM_STEP);
+  assert.ok(near.health < near.maxHealth && far.health < far.maxHealth, 'both on the line');
+  assert.equal(near.maxHealth - near.health, far.maxHealth - far.health, 'the beam does not weaken');
+  assert.equal(aside.health, aside.maxHealth, 'and misses what is off to the side');
+  assert.equal(state.events.filter((e) => e.type === 'beam').length, 1);
+});
+
+test('psi slows what it damages', () => {
+  const state = battlefield();
+  addTower(state, { x: 6, y: 10, doctrine: 'psi', rank: 1 });
+  const enemy = put(state, 'warrior', 6);
+  updateCombat(state, SIM_STEP);
+  assert.equal(enemy.slow, DOCTRINES.psi.slow);
+  assert.ok(Math.abs(enemySpeed(state, enemy) - enemy.speed * 0.7) < 1e-9);
+  state.time += 1;
+  updateEffects(state, SIM_STEP);
+  assert.equal(enemySpeed(state, enemy), enemy.speed, 'the slow wears off');
+});
+
+test('a frozen enemy stands still', () => {
+  const state = battlefield();
+  const enemy = put(state, 'warrior', 5);
+  applyStun(state, enemy, 2);
+  const before = enemy.d;
+  updateEnemies(state, 1);
+  assert.equal(enemy.d, before);
+  state.time += 3;
+  updateEnemies(state, 1);
+  assert.ok(enemy.d > before, 'and walks on afterwards');
+});
+
+test('tesla chains over several enemies, weaker every jump', () => {
+  const state = battlefield();
+  const tesla = addTower(state, { x: 8, y: 10, doctrine: 'tesla', rank: 1 });
+  const chain = DOCTRINES.tesla.chain;
+  const enemies = [];
+  for (let i = 0; i < 6; i++) {
+    const e = put(state, 'breaker', 8 + i * 0.8);
+    e.health = 1e6;
+    e.maxHealth = 1e6;
+    enemies.push(e);
+  }
+  updateCombat(state, SIM_STEP);
+  const hurt = enemies.filter((e) => e.health < e.maxHealth);
+  assert.equal(hurt.length, chain.targets, 'four targets at most');
+  const damage = hurt.map((e) => e.maxHealth - e.health).sort((a, b) => b - a);
+  assert.ok(Math.abs(damage[1] / damage[0] - (1 - chain.falloff)) < 0.001, 'each jump loses a fifth');
+  const event = state.events.find((e) => e.type === 'chain');
+  assert.equal(event.points.length, chain.targets + 1, 'the tower and its targets');
+});
+
+test('a mortar shell flies, leads its target and hits an area', () => {
+  const state = battlefield();
+  const mortar = addTower(state, { x: 8, y: 7, doctrine: 'mortar', rank: 1 });
+  const target = put(state, 'warrior', 8);
+  const neighbour = put(state, 'warrior', 8.8);
+  updateCombat(state, SIM_STEP);
+  assert.equal(state.projectiles.length, 1, 'the shell is on its way');
+  const shell = state.projectiles[0];
+  assert.ok(shell.to.x > target.x, 'aimed ahead of the walking target');
+  assert.equal(target.health, target.maxHealth, 'nothing happens before it lands');
+
+  for (let i = 0; i < 70; i++) {
+    updateEnemies(state, SIM_STEP);
+    updateProjectiles(state, SIM_STEP);
+  }
+  assert.equal(state.projectiles.length, 0);
+  assert.ok(target.health < target.maxHealth && neighbour.health < neighbour.maxHealth, 'the splash catches both');
+  assert.ok(mortar.damage > 0);
+  assert.equal(state.events.filter((e) => e.type === 'explosion').length, 1);
+});
+
+test('mortars cannot hit flyers, not even with the splash', () => {
+  const state = battlefield();
+  const mortar = addTower(state, { x: 8, y: 7, doctrine: 'mortar', rank: 1 });
+  put(state, 'warrior', 8);
+  const flyer = put(state, 'carrionflyer', 8.1);
+  updateCombat(state, SIM_STEP);
+  for (let i = 0; i < 70; i++) updateProjectiles(state, SIM_STEP);
+  assert.equal(flyer.health, flyer.maxHealth);
+  assert.ok(mortar.damage > 0, 'the ground target is hit all the same');
 });

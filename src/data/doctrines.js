@@ -13,8 +13,12 @@ export const DOCTRINES = {
     fire: 'stream',
     range: 2.0,
     targets: ['ground'],
-    /** Cone hits every enemy inside the range. */
-    cone: true,
+    /**
+     * The cone hits every enemy inside the range whose direction is within this
+     * angle of the aim (radians, about 40 degrees to each side). The GDD only
+     * says "cone", the width is ours.
+     */
+    coneHalfAngle: 0.7,
     burn: { damagePerSecond: 6, seconds: 3 },
   },
   autocannon: {
@@ -30,8 +34,11 @@ export const DOCTRINES = {
     fire: 0.8,
     range: 4.5,
     targets: ['ground', 'air'],
-    /** The beam pierces every enemy on its line. */
-    pierce: true,
+    /**
+     * The beam pierces every enemy on its line; an enemy counts as hit while it
+     * is within this distance of the beam (cells). Not in the GDD.
+     */
+    beamWidth: 0.5,
   },
   mortar: {
     color: '#d8ae5f',
@@ -58,7 +65,8 @@ export const DOCTRINES = {
     fire: 1,
     range: 3.0,
     targets: ['ground', 'air'],
-    chain: { targets: 4, falloff: 0.2 },
+    /** `jumpRange` is how far a bolt can jump to the next enemy (cells; not in the GDD). */
+    chain: { targets: 4, falloff: 0.2, jumpRange: 2.5 },
   },
 };
 

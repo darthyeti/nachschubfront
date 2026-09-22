@@ -52,6 +52,9 @@ export function createGameState(seed) {
 
     enemies: [],
     nextEnemyId: 1,
+    /** Shells in flight; empty outside a wave. */
+    projectiles: [],
+    nextProjectileId: 1,
     /** Pending spawns of the running wave, sorted by time. */
     spawns: [],
     /** Routes frozen at wave start: { ground, flyer } polylines. */

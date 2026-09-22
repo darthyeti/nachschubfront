@@ -62,6 +62,7 @@ export function towerStats(tower) {
     damage: def.damage * rank.damage,
     range: def.range * rank.range,
     minRange: def.minRange ?? 0,
+    splashRadius: def.splashRadius ?? 0,
   };
 }
 
