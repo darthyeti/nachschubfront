@@ -76,11 +76,12 @@ export function createSelectionPanel(root, { onSelect, onChoose }) {
       card.classList.toggle('on', pod.index === selected);
       card.setAttribute('aria-pressed', String(pod.index === selected));
       const badge = badgeFor(options, pod.index);
-      card.append(
+      const head = el('span', 'selection-head');
+      head.append(
         el('span', 'selection-num', String(pod.index + 1)),
         el('span', 'selection-name', STRINGS.doctrines[pod.doctrine]),
-        el('span', 'selection-rank', STRINGS.ranks[pod.rank]),
       );
+      card.append(head, el('span', 'selection-rank', STRINGS.ranks[pod.rank]));
       if (badge) card.append(el('span', 'selection-badge', badge));
       card.addEventListener('click', () => {
         onSelect(pod.index);

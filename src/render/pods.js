@@ -14,6 +14,8 @@ import { IMPACT_SECONDS, sinceImpact } from '../sim/pods.js';
 const SCALE = 1.45;
 /** Height the pod starts from, in screen pixels. */
 const FALL_HEIGHT = 900;
+/** How long the shell glows from re-entry after the impact. */
+const HEAT_SECONDS = 2.5;
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -113,12 +115,17 @@ function podCore(ctx, pod, heat, t) {
   ell(ctx, 0, -65, 3, 1.8, on ? '#ff3a2a' : '#5a1a14', C.ink, 1);
 }
 
+// The four petals open one after the other; together they take PODS.openSeconds.
+const PETAL_ORDER = [3, 0, 2, 1];
+const PETAL_STAGGER = PODS.openSeconds * 0.22;
+const PETAL_SECONDS = PODS.openSeconds * 0.34;
+
 /** How far the hatch petal `i` has opened. */
 function petalOpen(pod) {
   const since = sinceImpact(pod);
   return (i) => {
-    const order = [3, 0, 2, 1].indexOf(i);
-    const u = clamp01((since - PODS.openDelaySeconds - order * 0.13) / 0.22);
+    const order = PETAL_ORDER.indexOf(i);
+    const u = clamp01((since - PODS.openDelaySeconds - order * PETAL_STAGGER) / PETAL_SECONDS);
     return u * u;
   };
 }
@@ -158,7 +165,7 @@ export function drawPod(ctx, pod, t) {
   const [sx, sy] = iso(pod.x + 0.5, pod.y + 0.5);
   const z = pod.landed ? 0 : podHeight(pod);
   const since = sinceImpact(pod);
-  const heat = pod.landed ? Math.max(0, 1 - since / 3) : 1;
+  const heat = pod.landed ? Math.max(0, 1 - since / HEAT_SECONDS) : 1;
   const color = DOCTRINE_COLORS[pod.doctrine];
   const k = 1 - Math.min(1, z / FALL_HEIGHT);
   shadow(ctx, sx, sy + 2, (12 + 14 * k) * SCALE, (5 + 6 * k) * SCALE, 0.45 * k + 0.05);
@@ -196,7 +203,8 @@ export function drawPod(ctx, pod, t) {
   ctx.scale(SCALE, SCALE);
   const open = petalOpen(pod);
   for (const i of [2, 3]) petal(ctx, i, open(i), color);
-  const glow = clamp01((since - 1.3) / 0.6);
+  // Inner light once the hatches are mostly open.
+  const glow = clamp01((since - PODS.openDelaySeconds - PODS.openSeconds * 0.6) / 0.4);
   if (glow > 0) {
     ctx.globalAlpha = glow * 0.55;
     ell(ctx, 0, 0, 22, 11, color, null);

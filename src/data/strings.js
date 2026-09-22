@@ -102,7 +102,7 @@ export const STRINGS = {
 
   selection: {
     title: 'Eine Option wählen',
-    hint: 'Kapsel antippen, dann die Aktion wählen. Alle übrigen Kapseln werden zu Trümmern.',
+    hint: 'Kapsel wählen, dann die Aktion. Der Rest wird zu Trümmern.',
     pod: (n) => `Kapsel ${n}`,
     keep: 'Behalten',
     merge: (size, rank) => `Verschmelzen ×${size} → ${rank}`,

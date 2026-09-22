@@ -41,7 +41,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Auswahl (`src/sim/selection.js`): Behalten, Verschmelzen von zwei oder vier gleichen, Rezept erfüllen. Das Ergebnis steht auf dem Feld der gewählten Kapsel, alle übrigen Kapseln werden zu Trümmern. Jede Salve hinterlässt damit genau eine Stellung und vier Trümmer.
   - Auswahldialog (`src/ui/selection.js`): fünf Kapselkarten mit Leitfarbe, Name, Rang und einem Abzeichen, wenn mehr als Behalten möglich ist. Darunter die Aktionen für die gewählte Kapsel. Auswahl per Karte oder durch Antippen der Kapsel auf der Karte, erkennbar am goldenen Ring.
   - Nachschlagewerk (`src/ui/codex.js`): alle sechs Rezepte mit Zutaten, Mindestrang und Wirkung. Knopf „Rezepte“, Taste `R`, schließt mit Escape oder Tippen daneben.
-  - Kapselgrafik nach Stiltest (`src/render/pods.js`): Zielmarkierung, Sturz mit Glutschweif und Bremsflamme, Aufschlag, öffnende Luken, Hologramm mit Leitfarbe und Rang-Winkeln.
+  - Kapselgrafik nach Stiltest (`src/render/pods.js`): Zielmarkierung, Sturz mit Glutschweif und Bremsflamme, Aufschlag, öffnende Luken, Hologramm mit Leitfarbe und Rang-Winkeln. Eine Salve dauert bei 1x etwa 3,2 Sekunden (`SALVO_SECONDS` in `src/data/pods.js`), bei 3x gut eine Sekunde.
   - HUD: „Salve anfordern“ statt „Welle starten“, Zonenzähler, Nachschubstufe. Die untere Leiste ist jetzt eine Spalte, damit der Auswahldialog sie nie überdeckt.
   - Debug: Nachschubstufe umschalten (`N` oder `?supply=`), Belastungstest zeichnet zusätzlich 40 Stellungen aller Doktrinen und Ränge.
   - Leistung (Playwright, Apple M2 mit GPU): 200 Gegner und 40 Stellungen bei Start- und Maximalzoom konstant 60 fps, Rechenzeit 1,3 bis 1,6 ms pro Frame, 0 Rasterungen im Betrieb. WebKit: 17 ms pro Frame, Rechenzeit 2,0 bis 2,3 ms.
@@ -51,7 +51,6 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 ## Offen
 - Wirtschaft (Requisition, Nachschubstufe kaufen, Trümmer abreißen, Kommandopunkte) gehört zu M3. Ohne Debug-Schalter bleibt die Nachschubstufe auf 1, es kommen also nur Rekruten. Verschmelzen von zwei Rekruten ist dann der einzige Weg zum Veteran, Rezepte brauchen entsprechend mehrere Runden.
 - Spezialstellungen haben keine eigene Grafik. Bis M4 nutzen sie das Sprite der ersten Zutat im Legendenrang mit goldenem Ring und Halo. Eigene Silhouetten stehen in M4 im Umfang.
-- Die Kapselsequenz dauert bei 1x etwa 5,4 Sekunden (Werte aus dem Stiltest). Beim Neuaufbau in M4 sollte das noch einmal geprüft werden.
 - Veteran-Detail für Autokanone und Mörser festlegen (sie haben den Sandsackring schon).
 - Ränge Elite, Held und Legende: Panzerplatten, Banner, Goldkanten und Halo fehlen noch (laut M1b später).
 - Zerlegung der SVGs in bewegliche Teile (Läufe, Waffenköpfe, Beine, Flügel) und Herauslösen der eingebauten Effekte: M4.
@@ -59,7 +58,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - M2 Kapselmechanik: Plan vorlegen und Freigabe abwarten.
 
 ## Bekannte Probleme
-- Der Auswahldialog verdeckt den unteren Teil der Karte. Kapseln dahinter lassen sich nicht antippen, über die Karten im Dialog aber trotzdem wählen.
+- Der Auswahldialog liegt über dem unteren Rand der Karte (620 × 141 px auf dem Tablet). Eine Kapsel, die genau dahinter liegt, lässt sich nicht antippen, über die Karten im Dialog aber trotzdem wählen.
 - Das Ergänzen fehlender Landezonen prüft im schlimmsten Fall alle freien Felder (etwa 75 ms in einem sehr engen Labyrinth). Das passiert einmal pro Salve, fällt also nur als kurzer Hänger auf.
 - Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).
 - Ohne Stellungen fällt die Bastion in Welle 2 (12 Krieger plus 24 Schwärmer bei 20 Leben). Das ist bis M2 erwartbar, zum Testen einfach „Neue Partie“.
@@ -83,6 +82,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Kapselfelder werden beim Aufschlag blockiert, nicht schon beim Anfordern. So schließt sich das Labyrinth sichtbar, und die Route wird nach jedem Einschlag neu berechnet.
   - Der Zufall der Salve wird in zwei Zweige geteilt: `fork('zones')` für das Ergänzen der Zonen, `fork('contents')` für die Inhalte. Damit hängt der Kapselinhalt nicht davon ab, wie viele Zonen der Spieler markiert hat.
   - Der Belastungstest stellt zusätzlich 40 Stellungen auf und räumt sie beim Beenden wieder weg, damit die Messung die Last einer späten Partie abbildet.
+  - Nach dem ersten Durchspielen gekürzt und verschlankt: Die Kapselsequenz läuft in 3,2 statt 5,4 Sekunden (Vorwarnung, Sturz und Öffnen gestrafft, die Reihenfolge aus dem Stiltest bleibt). Der Auswahldialog ist auf 620 px begrenzt, die Kapselkarten sind zweizeilig, damit möglichst wenig Karte verdeckt wird.
 - Grafik-Konzept (22.09.2026): Gegner sind eine insektoide Brut (`docs/ART.md`). Umbenennung in der GDD: Mutant heißt jetzt Krieger, Warp-Geist heißt jetzt Warp-Seher. M1b wird als Grafik-Pipeline vor M2 eingeschoben.
 - M1b-Plan freigegeben (22.09.2026):
   - Autokanone und Mörser haben den Sandsackring schon in der Grundform. Beim Veteran zeigen sie in M1b nur den zweiten Winkel, ein eigenes Veteran-Detail wird später festgelegt (z. B. zusätzliche Munitionskisten).
