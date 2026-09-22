@@ -7,6 +7,7 @@ Pflichtlektüre vor jeder Aufgabe:
 - `docs/PROGRESS.md` für den aktuellen Stand
 - den Arbeitsauftrag des aktuellen Meilensteins in `docs/meilensteine/`
 - `reference/stiltest.html` für Optik, Zeichenfunktionen und Effekte
+- `docs/ART.md` für Stellungen, Gegner und Sprites (Konzeptgrafiken in `reference/konzept/`)
 
 ## Technische Grundregeln
 
@@ -55,6 +56,16 @@ Verbindliche Prinzipien:
 - Obergrenzen für Partikel und Aufkleber (Decals).
 - Leistungsziel: 60 fps mit 200 Gegnern und laufenden Effekten auf einem aktuellen iPad.
 - `prefers-reduced-motion` beachten: kein Bildschirmwackeln, gedämpfte Blitze.
+
+Sprites (Details in `docs/ART.md`):
+
+- Stellungen und Gegner kommen aus den SVGs in `reference/konzept/`. Sie werden als Module mit dem SVG-Text nach `src/render/sprites/` übernommen, nicht per Netzwerk geladen.
+- SVG ist nur die Quelle, Canvas die Ausgabe: SVGs beim Start einmal in Offscreen-Canvas rastern, danach nur `drawImage`. Kein SVG-Zeichnen pro Frame.
+- Pro Figur wenige Rasterstufen nach Zoom (etwa 0,5x, 1x, 2x mal devicePixelRatio) vorhalten und die passende wählen, damit beim Zoomen nichts unscharf wird.
+- Statische Teile als Sprite, Bewegung im Code: Sockel, Gehäuse, Körper, Köpfe und Klingen aus dem SVG; drehende Läufe, schwenkende Waffen, Flammen, Blitze, Beine im Laufzyklus und Flügelschlag per Code wie im Stiltest. Dazu werden die SVGs in Teile mit Ankerpunkt zerlegt.
+- Gegner sind nach links gezeichnet und werden je nach Laufrichtung horizontal gespiegelt. Keine acht Richtungen.
+- Treffer-Aufblitzen über eine vorgerenderte helle Variante des Sprites, keine Filter pro Frame.
+- Silhouette vor Detail: Jede Figur muss auch auf der kleinsten Zoomstufe als Schattenriss erkennbar sein. Leitfarben der Doktrinen und Rüstungsmerkmale laut ART.md.
 
 ## Eingabe und Tablet
 

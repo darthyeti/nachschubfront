@@ -1,13 +1,15 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M1: Spielkern (umgesetzt, Test durch dich steht aus)
+M1b: Grafik-Pipeline (eingeschoben vor M2, Plan wird vorgelegt)
+
+Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
 ## Erledigt
 - Game-Design-Grundlagen (docs/GDD.md)
 - Stiltest (reference/stiltest.html)
 - M0 Projektgerüst, abgenommen am 22.09.2026. Läuft unter https://darthyeti.github.io/nachschubfront/.
-- M1 Spielkern (22.09.2026):
+- M1 Spielkern (22.09.2026, gepusht; Abnahme durch dich auf dem iPad steht aus):
   - Wegfindung (`src/sim/pathfinding.js`): A* in acht Richtungen, gerade Schritte kosten 1, diagonale √2, kein Eckenschneiden, feste Reihenfolge bei Gleichstand (gleiche Karte, gleicher Weg).
   - Route (`src/sim/route.js`): Kette Riss → 1 → 2 → 3 → 4 → Bastion. Die Blockadeprüfung für ein Feld braucht etwa 0,15 ms. Flieger fliegen gerade von Punkt zu Punkt.
   - Kartengenerator (`src/sim/mapgen.js`, Werte in `src/data/map.js`): 24 × 24, Riss und Bastion an gegenüberliegenden Kanten, ein Signalfeuer pro Viertel, 12 bis 20 Ruinen, Krater und Mauerreste, geschützte Ringe. Über 500 Seeds geprüft.
@@ -23,16 +25,18 @@ M1: Spielkern (umgesetzt, Test durch dich steht aus)
 
 ## Offen
 - M1-Abnahme durch dich: am Desktop und auf dem iPad testen (`?debug` für den Hindernis-Modus).
-- M2 Kapselmechanik: Plan vorlegen.
+- M1b Grafik-Pipeline (`docs/meilensteine/M1b-grafik-pipeline.md`): Konzeptgrafiken aus `reference/konzept/` als Sprites einbauen, Regeln in `docs/ART.md`. Plan vorlegen und Freigabe abwarten.
+- Danach M2 Kapselmechanik.
 
 ## Bekannte Probleme
 - Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).
-- Ohne Stellungen fällt die Bastion in Welle 2 (12 Mutanten plus 24 Schwärmer bei 20 Leben). Das ist bis M2 erwartbar, zum Testen einfach „Neue Partie“.
+- Ohne Stellungen fällt die Bastion in Welle 2 (12 Krieger plus 24 Schwärmer bei 20 Leben). Das ist bis M2 erwartbar, zum Testen einfach „Neue Partie“.
 - Der Boden-Cache ist auf 12 Megapixel begrenzt (Speichergrenze von Safari). Bei maximalem Zoom auf dem iPad kann der Boden leicht unscharf werden, Objekte und Gegner bleiben scharf.
 - Headless-Chromium mit Software-Rendering schafft nur etwa 30 bis 60 fps. Mit GPU (Apple M2) stabil 60 fps. Auf echtem iPad noch nicht gemessen.
 - Hinweis: iPadOS ignoriert `display: fullscreen` im Manifest und nutzt `standalone`.
 
 ## Entscheidungen
+- Grafik-Konzept (22.09.2026): Gegner sind eine insektoide Brut (`docs/ART.md`). Umbenennung in der GDD: Mutant heißt jetzt Krieger, Warp-Geist heißt jetzt Warp-Seher. M1b wird als Grafik-Pipeline vor M2 eingeschoben.
 - Plattform: Desktop und Tablet gleichwertig, Tablet ist der Haupteinsatz.
 - Hosting: GitHub Pages, PWA. Speichern lokal, Speicherschicht für spätere Online-Bestenliste vorbereitet.
 - Kapseln nur in der Planungsphase. Spezialkommandos auch während der Welle.

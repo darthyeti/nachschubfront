@@ -10,7 +10,7 @@ Kernerlebnis: Jede Runde verlangt eine Abwägung zwischen Feuerkraft (welche Ste
 
 Setting: eigene Namen und Fraktionen, inspiriert vom Grimdark-Genre (gotische Ruinen, fanatische Verteidiger, Mutantenhorden, Warp-Kreaturen). Keine geschützten Namen, Logos oder Figuren aus Warhammer 40k oder One Page Rules.
 
-Optik: 2D-Isometrie im Comicstil mit dicken Tuschekonturen, harter Zellschattierung, schmutziger Palette (Rost, Knochenweiß, Blutrot, Giftgrün) und kräftigen Effekten. Referenz: `reference/stiltest.html`.
+Optik: 2D-Isometrie im Comicstil mit dicken Tuschekonturen, harter Zellschattierung, schmutziger Palette (Rost, Knochenweiß, Blutrot, Giftgrün) und kräftigen Effekten. Referenz: `reference/stiltest.html`. Gestaltungsregeln für Stellungen und Gegner (Silhouetten, Leitfarben, Rangdetails, Rüstungsmerkmale, Sprite-Technik): `docs/ART.md`, Konzeptgrafiken in `reference/konzept/`.
 
 ## 2. Plattform und Rahmen
 
@@ -130,9 +130,9 @@ Warp-Schild: Der Schild absorbiert Schaden zuerst und regeneriert sich nach 2 Se
 | Typ | Rüstung | Leben (Welle 1) | Tempo | Belohnung | Besonderheit |
 |---|---|---|---|---|---|
 | Schwärmer | Fleisch | 30 | 1,6 | 1 | Kommt in großen Gruppen |
-| Mutant | Fleisch | 70 | 1,1 | 2 | Standardgegner |
+| Krieger | Fleisch | 70 | 1,1 | 2 | Standardgegner |
 | Brecher | Panzer | 220 | 0,6 | 5 | Langsam und zäh |
-| Warp-Geist | Warp-Schild | 60 + 60 Schild | 1,0 | 4 | Schild regeneriert 10/s |
+| Warp-Seher | Warp-Schild | 60 + 60 Schild | 1,0 | 4 | Schild regeneriert 10/s |
 | Aasflieger | Flieger | 50 | 1,4 | 3 | Ignoriert das Labyrinth |
 | Zerplatzer | Fleisch | 90 | 0,9 | 3 | Setzt beim Tod 4 Schwärmer frei |
 | Heiler | Fleisch | 80 | 0,9 | 4 | Heilt Gegner im Radius 1,5 um 8/s |
