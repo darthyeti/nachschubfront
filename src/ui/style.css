@@ -551,7 +551,9 @@ button[hidden] {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
+  min-height: 44px;
   padding: 5px 12px;
   font-size: 15px;
   line-height: 1.15;
@@ -621,7 +623,7 @@ button[hidden] {
 
 .info-close {
   width: 100%;
-  min-height: 36px;
+  min-height: 44px;
   padding: 4px 10px;
   font-size: 15px;
 }

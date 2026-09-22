@@ -189,8 +189,12 @@ try {
     });
 
     await check('buttons are at least 44 x 44 CSS px', async () => {
+      // The debug panel is a development tool, not a player surface, so the
+      // thumb-size rule does not apply to it.
       const sizes = await page.$$eval('#hud button:not([hidden])', (bs) =>
-        bs.map((b) => [b.textContent, b.getBoundingClientRect().width, b.getBoundingClientRect().height]),
+        bs
+          .filter((b) => !b.closest('.debug-panel'))
+          .map((b) => [b.textContent, b.getBoundingClientRect().width, b.getBoundingClientRect().height]),
       );
       for (const [label, w, h] of sizes) assert.ok(w >= 44 && h >= 44, `${label}: ${w} x ${h}`);
     });
@@ -235,6 +239,19 @@ try {
       s = await game(page);
       assert.deepEqual(s.zones, []);
       assert.equal(s.previewCells, null, 'preview cleared with the marker');
+    });
+
+    await check('a long press opens the info panel, the close button shuts it', async () => {
+      const [x, y] = await screenOf(page, (await game(page)).rift);
+      await touch('touchStart', [[x, y]]);
+      await page.waitForSelector('.info:not([hidden])', { timeout: 5000 });
+      await touch('touchEnd', []);
+      await frames(page);
+      assert.match(await page.locator('.info-title').textContent(), /Riss/);
+      assert.deepEqual((await game(page)).zones, [], 'a long press marks nothing');
+      await page.getByRole('button', { name: 'Schließen' }).tap();
+      await frames(page);
+      assert.ok(await page.locator('.info').isHidden());
     });
 
     await check('a zone on a protected cell is refused', async () => {

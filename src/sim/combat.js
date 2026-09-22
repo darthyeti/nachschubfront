@@ -2,7 +2,7 @@
 // delivering damage; what they share is reload, targeting and reporting.
 
 import { towerStats, towerCentre } from './towers.js';
-import { bestTarget, targetsInRange, canTarget, distanceSq } from './targeting.js';
+import { bestTarget, targetsInRange, canTarget, distanceSq, routeProgress } from './targeting.js';
 import { damageEnemy } from './damage.js';
 import { applyBurn, applySlow, applyStun } from './effects.js';
 import { launchShell } from './projectiles.js';
@@ -173,7 +173,7 @@ function fireAura(state, tower, stats, dt) {
     hit(tower, stats, e, (stats.damage + percent * e.maxHealth) * dt);
     if (stats.def.slow) applySlow(state, e, stats.def.slow);
     if (stats.def.burn) applyBurn(state, e, stats.def.burn, stats.doctrine, tower.id, { stack: stats.burnStacks });
-    if (e.d > lead.d) lead = e;
+    if (routeProgress(state, e) > routeProgress(state, lead)) lead = e;
   }
   tower.aim = { x: lead.x, y: lead.y };
   return true;

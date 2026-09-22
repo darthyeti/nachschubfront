@@ -6,6 +6,16 @@
 // of a late match that is a few thousand distance checks per step, which is far
 // below the frame budget; a spatial index would only pay off beyond that.
 
+/**
+ * How far an enemy has come, as a share of its own route. Flyers cut across the
+ * map while the ground troops walk the maze, so the raw distance would always
+ * make the ground troops look closer to the bastion.
+ */
+export function routeProgress(state, enemy) {
+  const line = enemy.flying ? state.waveRoutes?.flyer : state.waveRoutes?.ground;
+  return line && line.length > 0 ? enemy.d / line.length : enemy.d;
+}
+
 /** True if the doctrine is allowed to shoot at this enemy at all. */
 export function canTarget(def, enemy) {
   return enemy.flying ? def.targets.includes('air') : def.targets.includes('ground');
@@ -30,9 +40,14 @@ export function inRange(tower, stats, enemy) {
  */
 export function bestTarget(state, tower, stats) {
   let best = null;
+  let bestProgress = -1;
   for (const e of state.enemies) {
     if (e.dead || !canTarget(stats.def, e) || !inRange(tower, stats, e)) continue;
-    if (!best || e.d > best.d || (e.d === best.d && e.id < best.id)) best = e;
+    const progress = routeProgress(state, e);
+    if (!best || progress > bestProgress || (progress === bestProgress && e.id < best.id)) {
+      best = e;
+      bestProgress = progress;
+    }
   }
   return best;
 }
@@ -52,7 +67,7 @@ export function targetsInRange(state, tower, stats, radius = stats.range, sorted
     if (distanceSq(tower, e) > r2) continue;
     found.push(e);
   }
-  if (sorted) found.sort((a, b) => b.d - a.d || a.id - b.id);
+  if (sorted) found.sort((a, b) => routeProgress(state, b) - routeProgress(state, a) || a.id - b.id);
   return found;
 }
 

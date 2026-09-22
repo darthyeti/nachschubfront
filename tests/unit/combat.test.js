@@ -10,7 +10,7 @@ import { updateCombat } from '../../src/sim/combat.js';
 import { damageEnemy, healEnemy, updateShields } from '../../src/sim/damage.js';
 import { applyBurn, applyStun, updateEffects, enemySpeed } from '../../src/sim/effects.js';
 import { updateProjectiles } from '../../src/sim/projectiles.js';
-import { bestTarget, canTarget, inRange, targetsInRange } from '../../src/sim/targeting.js';
+import { bestTarget, canTarget, inRange, targetsInRange, routeProgress } from '../../src/sim/targeting.js';
 import { createPolyline } from '../../src/sim/route.js';
 import { DOCTRINES } from '../../src/data/doctrines.js';
 import { rankStats } from '../../src/data/ranks.js';
@@ -430,4 +430,25 @@ test('special towers have no rank and keep the doctrine of their first ingredien
   const stats = towerStats(tower);
   assert.equal(stats.doctrine, 'mortar');
   assert.ok(stats.range > towerStats({ doctrine: 'mortar', rank: 5 }).range, 'and outranges a legend mortar');
+});
+
+test('how far along counts per route, so flyers are not ignored', () => {
+  const state = battlefield();
+  // The ground troops walk a long maze, the flyers cut straight across.
+  state.waveRoutes = {
+    ground: createPolyline([
+      { x: 0.5, y: 10.5 },
+      { x: 60.5, y: 10.5 },
+    ]),
+    flyer: createPolyline([
+      { x: 0.5, y: 10.5 },
+      { x: 12.5, y: 10.5 },
+    ]),
+  };
+  const tower = addTower(state, { x: 8, y: 10, doctrine: 'autocannon', rank: 1 });
+  const ground = put(state, 'warrior', 9);
+  const flyer = put(state, 'carrionflyer', 8.5);
+  assert.ok(flyer.d < ground.d, 'the flyer is behind by raw distance');
+  assert.ok(routeProgress(state, flyer) > routeProgress(state, ground), 'but closer to the bastion');
+  assert.equal(bestTarget(state, tower, towerStats(tower)).id, flyer.id);
 });

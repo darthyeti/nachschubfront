@@ -67,6 +67,20 @@ Sonderfähigkeiten sind sichtbar: Brut im Säuresack des Zerplatzers (#8fbf3a), 
 | zerplatzer.svg | Zerplatzer |
 | heiler.svg | Heiler |
 
+### Bosse
+
+Die fünf Bosse (GDD Abschnitt 9) haben noch keine Konzeptgrafik. Bis M4 leiht sich jeder von ihnen die Figur eines verwandten Gegners und wird deutlich größer gezeichnet (Faktor in `src/data/enemies.js`), dazu ein größerer Lebensbalken.
+
+| Boss | Geliehene Figur | Größe | Eigene Silhouette braucht |
+|---|---|---|---|
+| Brutmutter | Zerplatzer | 2,2x | Aufgeblähter Brutleib, Beinkranz |
+| Kolossbrecher | Brecher | 2,4x | Türmender Plattenpanzer, Rammschild |
+| Warp-Herold | Warp-Seher | 2,2x | Mehrere Schildblasen, Warp-Risse |
+| Schwarmkönigin | Aasflieger | 2,4x | Doppelflügel, Legestachel |
+| Dämonenprinz | Krieger | 2,6x | Wechselnde Rüstung sichtbar machen (Fleisch, Panzer, Warp-Schild) |
+
+Der Dämonenprinz wechselt im Kampf alle vier Sekunden die Rüstungsart. Das ist bisher nur in der Infoanzeige zu sehen und braucht in M4 ein sichtbares Zeichen an der Figur.
+
 ## Technische Umsetzung
 
 - **SVG als Quelle, Canvas als Ausgabe.** Die SVGs werden beim Start einmal in Offscreen-Canvas gerastert und danach nur noch per `drawImage` gezeichnet. Kein SVG-Zeichnen pro Frame.

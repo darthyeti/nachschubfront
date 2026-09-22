@@ -1,7 +1,7 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M2 ist umgesetzt und wartet auf die Abnahme (M1 und M1b abgenommen am 22.09.2026).
+M3 ist umgesetzt und wartet auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
 
 Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
@@ -48,14 +48,36 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Tests: 136 Unit-Tests (dazu Tabellen, Zonen, Kapselinhalte, Verschmelzen, Rezepte, eine ganze Partie mit Prüfung der Invarianten und der Wiederholbarkeit) und 21 Eingabeprüfungen im Browser, in Chromium und WebKit.
   - Behobener Fehler aus M1b: In `main.js` lag ein doppelter Block in `frame()`, der pro Bild einen Ladebildschirm anlegte und `sprites.preload()` aufrief. Gemessen nach zwei Sekunden: vorher 18 Überlagerungen über dem Canvas, jetzt 0.
 
+- M3 Kampf und Inhalte (22.09.2026, Abnahme offen):
+  - Datentabellen: Schadensmatrix und Rüstungsarten (`src/data/combat.js`), Gegner mit Sonderfähigkeiten und die fünf Bosse (`enemies.js`), Wirtschaft (`economy.js`), Spezialkommandos (`commands.js`), Werte der Spezialstellungen (`specials.js`).
+  - Wellenliste: alle 50 Wellen ausgeschrieben in `src/data/waves.js`, erzeugt mit `npm run waves` aus den Regeln des GDD (Fünferzyklus, jede zehnte Welle Boss mit Begleitung, Leben mal 1,12 hoch Welle minus eins). Handänderungen in der Datei überschreibt der nächste Lauf, gedacht als Werkzeug für M6.
+  - Kampfkern (`src/sim/combat.js`, `targeting.js`, `damage.js`): Ziel ist der Gegner, der am weitesten auf der Route ist, bei Gleichstand die kleinere ID. Nachladen, Schadensmatrix, Warp-Schild vor dem Fleisch darunter, Belohnung pro Abschuss, Schadenszähler pro Stellung für die Wellenstatistik.
+  - Doktrinen: Flamme brennt einen Kegel und setzt in Brand, Autokanone einzeln, Laser durchschlägt die Linie, Mörser führt sein Ziel vor und braucht eine Sekunde Flugzeit, Psi schädigt und verlangsamt im Ring, Tesla springt über vier Ziele mit minus 20 % je Sprung. Dazu Statuseffekte (Brand, Verlangsamung, Betäubung) in `effects.js` und Geschosse in `projectiles.js`.
+  - Spezialstellungen: alle sechs Rezepte wirken (`src/data/specials.js`). Jede behält die Doktrin ihrer ersten Zutat, die über Schadensmatrix und Leitfarbe entscheidet.
+  - Gegner: Heiler heilen 8/s im Radius 1,5, Zerplatzer setzen vier Schwärmer frei, Warp-Schilde regenerieren nach zwei ruhigen Sekunden. Bosse: Brutmutter setzt unterwegs Schwärmer frei, Warp-Herold springt drei Felder vor, Dämonenprinz wechselt alle vier Sekunden die Rüstungsart.
+  - Wirtschaft (`src/sim/economy.js`): Requisition aus Abschüssen und Wellenbonus (10 plus Wellennummer), Kommandopunkte aus Bossen und durchbruchsfreien Wellen. Ausgeben: Nachschubstufe ausbauen und Trümmer abreißen (15, danach je 5 mehr), beides mit Preis auf dem Knopf.
+  - Spezialkommandos (`src/sim/commands.js`, `src/ui/commands.js`): Orbitalschlag, Stasisfeld, Priorisierter Nachschub, Heiliges Banner mit Freischaltwelle, Kosten und Abklingzeit in Wellen. Gezielte Kommandos zeigen ihren Radius unter dem Zeiger, Escape bricht ab.
+  - Darstellung (`src/render/effects.js`): Mündungsblitze, Laserstrahlen, Tesla-Blitze, Granaten im Bogen, Explosionen mit Brandflecken, Todesausbrüche, Schadenszahlen und Lebensbalken über verletzten Gegnern. Alles mit Obergrenzen, alles nur lesend auf dem Zustand.
+  - Infoanzeige (`src/ui/info.js`): langes Drücken oder Mauszeiger zeigt Stellung, Gegner oder Gelände mit Werten und Zustand.
+  - Punkte nach GDD Abschnitt 12 im Banner bei Sieg und Niederlage.
+  - Debug-Panel (`?debug`): Welle anspringen, Requisition und Kommandopunkte geben, Kapselinhalt erzwingen, Unverwundbarkeit, Wellenstatistik mit den drei stärksten Stellungen.
+  - Werkzeuge: `npm run playmatch` spielt eine ganze Partie ohne Browser und schreibt eine Zeile pro Welle, `npm run test:battle` spielt eine echte Partie im Browser bei 3x und scheitert an jedem Konsolenfehler.
+  - Leistung (Playwright, Apple M2 mit GPU): Der Belastungstest kämpft jetzt mit. 200 Gegner und 40 feuernde Stellungen mit allen Effekten bleiben bei 60 fps, Rechenzeit 1,3 bis 2,0 ms pro Frame, 0 Rasterungen im Betrieb.
+  - Tests: 221 Unit-Tests (Kampf, Doktrinen, Spezialstellungen, Fähigkeiten, Kommandos, Wirtschaft, Infoanzeige, Wellentabelle) und die Browser-Prüfungen.
+
 ## Offen
-- Wirtschaft (Requisition, Nachschubstufe kaufen, Trümmer abreißen, Kommandopunkte) gehört zu M3. Ohne Debug-Schalter bleibt die Nachschubstufe auf 1, es kommen also nur Rekruten. Verschmelzen von zwei Rekruten ist dann der einzige Weg zum Veteran, Rezepte brauchen entsprechend mehrere Runden.
+- Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
 - Spezialstellungen haben keine eigene Grafik. Bis M4 nutzen sie das Sprite der ersten Zutat im Legendenrang mit goldenem Ring und Halo. Eigene Silhouetten stehen in M4 im Umfang.
+- Bosse haben keine eigene Grafik. Bis M4 leihen sie sich die Figur eines verwandten Gegners, deutlich größer gezeichnet (`docs/ART.md`).
+- Waffen drehen sich noch nicht zum Ziel. Die Sprites sind starr, der Schuss geht als Effekt vom Sockel aus. Bewegliche Läufe und Waffenköpfe kommen mit der SVG-Zerlegung in M4.
+- Der Rüstungswechsel des Dämonenprinzen ist nur in der Infoanzeige zu sehen, an der Figur noch nicht.
 - Veteran-Detail für Autokanone und Mörser festlegen (sie haben den Sandsackring schon).
 - Ränge Elite, Held und Legende: Panzerplatten, Banner, Goldkanten und Halo fehlen noch (laut M1b später).
 - Zerlegung der SVGs in bewegliche Teile (Läufe, Waffenköpfe, Beine, Flügel) und Herauslösen der eingebauten Effekte: M4.
 - Sprite-Galerie (`tests/sprites.html`) ist nur ein Schaukasten: Verschieben, Zoomen, Treffer-Variante. Vorgeschlagen und vertagt: Beschriftungen der Figuren und ein Silhouetten-Schalter für die Regel „Silhouette vor Detail“ aus ART.md.
-- M2 Kapselmechanik: Plan vorlegen und Freigabe abwarten.
+- Balancing-Beobachtungen aus `npm run playmatch` (Seed BASTION, Stellungen neben der Route, Nachschub wird gekauft, keine Kommandos): Die Partie trägt bis Welle 43. Die Wand sind die Flieger-Wellen, weil sie das Labyrinth überfliegen und nur Autokanone, Laser, Psi und Tesla sie treffen. Vorschlag für M6: entweder Flieger-Wellen entschärfen oder einen Hinweis geben, dass Luftabwehr gebraucht wird.
+- Requisition staut sich: Ab Nachschubstufe 8 (etwa Welle 20) gibt es nur noch Trümmer abreißen als Ausgabe, am Ende liegen über 4000 ungenutzt herum. Kommandopunkte ebenso (50 KP bei vier Kommandos mit Abklingzeit). Beides ist ein Thema für M6, kein Fehler.
+- Die Spezialstellungen, die Boss-Werte und die Kegel-, Strahl- und Sprungweiten der Doktrinen stehen nicht im GDD. Die eingetragenen Zahlen sind hergeleitet (siehe Entscheidungen) und gehören in M6 auf den Prüfstand.
 
 ## Bekannte Probleme
 - Der Auswahldialog liegt über dem unteren Rand der Karte (620 × 141 px auf dem Tablet). Eine Kapsel, die genau dahinter liegt, lässt sich nicht antippen, über die Karten im Dialog aber trotzdem wählen.
@@ -69,6 +91,25 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - Hinweis: iPadOS ignoriert `display: fullscreen` im Manifest und nutzt `standalone`.
 
 ## Entscheidungen
+- M3-Plan freigegeben (22.09.2026). Die Zahlen, die der GDD offen lässt, sind hergeleitet und stehen als Daten für M6 bereit:
+  - **Boss-Werte** (`src/data/enemies.js`): Leben etwa anderthalb normale Wellen derselben Welle (Brutmutter 1800, Kolossbrecher 3500, Warp-Herold 3000 plus 1500 Schild, Schwarmkönigin 3500, Dämonenprinz 5000, jeweils mal dem Wellenfaktor), Tempo unter dem der Begleitung, Belohnung 50. Durchbruch kostet 5 Leben wie im GDD.
+  - **Spezialstellungen** (`src/data/specials.js`): Jede ist etwa so stark wie ihre führende Doktrin einen Rang über dem Mindestrang des Rezepts und gibt den Rest ihres Budgets für das Besondere aus (Ring statt Kegel, drei Ziele, acht Sprünge, Betäubung). Ein Test hält fest, dass keine Spezialstellung schwächer ist als ihre Zutat.
+  - **Seelenfeuer-Obelisk**: 3 % der maximalen Lebenspunkte pro Sekunde zusätzlich zum festen Schaden. Das ist die Waffe gegen Bosse, ohne dass eine Zahl im Spiel je zu klein wird.
+  - **Orbitalschlag**: nimmt normalen Gegnern die vollen Lebenspunkte und Bossen ein Viertel (GDD-Obergrenze), als Anteil statt als feste Zahl, damit er in Welle 15 und in Welle 50 gleich viel wert ist. Er geht an der Schadensmatrix vorbei, weil er keine Doktrin ist.
+  - **Form der Doktrinen** (`src/data/doctrines.js`): Kegelwinkel der Flamme 0,7 rad zu jeder Seite, Strahlbreite des Lasers 0,5 Felder, Sprungweite des Teslas 2,5 Felder. Der GDD nennt nur Kegel, Linie und Kette.
+  - **Start-Requisition 0**: Die erste Welle bezahlt die erste Nachschubstufe.
+  - Endlosmodus und Bestwerte bleiben vertagt: Punkte werden in M3 berechnet und angezeigt, gespeichert wird in M5 über die Speicherschicht.
+- M3, Umsetzung:
+  - Die Wellentabelle wird erzeugt, nicht zur Laufzeit gerechnet: `npm run waves` schreibt alle 50 Wellen aus. So ist jede Welle einzeln les- und änderbar, wie es der GDD verlangt, und die Regeln stehen an einer Stelle.
+  - Der Warp-Schild verschluckt einen zu großen Treffer nicht: Was über den Schild hinausgeht, wird zurückgerechnet und trifft das Fleisch darunter mit dessen Faktor.
+  - Schaden wird auf den tatsächlich verbleibenden Lebenspunkten gedeckelt, damit die Wellenstatistik keine Überschüsse ausweist.
+  - Brandschaden wird der Stellung angerechnet, die das Feuer gelegt hat.
+  - Die Doktrin einer Spezialstellung ist ihre erste Zutat. Der Glutkessel ist deshalb eine Flammen-Waffe mit Blitzen und zielt nicht auf Flieger, gegen die Flamme nichts ausrichtet.
+  - Eine Welle endet erst, wenn auch die letzte Granate eingeschlagen ist.
+  - Der Belastungstest kämpft mit: Die Gegner werden jeden Schritt wieder geheilt, damit die Messung die Last einer vollen Welle abbildet statt eines leeren Feldes.
+  - Kommandos zählen in der Planung gegen die Welle, die die Salve vorbereitet. „Ab Welle 25" heißt also: in der Planung vor Welle 25 nutzbar.
+  - Die Infoanzeige folgt am Desktop dem Mauszeiger und wird auf dem Tablet mit langem Drücken festgesetzt. Nichts ist nur über Hover erreichbar.
+  - Das Debug-Panel ist Werkzeug, kein Spielerbildschirm: Seine Knöpfe sind kleiner als die 44 Pixel, die für alles andere gelten.
 - M2-Plan freigegeben (22.09.2026):
   - Nachschubstufe bleibt ohne Wirtschaft auf 1, dazu ein Debug-Schalter (`N`, `?supply=`), damit Verschmelzen und Rezepte prüfbar sind.
   - Spezialstellungen bekommen in M2 nur eine Platzhaltergrafik, eigene Silhouetten kommen in M4.
