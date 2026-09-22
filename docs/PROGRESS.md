@@ -1,7 +1,7 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M1b: Grafik-Pipeline (umgesetzt, Test durch dich steht aus)
+M2: Kapselmechanik (M1 und M1b abgenommen am 22.09.2026)
 
 Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
@@ -9,7 +9,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - Game-Design-Grundlagen (docs/GDD.md)
 - Stiltest (reference/stiltest.html)
 - M0 Projektgerüst, abgenommen am 22.09.2026. Läuft unter https://darthyeti.github.io/nachschubfront/.
-- M1 Spielkern (22.09.2026, gepusht; Abnahme durch dich auf dem iPad steht aus):
+- M1 Spielkern (22.09.2026, auf dem iPad abgenommen):
   - Wegfindung (`src/sim/pathfinding.js`): A* in acht Richtungen, gerade Schritte kosten 1, diagonale √2, kein Eckenschneiden, feste Reihenfolge bei Gleichstand (gleiche Karte, gleicher Weg).
   - Route (`src/sim/route.js`): Kette Riss → 1 → 2 → 3 → 4 → Bastion. Die Blockadeprüfung für ein Feld braucht etwa 0,15 ms. Flieger fliegen gerade von Punkt zu Punkt.
   - Kartengenerator (`src/sim/mapgen.js`, Werte in `src/data/map.js`): 24 × 24, Riss und Bastion an gegenüberliegenden Kanten, ein Signalfeuer pro Viertel, 12 bis 20 Ruinen, Krater und Mauerreste, geschützte Ringe. Über 500 Seeds geprüft.
@@ -22,7 +22,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - HUD: Welle, Leben, Phase, Routenlänge, Seed, Pause/1x/2x/3x, „Welle starten“, „Neue Partie“, Banner nach Wellen und bei Niederlage oder Sieg.
   - Debug-Werkzeug: Taste `H` oder mit `?debug` der Hindernis-Modus. Abgelehnte Felder blinken rot mit Grund.
   - Tests: 91 Unit-Tests. Dazu `npm run test:input` mit 13 Prüfungen im Browser (Touch-Wischen, Tippen, Pinch, Maus, Tastatur, Welle auf 3x, Niederlage und neue Partie).
-- M1b Grafik-Pipeline (22.09.2026):
+- M1b Grafik-Pipeline (22.09.2026, auf dem iPad abgenommen: Belastungstest mit 200 Gegnern läuft dort mit 60 fps):
   - Import (`npm run sprites`, `tests/tools/import-sprites.mjs`): Die Konzept-SVGs werden zusammengeführt, jede Figur wird im Browser vermessen. Das Ergebnis liegt als Module in `src/render/sprites/enemies.js` und `towers.js`. Welche Figur zu welchem Typ gehört und in welcher Größe, steht in `src/render/sprites/manifest.js`.
   - Rasterizer (`src/render/sprites/rasterizer.js`): Jede Figur wird einmal pro Stufe gerastert (0,5 / 1 / 2 / 2,5 mal DPR), mit vorgerenderter heller Treffer-Variante. Fehlende Stufen entstehen im Hintergrund, bis dahin wird die nächste vorhandene Stufe skaliert. Eine Ladeanzeige läuft beim Start.
   - Gegner aus den Sprites: Schatten, Wippen, Spiegeln je nach Laufrichtung mit Totzone. Flieger schweben über ihrem Schatten.
@@ -34,18 +34,17 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Behobener iPad-Fehler, gefunden mit WebKit: HUD-Knöpfe reagierten nicht auf Touch. Ursache war `preventDefault()` auf `pointerdown` der Knöpfe; WebKit löst danach kein `click` aus. Jetzt geben die Knöpfe nach dem Klick den Fokus ab, damit die Leertaste weiter pausiert.
 
 ## Offen
-- M1-Abnahme durch dich: am Desktop und auf dem iPad testen (`?debug` für den Hindernis-Modus).
-- M1b-Abnahme durch dich: Spiel mit `?debug` (Belastungstest, Rechenzeit) und `tests/sprites.html` auf dem iPad prüfen, auf Schärfe bei allen Zoomstufen und flüssigen Lauf.
 - Veteran-Detail für Autokanone und Mörser festlegen (sie haben den Sandsackring schon).
 - Ränge Elite, Held und Legende: Panzerplatten, Banner, Goldkanten und Halo fehlen noch (laut M1b später).
 - Zerlegung der SVGs in bewegliche Teile (Läufe, Waffenköpfe, Beine, Flügel) und Herauslösen der eingebauten Effekte: M4.
-- Danach M2 Kapselmechanik.
+- Sprite-Galerie (`tests/sprites.html`) ist nur ein Schaukasten: Verschieben, Zoomen, Treffer-Variante. Vorgeschlagen und vertagt: Beschriftungen der Figuren und ein Silhouetten-Schalter für die Regel „Silhouette vor Detail“ aus ART.md.
+- M2 Kapselmechanik: Plan vorlegen und Freigabe abwarten.
 
 ## Bekannte Probleme
 - Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).
 - Ohne Stellungen fällt die Bastion in Welle 2 (12 Krieger plus 24 Schwärmer bei 20 Leben). Das ist bis M2 erwartbar, zum Testen einfach „Neue Partie“.
 - Der Boden-Cache ist auf 12 Megapixel begrenzt (Speichergrenze von Safari). Bei maximalem Zoom auf dem iPad kann der Boden leicht unscharf werden, Objekte und Gegner bleiben scharf.
-- Headless-Chromium mit Software-Rendering schafft nur etwa 30 bis 60 fps. Mit GPU (Apple M2) stabil 60 fps, auch mit 200 Sprite-Gegnern. Auf echtem iPad noch nicht gemessen. WebKit (Safari-Engine) wird automatisch getestet. Das ersetzt aber nicht den Test auf dem echten iPad, besonders nicht für Touch-Gesten mit mehreren Fingern: Die werden in WebKit als synthetische PointerEvents erzeugt, weil Playwright dort keine echten Mehrfinger-Berührungen senden kann.
+- Headless-Chromium mit Software-Rendering schafft nur etwa 30 bis 60 fps. Mit GPU (Apple M2) stabil 60 fps, auch mit 200 Sprite-Gegnern. Auf dem iPad bestätigt: Belastungstest mit 200 Gegnern läuft mit 60 fps. WebKit (Safari-Engine) wird automatisch getestet. Das ersetzt aber nicht den Test auf dem echten iPad, besonders nicht für Touch-Gesten mit mehreren Fingern: Die werden in WebKit als synthetische PointerEvents erzeugt, weil Playwright dort keine echten Mehrfinger-Berührungen senden kann.
 - Im Belastungstest liegen die 200 Gegner sehr dicht auf der Route (bewusst, als Worst Case).
 - Die Treffer-Variante ist vorbereitet, im Spiel blitzt aber noch nichts auf, weil es bis M3 keinen Schaden gibt.
 - Hinweis: iPadOS ignoriert `display: fullscreen` im Manifest und nutzt `standalone`.
