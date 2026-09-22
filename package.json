@@ -1,0 +1,16 @@
+{
+  "name": "nachschubfront",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Grimdark tower defense with mazing mechanics, isometric comic style.",
+  "type": "module",
+  "scripts": {
+    "serve": "python3 -m http.server 8000",
+    "test": "node --test tests/unit/",
+    "screenshots": "node tests/screenshots.mjs",
+    "icons": "node tests/tools/make-icons.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}
