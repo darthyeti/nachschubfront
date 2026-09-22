@@ -1,12 +1,12 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M0: Projektgerüst (umgesetzt, Abnahme auf GitHub Pages steht aus)
+M1: Spielkern (M0 abgeschlossen am 22.09.2026)
 
 ## Erledigt
 - Game-Design-Grundlagen (docs/GDD.md)
 - Stiltest (reference/stiltest.html)
-- M0 Projektgerüst:
+- M0 Projektgerüst, abgenommen am 22.09.2026. Läuft unter https://darthyeti.github.io/nachschubfront/ ohne Konsolenfehler, geprüft mit Playwright am Desktop und auf dem Tablet mit Touch.
   - Ordnerstruktur laut CLAUDE.md, `index.html` mit Canvas und HUD-Container
   - Spielschleife: fester Zeitschritt 1/60 s (`src/core/loop.js`), Geschwindigkeit 0 bis 3, höchstens 12 Schritte pro Frame, Rendering per requestAnimationFrame
   - Canvas im Vollbild, folgt Größenänderung, Drehen und DPR (höchstens 2), HUD mit Safe-Area-Abständen
@@ -19,8 +19,8 @@ M0: Projektgerüst (umgesetzt, Abnahme auf GitHub Pages steht aus)
   - README mit Anleitung für GitHub Pages
 
 ## Offen
-- M0-Abnahme: Spiel auf GitHub Pages aufrufen, am Desktop und auf dem iPad prüfen (Vollbild, Drehen, kein Zoomen oder Scrollen der Seite).
-- Nächster Meilenstein: M1 Spielkern.
+- Test auf einem echten iPad: Vollbild, Drehen, Seite lässt sich nicht zoomen oder scrollen, Installation als PWA über „Zum Home-Bildschirm“.
+- M1 Spielkern: Plan vorlegen.
 
 ## Bekannte Probleme
 - Keine bekannt.
