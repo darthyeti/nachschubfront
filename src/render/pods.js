@@ -3,7 +3,7 @@
 // brake thrusters, bolts and hatches follows in M4.
 
 import { iso } from './iso.js';
-import { poly, ell, shadow, comicText, cellPath } from './draw.js';
+import { poly, ell, shadow, comicText } from './draw.js';
 import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { STRINGS } from '../data/strings.js';
@@ -245,15 +245,15 @@ export function drawPodHologram(ctx, pod, t) {
   ctx.globalAlpha = 1;
 }
 
-/** Highlight of a pod the player can choose, e.g. the anchors of a merge. */
+/**
+ * Ring around a pod during the selection. It is wider than the opened hatches,
+ * so the pick stays visible on the map, not only on the card.
+ */
 export function drawPodHighlight(ctx, pod, { selected, t, reducedMotion }) {
-  cellPath(ctx, pod.x, pod.y, 0.04);
-  ctx.fillStyle = selected ? 'rgba(242,193,78,.3)' : 'rgba(242,193,78,.12)';
-  ctx.fill();
-  ctx.setLineDash(selected ? [] : [7, 6]);
+  const [x, y] = iso(pod.x + 0.5, pod.y + 0.5);
+  ctx.setLineDash(selected ? [] : [8, 7]);
   ctx.lineDashOffset = reducedMotion ? 0 : -t * 14;
-  ctx.strokeStyle = selected ? C.gold : 'rgba(242,193,78,.85)';
-  ctx.lineWidth = selected ? 4 : 2.5;
-  ctx.stroke();
+  ell(ctx, x, y, 48, 24, null, selected ? C.gold : 'rgba(242,193,78,.55)', selected ? 4 : 2.5);
   ctx.setLineDash([]);
+  if (selected) ell(ctx, x, y, 55, 27.5, null, 'rgba(242,193,78,.3)', 2);
 }

@@ -143,11 +143,19 @@ body {
   color: #ff6a4a;
 }
 
-.hud-bar {
+.hud-bottom {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
   bottom: calc(12px + var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(920px, calc(100% - 24px - var(--safe-left) - var(--safe-right)));
+}
+
+.hud-bar {
   display: flex;
   gap: 10px;
   align-items: center;
@@ -156,7 +164,7 @@ body {
   box-shadow: 4px 4px 0 var(--ink);
   padding: 8px 10px;
   border-radius: 4px;
-  max-width: calc(100% - 24px - var(--safe-left) - var(--safe-right));
+  max-width: 100%;
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -247,7 +255,8 @@ button[hidden] {
 .hud-debug {
   position: absolute;
   right: calc(16px + var(--safe-right));
-  bottom: calc(80px + var(--safe-bottom));
+  /* Below the info chips: the bottom column grows when the selection panel opens. */
+  top: calc(58px + var(--safe-top));
   font-size: 14px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -300,5 +309,108 @@ button[hidden] {
 @media (prefers-reduced-motion: reduce) {
   .loading {
     transition: none;
+  }
+}
+
+/* Selection panel: five pod cards and the actions for the picked one. */
+.selection {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.selection[hidden] {
+  display: none;
+}
+
+.selection-cards,
+.selection-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.selection-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 104px;
+  padding: 5px 9px 5px 12px;
+  background: var(--btn-alt);
+  border-left: 8px solid var(--doctrine);
+  text-align: left;
+  line-height: 1.15;
+}
+
+.selection-card.on {
+  background: var(--btn);
+  outline: 3px solid var(--doctrine);
+  outline-offset: 1px;
+}
+
+.selection-num {
+  font-family: var(--font-comic);
+  font-size: 15px;
+  color: #4a3f2e;
+}
+
+.selection-name {
+  font-size: 18px;
+}
+
+.selection-rank {
+  font-size: 15px;
+  font-weight: 500;
+  color: #4a3f2e;
+}
+
+.selection-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1410;
+  background: var(--doctrine);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.selection-actions button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  line-height: 1.1;
+}
+
+.selection-note {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.selection-hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-height: 560px) {
+  .selection-hint {
+    display: none;
   }
 }

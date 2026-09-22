@@ -90,7 +90,17 @@ export const STRINGS = {
   },
 
   selection: {
+    title: 'Eine Option wählen',
+    hint: 'Kapsel antippen, dann die Aktion wählen. Alle übrigen Kapseln werden zu Trümmern.',
+    pod: (n) => `Kapsel ${n}`,
     keep: 'Behalten',
+    merge: (size, rank) => `Verschmelzen ×${size} → ${rank}`,
+    mergeBadge: (size) => `×${size}`,
+    recipe: (name) => `Rezept: ${name}`,
+    recipeBadge: 'Rezept',
+    consumes: (n) => (n === 1 ? 'verbraucht 1 Stellung' : `verbraucht ${n} Stellungen`),
+    tower: (doctrine, rank) => `${doctrine} ${rank}`,
+    built: (name) => `${name} errichtet`,
   },
 
   gallery: {

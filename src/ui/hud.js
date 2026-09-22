@@ -85,7 +85,11 @@ export function createHud(root, { debug, onAction }) {
     debugEl = el('div', 'hud-debug');
   }
 
-  root.append(top, info, bar, banner);
+  // Bottom column: the selection panel sits above the bar and can never overlap it.
+  const bottom = el('div', 'hud-bottom');
+  bottom.append(bar);
+
+  root.append(top, info, bottom, banner);
   if (debugEl) root.append(debugEl);
 
   const cache = new Map();
@@ -96,6 +100,9 @@ export function createHud(root, { debug, onAction }) {
   };
 
   return {
+    /** Column above the bottom bar; panels insert themselves here. */
+    bottom,
+
     /** Syncs the HUD with game state and render-side UI state. */
     update(state, ui, { totalWaves, canStart }) {
       set('wave', `${state.wave}/${totalWaves}`, (v) => (wave.textContent = `${T.wave} ${v}`));

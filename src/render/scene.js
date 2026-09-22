@@ -128,12 +128,6 @@ export function createSceneRenderer(sprites) {
       state.zones.forEach((zone, i) => drawZoneMarker(ctx, zone, i, t, ui.reducedMotion));
     }
     for (const pod of state.pods) drawPodTarget(ctx, pod, t);
-    if (state.phase === 'selection') {
-      for (const index of ui.podHighlights ?? []) {
-        const pod = state.pods[index];
-        if (pod) drawPodHighlight(ctx, pod, { selected: index === ui.podSelected, t, reducedMotion: ui.reducedMotion });
-      }
-    }
 
     if (ui.hoverCell) drawCellMarker(ctx, ui.hoverCell, 'rgba(242,193,78,.12)', 'rgba(242,193,78,.8)', 2);
     for (const f of ui.flashes) {
@@ -169,6 +163,13 @@ export function createSceneRenderer(sprites) {
       } else if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, cam.zoom, view.dpr)) drawEnemy(ctx, o, t);
     }
 
+    // Rings go on top of the opened hatches, otherwise the pod hides them.
+    if (state.phase === 'selection') {
+      for (const index of ui.podHighlights ?? []) {
+        const pod = state.pods[index];
+        if (pod) drawPodHighlight(ctx, pod, { selected: index === ui.podSelected, t, reducedMotion: ui.reducedMotion });
+      }
+    }
     for (const pod of state.pods) drawPodHologram(ctx, pod, t);
     map.beacons.forEach((b, i) => drawBeaconLabel(ctx, b, i + 1));
 

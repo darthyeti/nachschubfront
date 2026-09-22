@@ -100,6 +100,7 @@ async function playRound(page, tapAt, anchor = 0) {
   const pod = (await game(page)).pods[anchor];
   const [x, y] = await screenOf(page, pod);
   await tapAt(x, y);
+  await page.getByRole('button', { name: 'Behalten' }).click();
   await page.waitForFunction(() => window.__nachschub.state().phase === 'wave', null, { timeout: 10000 });
   return pod;
 }
@@ -222,26 +223,66 @@ try {
       assert.deepEqual((await game(page)).zones, []);
     });
 
-    await check('wave at 3x runs, enemies break through, back to planning', async () => {
+    await check('the selection panel lists five pods, a tap on the map picks one', async () => {
+      await page.getByRole('button', { name: 'Salve anfordern' }).click();
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 60000 });
+      const cards = await page.$$('.selection-card');
+      assert.equal(cards.length, 5);
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).podSelected, 0, 'first pod preselected');
+
+      // Pick a pod other than the preselected one and pan it clear of the panel;
+      // on the map only the free area is tappable, the cards reach every pod.
+      const panelTop = await page.evaluate(() => document.querySelector('.selection').getBoundingClientRect().top);
+      const pods = (await game(page)).pods;
+      const heights = await Promise.all(pods.map((p) => screenOf(page, p)));
+      const index = heights.map(([, y], i) => [y, i]).filter(([, i]) => i > 0).sort((a, b) => a[0] - b[0])[0][1];
+      const target = panelTop - 90;
+      let [px, py] = heights[index];
+      if (py > target) {
+        const dy = py - target;
+        await touch('touchStart', [[600, 420]]);
+        for (let i = 1; i <= 10; i++) await touch('touchMove', [[600, 420 - (dy * i) / 10]]);
+        await touch('touchEnd', []);
+        await frames(page);
+        [px, py] = await screenOf(page, pods[index]);
+      }
+      assert.ok(py < panelTop, `pod ${index} at y ${py}, panel starts at ${panelTop}`);
+      const pod = pods[index];
+      await page.touchscreen.tap(px, py);
+      await frames(page);
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).podSelected, index, 'tapping the pod picks it');
+      // The panel rebuilds its cards on every change, so query them again.
+      assert.equal(await page.$$eval('.selection-card', (cs) => cs.findIndex((c) => c.getAttribute('aria-pressed') === 'true')), index);
+      await page.screenshot({ path: join(OUT, 'tablet-selection.png') });
+
+      await page.getByRole('button', { name: 'Behalten' }).click();
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'wave', null, { timeout: 10000 });
+      const s = await game(page);
+      assert.equal(s.towers.length, 1, 'the picked pod became a tower');
+      assert.deepEqual({ x: s.towers[0].x, y: s.towers[0].y }, { x: pod.x, y: pod.y }, 'on the picked pod cell');
+      assert.equal(s.obstacles, before.obstacles + 4, 'the other four pods became rubble');
+      await frames(page);
+      assert.ok(await page.locator('.selection').isHidden(), 'the panel closes with the choice');
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'planning', null, { timeout: 90000 });
+    });
+
+    await check('second salvo at 3x, wave runs, enemies break through', async () => {
       await page.getByRole('button', { name: '3x' }).tap();
       await playRound(page, (x, y) => page.touchscreen.tap(x, y));
       const s = await game(page);
-      assert.equal(s.towers.length, 1, 'the kept pod became a tower');
-      assert.equal(s.obstacles, before.obstacles + 4, 'the other four pods became rubble');
+      assert.equal(s.wave, 2);
+      assert.equal(s.towers.length, 2, 'every salvo leaves exactly one tower');
+      assert.equal(s.obstacles, before.obstacles + 8, 'and four heaps of rubble');
       await page.waitForFunction(() => window.__nachschub.state().enemies >= 6, null, { timeout: 15000 });
       const mid = await game(page);
       assert.equal(mid.phase, 'wave');
       assert.equal(mid.speed, 3);
       await page.screenshot({ path: join(OUT, 'tablet-wave.png') });
-      await page.waitForFunction(() => window.__nachschub.state().phase === 'planning', null, { timeout: 90000 });
-      const end = await game(page);
-      assert.equal(end.wave, 1);
-      assert.ok(end.lives < 20, `lives ${end.lives}`);
+      assert.ok(mid.lives < 20, `lives ${mid.lives}`);
     });
 
     await check('defeat shows a banner and "Neue Partie" starts a fresh match', async () => {
       // The towers do not shoot yet, so the second wave overruns the bastion.
-      await playRound(page, (x, y) => page.touchscreen.tap(x, y));
       await page.waitForFunction(() => window.__nachschub.state().phase === 'defeat', null, { timeout: 90000 });
       const banner = await page.locator('.hud-banner').textContent();
       assert.match(banner, /Bastion ist gefallen/);

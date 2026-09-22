@@ -21,6 +21,7 @@ import { installPageGuards } from './input/guards.js';
 import { attachPointerInput } from './input/pointer.js';
 import { attachKeyboard } from './input/keyboard.js';
 import { createHud } from './ui/hud.js';
+import { createSelectionPanel } from './ui/selection.js';
 import { createLoadingScreen } from './ui/loading.js';
 import { createSpriteCache } from './render/sprites/rasterizer.js';
 import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
@@ -69,9 +70,9 @@ const ui = {
   art: params.get('art') === 'placeholder' ? 'placeholder' : 'sprites',
   /** True until the player moves the camera; then resizes keep their view. */
   autoFit: true,
-  /** Pod indices to highlight during the selection, and the one under the cursor. */
+  /** Pod indices highlighted during the selection, and the pod the player picked. */
   podHighlights: [],
-  podSelected: null,
+  podSelected: 0,
 };
 
 const view = createCanvasView(canvas, (v) => {
@@ -124,13 +125,23 @@ function applyZone(cell) {
   else if (t[result.reason]) flash(cell, false, t[result.reason]);
 }
 
-/** During the selection a tap on a pod keeps that tower. */
+/** During the selection a tap on a pod picks it; the panel then offers the actions. */
 function applyPodTap(cell) {
   if (!cell) return;
   const pod = podAt(state, cell);
-  if (!pod) return;
-  const result = chooseSelection(state, { type: 'keep', anchor: pod.index });
-  if (result.ok) flash(cell, true, STRINGS.selection.keep);
+  if (pod) ui.podSelected = pod.index;
+}
+
+/** Applies a choice from the selection panel and starts the wave. */
+function applyChoice(choice) {
+  const result = chooseSelection(state, choice);
+  if (!result.ok) return;
+  const { tower } = result;
+  const name = tower.special
+    ? STRINGS.recipes[tower.special].name
+    : STRINGS.selection.tower(STRINGS.doctrines[tower.doctrine], STRINGS.ranks[tower.rank]);
+  flash(tower, true, name);
+  showBanner(STRINGS.selection.built(name));
 }
 
 function onCellTap(cell) {
@@ -171,6 +182,12 @@ function onAction(action) {
 }
 
 const hud = createHud(document.getElementById('hud'), { debug, onAction });
+const selectionPanel = createSelectionPanel(hud.bottom, {
+  onSelect: (index) => {
+    ui.podSelected = index;
+  },
+  onChoose: applyChoice,
+});
 
 attachPointerInput(canvas, {
   onTap(x, y) {
@@ -205,7 +222,8 @@ const keyboard = attachKeyboard({ onAction });
 
 function drainEvents() {
   for (const ev of state.events) {
-    if (ev.type === 'waveCleared') showBanner(STRINGS.banners.waveCleared(ev.wave, ev.leaked));
+    if (ev.type === 'phase' && ev.phase === 'salvo') ui.podSelected = 0;
+    else if (ev.type === 'waveCleared') showBanner(STRINGS.banners.waveCleared(ev.wave, ev.leaked));
     else if (ev.type === 'phase' && ev.phase === 'defeat') showBanner(STRINGS.banners.defeat(state.wave));
     else if (ev.type === 'phase' && ev.phase === 'victory') showBanner(STRINGS.banners.victory);
   }
@@ -246,10 +264,10 @@ function frame(now) {
   }
 
   ui.podHighlights = state.phase === 'selection' ? state.pods.map((p) => p.index) : [];
-  ui.podSelected = ui.hoverCell ? podAt(state, ui.hoverCell)?.index ?? null : null;
 
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);
   hud.update(state, ui, { totalWaves: totalWaves(), canStart: canRequestSalvo(state) });
+  selectionPanel.update(state, ui);
 
   fpsFrames++;
   fpsTime += dt;
@@ -299,7 +317,7 @@ if (debug) {
       supplyLevel: state.supplyLevel,
     }),
     sprites: () => ({ ...sprites.stats }),
-    ui: () => ({ art: ui.art, frameMs: ui.frameMs, obstacleMode: ui.obstacleMode }),
+    ui: () => ({ art: ui.art, frameMs: ui.frameMs, obstacleMode: ui.obstacleMode, podSelected: ui.podSelected }),
   };
 }
 
