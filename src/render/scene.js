@@ -13,9 +13,10 @@ import {
   drawBeacon,
   drawBeaconLabel,
   drawEnemy,
+  drawEnemyBar,
   drawTowerPlaceholder,
 } from './objects.js';
-import { createEnemySpriteRenderer } from './enemySprites.js';
+import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
 import { drawTowerSprite } from './towerSprites.js';
 import { drawZoneMarker, drawPod, drawPodTarget, drawPodHologram, drawPodHighlight } from './pods.js';
 import { previewRoute } from '../sim/zones.js';
@@ -132,6 +133,9 @@ export function createSceneRenderer(sprites) {
     }
     for (const pod of state.pods) drawPodTarget(ctx, pod, t);
 
+    // Scorch marks, auras and flame cones lie on the ground, under the units.
+    ui.effects?.drawGround(ctx, state, t, ui.reducedMotion);
+
     if (ui.hoverCell) drawCellMarker(ctx, ui.hoverCell, 'rgba(242,193,78,.12)', 'rgba(242,193,78,.8)', 2);
     for (const f of ui.flashes) {
       const a = Math.max(0, f.life / f.max);
@@ -163,7 +167,10 @@ export function createSceneRenderer(sprites) {
         if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, o, cam.zoom, view.dpr, t)) {
           drawTowerPlaceholder(ctx, o);
         }
-      } else if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, cam.zoom, view.dpr)) drawEnemy(ctx, o, t);
+      } else {
+        if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, cam.zoom, view.dpr)) drawEnemy(ctx, o, t);
+        drawEnemyBar(ctx, o, ENEMY_TOP[o.type] ?? 20);
+      }
     }
 
     // Rings go on top of the opened hatches, otherwise the pod hides them.
@@ -175,6 +182,9 @@ export function createSceneRenderer(sprites) {
     }
     for (const pod of state.pods) drawPodHologram(ctx, pod, t);
     map.beacons.forEach((b, i) => drawBeaconLabel(ctx, b, i + 1));
+
+    // Shots, shells, particles and damage numbers go on top of the units.
+    ui.effects?.drawAbove(ctx, state, t, ui.reducedMotion);
 
     for (const f of ui.flashes) {
       if (!f.label) continue;

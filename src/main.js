@@ -17,6 +17,7 @@ import { createCamera, fitCamera, clampCamera, panBy, zoomAt, screenToCell, worl
 import { mapBounds, iso } from './render/iso.js';
 import { createGroundLayer } from './render/ground.js';
 import { createSceneRenderer } from './render/scene.js';
+import { createEffects } from './render/effects.js';
 import { installPageGuards } from './input/guards.js';
 import { attachPointerInput } from './input/pointer.js';
 import { attachKeyboard } from './input/keyboard.js';
@@ -26,7 +27,7 @@ import { createCodex } from './ui/codex.js';
 import { createLoadingScreen } from './ui/loading.js';
 import { createSpriteCache } from './render/sprites/rasterizer.js';
 import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
-import { startStress, stopStress } from './sim/debug.js';
+import { startStress, stopStress, setLives } from './sim/debug.js';
 
 const FLASH_SECONDS = 0.9;
 const STRESS_ENEMIES = 200;
@@ -71,6 +72,8 @@ const ui = {
   art: params.get('art') === 'placeholder' ? 'placeholder' : 'sprites',
   /** True until the player moves the camera; then resizes keep their view. */
   autoFit: true,
+  /** Muzzle flashes, beams, shells, particles and damage numbers. */
+  effects: createEffects(),
   /** Pod indices highlighted during the selection, and the pod the player picked. */
   podHighlights: [],
   podSelected: 0,
@@ -111,6 +114,7 @@ function newGame() {
   bounds = mapBounds(state.map.size);
   stepper.reset();
   ui.flashes.length = 0;
+  ui.effects.clear();
   ui.banner = null;
   const url = new URL(location.href);
   url.searchParams.set('seed', state.seed);
@@ -258,6 +262,8 @@ function frame(now) {
   }
 
   stepper.advance(dt, state.speed, (stepDt) => stepSimulation(state, stepDt));
+  // The effects read the events before they are drained.
+  ui.effects.update(realDt, state, ui.reducedMotion);
   drainEvents();
 
   for (const f of ui.flashes) f.life -= realDt;
@@ -322,7 +328,14 @@ if (debug) {
       pods: state.pods.map(({ index, x, y, doctrine, rank, landed }) => ({ index, x, y, doctrine, rank, landed })),
       towers: state.towers.map(({ id, x, y, doctrine, rank, special }) => ({ id, x, y, doctrine, rank, special })),
       supplyLevel: state.supplyLevel,
+      requisition: state.requisition,
+      waveStats: { ...state.waveStats },
+      projectiles: state.projectiles.length,
     }),
+    /** Debug actions; the visible debug panel uses the same simulation calls. */
+    debug: {
+      setLives: (n) => setLives(state, n),
+    },
     sprites: () => ({ ...sprites.stats }),
     ui: () => ({ art: ui.art, frameMs: ui.frameMs, obstacleMode: ui.obstacleMode, podSelected: ui.podSelected }),
   };

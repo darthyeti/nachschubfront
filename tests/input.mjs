@@ -288,7 +288,7 @@ try {
       await page.waitForFunction(() => window.__nachschub.state().phase === 'planning', null, { timeout: 90000 });
     });
 
-    await check('second salvo at 3x, wave runs, enemies break through', async () => {
+    await check('second salvo at 3x, the wave runs and the towers kill', async () => {
       await page.getByRole('button', { name: '3x' }).tap();
       await playRound(page, (x, y) => page.touchscreen.tap(x, y));
       const s = await game(page);
@@ -300,12 +300,14 @@ try {
       assert.equal(mid.phase, 'wave');
       assert.equal(mid.speed, 3);
       await page.screenshot({ path: join(OUT, 'tablet-wave.png') });
-      assert.ok(mid.lives < 20, `lives ${mid.lives}`);
+      // The towers defend now: something has to die before the wave is over.
+      await page.waitForFunction(() => window.__nachschub.state().waveStats.killed > 0, null, { timeout: 30000 });
     });
 
     await check('defeat shows a banner and "Neue Partie" starts a fresh match', async () => {
-      // The towers do not shoot yet, so the second wave overruns the bastion.
-      await page.waitForFunction(() => window.__nachschub.state().phase === 'defeat', null, { timeout: 90000 });
+      // Two towers hold the wave off for a long time, so the defeat is forced.
+      await page.evaluate(() => window.__nachschub.debug.setLives(1));
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'defeat', null, { timeout: 120000 });
       const banner = await page.locator('.hud-banner').textContent();
       assert.match(banner, /Bastion ist gefallen/);
       assert.ok(await page.getByRole('button', { name: 'Salve anfordern' }).isHidden());

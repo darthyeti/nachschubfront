@@ -10,6 +10,7 @@
     "screenshots": "node tests/screenshots.mjs",
     "test:input": "node tests/input.mjs",
     "test:perf": "node tests/perf.mjs",
+    "test:battle": "node tests/battle.mjs",
     "test:webkit": "node tests/input.mjs --browser webkit && node tests/screenshots.mjs --browser webkit --query \"seed=BASTION&debug\" && node tests/perf.mjs --browser webkit",
     "icons": "node tests/tools/make-icons.mjs",
     "sprites": "node tests/tools/import-sprites.mjs",

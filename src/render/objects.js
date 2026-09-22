@@ -260,3 +260,40 @@ export function drawEnemy(ctx, e, t) {
   }
   ctx.globalAlpha = 1;
 }
+
+/**
+ * Health (and warp shield) above a wounded enemy. Bosses always show theirs.
+ * Drawn right after the enemy, so nearer ones cover it like everything else.
+ */
+export function drawEnemyBar(ctx, e, top) {
+  const hurt = e.health < e.maxHealth || e.shield < e.maxShield;
+  if (!hurt && !e.boss) return;
+  const off = lateralOffset(e);
+  const [sx, sy] = iso(e.x - e.dy * off, e.y + e.dx * off);
+  const alpha = Math.min(1, e.d / 0.5);
+  if (alpha <= 0) return;
+  const width = e.boss ? 44 : 24;
+  const height = e.boss ? 6 : 4;
+  const y = sy - top - (e.flying ? 34 : 8);
+  const x = sx - width / 2;
+  ctx.globalAlpha = alpha;
+  poly(
+    ctx,
+    [[x, y], [x + width, y], [x + width, y + height], [x, y + height]],
+    'rgba(26,20,16,.75)',
+    C.ink,
+    1.6,
+  );
+  const health = Math.max(0, Math.min(1, e.health / e.maxHealth));
+  if (health > 0) {
+    const w = width * health;
+    poly(ctx, [[x, y], [x + w, y], [x + w, y + height], [x, y + height]], health > 0.35 ? C.toxic : C.bloodL, null);
+  }
+  if (e.maxShield > 0 && e.shield > 0) {
+    const w = width * Math.min(1, e.shield / e.maxShield);
+    const sy2 = y - height - 1;
+    poly(ctx, [[x, sy2], [x + width, sy2], [x + width, sy2 + height], [x, sy2 + height]], 'rgba(26,20,16,.75)', C.ink, 1.4);
+    poly(ctx, [[x, sy2], [x + w, sy2], [x + w, sy2 + height], [x, sy2 + height]], C.warp, null);
+  }
+  ctx.globalAlpha = 1;
+}

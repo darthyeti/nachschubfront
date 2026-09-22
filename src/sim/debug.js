@@ -9,6 +9,15 @@ import { isBlocked, setBlocked } from './grid.js';
 import { spawnEnemy } from './enemies.js';
 import { addTower, removeTower } from './towers.js';
 
+/**
+ * Sets the bastion's lives. Debug only: the visible panel and the browser tests
+ * use it to reach a defeat without playing a whole match.
+ */
+export function setLives(state, lives) {
+  state.lives = Math.max(0, Math.round(lives));
+  return state.lives;
+}
+
 /** Towers to scatter over the map during the stress test (a long match has about this many). */
 const STRESS_TOWERS = 40;
 

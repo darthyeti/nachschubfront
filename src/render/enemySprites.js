@@ -11,6 +11,17 @@ const DEFS = Object.fromEntries(ENEMY_TYPES.map((type) => [type, enemySprite(typ
 /** Sprite definitions of all enemies, e.g. for preloading. */
 export const ENEMY_SPRITE_DEFS = Object.values(DEFS);
 
+/**
+ * World pixels from the ground to the top of an enemy's artwork (positive up).
+ * Health bars and info labels sit above that.
+ */
+export const ENEMY_TOP = Object.fromEntries(
+  ENEMY_TYPES.map((type) => {
+    const def = DEFS[type];
+    return [type, Math.max(12, -def.bbox[1] * def.unitScale)];
+  }),
+);
+
 /** Visual-only sideways offset per enemy, so a column does not render as one blob. */
 export function lateralOffset(e) {
   return (((e.id * 0.6180339887) % 1) - 0.5) * 0.36;
