@@ -9,7 +9,8 @@
     "test": "node --test \"tests/unit/**/*.test.js\"",
     "screenshots": "node tests/screenshots.mjs",
     "test:input": "node tests/input.mjs",
-    "icons": "node tests/tools/make-icons.mjs"
+    "icons": "node tests/tools/make-icons.mjs",
+    "sprites": "node tests/tools/import-sprites.mjs"
   },
   "devDependencies": {
     "playwright": "^1.63.0"

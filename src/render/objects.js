@@ -193,9 +193,9 @@ export function drawBeaconLabel(ctx, p, number) {
 
 const ENEMY_STYLE = {
   swarmer: { r: 6, body: C.bloodL, dark: C.blood },
-  mutant: { r: 9, body: C.toxic, dark: C.toxicD },
+  warrior: { r: 9, body: C.toxic, dark: C.toxicD },
   breaker: { r: 13, body: C.steelL, dark: C.steelD },
-  warpghost: { r: 9, body: '#8a6ccf', dark: '#4f3a86' },
+  warpseer: { r: 9, body: '#8a6ccf', dark: '#4f3a86' },
   carrionflyer: { r: 8, body: '#8a6a5a', dark: '#4e3a30' },
   burster: { r: 11, body: '#b9c24a', dark: '#6f7a24' },
   healer: { r: 9, body: C.bone, dark: C.boneD },
@@ -207,7 +207,7 @@ function lateralOffset(e) {
 }
 
 export function drawEnemy(ctx, e, t) {
-  const style = ENEMY_STYLE[e.type] ?? ENEMY_STYLE.mutant;
+  const style = ENEMY_STYLE[e.type] ?? ENEMY_STYLE.warrior;
   const off = lateralOffset(e);
   const [sx, sy] = iso(e.x - e.dy * off, e.y + e.dx * off);
   const bob = Math.abs(Math.sin(t * 9 + e.id)) * 2;

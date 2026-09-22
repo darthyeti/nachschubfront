@@ -77,19 +77,19 @@ test('waves cannot start outside planning', () => {
 test('buildSpawns orders all groups by time', () => {
   const spawns = buildSpawns({
     groups: [
-      { type: 'mutant', count: 3, interval: 1, delay: 0 },
+      { type: 'warrior', count: 3, interval: 1, delay: 0 },
       { type: 'swarmer', count: 2, interval: 1, delay: 0.5 },
     ],
   });
   assert.deepEqual(spawns.map((s) => [s.time, s.type]), [
-    [0, 'mutant'], [0.5, 'swarmer'], [1, 'mutant'], [1.5, 'swarmer'], [2, 'mutant'],
+    [0, 'warrior'], [0.5, 'swarmer'], [1, 'warrior'], [1.5, 'swarmer'], [2, 'warrior'],
   ]);
 });
 
 test('an enemy reaches the bastion after route length / speed', () => {
   const state = withRoutes(createGameState(SEED));
-  const e = spawnEnemy(state, 'mutant');
-  const expected = state.waveRoutes.ground.length / ENEMIES.mutant.speed;
+  const e = spawnEnemy(state, 'warrior');
+  const expected = state.waveRoutes.ground.length / ENEMIES.warrior.speed;
   let t = 0;
   while (state.enemies.includes(e)) {
     updateEnemies(state, SIM_STEP);
@@ -102,7 +102,7 @@ test('an enemy reaches the bastion after route length / speed', () => {
 
 test('ground enemies pass every beacon, flyers take the straight chain', () => {
   const state = withRoutes(createGameState(SEED));
-  const walker = spawnEnemy(state, 'mutant');
+  const walker = spawnEnemy(state, 'warrior');
   const flyer = spawnEnemy(state, 'carrionflyer');
   const beacons = state.map.beacons.map((b) => ({ x: b.x + 0.5, y: b.y + 0.5 }));
   const seenWalker = new Set();
@@ -133,7 +133,7 @@ test('enemies walk around a newly placed obstacle', () => {
   assert.ok(placed, `no blockable cell on the route (tried from ${cell.x},${cell.y})`);
   assert.ok(!state.route.cells.some((c) => c.x === placed.x && c.y === placed.y));
   withRoutes(state);
-  const e = spawnEnemy(state, 'mutant');
+  const e = spawnEnemy(state, 'warrior');
   while (state.enemies.length) {
     updateEnemies(state, SIM_STEP);
     const inside = e.x >= placed.x && e.x < placed.x + 1 && e.y >= placed.y && e.y < placed.y + 1;
