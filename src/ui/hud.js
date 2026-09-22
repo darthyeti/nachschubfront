@@ -3,6 +3,7 @@
 import { STRINGS } from '../data/strings.js';
 import { GAME_SPEEDS } from '../data/settings.js';
 import { PODS } from '../data/pods.js';
+import { previewRoute } from '../sim/zones.js';
 
 const T = STRINGS.hud;
 
@@ -113,7 +114,8 @@ export function createHud(root, { debug, onAction }) {
         phase.dataset.phase = v;
       });
       set('seed', state.seed, (v) => (seed.textContent = `${T.seed} ${v}`));
-      const routeText = state.route ? T.route(Math.round(state.route.length)) : T.routeBlocked;
+      const shown = previewRoute(state);
+      const routeText = shown ? T.route(Math.round(shown.length)) : T.routeBlocked;
       set('route', routeText, (v) => (route.textContent = v));
       set('supply', state.supplyLevel, (v) => (supply.textContent = T.supply(v)));
       set('zones', state.phase === 'planning' ? state.zones.length : -1, (v) => {

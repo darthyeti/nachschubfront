@@ -220,12 +220,21 @@ try {
       assert.equal(s.obstacles, before.obstacles, 'a zone is a marker, not an obstacle');
       assert.ok(
         s.routeCells.some((c) => c.x === cell.x && c.y === cell.y),
-        'the route still runs through the marked cell',
+        'the cell is only blocked when the pod lands',
       );
+      assert.ok(s.previewCells, 'the preview follows the marker');
+      assert.ok(
+        !s.previewCells.some((c) => c.x === cell.x && c.y === cell.y),
+        'the preview already walks around the zone',
+      );
+      const shown = await page.locator('.hud-info .chip').first().textContent();
+      assert.match(shown, /Zonen 1\/5/);
+
       await page.touchscreen.tap(x, y);
       await frames(page);
       s = await game(page);
       assert.deepEqual(s.zones, []);
+      assert.equal(s.previewCells, null, 'preview cleared with the marker');
     });
 
     await check('a zone on a protected cell is refused', async () => {

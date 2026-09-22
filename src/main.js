@@ -315,6 +315,7 @@ if (debug) {
       enemies: state.enemies.length,
       speed: state.speed,
       routeCells: state.route?.cells ?? [],
+      previewCells: state.zonePreview?.cells ?? null,
       rift: state.map.rift,
       stress: state.stress,
       zones: state.zones.map(({ x, y }) => ({ x, y })),

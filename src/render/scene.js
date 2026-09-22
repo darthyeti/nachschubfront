@@ -18,6 +18,7 @@ import {
 import { createEnemySpriteRenderer } from './enemySprites.js';
 import { drawTowerSprite } from './towerSprites.js';
 import { drawZoneMarker, drawPod, drawPodTarget, drawPodHologram, drawPodHighlight } from './pods.js';
+import { previewRoute } from '../sim/zones.js';
 
 const KIND_OBSTACLE = 0;
 const KIND_RIFT = 1;
@@ -122,7 +123,9 @@ export function createSceneRenderer(sprites) {
     drawRiftGlow(ctx, map.rift, t);
     drawBastionGlow(ctx, map.bastion, t);
 
-    if (PLANNING_PHASES.has(state.phase) && state.route) drawRoutePreview(ctx, state.route, t, ui.reducedMotion);
+    // While zones are marked the preview shows the route they will force.
+    const route = previewRoute(state);
+    if (PLANNING_PHASES.has(state.phase) && route) drawRoutePreview(ctx, route, t, ui.reducedMotion);
 
     if (state.phase === 'planning') {
       state.zones.forEach((zone, i) => drawZoneMarker(ctx, zone, i, t, ui.reducedMotion));

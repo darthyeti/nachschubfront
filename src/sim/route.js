@@ -29,6 +29,18 @@ export function computeRoute(map) {
   return { cells: cells.map(({ x, y }) => ({ x, y })), length, legs };
 }
 
+/**
+ * Route as it would be if `cells` were obstacles, without changing the map.
+ * Used for the planning preview: marked landing zones are not blocked yet.
+ */
+export function routeWith(map, cells) {
+  if (cells.length === 0) return computeRoute(map);
+  for (const { x, y } of cells) setBlocked(map.grid, x, y, true);
+  const route = computeRoute(map);
+  for (const { x, y } of cells) setBlocked(map.grid, x, y, false);
+  return route;
+}
+
 /** True if every leg of the chain has a path. */
 export function routeExists(map) {
   const points = waypoints(map);

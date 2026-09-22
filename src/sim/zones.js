@@ -2,7 +2,21 @@
 // A zone is only a marker; the cell is blocked when the pod lands.
 
 import { PODS } from '../data/pods.js';
-import { checkPlacement } from './route.js';
+import { checkPlacement, routeWith } from './route.js';
+
+/**
+ * Recomputes the route the enemies would take once the marked zones are built
+ * (GDD section 3: the preview follows every marker). Null clears it.
+ */
+export function refreshZonePreview(state) {
+  state.zonePreview = state.zones.length > 0 ? routeWith(state.map, state.zones) : null;
+  state.mapVersion += 1;
+}
+
+/** Route to show and measure during planning: the preview if zones are marked. */
+export function previewRoute(state) {
+  return state.zonePreview ?? state.route;
+}
 
 export function zoneIndexAt(state, cell) {
   return state.zones.findIndex((z) => z.x === cell.x && z.y === cell.y);
@@ -32,16 +46,19 @@ export function toggleZone(state, cell) {
   const index = zoneIndexAt(state, cell);
   if (index >= 0) {
     state.zones.splice(index, 1);
+    refreshZonePreview(state);
     return { ok: true, action: 'removed' };
   }
   const check = canMarkZone(state, cell);
   if (!check.ok) return check;
   state.zones.push({ x: cell.x, y: cell.y });
+  refreshZonePreview(state);
   return { ok: true, action: 'added' };
 }
 
 export function clearZones(state) {
   state.zones.length = 0;
+  refreshZonePreview(state);
 }
 
 function manhattan(a, b) {
@@ -73,13 +90,15 @@ export function fillZones(state, rng) {
   let added = 0;
   for (const spread of [true, false]) {
     for (const cell of candidates) {
-      if (state.zones.length >= PODS.perSalvo) return added;
+      if (zonesFull(state)) break;
       if (zoneIndexAt(state, cell) >= 0) continue;
       if (spread && state.zones.some((z) => manhattan(z, cell) < PODS.minRandomDistance)) continue;
       if (!checkPlacement(state.map, [...state.zones, cell]).ok) continue;
       state.zones.push({ x: cell.x, y: cell.y });
       added++;
     }
+    if (zonesFull(state)) break;
   }
+  refreshZonePreview(state);
   return added;
 }

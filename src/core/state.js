@@ -33,6 +33,8 @@ export function createGameState(seed) {
     supplyLevel: MIN_SUPPLY_LEVEL,
     /** Landing zones marked during planning, at most PODS.perSalvo. */
     zones: [],
+    /** Route as it will be once the marked zones are built; null without zones. */
+    zonePreview: null,
     /** Pods of the running salvo; empty outside salvo and selection. */
     pods: [],
     /** Towers on the map. Each one blocks its cell. */

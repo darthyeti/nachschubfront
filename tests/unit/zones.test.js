@@ -3,12 +3,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { toggleZone, canMarkZone, fillZones, clearZones, zonesFull, zoneIndexAt } from '../../src/sim/zones.js';
-import { routeExists } from '../../src/sim/route.js';
+import {
+  toggleZone,
+  canMarkZone,
+  fillZones,
+  clearZones,
+  zonesFull,
+  zoneIndexAt,
+  previewRoute,
+} from '../../src/sim/zones.js';
+import { routeExists, computeRoute } from '../../src/sim/route.js';
 import { createRng } from '../../src/core/random.js';
 import { createGameState } from '../../src/core/state.js';
 import { PODS } from '../../src/data/pods.js';
-import { setBlocked } from '../../src/sim/grid.js';
+import { setBlocked, isBlocked } from '../../src/sim/grid.js';
 import { mapFromAscii, planningState } from './helpers.js';
 
 const OPEN = [
@@ -131,4 +139,37 @@ test('over many seeds a filled salvo always leaves the route open', () => {
     assert.ok(routeExists(state.map), `seed Z${i}: route open after the salvo`);
     for (const z of state.zones) setBlocked(state.map.grid, z.x, z.y, false);
   }
+});
+
+test('the route preview follows every marker', () => {
+  const state = planningState(mapFromAscii(OPEN));
+  state.route = computeRoute(state.map);
+  assert.equal(previewRoute(state), state.route, 'without zones the real route is shown');
+
+  const onRoute = state.route.cells[Math.floor(state.route.cells.length / 2)];
+  toggleZone(state, onRoute);
+  const preview = previewRoute(state);
+  assert.ok(preview && preview !== state.route);
+  assert.ok(!preview.cells.some((c) => c.x === onRoute.x && c.y === onRoute.y), 'preview avoids the zone');
+  assert.ok(preview.length > state.route.length, `${preview.length} vs ${state.route.length}`);
+  assert.ok(
+    state.route.cells.some((c) => c.x === onRoute.x && c.y === onRoute.y),
+    'the real route is untouched until the pods land',
+  );
+  assert.ok(!isBlocked(state.map.grid, onRoute.x, onRoute.y), 'the preview does not block the cell');
+
+  toggleZone(state, onRoute);
+  assert.equal(previewRoute(state), state.route, 'removing the marker clears the preview');
+});
+
+test('fillZones and clearZones keep the preview in step', () => {
+  const state = planningState(mapFromAscii(OPEN));
+  state.route = computeRoute(state.map);
+  fillZones(state, createRng('PREVIEW'));
+  assert.ok(state.zonePreview, 'preview after filling the salvo');
+  for (const zone of state.zones) {
+    assert.ok(!state.zonePreview.cells.some((c) => c.x === zone.x && c.y === zone.y), 'preview avoids every zone');
+  }
+  clearZones(state);
+  assert.equal(state.zonePreview, null);
 });
