@@ -3,13 +3,15 @@ import assert from 'node:assert/strict';
 import { createGameState } from '../../src/core/state.js';
 import { canTransition, setPhase } from '../../src/core/phases.js';
 import { stepSimulation } from '../../src/sim/step.js';
-import { startWave, setSpeed, toggleObstacle, canStartWave } from '../../src/sim/actions.js';
+import { requestSalvo, chooseSelection, setSpeed, toggleObstacle, canRequestSalvo } from '../../src/sim/actions.js';
 import { buildSpawns, totalWaves } from '../../src/sim/waves.js';
 import { spawnEnemy, updateEnemies } from '../../src/sim/enemies.js';
 import { groundPolyline, flyerPolyline, computeRoute } from '../../src/sim/route.js';
 import { ENEMIES } from '../../src/data/enemies.js';
 import { RULES } from '../../src/data/rules.js';
+import { PODS } from '../../src/data/pods.js';
 import { SIM_STEP } from '../../src/data/settings.js';
+import { playSalvo } from './helpers.js';
 
 const SEED = 'TESTSEED';
 
@@ -55,23 +57,32 @@ test('same seed, same map', () => {
   assert.deepEqual(a.route, b.route);
 });
 
-test('starting a wave passes salvo and selection, then spawns enemies', () => {
+test('a round runs salvo, selection and wave, then spawns enemies', () => {
   const state = createGameState(SEED);
-  assert.ok(startWave(state));
-  stepSimulation(state, SIM_STEP);
+  assert.ok(requestSalvo(state));
+  assert.equal(state.phase, 'salvo');
+  assert.equal(state.pods.length, PODS.perSalvo, 'missing zones were filled');
+
+  runUntil(state, (s) => s.phase === 'selection', 30);
+  assert.equal(state.towers.length, 0, 'nothing is built before the choice');
+  assert.ok(chooseSelection(state, { type: 'keep', anchor: 0 }).ok);
+
   assert.equal(state.phase, 'wave');
   assert.equal(state.wave, 1);
+  assert.equal(state.towers.length, 1);
+  stepSimulation(state, SIM_STEP);
   assert.equal(state.enemies.length, 1, 'first enemy spawns at t = 0');
   const phases = state.events.filter((e) => e.type === 'phase').map((e) => e.phase);
   assert.deepEqual(phases, ['salvo', 'selection', 'wave']);
 });
 
-test('waves cannot start outside planning', () => {
+test('a salvo cannot be requested outside planning', () => {
   const state = createGameState(SEED);
-  startWave(state);
+  requestSalvo(state);
+  assert.equal(canRequestSalvo(state), false);
+  assert.equal(requestSalvo(state), false);
   stepSimulation(state, SIM_STEP);
-  assert.equal(canStartWave(state), false);
-  assert.equal(startWave(state), false);
+  assert.equal(canRequestSalvo(state), false);
 });
 
 test('buildSpawns orders all groups by time', () => {
@@ -170,14 +181,14 @@ test('toggleObstacle rejects blocking and protected cells, removes existing ones
 
 test('maze changes are refused during a wave', () => {
   const state = createGameState(SEED);
-  startWave(state);
+  playSalvo(state);
   stepSimulation(state, SIM_STEP);
   assert.deepEqual(toggleObstacle(state, { x: 12, y: 12 }), { ok: false, reason: 'phase' });
 });
 
 test('a full wave ends in evaluation, then planning', () => {
   const state = createGameState(SEED);
-  startWave(state);
+  playSalvo(state);
   runUntil(state, (s) => s.phase === 'evaluation');
   assert.equal(state.enemies.length, 0);
   assert.equal(state.waveStats.leaked, state.waveStats.spawned, 'without towers everything leaks');
@@ -187,17 +198,17 @@ test('a full wave ends in evaluation, then planning', () => {
 test('losing all lives ends the game in defeat', () => {
   const state = createGameState(SEED);
   state.lives = 3;
-  startWave(state);
+  playSalvo(state);
   runUntil(state, (s) => s.phase === 'defeat');
   assert.equal(state.lives, 0);
-  assert.equal(canStartWave(state), false);
+  assert.equal(canRequestSalvo(state), false);
 });
 
 test('surviving the last wave wins', () => {
   const state = createGameState(SEED);
   state.lives = 100000;
   for (let w = 0; w < totalWaves(); w++) {
-    assert.ok(startWave(state), `wave ${w + 1}`);
+    assert.ok(playSalvo(state), `wave ${w + 1}`);
     runUntil(state, (s) => s.phase === 'planning' || s.phase === 'victory');
   }
   assert.equal(state.phase, 'victory');
@@ -206,9 +217,9 @@ test('surviving the last wave wins', () => {
 test('same seed and actions give the same run', () => {
   const run = () => {
     const state = createGameState(SEED);
-    startWave(state);
+    playSalvo(state);
     for (let i = 0; i < 900; i++) stepSimulation(state, SIM_STEP);
-    return JSON.stringify({ enemies: state.enemies, lives: state.lives });
+    return JSON.stringify({ enemies: state.enemies, lives: state.lives, towers: state.towers });
   };
   assert.equal(run(), run());
 });

@@ -5,6 +5,8 @@ import { iso } from './iso.js';
 import { poly, box, ell, shadow, comicText } from './draw.js';
 import { C } from './palette.js';
 import { lateralOffset } from './enemySprites.js';
+import { DOCTRINE_COLORS } from '../data/doctrines.js';
+import { RANK_COUNT } from './sprites/manifest.js';
 
 const STONE = C.stone;
 const RUIN_HEIGHTS = [34, 44, 52, 40];
@@ -85,6 +87,23 @@ export function drawObstacleCell(ctx, obstacle, index) {
     const horizontal = obstacle.cells.length > 1 && obstacle.cells[1].y === obstacle.cells[0].y;
     drawWallCell(ctx, x, y, obstacle.variant, index, horizontal);
   }
+}
+
+// ---------- Towers ----------
+
+/**
+ * Placeholder tower for the art switch and for the moment before a sprite is
+ * rasterized: concrete base with a barrel in the doctrine's guide colour.
+ */
+export function drawTowerPlaceholder(ctx, tower) {
+  const [sx, sy] = iso(tower.x + 0.5, tower.y + 0.5);
+  const color = DOCTRINE_COLORS[tower.doctrine];
+  shadow(ctx, sx + 6, sy + 4, 32, 14, 0.28);
+  box(ctx, tower.x + 0.06, tower.y + 0.06, 0.88, 0.88, 16, 0, [C.concL, C.conc, C.concD]);
+  box(ctx, tower.x + 0.3, tower.y + 0.3, 0.4, 0.4, 26, 16, [C.steelL, C.steel, C.steelD], 2);
+  ell(ctx, sx, sy - 44, 9, 6, color, C.ink, 2);
+  const rank = tower.special ? RANK_COUNT : tower.rank;
+  comicText(ctx, tower.special ? '★' : String(rank), sx, sy - 54, 16, tower.special ? C.gold : C.bone);
 }
 
 // ---------- Rift, beacons, bastion ----------

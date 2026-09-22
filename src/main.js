@@ -2,11 +2,14 @@
 
 import { SIM_STEP, MAX_STEPS_PER_FRAME, MAX_FRAME_TIME, CAMERA } from './data/settings.js';
 import { STRINGS } from './data/strings.js';
+import { MIN_SUPPLY_LEVEL, MAX_SUPPLY_LEVEL } from './data/supply.js';
 import { createFixedStepper } from './core/loop.js';
 import { createGameState } from './core/state.js';
 import { randomSeed, normalizeSeed } from './core/seed.js';
 import { stepSimulation } from './sim/step.js';
-import { startWave, canStartWave, setSpeed, toggleObstacle } from './sim/actions.js';
+import { requestSalvo, canRequestSalvo, chooseSelection, setSpeed, toggleObstacle } from './sim/actions.js';
+import { toggleZone } from './sim/zones.js';
+import { podAt } from './sim/pods.js';
 import { checkPlacement } from './sim/route.js';
 import { totalWaves } from './sim/waves.js';
 import { createCanvasView } from './render/canvas.js';
@@ -38,7 +41,11 @@ installPageGuards(canvas);
 // Canvas text uses Bangers; make sure it is loaded before the first labels are drawn.
 document.fonts?.load('24px Bangers').catch(() => {});
 
+/** Debug: start at a higher supply level so merges and recipes can be tried out. */
+const startSupply = Math.min(MAX_SUPPLY_LEVEL, Math.max(MIN_SUPPLY_LEVEL, Number(params.get('supply')) || MIN_SUPPLY_LEVEL));
+
 let state = createGameState(normalizeSeed(params.get('seed')) ?? randomSeed());
+state.supplyLevel = startSupply;
 /** Speed to restore when unpausing with Space. */
 let lastSpeed = 1;
 
@@ -62,6 +69,9 @@ const ui = {
   art: params.get('art') === 'placeholder' ? 'placeholder' : 'sprites',
   /** True until the player moves the camera; then resizes keep their view. */
   autoFit: true,
+  /** Pod indices to highlight during the selection, and the one under the cursor. */
+  podHighlights: [],
+  podSelected: null,
 };
 
 const view = createCanvasView(canvas, (v) => {
@@ -95,6 +105,7 @@ function applyObstacle(cell) {
 
 function newGame() {
   state = createGameState(randomSeed());
+  state.supplyLevel = startSupply;
   bounds = mapBounds(state.map.size);
   stepper.reset();
   ui.flashes.length = 0;
@@ -104,6 +115,30 @@ function newGame() {
   history.replaceState(null, '', url);
 }
 
+/** Marks or clears a landing zone and shows why a cell was refused. */
+function applyZone(cell) {
+  if (!cell) return;
+  const result = toggleZone(state, cell);
+  const t = STRINGS.placement;
+  if (result.ok) flash(cell, true, result.action === 'added' ? t.zoneAdded : t.zoneRemoved);
+  else if (t[result.reason]) flash(cell, false, t[result.reason]);
+}
+
+/** During the selection a tap on a pod keeps that tower. */
+function applyPodTap(cell) {
+  if (!cell) return;
+  const pod = podAt(state, cell);
+  if (!pod) return;
+  const result = chooseSelection(state, { type: 'keep', anchor: pod.index });
+  if (result.ok) flash(cell, true, STRINGS.selection.keep);
+}
+
+function onCellTap(cell) {
+  if (ui.obstacleMode) applyObstacle(cell);
+  else if (state.phase === 'planning') applyZone(cell);
+  else if (state.phase === 'selection') applyPodTap(cell);
+}
+
 function onAction(action) {
   if (action.startsWith('speed')) {
     const speed = Number(action.slice(5));
@@ -111,8 +146,8 @@ function onAction(action) {
     setSpeed(state, speed);
   } else if (action === 'pause') {
     setSpeed(state, state.speed === 0 ? lastSpeed : 0);
-  } else if (action === 'startWave') {
-    startWave(state);
+  } else if (action === 'requestSalvo') {
+    requestSalvo(state);
   } else if (action === 'newGame') {
     newGame();
   } else if (action === 'toggleArt') {
@@ -120,6 +155,9 @@ function onAction(action) {
   } else if (action === 'stress') {
     if (state.stress) stopStress(state);
     else startStress(state, STRESS_ENEMIES);
+  } else if (action === 'supplyLevel') {
+    // Debug only until requisition arrives in M3, so merges and recipes are testable.
+    if (debug) state.supplyLevel = (state.supplyLevel % MAX_SUPPLY_LEVEL) + 1;
   } else if (action === 'obstacleMode') {
     ui.obstacleMode = !ui.obstacleMode;
   } else if (action === 'toggleObstacle') {
@@ -139,7 +177,7 @@ attachPointerInput(canvas, {
     const cell = cellAt(x, y);
     ui.cursorCell = cell;
     ui.hoverCell = cell;
-    if (ui.obstacleMode) applyObstacle(cell);
+    onCellTap(cell);
   },
   onPan(dx, dy) {
     panBy(camera, dx, dy);
@@ -207,8 +245,11 @@ function frame(now) {
     if (ui.banner.life <= 0) ui.banner = null;
   }
 
+  ui.podHighlights = state.phase === 'selection' ? state.pods.map((p) => p.index) : [];
+  ui.podSelected = ui.hoverCell ? podAt(state, ui.hoverCell)?.index ?? null : null;
+
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);
-  hud.update(state, ui, { totalWaves: totalWaves(), canStart: canStartWave(state) });
+  hud.update(state, ui, { totalWaves: totalWaves(), canStart: canRequestSalvo(state) });
 
   fpsFrames++;
   fpsTime += dt;
@@ -252,6 +293,10 @@ if (debug) {
       routeCells: state.route?.cells ?? [],
       rift: state.map.rift,
       stress: state.stress,
+      zones: state.zones.map(({ x, y }) => ({ x, y })),
+      pods: state.pods.map(({ index, x, y, doctrine, rank, landed }) => ({ index, x, y, doctrine, rank, landed })),
+      towers: state.towers.map(({ id, x, y, doctrine, rank, special }) => ({ id, x, y, doctrine, rank, special })),
+      supplyLevel: state.supplyLevel,
     }),
     sprites: () => ({ ...sprites.stats }),
     ui: () => ({ art: ui.art, frameMs: ui.frameMs, obstacleMode: ui.obstacleMode }),

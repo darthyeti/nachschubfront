@@ -14,9 +14,6 @@ const NEXT = {
   victory: [],
 };
 
-/** Phases without content yet; they pass through immediately (pods arrive in M2). */
-export const PASS_THROUGH = new Set(['salvo', 'selection']);
-
 export function canTransition(from, to) {
   return NEXT[from]?.includes(to) ?? false;
 }

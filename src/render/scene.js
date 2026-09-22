@@ -13,14 +13,22 @@ import {
   drawBeacon,
   drawBeaconLabel,
   drawEnemy,
+  drawTowerPlaceholder,
 } from './objects.js';
 import { createEnemySpriteRenderer } from './enemySprites.js';
+import { drawTowerSprite } from './towerSprites.js';
+import { drawZoneMarker, drawPod, drawPodTarget, drawPodHologram, drawPodHighlight } from './pods.js';
 
 const KIND_OBSTACLE = 0;
 const KIND_RIFT = 1;
 const KIND_BEACON = 2;
 const KIND_BASTION = 3;
-const KIND_ENEMY = 4;
+const KIND_TOWER = 4;
+const KIND_POD = 5;
+const KIND_ENEMY = 6;
+
+/** Phases that show the route preview and the planned landing zones. */
+const PLANNING_PHASES = new Set(['planning', 'salvo', 'selection']);
 
 function createVignette() {
   const canvas = document.createElement('canvas');
@@ -114,7 +122,18 @@ export function createSceneRenderer(sprites) {
     drawRiftGlow(ctx, map.rift, t);
     drawBastionGlow(ctx, map.bastion, t);
 
-    if (state.phase === 'planning' && state.route) drawRoutePreview(ctx, state.route, t, ui.reducedMotion);
+    if (PLANNING_PHASES.has(state.phase) && state.route) drawRoutePreview(ctx, state.route, t, ui.reducedMotion);
+
+    if (state.phase === 'planning') {
+      state.zones.forEach((zone, i) => drawZoneMarker(ctx, zone, i, t, ui.reducedMotion));
+    }
+    for (const pod of state.pods) drawPodTarget(ctx, pod, t);
+    if (state.phase === 'selection') {
+      for (const index of ui.podHighlights ?? []) {
+        const pod = state.pods[index];
+        if (pod) drawPodHighlight(ctx, pod, { selected: index === ui.podSelected, t, reducedMotion: ui.reducedMotion });
+      }
+    }
 
     if (ui.hoverCell) drawCellMarker(ctx, ui.hoverCell, 'rgba(242,193,78,.12)', 'rgba(242,193,78,.8)', 2);
     for (const f of ui.flashes) {
@@ -129,6 +148,8 @@ export function createSceneRenderer(sprites) {
     for (const o of map.obstacles) {
       for (let i = 0; i < o.cells.length; i++) items.push([o.cells[i].x + o.cells[i].y + 1, KIND_OBSTACLE, o, i]);
     }
+    for (const tower of state.towers) items.push([tower.x + tower.y + 1, KIND_TOWER, tower, 0]);
+    for (const pod of state.pods) items.push([pod.x + pod.y + 1, KIND_POD, pod, 0]);
     items.push([map.rift.x + map.rift.y + 1, KIND_RIFT, map.rift, 0]);
     items.push([map.bastion.x + map.bastion.y + 1, KIND_BASTION, map.bastion, 0]);
     map.beacons.forEach((b, i) => items.push([b.x + b.y + 1, KIND_BEACON, b, i]));
@@ -140,9 +161,15 @@ export function createSceneRenderer(sprites) {
       else if (kind === KIND_RIFT) drawRift(ctx, o, t);
       else if (kind === KIND_BASTION) drawBastion(ctx, o, t);
       else if (kind === KIND_BEACON) drawBeacon(ctx, o, t);
-      else if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, cam.zoom, view.dpr)) drawEnemy(ctx, o, t);
+      else if (kind === KIND_POD) drawPod(ctx, o, t);
+      else if (kind === KIND_TOWER) {
+        if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, o, cam.zoom, view.dpr, t)) {
+          drawTowerPlaceholder(ctx, o);
+        }
+      } else if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, cam.zoom, view.dpr)) drawEnemy(ctx, o, t);
     }
 
+    for (const pod of state.pods) drawPodHologram(ctx, pod, t);
     map.beacons.forEach((b, i) => drawBeaconLabel(ctx, b, i + 1));
 
     for (const f of ui.flashes) {

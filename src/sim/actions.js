@@ -5,17 +5,40 @@ import { GAME_SPEEDS } from '../data/settings.js';
 import { setPhase } from '../core/phases.js';
 import { computeRoute, checkPlacement } from './route.js';
 import { setBlocked } from './grid.js';
-import { totalWaves } from './waves.js';
+import { beginWave, totalWaves } from './waves.js';
+import { fillZones } from './zones.js';
+import { createPods, salvoRng } from './pods.js';
+import { applySelection } from './selection.js';
+import { addRubble } from './rubble.js';
 
-export function canStartWave(state) {
+export function canRequestSalvo(state) {
   return state.phase === 'planning' && state.wave < totalWaves() && state.route !== null && !state.stress;
 }
 
-/** Requests the next wave. Salvo and selection pass through until M2. */
-export function startWave(state) {
-  if (!canStartWave(state)) return false;
+/**
+ * Requests the salvo of the coming round (GDD section 3): zones the player left
+ * open are filled at random, then the pods start falling.
+ */
+export function requestSalvo(state) {
+  if (!canRequestSalvo(state)) return false;
+  fillZones(state, salvoRng(state).fork('zones'));
+  if (state.zones.length === 0) return false;
+  createPods(state);
   setPhase(state, 'salvo');
   return true;
+}
+
+/**
+ * Applies the player's choice and starts the wave (GDD section 3: selection is
+ * followed by the wave).
+ * @returns {{ok: true, tower: object} | {ok: false, reason: string}}
+ */
+export function chooseSelection(state, choice) {
+  const result = applySelection(state, choice);
+  if (!result.ok) return result;
+  setPhase(state, 'wave');
+  beginWave(state);
+  return result;
 }
 
 export function setSpeed(state, speed) {
@@ -50,8 +73,7 @@ export function toggleObstacle(state, cell) {
   }
   const check = checkPlacement(map, [cell]);
   if (!check.ok) return check;
-  setBlocked(map.grid, cell.x, cell.y, true);
-  map.obstacles.push({ kind: 'rubble', cells: [{ x: cell.x, y: cell.y }], variant: (cell.x * 7 + cell.y * 13) % 4 });
+  addRubble(state, cell);
   refreshRoute(state);
   return { ok: true, action: 'added' };
 }

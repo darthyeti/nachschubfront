@@ -2,6 +2,7 @@
 
 import { STRINGS } from '../data/strings.js';
 import { GAME_SPEEDS } from '../data/settings.js';
+import { PODS } from '../data/pods.js';
 
 const T = STRINGS.hud;
 
@@ -44,7 +45,9 @@ export function createHud(root, { debug, onAction }) {
   const info = el('div', 'hud-info');
   const seed = el('span', 'chip');
   const route = el('span', 'chip');
-  info.append(route, seed);
+  const zones = el('span', 'chip chip-zones');
+  const supply = el('span', 'chip');
+  info.append(zones, supply, route, seed);
 
   // Bottom: speed controls and the main action.
   const bar = el('div', 'hud-bar');
@@ -57,18 +60,20 @@ export function createHud(root, { debug, onAction }) {
     speedGroup.append(b);
     return b;
   });
-  const start = button(T.startWave, 'primary', () => onAction('startWave'));
+  const start = button(T.requestSalvo, 'primary', () => onAction('requestSalvo'));
   const restart = button(T.newGame, 'primary', () => onAction('newGame'));
   bar.append(speedGroup, start, restart);
 
   let obstacleButton = null;
   let artButton = null;
   let stressButton = null;
+  let supplyButton = null;
   if (debug) {
     obstacleButton = button(T.obstacleMode, 'alt', () => onAction('obstacleMode'));
     artButton = button(T.artSprites, 'alt', () => onAction('toggleArt'));
     stressButton = button(T.stress, 'alt', () => onAction('stress'));
-    bar.append(obstacleButton, artButton, stressButton);
+    supplyButton = button(T.supply(1), 'alt', () => onAction('supplyLevel'));
+    bar.append(obstacleButton, artButton, stressButton, supplyButton);
   }
 
   const banner = el('div', 'hud-banner');
@@ -102,6 +107,11 @@ export function createHud(root, { debug, onAction }) {
       set('seed', state.seed, (v) => (seed.textContent = `${T.seed} ${v}`));
       const routeText = state.route ? T.route(Math.round(state.route.length)) : T.routeBlocked;
       set('route', routeText, (v) => (route.textContent = v));
+      set('supply', state.supplyLevel, (v) => (supply.textContent = T.supply(v)));
+      set('zones', state.phase === 'planning' ? state.zones.length : -1, (v) => {
+        zones.hidden = v < 0;
+        if (v >= 0) zones.textContent = T.zones(v, PODS.perSalvo);
+      });
       set('speed', state.speed, (v) => {
         for (const b of speedButtons) b.classList.toggle('on', Number(b.dataset.speed) === v);
       });
@@ -113,6 +123,7 @@ export function createHud(root, { debug, onAction }) {
       });
       if (obstacleButton) set('obstacleMode', ui.obstacleMode, (v) => obstacleButton.classList.toggle('on', v));
       if (artButton) set('art', ui.art, (v) => (artButton.textContent = v === 'sprites' ? T.artSprites : T.artPlaceholder));
+      if (supplyButton) set('supplyButton', state.supplyLevel, (v) => (supplyButton.textContent = T.supply(v)));
       if (stressButton) {
         set('stress', state.stress, (v) => {
           stressButton.textContent = v ? T.stressOn : T.stress;

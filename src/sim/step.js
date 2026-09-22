@@ -1,8 +1,9 @@
 // One fixed simulation step. Knows nothing about canvas or DOM.
 
 import { RULES } from '../data/rules.js';
-import { setPhase, PASS_THROUGH } from '../core/phases.js';
-import { beginWave, updateSpawns, waveCleared, totalWaves } from './waves.js';
+import { setPhase } from '../core/phases.js';
+import { updateSpawns, waveCleared, totalWaves } from './waves.js';
+import { updatePods, salvoDone } from './pods.js';
 import { updateEnemies } from './enemies.js';
 import { updateStress } from './debug.js';
 
@@ -11,21 +12,16 @@ export function stepSimulation(state, dt) {
   state.time += dt;
   state.phaseTime += dt;
 
-  // Placeholder phases pass straight through until they get content.
-  while (PASS_THROUGH.has(state.phase)) {
-    if (state.phase === 'salvo') setPhase(state, 'selection');
-    else if (state.phase === 'selection') {
-      setPhase(state, 'wave');
-      beginWave(state);
-    }
-  }
-
   if (state.stress) {
     updateStress(state, dt);
     return;
   }
 
-  if (state.phase === 'wave') {
+  if (state.phase === 'salvo') {
+    updatePods(state, dt);
+    // The selection waits for the player; the wave starts with their choice.
+    if (salvoDone(state)) setPhase(state, 'selection');
+  } else if (state.phase === 'wave') {
     updateSpawns(state);
     updateEnemies(state, dt);
     if (state.lives <= 0) {

@@ -1,4 +1,7 @@
 import { createGrid, setBlocked } from '../../src/sim/grid.js';
+import { requestSalvo, chooseSelection } from '../../src/sim/actions.js';
+import { stepSimulation } from '../../src/sim/step.js';
+import { SIM_STEP } from '../../src/data/settings.js';
 
 /**
  * Builds a square grid from rows of text. '#' is blocked, anything else free.
@@ -54,4 +57,17 @@ export function planningState(map, extra = {}) {
     events: [],
     ...extra,
   };
+}
+
+/**
+ * Plays a whole round up to the start of the wave: request the salvo, let the
+ * pods land, then keep the first pod. Used by tests that only care about waves.
+ */
+export function playSalvo(state, choice = { type: 'keep', anchor: 0 }) {
+  if (!requestSalvo(state)) return false;
+  for (let i = 0; i < 60 * 30 && state.phase === 'salvo'; i++) stepSimulation(state, SIM_STEP);
+  if (state.phase !== 'selection') throw new Error(`salvo did not finish (phase ${state.phase})`);
+  const result = chooseSelection(state, choice);
+  if (!result.ok) throw new Error(`selection refused: ${result.reason}`);
+  return true;
 }

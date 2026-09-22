@@ -90,6 +90,20 @@ async function touchDriver(context, page) {
     });
 }
 
+/**
+ * Requests a salvo, waits for the pods to land and keeps the pod `anchor`.
+ * @param {(x: number, y: number) => Promise<void>} tapAt  Tap or click driver.
+ */
+async function playRound(page, tapAt, anchor = 0) {
+  await page.getByRole('button', { name: 'Salve anfordern' }).click();
+  await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 60000 });
+  const pod = (await game(page)).pods[anchor];
+  const [x, y] = await screenOf(page, pod);
+  await tapAt(x, y);
+  await page.waitForFunction(() => window.__nachschub.state().phase === 'wave', null, { timeout: 10000 });
+  return pod;
+}
+
 /** Finds a route cell near the middle of the route that may be blocked. */
 async function blockableRouteCell(page) {
   return page.evaluate(() => {
@@ -180,9 +194,40 @@ try {
       for (const [label, w, h] of sizes) assert.ok(w >= 44 && h >= 44, `${label}: ${w} x ${h}`);
     });
 
+    await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
+
+    await check('tap marks a landing zone, tapping again clears it', async () => {
+      const cell = await blockableRouteCell(page);
+      const [x, y] = await screenOf(page, cell);
+      await page.touchscreen.tap(x, y);
+      await frames(page);
+      let s = await game(page);
+      assert.deepEqual(s.zones, [{ x: cell.x, y: cell.y }]);
+      assert.equal(s.obstacles, before.obstacles, 'a zone is a marker, not an obstacle');
+      assert.ok(
+        s.routeCells.some((c) => c.x === cell.x && c.y === cell.y),
+        'the route still runs through the marked cell',
+      );
+      await page.touchscreen.tap(x, y);
+      await frames(page);
+      s = await game(page);
+      assert.deepEqual(s.zones, []);
+    });
+
+    await check('a zone on a protected cell is refused', async () => {
+      // Route-cutting zones are covered by the unit tests; here the rift ring.
+      const [x, y] = await screenOf(page, (await game(page)).rift);
+      await page.touchscreen.tap(x, y);
+      await frames(page);
+      assert.deepEqual((await game(page)).zones, []);
+    });
+
     await check('wave at 3x runs, enemies break through, back to planning', async () => {
       await page.getByRole('button', { name: '3x' }).tap();
-      await page.getByRole('button', { name: 'Welle starten' }).tap();
+      await playRound(page, (x, y) => page.touchscreen.tap(x, y));
+      const s = await game(page);
+      assert.equal(s.towers.length, 1, 'the kept pod became a tower');
+      assert.equal(s.obstacles, before.obstacles + 4, 'the other four pods became rubble');
       await page.waitForFunction(() => window.__nachschub.state().enemies >= 6, null, { timeout: 15000 });
       const mid = await game(page);
       assert.equal(mid.phase, 'wave');
@@ -195,12 +240,12 @@ try {
     });
 
     await check('defeat shows a banner and "Neue Partie" starts a fresh match', async () => {
-      // Without towers the second wave overruns the bastion.
-      await page.getByRole('button', { name: 'Welle starten' }).tap();
+      // The towers do not shoot yet, so the second wave overruns the bastion.
+      await playRound(page, (x, y) => page.touchscreen.tap(x, y));
       await page.waitForFunction(() => window.__nachschub.state().phase === 'defeat', null, { timeout: 90000 });
       const banner = await page.locator('.hud-banner').textContent();
       assert.match(banner, /Bastion ist gefallen/);
-      assert.ok(await page.getByRole('button', { name: 'Welle starten' }).isHidden());
+      assert.ok(await page.getByRole('button', { name: 'Salve anfordern' }).isHidden());
       await page.getByRole('button', { name: 'Neue Partie' }).tap();
       await frames(page);
       const s = await game(page);

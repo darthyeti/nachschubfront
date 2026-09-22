@@ -11,7 +11,9 @@ export const STRINGS = {
     seed: 'Seed',
     route: (cells) => `Route: ${cells} Felder`,
     routeBlocked: 'Route blockiert',
-    startWave: 'Welle starten',
+    requestSalvo: 'Salve anfordern',
+    zones: (n, max) => `Zonen ${n}/${max}`,
+    supply: (level) => `Nachschub ${level}`,
     newGame: 'Neue Partie',
     pause: 'Pause',
     speed: (n) => `${n}x`,
@@ -78,8 +80,17 @@ export const STRINGS = {
     protected: 'Geschützt',
     blocks: 'Blockiert den Weg',
     phase: 'Nur in der Planung',
+    occupied: 'Belegt',
+    outside: 'Außerhalb',
+    full: 'Alle Zonen vergeben',
     added: 'Hindernis',
     removed: 'Entfernt',
+    zoneAdded: 'Landezone',
+    zoneRemoved: 'Zone gelöscht',
+  },
+
+  selection: {
+    keep: 'Behalten',
   },
 
   gallery: {
