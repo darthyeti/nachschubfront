@@ -18,11 +18,22 @@ export const STRINGS = {
     pause: 'Pause',
     speed: (n) => `${n}x`,
     speedGroup: 'Spielgeschwindigkeit',
+    codex: 'Rezepte',
     obstacleMode: 'Hindernis-Modus',
     artSprites: 'Grafik: Sprites',
     artPlaceholder: 'Grafik: Platzhalter',
     stress: 'Belastungstest',
     stressOn: 'Belastungstest läuft',
+  },
+
+  codex: {
+    open: 'Rezepte',
+    title: 'Rezepte',
+    intro:
+      'Drei verschiedene Doktrinen ab dem genannten Rang ergeben eine Spezialstellung. ' +
+      'Zutaten dürfen aus der Salve und aus stehenden Stellungen kommen, mindestens eine aus der Salve.',
+    minRank: (rank) => `ab ${rank}`,
+    close: 'Schließen',
   },
 
   loading: {

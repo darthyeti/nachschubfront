@@ -195,6 +195,19 @@ try {
       for (const [label, w, h] of sizes) assert.ok(w >= 44 && h >= 44, `${label}: ${w} x ${h}`);
     });
 
+    await check('the recipe codex lists all six recipes and closes again', async () => {
+      await page.getByRole('button', { name: 'Rezepte' }).tap();
+      await frames(page);
+      assert.ok(await page.locator('.codex').isVisible());
+      assert.equal((await page.$$('.codex-card')).length, 6);
+      assert.match(await page.locator('.codex-card').first().textContent(), /Reinigungsschrein/);
+      await page.screenshot({ path: join(OUT, 'tablet-codex.png') });
+      await page.getByRole('button', { name: 'Schließen' }).tap();
+      await frames(page);
+      assert.ok(await page.locator('.codex').isHidden());
+      assert.equal((await game(page)).obstacles, before.obstacles, 'the codex does not touch the map');
+    });
+
     await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
 
     await check('tap marks a landing zone, tapping again clears it', async () => {

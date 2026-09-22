@@ -62,7 +62,8 @@ export function createHud(root, { debug, onAction }) {
   });
   const start = button(T.requestSalvo, 'primary', () => onAction('requestSalvo'));
   const restart = button(T.newGame, 'primary', () => onAction('newGame'));
-  bar.append(speedGroup, start, restart);
+  const codex = button(T.codex, 'alt', () => onAction('codex'));
+  bar.append(speedGroup, start, restart, codex);
 
   let obstacleButton = null;
   let artButton = null;

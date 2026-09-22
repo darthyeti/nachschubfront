@@ -22,6 +22,7 @@ import { attachPointerInput } from './input/pointer.js';
 import { attachKeyboard } from './input/keyboard.js';
 import { createHud } from './ui/hud.js';
 import { createSelectionPanel } from './ui/selection.js';
+import { createCodex } from './ui/codex.js';
 import { createLoadingScreen } from './ui/loading.js';
 import { createSpriteCache } from './render/sprites/rasterizer.js';
 import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
@@ -166,6 +167,10 @@ function onAction(action) {
   } else if (action === 'stress') {
     if (state.stress) stopStress(state);
     else startStress(state, STRESS_ENEMIES);
+  } else if (action === 'codex') {
+    codex.toggle();
+  } else if (action === 'closeCodex') {
+    codex.setOpen(false);
   } else if (action === 'supplyLevel') {
     // Debug only until requisition arrives in M3, so merges and recipes are testable.
     if (debug) state.supplyLevel = (state.supplyLevel % MAX_SUPPLY_LEVEL) + 1;
@@ -181,6 +186,7 @@ function onAction(action) {
   }
 }
 
+const codex = createCodex(document.body);
 const hud = createHud(document.getElementById('hud'), { debug, onAction });
 const selectionPanel = createSelectionPanel(hud.bottom, {
   onSelect: (index) => {
