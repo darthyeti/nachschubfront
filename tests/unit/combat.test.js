@@ -346,3 +346,87 @@ test('mortars cannot hit flyers, not even with the splash', () => {
   assert.equal(flyer.health, flyer.maxHealth);
   assert.ok(mortar.damage > 0, 'the ground target is hit all the same');
 });
+
+test('the storm battery fires at three targets at once', () => {
+  const state = battlefield();
+  const tower = addTower(state, { x: 8, y: 10, doctrine: 'autocannon', rank: null, special: 'stormBattery' });
+  const enemies = [];
+  for (let i = 0; i < 5; i++) {
+    const e = put(state, 'breaker', 7 + i * 0.5);
+    e.health = 1e6;
+    e.maxHealth = 1e6;
+    enemies.push(e);
+  }
+  updateCombat(state, SIM_STEP);
+  assert.equal(enemies.filter((e) => e.health < e.maxHealth).length, 3);
+});
+
+test('the purge shrine burns a whole ring and its burns stack', () => {
+  const state = battlefield();
+  const tower = addTower(state, { x: 8, y: 10, doctrine: 'flame', rank: null, special: 'purgeShrine' });
+  const ahead = put(state, 'warrior', 9);
+  const behind = put(state, 'warrior', 7);
+  ahead.health = 1e6;
+  behind.health = 1e6;
+  updateCombat(state, SIM_STEP);
+  assert.ok(ahead.health < 1e6 && behind.health < 1e6, 'a ring, not a cone');
+  assert.ok(ahead.slow > 0, 'and it slows');
+  const first = ahead.burn.dps;
+  updateCombat(state, SIM_STEP);
+  assert.ok(ahead.burn.dps > first, 'the burn stacks instead of being refreshed');
+  assert.ok(tower.damage > 0);
+});
+
+test('the soulfire obelisk hurts by the share of a boss health bar', () => {
+  const state = battlefield();
+  addTower(state, { x: 8, y: 10, doctrine: 'psi', rank: null, special: 'soulfireObelisk' });
+  const small = put(state, 'warrior', 9);
+  const boss = put(state, 'breaker', 9.2);
+  boss.maxHealth = 100000;
+  boss.health = 100000;
+  const before = { small: small.health, boss: boss.health };
+  // A fifth of a second, so nothing dies and the numbers stay comparable.
+  for (let i = 0; i < 12; i++) updateCombat(state, SIM_STEP);
+  const onBoss = before.boss - boss.health;
+  const onSmall = before.small - small.health;
+  assert.ok(onBoss > 100, `the boss loses a share of its bar: ${onBoss}`);
+  // Plate halves psi damage, and the small one takes the full factor: only the
+  // share of the health bar can explain the difference.
+  assert.ok(onBoss > onSmall * 10, `${onBoss} vs ${onSmall}`);
+});
+
+test('the thunder tower chains over eight enemies and stuns them', () => {
+  const state = battlefield();
+  addTower(state, { x: 8, y: 10, doctrine: 'tesla', rank: null, special: 'thunderTower' });
+  const enemies = [];
+  for (let i = 0; i < 10; i++) {
+    const e = put(state, 'breaker', 6 + i * 0.6);
+    e.health = 1e6;
+    e.maxHealth = 1e6;
+    enemies.push(e);
+  }
+  updateCombat(state, SIM_STEP);
+  assert.equal(enemies.filter((e) => e.health < e.maxHealth).length, 8);
+  assert.ok(enemies.some((e) => e.stunUntil > state.time), 'and holds them for a moment');
+});
+
+test('the ember cauldron burns around itself while its bolts fly', () => {
+  const state = battlefield();
+  const tower = addTower(state, { x: 8, y: 10, doctrine: 'flame', rank: null, special: 'emberCauldron' });
+  // Inside the aura (range 2), but the bolt goes to the leading enemy.
+  const near = put(state, 'warrior', 8.2);
+  const lead = put(state, 'warrior', 9.4);
+  near.health = 1e6;
+  lead.health = 1e6;
+  updateCombat(state, SIM_STEP);
+  assert.ok(near.burn && lead.burn, 'aura and bolt both set fire');
+  assert.ok(tower.damage > 0);
+});
+
+test('special towers have no rank and keep the doctrine of their first ingredient', () => {
+  const state = battlefield();
+  const tower = addTower(state, { x: 8, y: 10, doctrine: 'mortar', rank: null, special: 'siegeMortar' });
+  const stats = towerStats(tower);
+  assert.equal(stats.doctrine, 'mortar');
+  assert.ok(stats.range > towerStats({ doctrine: 'mortar', rank: 5 }).range, 'and outranges a legend mortar');
+});

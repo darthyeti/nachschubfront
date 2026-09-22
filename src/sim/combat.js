@@ -43,6 +43,25 @@ function fireSingle(state, tower, stats, target) {
   });
 }
 
+// ---------- Storm battery: one volley, several targets ----------
+
+function fireMulti(state, tower, stats, target) {
+  const targets = targetsInRange(state, tower, stats).slice(0, stats.def.multiTargets);
+  if (targets.length === 0) targets.push(target);
+  for (const e of targets) {
+    hit(tower, stats, e, stats.damage);
+    state.events.push({
+      type: 'shot',
+      towerId: tower.id,
+      doctrine: stats.doctrine,
+      x: tower.x + 0.5,
+      y: tower.y + 0.5,
+      tx: e.x,
+      ty: e.y,
+    });
+  }
+}
+
 // ---------- Laser: pierces everything on the line ----------
 
 function fireBeam(state, tower, stats, target) {
@@ -86,7 +105,8 @@ function nextInChain(state, stats, from, hitIds, jumpRange) {
   return best;
 }
 
-function fireChain(state, tower, stats, target, { targets, falloff, jumpRange, stun = 0 } = stats.def.chain) {
+function fireChain(state, tower, stats, target) {
+  const { targets, falloff, jumpRange, stun = 0 } = stats.def.chain;
   const centre = towerCentre(tower);
   const points = [centre];
   const hitIds = new Set();
@@ -143,8 +163,11 @@ function fireCone(state, tower, stats, dt) {
 function fireAura(state, tower, stats, dt) {
   const targets = targetsInRange(state, tower, stats);
   if (targets.length === 0) return false;
+  const percent = stats.def.percentPerSecond ?? 0;
   for (const e of targets) {
-    hit(tower, stats, e, stats.damage * dt);
+    // Damage in percent of maximum health is what makes the soulfire obelisk a
+    // weapon against bosses: it does not care how much health they have.
+    hit(tower, stats, e, (stats.damage + percent * e.maxHealth) * dt);
     if (stats.def.slow) applySlow(state, e, stats.def.slow);
     if (stats.def.burn) applyBurn(state, e, stats.def.burn, stats.doctrine, tower.id, { stack: stats.burnStacks });
   }
@@ -152,25 +175,43 @@ function fireAura(state, tower, stats, dt) {
   return true;
 }
 
-/** How each doctrine delivers a single shot. */
+/** The extra ring some special towers carry alongside their main weapon. */
+function updateSecondaryAura(state, tower, stats, dt) {
+  const ring = stats.def.aura;
+  if (!ring) return;
+  for (const e of targetsInRange(state, tower, stats, ring.range)) {
+    hit(tower, stats, e, ring.damage * dt);
+    if (ring.slow) applySlow(state, e, ring.slow);
+    if (ring.burn) applyBurn(state, e, ring.burn, stats.doctrine, tower.id, { stack: stats.burnStacks });
+  }
+}
+
+/** How each doctrine or special tower delivers a single shot. */
 const SHOT = {
+  single: fireSingle,
   autocannon: fireSingle,
   laser: fireBeam,
+  beam: fireBeam,
   mortar: fireMortar,
   tesla: fireChain,
+  chain: fireChain,
+  multi: fireMulti,
 };
 
-/** How the continuous doctrines work. */
+/** How the continuous weapons work. */
 const CONTINUOUS = {
   flame: fireCone,
+  cone: fireCone,
   psi: fireAura,
+  aura: fireAura,
 };
 
 /** One simulation step of tower fire. */
 export function updateCombat(state, dt) {
   for (const tower of state.towers) {
     const stats = towerStats(tower);
-    const continuous = CONTINUOUS[stats.behaviour ?? stats.doctrine];
+    updateSecondaryAura(state, tower, stats, dt);
+    const continuous = CONTINUOUS[stats.behaviour];
     if (continuous) {
       tower.firing = continuous(state, tower, stats, dt);
       continue;
@@ -184,7 +225,7 @@ export function updateCombat(state, dt) {
       continue;
     }
     tower.aim = { x: target.x, y: target.y };
-    const shot = SHOT[stats.behaviour ?? stats.doctrine] ?? fireSingle;
+    const shot = SHOT[stats.behaviour] ?? fireSingle;
     shot(state, tower, stats, target);
     const reload = period(stats);
     tower.cooldown += reload;

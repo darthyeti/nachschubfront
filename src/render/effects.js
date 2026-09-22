@@ -10,6 +10,7 @@ import { iso } from './iso.js';
 import { ell, poly, comicText, shadow } from './draw.js';
 import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
+import { towerStats } from '../sim/towers.js';
 
 /** Upper bounds (CLAUDE.md: particles and decals need a ceiling). */
 const MAX_PARTICLES = 420;
@@ -183,27 +184,31 @@ export function createEffects() {
 
     for (const tower of state.towers) {
       if (!tower.firing || !tower.aim) continue;
-      if (tower.doctrine === 'psi') drawAura(ctx, tower, t, reducedMotion);
-      else if (tower.doctrine === 'flame') drawCone(ctx, tower, t, reducedMotion);
+      // The behaviour, not the doctrine: a purge shrine is a flame tower with a ring.
+      const stats = towerStats(tower);
+      if (stats.behaviour === 'aura' || stats.behaviour === 'psi') drawAura(ctx, tower, stats, t, reducedMotion);
+      else if (stats.behaviour === 'cone' || stats.behaviour === 'flame') drawCone(ctx, tower, t, reducedMotion);
     }
   }
 
-  function drawAura(ctx, tower, t, reducedMotion) {
+  /** Ring on the ground in the guide colour of the tower's doctrine. */
+  function drawAura(ctx, tower, stats, t, reducedMotion) {
     const [x, y] = project(tower.x + 0.5, tower.y + 0.5);
     const pulse = reducedMotion ? 1 : 1 + Math.sin(t * 4) * 0.04;
-    const r = 3.0 * 32 * pulse;
+    const r = stats.range * 32 * pulse;
+    const colour = DOCTRINE_COLORS[stats.doctrine] ?? C.warpL;
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(1, 0.5);
     const g = ctx.createRadialGradient(0, 0, r * 0.25, 0, 0, r);
-    g.addColorStop(0, 'rgba(183,132,255,0)');
-    g.addColorStop(0.75, 'rgba(183,132,255,.10)');
-    g.addColorStop(1, 'rgba(183,132,255,.28)');
+    g.addColorStop(0, `${colour}00`);
+    g.addColorStop(0.75, `${colour}1f`);
+    g.addColorStop(1, `${colour}47`);
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(236,170,255,.5)';
+    ctx.strokeStyle = `${colour}88`;
     ctx.lineWidth = 3;
     ctx.stroke();
     ctx.restore();

@@ -2,6 +2,7 @@
 
 import { setBlocked } from './grid.js';
 import { DOCTRINES } from '../data/doctrines.js';
+import { SPECIALS } from '../data/specials.js';
 import { rankStats } from '../data/ranks.js';
 
 /**
@@ -47,22 +48,25 @@ export function removeTower(state, id) {
 }
 
 /**
- * Combat values of a tower: the doctrine values scaled by its rank.
- * Special towers bring their own values (data/specials.js) but keep the
- * doctrine of their first ingredient, which decides the damage matrix.
+ * Combat values of a tower: the doctrine values scaled by its rank, or the
+ * values of the special tower (data/specials.js). Specials have no rank; they
+ * keep the doctrine of their first ingredient, which decides the damage matrix
+ * and the guide colour.
  */
 export function towerStats(tower) {
-  const def = DOCTRINES[tower.doctrine];
-  if (!def) throw new Error(`Unknown doctrine: ${tower.doctrine}`);
-  const rank = rankStats(tower.rank ?? 1);
+  const def = tower.special ? SPECIALS[tower.special] : DOCTRINES[tower.doctrine];
+  if (!def) throw new Error(`Unknown tower: ${tower.special ?? tower.doctrine}`);
+  const rank = tower.special ? { damage: 1, range: 1 } : rankStats(tower.rank ?? 1);
   return {
     def,
-    doctrine: tower.doctrine,
+    doctrine: def.doctrine ?? tower.doctrine,
+    behaviour: def.behaviour ?? tower.doctrine,
     fire: def.fire,
     damage: def.damage * rank.damage,
     range: def.range * rank.range,
     minRange: def.minRange ?? 0,
     splashRadius: def.splashRadius ?? 0,
+    burnStacks: def.burnStacks ?? false,
   };
 }
 

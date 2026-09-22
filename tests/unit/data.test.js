@@ -10,6 +10,7 @@ import { SUPPLY_LEVELS, MAX_SUPPLY_LEVEL, supplyWeights, supplyCost } from '../.
 import { RECIPES, RECIPE_IDS, recipeById } from '../../src/data/recipes.js';
 import { ENEMIES, ENEMY_IDS, BOSSES, BOSS_IDS, ALL_ENEMIES, enemyDef } from '../../src/data/enemies.js';
 import { WAVES, waveScale } from '../../src/data/waves.js';
+import { SPECIALS, specialDef } from '../../src/data/specials.js';
 import { ARMOR_TYPES, DAMAGE_MATRIX, damageFactor } from '../../src/data/combat.js';
 import { ECONOMY, waveBonus, rubbleCost } from '../../src/data/economy.js';
 import { COMMANDS, COMMAND_IDS, commandById } from '../../src/data/commands.js';
@@ -256,4 +257,35 @@ test('health grows by 12 percent per wave and waves get bigger', () => {
   const total = (wave) => WAVES[wave - 1].groups.reduce((sum, g) => sum + g.count, 0);
   // Same kind of wave, ten waves apart: the later one is the bigger one.
   for (const kind of [1, 2, 3, 4]) assert.ok(total(kind + 10) > total(kind), `wave ${kind + 10}`);
+});
+
+test('every recipe has a special tower whose values fit its ingredients', () => {
+  assert.deepEqual(Object.keys(SPECIALS), RECIPE_IDS, 'one special per recipe, same order');
+  const behaviours = new Set(['single', 'multi', 'beam', 'chain', 'mortar', 'cone', 'aura']);
+  for (const recipe of RECIPES) {
+    const def = specialDef(recipe.id);
+    assert.equal(def.doctrine, recipe.ingredients[0], `${recipe.id}: the leading ingredient types it`);
+    assert.ok(behaviours.has(def.behaviour), `${recipe.id}: ${def.behaviour}`);
+    assert.ok(def.damage > 0 && def.range > 0, recipe.id);
+    assert.ok(def.fire === 'aura' || def.fire > 0, recipe.id);
+    for (const t of def.targets) assert.ok(t === 'ground' || t === 'air', `${recipe.id}: ${t}`);
+    // A special must not shoot at armour it cannot hurt.
+    if (def.targets.includes('air')) assert.ok(damageFactor(def.doctrine, 'flyer') > 0, recipe.id);
+    if (def.behaviour === 'chain') assert.ok(def.chain.targets > 1, recipe.id);
+    if (def.behaviour === 'multi') assert.ok(def.multiTargets > 1, recipe.id);
+    if (def.behaviour === 'mortar') assert.ok(def.splashRadius > 0 && def.flightSeconds > 0, recipe.id);
+  }
+  assert.throws(() => specialDef('nope'));
+});
+
+test('a special tower beats the doctrine it is built from', () => {
+  // Rough guard against a special that would not be worth three towers.
+  const damagePerSecond = (def) => (def.fire === 'aura' ? def.damage : def.damage * def.fire);
+  for (const recipe of RECIPES) {
+    const def = specialDef(recipe.id);
+    const plain = DOCTRINES[recipe.ingredients[0]];
+    const plainDps = (plain.fire === 'aura' || plain.fire === 'stream' ? plain.damage : plain.damage * plain.fire)
+      * RANKS[recipe.minRank - 1].damage;
+    assert.ok(damagePerSecond(def) >= plainDps, `${recipe.id}: ${damagePerSecond(def)} vs ${plainDps}`);
+  }
 });
