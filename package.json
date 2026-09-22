@@ -12,7 +12,8 @@
     "test:perf": "node tests/perf.mjs",
     "test:webkit": "node tests/input.mjs --browser webkit && node tests/screenshots.mjs --browser webkit --query \"seed=BASTION&debug\" && node tests/perf.mjs --browser webkit",
     "icons": "node tests/tools/make-icons.mjs",
-    "sprites": "node tests/tools/import-sprites.mjs"
+    "sprites": "node tests/tools/import-sprites.mjs",
+    "waves": "node tests/tools/make-waves.mjs"
   },
   "devDependencies": {
     "playwright": "^1.63.0"

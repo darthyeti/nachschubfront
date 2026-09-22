@@ -13,10 +13,10 @@ import {
 } from '../../src/render/sprites/compose.js';
 import { ENEMY_SPRITES } from '../../src/render/sprites/enemies.js';
 import { TOWER_SPRITES } from '../../src/render/sprites/towers.js';
-import { ENEMIES } from '../../src/data/enemies.js';
+import { ENEMIES, BOSSES, ALL_ENEMIES } from '../../src/data/enemies.js';
 
 test('every enemy type in the game data has a sprite', () => {
-  assert.deepEqual([...ENEMY_TYPES].sort(), Object.keys(ENEMIES).sort());
+  assert.deepEqual([...ENEMY_TYPES].sort(), Object.keys(ALL_ENEMIES).sort());
   for (const type of ENEMY_TYPES) {
     const s = enemySprite(type);
     assert.ok(s.bbox[2] > 0 && s.bbox[3] > 0, type);
@@ -39,10 +39,12 @@ test('enemies stand on the ground: sprite bottom is at SVG y = 0 (flyers hover a
   for (const type of ENEMY_TYPES) {
     const [, y, , h] = enemySprite(type).bbox;
     const bottom = y + h - PAD;
-    if (type === 'carrionflyer') assert.ok(bottom < -10, `${type} bottom ${bottom}`);
+    // Bosses share the artwork of the enemy they borrow it from.
+    const source = ALL_ENEMIES[type].sprite ?? type;
+    if (ALL_ENEMIES[type].flying) assert.ok(bottom < -10, `${type} bottom ${bottom}`);
     // The warp seer floats a little above the ground on its tentacles (concept art).
-    else if (type === 'warpseer') assert.ok(bottom < 0 && bottom > -15, `${type} bottom ${bottom}`);
-    else if (type === 'healer') assert.ok(bottom > 0, 'healer aura reaches below the feet');
+    else if (source === 'warpseer') assert.ok(bottom < 0 && bottom > -15, `${type} bottom ${bottom}`);
+    else if (source === 'healer') assert.ok(bottom > 0, 'healer aura reaches below the feet');
     else assert.ok(Math.abs(bottom) <= 1, `${type} bottom ${bottom}`);
   }
 });
@@ -107,4 +109,15 @@ test('svg pixel size follows the requested scale', () => {
   const svg = s.svg(3);
   const [, , w, h] = s.bbox;
   assert.ok(svg.includes(`width="${Math.ceil(w * 3)}"`) && svg.includes(`height="${Math.ceil(h * 3)}"`));
+});
+
+test('bosses borrow the artwork of a normal enemy and are drawn larger', () => {
+  const plain = enemySprite('breaker');
+  for (const [id, boss] of Object.entries(BOSSES)) {
+    const s = enemySprite(id);
+    assert.deepEqual(s.bbox, enemySprite(boss.sprite).bbox, id);
+    assert.ok(s.unitScale > enemySprite(boss.sprite).unitScale, id);
+    assert.notEqual(s.key, enemySprite(boss.sprite).key, `${id}: own raster entry`);
+    assert.ok(s.unitScale > plain.unitScale, id);
+  }
 });

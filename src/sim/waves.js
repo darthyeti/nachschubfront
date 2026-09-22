@@ -20,12 +20,18 @@ export function totalWaves() {
   return WAVES.length;
 }
 
+export function waveDef(wave) {
+  return WAVES[wave - 1] ?? null;
+}
+
 /** Starts the next wave: freezes routes and queues its spawns. */
 export function beginWave(state) {
   state.wave += 1;
-  state.spawns = buildSpawns(WAVES[state.wave - 1]);
+  const def = WAVES[state.wave - 1];
+  state.spawns = buildSpawns(def);
+  state.waveScale = def.scale;
   state.waveRoutes = { ground: groundPolyline(state.route), flyer: flyerPolyline(state.map) };
-  state.waveStats = { spawned: 0, leaked: 0 };
+  state.waveStats = { spawned: 0, leaked: 0, killed: 0 };
   state.events.push({ type: 'waveStart', wave: state.wave });
 }
 

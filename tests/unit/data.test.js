@@ -8,7 +8,8 @@ import { DOCTRINES, DOCTRINE_IDS, DOCTRINE_COLORS } from '../../src/data/doctrin
 import { RANKS, MAX_RANK, MIN_RANK, isRank, rankStats } from '../../src/data/ranks.js';
 import { SUPPLY_LEVELS, MAX_SUPPLY_LEVEL, supplyWeights, supplyCost } from '../../src/data/supply.js';
 import { RECIPES, RECIPE_IDS, recipeById } from '../../src/data/recipes.js';
-import { ENEMIES, ENEMY_IDS, enemyDef } from '../../src/data/enemies.js';
+import { ENEMIES, ENEMY_IDS, BOSSES, BOSS_IDS, ALL_ENEMIES, enemyDef } from '../../src/data/enemies.js';
+import { WAVES, waveScale } from '../../src/data/waves.js';
 import { ARMOR_TYPES, DAMAGE_MATRIX, damageFactor } from '../../src/data/combat.js';
 import { ECONOMY, waveBonus, rubbleCost } from '../../src/data/economy.js';
 import { COMMANDS, COMMAND_IDS, commandById } from '../../src/data/commands.js';
@@ -186,4 +187,73 @@ test('special commands unlock in order and have costs, cooldowns and texts', () 
   const waves = COMMANDS.map((c) => c.fromWave);
   assert.deepEqual(waves, [...waves].sort((a, b) => a - b), 'listed in unlock order');
   assert.ok(COMMANDS.find((c) => c.id === 'orbitalStrike').bossDamageFraction <= 0.25);
+});
+
+test('bosses have their own values, artwork and a name', () => {
+  assert.equal(BOSS_IDS.length, 5);
+  const waves = [];
+  for (const id of BOSS_IDS) {
+    const boss = BOSSES[id];
+    assert.equal(boss.boss, true, id);
+    assert.ok(ARMOR_TYPES.includes(boss.armor), `${id}: ${boss.armor}`);
+    assert.ok(boss.health > ENEMIES.breaker.health * 5, `${id}: bosses outlast a breaker by far`);
+    assert.ok(boss.speed > 0 && boss.speed <= 1, `${id}: bosses are slower than the swarm`);
+    assert.ok(boss.reward > ENEMIES.breaker.reward, id);
+    assert.ok(ENEMIES[boss.sprite], `${id}: borrows the artwork of a known enemy`);
+    assert.ok(boss.scale > 1, `${id}: drawn larger`);
+    assert.equal(typeof STRINGS.enemies[id], 'string', id);
+    if (boss.spawnTrail) assert.ok(ENEMIES[boss.spawnTrail.type], id);
+    if (boss.armorCycle) {
+      for (const a of boss.armorCycle.types) assert.ok(ARMOR_TYPES.includes(a), `${id}: ${a}`);
+      assert.ok(boss.armorCycle.seconds > 0, id);
+    }
+    waves.push(boss.wave);
+  }
+  assert.deepEqual(waves, [10, 20, 30, 40, 50], 'one boss every tenth wave');
+  assert.deepEqual(Object.keys(STRINGS.enemies), [...ENEMY_IDS, ...BOSS_IDS]);
+  assert.equal(enemyDef('broodmother'), BOSSES.broodmother);
+});
+
+test('the wave list covers 50 waves of known enemies', () => {
+  assert.equal(WAVES.length, 50);
+  for (const [i, wave] of WAVES.entries()) {
+    const n = i + 1;
+    assert.ok(wave.groups.length > 0, `wave ${n}`);
+    assert.equal(typeof STRINGS.waveKinds[wave.kind], 'string', `wave ${n}: ${wave.kind}`);
+    for (const g of wave.groups) {
+      assert.ok(ALL_ENEMIES[g.type], `wave ${n}: ${g.type}`);
+      assert.ok(g.count > 0, `wave ${n}: ${g.type}`);
+      assert.ok(g.interval >= 0 && g.delay >= 0, `wave ${n}: ${g.type}`);
+      if (ALL_ENEMIES[g.type].boss) assert.equal(g.count, 1, `wave ${n}: one boss at a time`);
+    }
+  }
+});
+
+test('the wave cycle and the boss waves follow the GDD', () => {
+  const cycle = ['horde', 'armour', 'air', 'warp', 'mixed'];
+  for (const [i, wave] of WAVES.entries()) {
+    const n = i + 1;
+    const expected = n % 10 === 0 ? 'boss' : cycle[(n - 1) % cycle.length];
+    assert.equal(wave.kind, expected, `wave ${n}`);
+    const bossGroup = wave.groups.find((g) => ALL_ENEMIES[g.type].boss);
+    if (n % 10 === 0) {
+      assert.ok(bossGroup, `wave ${n} has a boss`);
+      assert.equal(BOSSES[bossGroup.type].wave, n, `wave ${n}: the right boss`);
+      assert.ok(wave.groups.length > 1, `wave ${n}: the boss comes with an escort`);
+    } else {
+      assert.equal(bossGroup, undefined, `wave ${n} has no boss`);
+    }
+  }
+});
+
+test('health grows by 12 percent per wave and waves get bigger', () => {
+  assert.equal(waveScale(1), 1);
+  for (let n = 2; n <= WAVES.length; n++) {
+    const grown = waveScale(n - 1) * 1.12;
+    assert.ok(Math.abs(waveScale(n) - grown) < 0.01, `wave ${n}: ${waveScale(n)} vs ${grown}`);
+  }
+  assert.equal(waveScale(51), 1, 'outside the table nothing is scaled');
+  const total = (wave) => WAVES[wave - 1].groups.reduce((sum, g) => sum + g.count, 0);
+  // Same kind of wave, ten waves apart: the later one is the bigger one.
+  for (const kind of [1, 2, 3, 4]) assert.ok(total(kind + 10) > total(kind), `wave ${kind + 10}`);
 });

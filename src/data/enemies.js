@@ -44,11 +44,91 @@ export const ENEMIES = {
   },
 };
 
+/**
+ * Bosses (GDD section 9). Every tenth wave replaces the cycle with one of them.
+ * The GDD names the idea but no numbers; the values below are derived from the
+ * wave they appear in: a boss is worth roughly one and a half normal waves of
+ * health (see docs/PROGRESS.md) and is slower than the enemies around it.
+ * `sprite` is the enemy whose artwork the boss borrows until M4, `scale` how
+ * much larger it is drawn.
+ */
+export const BOSSES = {
+  broodmother: {
+    boss: true,
+    wave: 10,
+    armor: 'flesh',
+    health: 1800,
+    speed: 0.7,
+    reward: 50,
+    flying: false,
+    sprite: 'burster',
+    scale: 2.2,
+    /** Releases swarmers while it walks. */
+    spawnTrail: { type: 'swarmer', count: 2, intervalSeconds: 3 },
+  },
+  colossusbreaker: {
+    boss: true,
+    wave: 20,
+    armor: 'plate',
+    health: 3500,
+    speed: 0.45,
+    reward: 50,
+    flying: false,
+    sprite: 'breaker',
+    scale: 2.4,
+  },
+  warpherald: {
+    boss: true,
+    wave: 30,
+    armor: 'warpshield',
+    armorBelow: 'flesh',
+    health: 3000,
+    shield: 1500,
+    shieldRegen: 120,
+    speed: 0.8,
+    reward: 50,
+    flying: false,
+    sprite: 'warpseer',
+    scale: 2.2,
+    /** Jumps this many cells forward along the route now and then. */
+    warpJump: { cells: 3, intervalSeconds: 6 },
+  },
+  swarmqueen: {
+    boss: true,
+    wave: 40,
+    armor: 'flyer',
+    health: 3500,
+    speed: 0.9,
+    reward: 50,
+    flying: true,
+    sprite: 'carrionflyer',
+    scale: 2.4,
+  },
+  daemonprince: {
+    boss: true,
+    wave: 50,
+    armor: 'flesh',
+    health: 5000,
+    speed: 0.6,
+    reward: 50,
+    flying: false,
+    sprite: 'warrior',
+    scale: 2.6,
+    /** Cycles through these armour types, one every `seconds`. */
+    armorCycle: { types: ['flesh', 'plate', 'warpshield'], seconds: 4 },
+  },
+};
+
 /** Fixed order: the sprite gallery and the stress test follow it. */
 export const ENEMY_IDS = Object.keys(ENEMIES);
 
+export const BOSS_IDS = Object.keys(BOSSES);
+
+/** Every enemy the simulation can spawn, normal types and bosses. */
+export const ALL_ENEMIES = { ...ENEMIES, ...BOSSES };
+
 export function enemyDef(type) {
-  const def = ENEMIES[type];
+  const def = ALL_ENEMIES[type];
   if (!def) throw new Error(`Unknown enemy type: ${type}`);
   return def;
 }

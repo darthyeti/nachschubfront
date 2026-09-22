@@ -47,8 +47,10 @@ export function createGameState(seed) {
     spawns: [],
     /** Routes frozen at wave start: { ground, flyer } polylines. */
     waveRoutes: null,
+    /** Health factor of the running wave (data/waves.js). */
+    waveScale: 1,
     /** Stats of the running or last wave. */
-    waveStats: { spawned: 0, leaked: 0 },
+    waveStats: { spawned: 0, leaked: 0, killed: 0 },
 
     /** Simulation steps executed so far. */
     tick: 0,

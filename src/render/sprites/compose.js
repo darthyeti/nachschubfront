@@ -6,7 +6,8 @@ import { TOWER_SPRITES } from './towers.js';
 import {
   SPRITE_SCALE,
   TOWER_BASE_TOP,
-  ENEMY_SYMBOLS,
+  ALL_ENEMY_SYMBOLS,
+  ENEMY_EXTRA_SCALE,
   DOCTRINE_SYMBOLS,
   OWN_SANDBAGS,
   RANK_COUNT,
@@ -98,13 +99,15 @@ export function towerParts(doctrine, rank) {
  */
 
 export function enemySprite(type) {
-  const id = ENEMY_SYMBOLS[type];
+  const id = ALL_ENEMY_SYMBOLS[type];
   if (!id) throw new Error(`Unknown enemy type: ${type}`);
   const { bbox } = ENEMY_SPRITES.symbols[id];
   return {
     key: `enemy:${type}`,
     bbox,
-    unitScale: SPRITE_SCALE.enemy,
+    // Bosses share the symbol of a normal enemy but are drawn larger, so the
+    // scale is part of the key via the type.
+    unitScale: SPRITE_SCALE.enemy * (ENEMY_EXTRA_SCALE[type] ?? 1),
     anchorZ: 0,
     svg: (pixelScale) => svgDocument(ENEMY_SPRITES, `<use href="#${id}"/>`, bbox, pixelScale),
   };
@@ -124,5 +127,5 @@ export function towerSprite(doctrine, rank) {
   };
 }
 
-export const ENEMY_TYPES = Object.keys(ENEMY_SYMBOLS);
+export const ENEMY_TYPES = Object.keys(ALL_ENEMY_SYMBOLS);
 export const DOCTRINES = Object.keys(DOCTRINE_SYMBOLS);

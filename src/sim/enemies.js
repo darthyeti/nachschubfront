@@ -1,29 +1,41 @@
 // Enemy records and movement along the frozen wave routes.
 
-import { ENEMIES } from '../data/enemies.js';
+import { enemyDef } from '../data/enemies.js';
 import { RULES } from '../data/rules.js';
 import { positionAt } from './route.js';
 
-export function spawnEnemy(state, type) {
-  const def = ENEMIES[type];
-  if (!def) throw new Error(`Unknown enemy type: ${type}`);
+/**
+ * Spawns an enemy at distance `d` along the route of its kind. Health and
+ * shield are scaled with the wave (data/waves.js).
+ */
+export function spawnEnemy(state, type, { d = 0 } = {}) {
+  const def = enemyDef(type);
+  const scale = state.waveScale ?? 1;
   const line = def.flying ? state.waveRoutes.flyer : state.waveRoutes.ground;
+  const health = def.health * scale;
+  const shield = (def.shield ?? 0) * scale;
   const e = {
     id: state.nextEnemyId++,
     type,
     flying: def.flying,
     boss: def.boss ?? false,
     speed: def.speed,
-    health: def.health,
-    maxHealth: def.health,
+    health,
+    maxHealth: health,
+    /** Warp shield in front of the health; 0 for everything else. */
+    shield,
+    maxShield: shield,
+    /** Current armour type; the daemon prince changes it while it walks. */
+    armor: def.armor,
+    reward: def.reward,
     /** Distance travelled along the route, in cells. */
-    d: 0,
+    d,
     x: 0,
     y: 0,
     dx: 1,
     dy: 0,
   };
-  positionAt(line, 0, e);
+  positionAt(line, d, e);
   state.enemies.push(e);
   return e;
 }

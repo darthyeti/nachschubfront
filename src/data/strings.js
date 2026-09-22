@@ -78,6 +78,21 @@ export const STRINGS = {
     carrionflyer: 'Aasflieger',
     burster: 'Zerplatzer',
     healer: 'Heiler',
+    broodmother: 'Brutmutter',
+    colossusbreaker: 'Kolossbrecher',
+    warpherald: 'Warp-Herold',
+    swarmqueen: 'Schwarmkönigin',
+    daemonprince: 'Dämonenprinz',
+  },
+
+  /** Wave kinds, shown in the info panel and the wave statistics. */
+  waveKinds: {
+    horde: 'Horde',
+    armour: 'Panzer',
+    air: 'Flieger',
+    warp: 'Warp',
+    mixed: 'Gemischt',
+    boss: 'Boss',
   },
 
   armor: {

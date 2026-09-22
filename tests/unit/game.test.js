@@ -30,7 +30,7 @@ function runUntil(state, until, maxSeconds = 600) {
 
 function withRoutes(state) {
   state.waveRoutes = { ground: groundPolyline(state.route), flyer: flyerPolyline(state.map) };
-  state.waveStats = { spawned: 0, leaked: 0 };
+  state.waveStats = { spawned: 0, leaked: 0, killed: 0 };
   return state;
 }
 
@@ -191,6 +191,9 @@ test('maze changes are refused during a wave', () => {
 
 test('a full wave ends in evaluation, then planning', () => {
   const state = createGameState(SEED);
+  // Wave 1 sends more enemies than the bastion has lives, and nothing shoots
+  // them yet; the phase order is what this test is about.
+  state.lives = 100000;
   playSalvo(state);
   runUntil(state, (s) => s.phase === 'evaluation');
   assert.equal(state.enemies.length, 0);

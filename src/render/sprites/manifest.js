@@ -2,6 +2,7 @@
 // Rules: docs/ART.md. Symbol ids come from the generated enemies.js / towers.js.
 
 import { MAX_RANK } from '../../data/ranks.js';
+import { BOSSES } from '../../data/enemies.js';
 
 /** World pixels per SVG unit. A cell is 64 x 32 world pixels. */
 export const SPRITE_SCALE = {
@@ -24,8 +25,24 @@ export const ENEMY_SYMBOLS = {
   healer: 'e-heal',
 };
 
+/**
+ * Bosses have no concept art yet (ART.md): until M4 each one borrows the symbol
+ * of a related enemy and is drawn larger. Both values come from data/enemies.js.
+ */
+export const BOSS_SYMBOLS = Object.fromEntries(
+  Object.entries(BOSSES).map(([id, boss]) => [id, ENEMY_SYMBOLS[boss.sprite]]),
+);
+
+/** Extra size factor on top of SPRITE_SCALE.enemy; 1 for normal enemies. */
+export const ENEMY_EXTRA_SCALE = Object.fromEntries(
+  Object.entries(BOSSES).map(([id, boss]) => [id, boss.scale]),
+);
+
+/** Every drawable enemy symbol, normal types first. */
+export const ALL_ENEMY_SYMBOLS = { ...ENEMY_SYMBOLS, ...BOSS_SYMBOLS };
+
 /** Ground shadow per enemy (radius in world pixels) and hover height for flyers. */
-export const ENEMY_SHADOW = {
+const BASE_SHADOW = {
   swarmer: 13,
   warrior: 15,
   breaker: 22,
@@ -33,6 +50,13 @@ export const ENEMY_SHADOW = {
   carrionflyer: 16,
   burster: 17,
   healer: 14,
+};
+
+export const ENEMY_SHADOW = {
+  ...BASE_SHADOW,
+  ...Object.fromEntries(
+    Object.entries(BOSSES).map(([id, boss]) => [id, BASE_SHADOW[boss.sprite] * boss.scale]),
+  ),
 };
 
 export const DOCTRINE_SYMBOLS = {
