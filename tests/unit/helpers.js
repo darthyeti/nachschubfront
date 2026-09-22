@@ -28,5 +28,30 @@ export function mapFromAscii(rows) {
     rift: marks.R,
     beacons: [marks['1'], marks['2'], marks['3'], marks['4']],
     bastion: marks.B,
+    obstacles: [],
+  };
+}
+
+/** A minimal planning-phase state around a map, enough for zone and pod tests. */
+export function planningState(map, extra = {}) {
+  return {
+    seed: 'TEST',
+    map,
+    route: null,
+    mapVersion: 0,
+    phase: 'planning',
+    phaseTime: 0,
+    wave: 0,
+    lives: 20,
+    speed: 1,
+    supplyLevel: 1,
+    zones: [],
+    pods: [],
+    towers: [],
+    nextTowerId: 1,
+    enemies: [],
+    stress: false,
+    events: [],
+    ...extra,
   };
 }

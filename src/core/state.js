@@ -1,6 +1,7 @@
 // Game state as plain data. Systems in sim/ mutate it, render/ only reads it.
 
 import { RULES } from '../data/rules.js';
+import { MIN_SUPPLY_LEVEL } from '../data/supply.js';
 import { createRng } from './random.js';
 import { generateMap } from '../sim/mapgen.js';
 import { computeRoute } from '../sim/route.js';
@@ -27,6 +28,16 @@ export function createGameState(seed) {
     lives: RULES.startLives,
     /** Game speed multiplier, one of GAME_SPEEDS. */
     speed: 1,
+
+    /** Supply level (GDD section 7); raised with requisition from M3 on. */
+    supplyLevel: MIN_SUPPLY_LEVEL,
+    /** Landing zones marked during planning, at most PODS.perSalvo. */
+    zones: [],
+    /** Pods of the running salvo; empty outside salvo and selection. */
+    pods: [],
+    /** Towers on the map. Each one blocks its cell. */
+    towers: [],
+    nextTowerId: 1,
 
     enemies: [],
     nextEnemyId: 1,
