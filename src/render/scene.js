@@ -1,23 +1,153 @@
 // Draws a frame from the game state. Reads state, never writes it.
 
-const BACKGROUND = '#110c0a';
+import { iso } from './iso.js';
+import { applyCamera } from './camera.js';
+import { cellPath, comicText } from './draw.js';
+import { C } from './palette.js';
+import {
+  drawObstacleCell,
+  drawRift,
+  drawRiftGlow,
+  drawBastion,
+  drawBastionGlow,
+  drawBeacon,
+  drawBeaconLabel,
+  drawEnemy,
+} from './objects.js';
 
-/**
- * @param {CanvasRenderingContext2D} ctx
- * @param {{width: number, height: number, dpr: number}} view
- */
-export function renderScene(ctx, view) {
-  ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-  ctx.fillStyle = BACKGROUND;
-  ctx.fillRect(0, 0, view.width, view.height);
+const KIND_OBSTACLE = 0;
+const KIND_RIFT = 1;
+const KIND_BEACON = 2;
+const KIND_BASTION = 3;
+const KIND_ENEMY = 4;
 
-  // Vignette as in the style test (gradient, no shadowBlur).
-  const cx = view.width / 2;
-  const cy = view.height / 2;
-  const radius = Math.hypot(cx, cy);
-  const vignette = ctx.createRadialGradient(cx, cy, radius * 0.35, cx, cy, radius);
-  vignette.addColorStop(0, 'rgba(60, 40, 28, 0.35)');
-  vignette.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
-  ctx.fillStyle = vignette;
-  ctx.fillRect(0, 0, view.width, view.height);
+function createVignette() {
+  const canvas = document.createElement('canvas');
+  let key = '';
+  return function draw(ctx, view) {
+    const k = `${view.width}x${view.height}@${view.dpr}`;
+    if (k !== key) {
+      key = k;
+      canvas.width = Math.round(view.width * view.dpr);
+      canvas.height = Math.round(view.height * view.dpr);
+      const v = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      const g = v.createRadialGradient(w / 2, h * 0.52, Math.min(w, h) * 0.3, w / 2, h * 0.52, Math.max(w, h) * 0.75);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(0,0,0,.62)');
+      v.fillStyle = g;
+      v.fillRect(0, 0, w, h);
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(canvas, 0, 0);
+  };
+}
+
+function drawBackdrop(ctx, view) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const h = view.height * view.dpr;
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#110c0a');
+  g.addColorStop(0.45, '#2b1a13');
+  g.addColorStop(1, '#1a120e');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, view.width * view.dpr, h);
+}
+
+/** Dashed, slowly marching route line with ink underlay. */
+function drawRoutePreview(ctx, route, t, reducedMotion) {
+  const pts = route.cells.map(({ x, y }) => iso(x + 0.5, y + 0.5));
+  const trace = () => {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  };
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  trace();
+  ctx.strokeStyle = 'rgba(26,20,16,.55)';
+  ctx.lineWidth = 6;
+  ctx.stroke();
+  trace();
+  ctx.setLineDash([10, 9]);
+  ctx.lineDashOffset = reducedMotion ? 0 : -t * 22;
+  ctx.strokeStyle = C.gold;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
+  cellPath(ctx, cell.x, cell.y, 0.04);
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = lineWidth;
+  ctx.stroke();
+}
+
+export function createSceneRenderer() {
+  const drawVignette = createVignette();
+  const items = [];
+
+  /**
+   * @param {object} ui  Render-side state: hover cell, flashes, reduced motion.
+   * @param {object} ground  Ground layer from createGroundLayer().
+   */
+  return function renderScene(ctx, view, cam, state, ui, ground, t) {
+    const { map } = state;
+    drawBackdrop(ctx, view);
+    ground.draw(ctx, cam, view, map.size, state.seed, t * 1000);
+
+    applyCamera(ctx, cam, view);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    drawRiftGlow(ctx, map.rift, t);
+    drawBastionGlow(ctx, map.bastion, t);
+
+    if (state.phase === 'planning' && state.route) drawRoutePreview(ctx, state.route, t, ui.reducedMotion);
+
+    if (ui.hoverCell) drawCellMarker(ctx, ui.hoverCell, 'rgba(242,193,78,.12)', 'rgba(242,193,78,.8)', 2);
+    for (const f of ui.flashes) {
+      const a = Math.max(0, f.life / f.max);
+      const col = f.ok ? `rgba(156,207,74,${a})` : `rgba(255,58,42,${a})`;
+      const fill = f.ok ? `rgba(156,207,74,${a * 0.25})` : `rgba(255,58,42,${a * 0.3})`;
+      drawCellMarker(ctx, f.cell, fill, col, 3);
+    }
+
+    // Depth-sorted objects: key is x + y of the object's front.
+    items.length = 0;
+    for (const o of map.obstacles) {
+      for (let i = 0; i < o.cells.length; i++) items.push([o.cells[i].x + o.cells[i].y + 1, KIND_OBSTACLE, o, i]);
+    }
+    items.push([map.rift.x + map.rift.y + 1, KIND_RIFT, map.rift, 0]);
+    items.push([map.bastion.x + map.bastion.y + 1, KIND_BASTION, map.bastion, 0]);
+    map.beacons.forEach((b, i) => items.push([b.x + b.y + 1, KIND_BEACON, b, i]));
+    for (const e of state.enemies) items.push([e.x + e.y, KIND_ENEMY, e, 0]);
+    items.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+
+    for (const [, kind, o, i] of items) {
+      if (kind === KIND_OBSTACLE) drawObstacleCell(ctx, o, i);
+      else if (kind === KIND_RIFT) drawRift(ctx, o, t);
+      else if (kind === KIND_BASTION) drawBastion(ctx, o, t);
+      else if (kind === KIND_BEACON) drawBeacon(ctx, o, t);
+      else drawEnemy(ctx, o, t);
+    }
+
+    map.beacons.forEach((b, i) => drawBeaconLabel(ctx, b, i + 1));
+
+    for (const f of ui.flashes) {
+      if (!f.label) continue;
+      const [x, y] = iso(f.cell.x + 0.5, f.cell.y + 0.5, 40 + (1 - f.life / f.max) * 20);
+      ctx.globalAlpha = Math.min(1, (f.life / f.max) * 2);
+      comicText(ctx, f.label, x, y, 18, f.ok ? C.toxicL : '#ff6a4a');
+      ctx.globalAlpha = 1;
+    }
+
+    drawVignette(ctx, view);
+  };
 }
