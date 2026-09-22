@@ -6,6 +6,7 @@
 import { createGameState } from '../../src/core/state.js';
 import { requestSalvo, chooseSelection } from '../../src/sim/actions.js';
 import { toggleZone } from '../../src/sim/zones.js';
+import { buySupply } from '../../src/sim/economy.js';
 import { PODS } from '../../src/data/pods.js';
 import { selectionOptions } from '../../src/sim/selection.js';
 import { stepSimulation } from '../../src/sim/step.js';
@@ -67,6 +68,8 @@ function markZones() {
 
 console.log(`Seed ${seed}, supply level ${supply}`);
 for (let round = 0; round < totalWaves(); round++) {
+  // Spend everything on the supply level, the only thing worth saving for.
+  while (buySupply(state).ok);
   markZones();
   if (!requestSalvo(state)) break;
   run(() => state.phase === 'selection', 60);
@@ -81,7 +84,8 @@ for (let round = 0; round < totalWaves(); round++) {
     `Welle ${String(wave).padStart(2)} ${STRINGS.waveKinds[def.kind].padEnd(8)} ` +
       `Gegner ${String(spawned).padStart(3)} · tot ${String(killed).padStart(3)} · ` +
       `durch ${String(leaked).padStart(3)} · Leben ${String(state.lives).padStart(3)} · ` +
-      `Stellungen ${String(towers).padStart(2)} · Requisition ${state.requisition}`,
+      `Stellungen ${String(towers).padStart(2)} · Nachschub ${state.supplyLevel} · ` +
+      `Requisition ${String(state.requisition).padStart(4)} · KP ${state.commandPoints}`,
   );
   if (state.phase === 'defeat' || state.phase === 'victory') break;
   run(() => state.phase === 'planning', 10);

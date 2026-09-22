@@ -4,6 +4,7 @@ import { STRINGS } from '../data/strings.js';
 import { GAME_SPEEDS } from '../data/settings.js';
 import { PODS } from '../data/pods.js';
 import { previewRoute } from '../sim/zones.js';
+import { canBuySupply, nextSupplyCost, nextRubbleCost } from '../sim/economy.js';
 
 const T = STRINGS.hud;
 
@@ -48,7 +49,10 @@ export function createHud(root, { debug, onAction }) {
   const route = el('span', 'chip');
   const zones = el('span', 'chip chip-zones');
   const supply = el('span', 'chip');
-  info.append(zones, supply, route, seed);
+  const requisition = el('span', 'chip chip-requisition');
+  const points = el('span', 'chip');
+  points.title = T.commandPointsTitle;
+  info.append(zones, supply, requisition, points, route, seed);
 
   // Bottom: speed controls and the main action.
   const bar = el('div', 'hud-bar');
@@ -64,7 +68,9 @@ export function createHud(root, { debug, onAction }) {
   const start = button(T.requestSalvo, 'primary', () => onAction('requestSalvo'));
   const restart = button(T.newGame, 'primary', () => onAction('newGame'));
   const codex = button(T.codex, 'alt', () => onAction('codex'));
-  bar.append(speedGroup, start, restart, codex);
+  const buySupplyButton = button(T.buySupply(0), 'alt', () => onAction('buySupply'));
+  const demolishButton = button(T.demolish(0), 'alt', () => onAction('demolishMode'));
+  bar.append(speedGroup, start, restart, buySupplyButton, demolishButton, codex);
 
   let obstacleButton = null;
   let artButton = null;
@@ -118,6 +124,17 @@ export function createHud(root, { debug, onAction }) {
       const routeText = shown ? T.route(Math.round(shown.length)) : T.routeBlocked;
       set('route', routeText, (v) => (route.textContent = v));
       set('supply', state.supplyLevel, (v) => (supply.textContent = T.supply(v)));
+      set('requisition', state.requisition, (v) => (requisition.textContent = T.requisition(v)));
+      set('points', state.commandPoints, (v) => (points.textContent = T.commandPoints(v)));
+      const supplyCost = nextSupplyCost(state);
+      set('buySupply', supplyCost, (v) => (buySupplyButton.textContent = v === null ? T.supplyMax : T.buySupply(v)));
+      set('canBuySupply', canBuySupply(state).ok, (v) => (buySupplyButton.disabled = !v));
+      const rubbleCost = nextRubbleCost(state);
+      set('demolishCost', rubbleCost, (v) => (demolishButton.textContent = T.demolish(v)));
+      set('canDemolish', state.phase === 'planning' && state.requisition >= rubbleCost, (v) => {
+        demolishButton.disabled = !v;
+      });
+      set('demolishMode', ui.demolishMode, (v) => demolishButton.classList.toggle('on', v));
       set('zones', state.phase === 'planning' ? state.zones.length : -1, (v) => {
         zones.hidden = v < 0;
         if (v >= 0) zones.textContent = T.zones(v, PODS.perSalvo);
@@ -130,6 +147,8 @@ export function createHud(root, { debug, onAction }) {
       set('over', over, (v) => {
         start.hidden = v;
         restart.hidden = !v;
+        buySupplyButton.hidden = v;
+        demolishButton.hidden = v;
       });
       if (obstacleButton) set('obstacleMode', ui.obstacleMode, (v) => obstacleButton.classList.toggle('on', v));
       if (artButton) set('art', ui.art, (v) => (artButton.textContent = v === 'sprites' ? T.artSprites : T.artPlaceholder));

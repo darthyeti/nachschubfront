@@ -10,7 +10,16 @@ import { groundPolyline, flyerPolyline, computeRoute } from '../../src/sim/route
 import { ENEMIES } from '../../src/data/enemies.js';
 import { RULES } from '../../src/data/rules.js';
 import { PODS } from '../../src/data/pods.js';
-import { MAX_SUPPLY_LEVEL } from '../../src/data/supply.js';
+import { MAX_SUPPLY_LEVEL, supplyCost } from '../../src/data/supply.js';
+import { ECONOMY } from '../../src/data/economy.js';
+import {
+  buySupply,
+  canBuySupply,
+  demolish,
+  nextRubbleCost,
+  nextSupplyCost,
+  settleWave,
+} from '../../src/sim/economy.js';
 import { selectionOptions } from '../../src/sim/selection.js';
 import { isBlocked } from '../../src/sim/grid.js';
 import { SIM_STEP } from '../../src/data/settings.js';
@@ -301,4 +310,61 @@ test('same seed and the same decisions give the same pods', () => {
   const first = run();
   assert.deepEqual(run(), first);
   assert.equal(new Set(first).size, first.length, 'each salvo differs from the others');
+});
+
+test('a cleared wave pays the bonus and a command point', () => {
+  const state = createGameState(SEED);
+  state.lives = 100000;
+  playSalvo(state);
+  const before = state.requisition;
+  runUntil(state, (s) => s.phase === 'evaluation');
+  // Wave 1 leaks without towers, so only the bonus is paid.
+  assert.equal(state.requisition, before + ECONOMY.waveBonusBase + ECONOMY.waveBonusPerWave);
+  assert.equal(state.commandPoints, 0, 'a breakthrough costs the clean-wave point');
+});
+
+test('supply levels are bought with requisition', () => {
+  const state = createGameState(SEED);
+  assert.equal(canBuySupply(state).ok, false, 'nothing in the coffers');
+  state.requisition = 2000;
+  const first = supplyCost(state.supplyLevel);
+  assert.ok(buySupply(state).ok);
+  assert.equal(state.supplyLevel, 2);
+  assert.equal(state.requisition, 2000 - first);
+  while (state.supplyLevel < MAX_SUPPLY_LEVEL) assert.ok(buySupply(state).ok);
+  assert.equal(canBuySupply(state).reason, 'max');
+  assert.equal(nextSupplyCost(state), null);
+});
+
+test('demolishing rubble costs more every time', () => {
+  const state = createGameState('MATCH');
+  state.lives = 100000;
+  state.requisition = 1000;
+  playSalvo(state);
+  runUntil(state, (s) => s.phase === 'planning', 600);
+  const rubble = state.map.obstacles.filter((o) => o.kind === 'rubble');
+  assert.ok(rubble.length >= 2, 'the salvo left rubble behind');
+
+  const first = nextRubbleCost(state);
+  const before = state.requisition;
+  const cell = rubble[0].cells[0];
+  assert.ok(demolish(state, cell).ok);
+  assert.equal(state.requisition, before - first);
+  assert.ok(!isBlocked(state.map.grid, cell.x, cell.y), 'the cell is free again');
+  assert.equal(state.map.obstacles.filter((o) => o.kind === 'rubble').length, rubble.length - 1);
+  assert.ok(nextRubbleCost(state) > first, 'the next one is dearer');
+
+  assert.equal(demolish(state, cell).reason, 'rubble', 'nothing left to clear there');
+  state.requisition = 0;
+  assert.equal(demolish(state, rubble[1].cells[0]).reason, 'funds');
+});
+
+test('a boss and a clean wave pay command points', () => {
+  const state = createGameState(SEED);
+  state.wave = 10;
+  state.waveStats = { spawned: 5, leaked: 0, killed: 5, bossKills: 1 };
+  const payout = settleWave(state);
+  assert.equal(payout.commandPoints, ECONOMY.pointsPerBoss + ECONOMY.pointsPerCleanWave);
+  assert.equal(payout.requisition, ECONOMY.waveBonusBase + 10);
+  assert.equal(state.commandPoints, payout.commandPoints);
 });

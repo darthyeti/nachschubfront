@@ -9,6 +9,7 @@ import { randomSeed, normalizeSeed } from './core/seed.js';
 import { stepSimulation } from './sim/step.js';
 import { requestSalvo, canRequestSalvo, chooseSelection, setSpeed, toggleObstacle } from './sim/actions.js';
 import { toggleZone } from './sim/zones.js';
+import { buySupply, demolish } from './sim/economy.js';
 import { podAt } from './sim/pods.js';
 import { checkPlacement } from './sim/route.js';
 import { totalWaves } from './sim/waves.js';
@@ -67,6 +68,8 @@ const ui = {
   flashes: [],
   banner: null,
   obstacleMode: false,
+  /** Taps clear rubble instead of marking zones while this is on. */
+  demolishMode: false,
   reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
   /** 'sprites' (concept art) or 'placeholder' (M1 shapes); debug switch. */
   art: params.get('art') === 'placeholder' ? 'placeholder' : 'sprites',
@@ -130,6 +133,15 @@ function applyZone(cell) {
   else if (t[result.reason]) flash(cell, false, t[result.reason]);
 }
 
+/** Clears a heap of rubble for requisition (GDD section 10). */
+function applyDemolish(cell) {
+  if (!cell) return;
+  const result = demolish(state, cell);
+  const t = STRINGS.placement;
+  if (result.ok) flash(cell, true, t.demolished);
+  else if (t[result.reason]) flash(cell, false, t[result.reason]);
+}
+
 /** During the selection a tap on a pod picks it; the panel then offers the actions. */
 function applyPodTap(cell) {
   if (!cell) return;
@@ -151,6 +163,7 @@ function applyChoice(choice) {
 
 function onCellTap(cell) {
   if (ui.obstacleMode) applyObstacle(cell);
+  else if (ui.demolishMode && state.phase === 'planning') applyDemolish(cell);
   else if (state.phase === 'planning') applyZone(cell);
   else if (state.phase === 'selection') applyPodTap(cell);
 }
@@ -171,6 +184,14 @@ function onAction(action) {
   } else if (action === 'stress') {
     if (state.stress) stopStress(state);
     else startStress(state, STRESS_ENEMIES);
+  } else if (action === 'buySupply') {
+    const result = buySupply(state);
+    if (!result.ok && STRINGS.placement[result.reason] && ui.cursorCell) {
+      flash(ui.cursorCell, false, STRINGS.placement[result.reason]);
+    }
+  } else if (action === 'demolishMode') {
+    ui.demolishMode = !ui.demolishMode;
+    if (ui.demolishMode) ui.obstacleMode = false;
   } else if (action === 'codex') {
     codex.toggle();
   } else if (action === 'closeCodex') {
@@ -329,6 +350,8 @@ if (debug) {
       towers: state.towers.map(({ id, x, y, doctrine, rank, special }) => ({ id, x, y, doctrine, rank, special })),
       supplyLevel: state.supplyLevel,
       requisition: state.requisition,
+      commandPoints: state.commandPoints,
+      demolished: state.demolished,
       waveStats: { ...state.waveStats },
       projectiles: state.projectiles.length,
     }),
@@ -337,7 +360,13 @@ if (debug) {
       setLives: (n) => setLives(state, n),
     },
     sprites: () => ({ ...sprites.stats }),
-    ui: () => ({ art: ui.art, frameMs: ui.frameMs, obstacleMode: ui.obstacleMode, podSelected: ui.podSelected }),
+    ui: () => ({
+      art: ui.art,
+      frameMs: ui.frameMs,
+      obstacleMode: ui.obstacleMode,
+      demolishMode: ui.demolishMode,
+      podSelected: ui.podSelected,
+    }),
   };
 }
 

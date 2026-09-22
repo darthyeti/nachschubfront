@@ -10,6 +10,7 @@ import { updateCombat } from './combat.js';
 import { updateProjectiles } from './projectiles.js';
 import { updateEffects } from './effects.js';
 import { updateShields, updateFlashes } from './damage.js';
+import { settleWave } from './economy.js';
 import { updateStress } from './debug.js';
 
 export function stepSimulation(state, dt) {
@@ -39,6 +40,7 @@ export function stepSimulation(state, dt) {
     if (state.lives <= 0) {
       setPhase(state, 'defeat');
     } else if (waveCleared(state)) {
+      settleWave(state);
       state.events.push({ type: 'waveCleared', wave: state.wave, leaked: state.waveStats.leaked });
       setPhase(state, 'evaluation');
     }
