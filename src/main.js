@@ -221,16 +221,8 @@ function frame(now) {
     fpsTime = 0;
     workTime = 0;
   }
-  // Rasterize the enemy sprites for the start zoom before the first wave can begin.
-const loading = createLoadingScreen(document.body);
-sprites
-  .preload(ENEMY_SPRITE_DEFS, camera.zoom, view.dpr, (done, total) => loading.progress(done, total))
-  .finally(() => {
-    loading.close();
-    document.body.dataset.ready = 'true';
-  });
 
-requestAnimationFrame(frame);
+  requestAnimationFrame(frame);
 }
 
 // Returning from a background tab must not dump the whole pause into one frame.
