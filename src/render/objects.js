@@ -58,11 +58,28 @@ function drawWallCell(ctx, x, y, variant, index, horizontal) {
   }
 }
 
+// Rubble pieces per variant: [x, y, w, d, h, brick?] in cell fractions / pixels.
+const RUBBLE = [
+  [[0.18, 0.2, 0.34, 0.3, 12, false], [0.5, 0.42, 0.3, 0.36, 9, true], [0.24, 0.6, 0.26, 0.22, 6, false]],
+  [[0.2, 0.3, 0.44, 0.34, 14, true], [0.58, 0.22, 0.24, 0.26, 7, false]],
+  [[0.3, 0.18, 0.3, 0.3, 10, false], [0.16, 0.52, 0.3, 0.3, 8, false], [0.52, 0.5, 0.3, 0.3, 13, true]],
+  [[0.22, 0.24, 0.5, 0.26, 9, false], [0.36, 0.56, 0.3, 0.26, 11, true]],
+];
+
+function drawRubble(ctx, x, y, variant) {
+  const [sx, sy] = iso(x + 0.5, y + 0.5);
+  shadow(ctx, sx, sy + 2, 28, 12, 0.22);
+  for (const [px, py, w, d, h, brick] of RUBBLE[variant % RUBBLE.length]) {
+    box(ctx, x + px, y + py, w, d, h, 0, brick ? ['#a2684a', '#834f36', '#5e3826'] : [C.concL, C.conc, C.concD], 2);
+  }
+}
+
 /** Draws one cell of an obstacle; multi-cell walls are depth-sorted per cell. */
 export function drawObstacleCell(ctx, obstacle, index) {
   const { x, y } = obstacle.cells[index];
   if (obstacle.kind === 'ruin') drawRuin(ctx, x, y, obstacle.variant);
   else if (obstacle.kind === 'crater') drawCrater(ctx, x, y, obstacle.variant);
+  else if (obstacle.kind === 'rubble') drawRubble(ctx, x, y, obstacle.variant);
   else {
     const horizontal = obstacle.cells.length > 1 && obstacle.cells[1].y === obstacle.cells[0].y;
     drawWallCell(ctx, x, y, obstacle.variant, index, horizontal);
@@ -184,11 +201,18 @@ const ENEMY_STYLE = {
   healer: { r: 9, body: C.bone, dark: C.boneD },
 };
 
+/** Visual-only sideways offset per enemy, so a column does not render as one blob. */
+function lateralOffset(e) {
+  return (((e.id * 0.6180339887) % 1) - 0.5) * 0.36;
+}
+
 export function drawEnemy(ctx, e, t) {
   const style = ENEMY_STYLE[e.type] ?? ENEMY_STYLE.mutant;
-  const [sx, sy] = iso(e.x, e.y);
+  const off = lateralOffset(e);
+  const [sx, sy] = iso(e.x - e.dy * off, e.y + e.dx * off);
   const bob = Math.abs(Math.sin(t * 9 + e.id)) * 2;
-  const alpha = e.fade ?? 1;
+  // Fade in while emerging from the rift.
+  const alpha = Math.min(1, e.d / 0.5);
   if (alpha <= 0) return;
   ctx.globalAlpha = alpha;
 
@@ -217,7 +241,7 @@ export function drawEnemy(ctx, e, t) {
   ctx.stroke();
   ell(ctx, sx + facing * style.r * 0.45, y - style.r * 0.2, style.r * 0.22, style.r * 0.22, C.gold, C.ink, 1.2);
   if (e.type === 'breaker') {
-    box(ctx, e.x - 0.12, e.y - 0.12, 0.24, 0.24, 6, style.r * 1.6 + bob, [C.steelL, C.steel, C.steelD], 1.6);
+    box(ctx, e.x - e.dy * off - 0.12, e.y + e.dx * off - 0.12, 0.24, 0.24, 6, style.r * 1.6 + bob, [C.steelL, C.steel, C.steelD], 1.6);
   }
   ctx.globalAlpha = 1;
 }

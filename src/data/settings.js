@@ -21,7 +21,7 @@ export const MAX_DPR = 2;
 
 /** Camera limits. A cell is 64 world pixels wide, so zoom 0.625 means 40 CSS px per cell. */
 export const CAMERA = {
-  minZoom: 0.3,
+  minZoom: 0.4,
   maxZoom: 2.5,
   /** Start view keeps cells at least this wide (GDD section 13). */
   minCellPx: 40,

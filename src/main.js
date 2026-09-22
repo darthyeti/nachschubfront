@@ -6,37 +6,51 @@ import { createFixedStepper } from './core/loop.js';
 import { createGameState } from './core/state.js';
 import { randomSeed, normalizeSeed } from './core/seed.js';
 import { stepSimulation } from './sim/step.js';
+import { startWave, canStartWave, setSpeed, toggleObstacle } from './sim/actions.js';
+import { checkPlacement } from './sim/route.js';
+import { totalWaves } from './sim/waves.js';
 import { createCanvasView } from './render/canvas.js';
-import { createCamera, fitCamera, clampCamera } from './render/camera.js';
-import { mapBounds } from './render/iso.js';
+import { createCamera, fitCamera, clampCamera, panBy, zoomAt, screenToCell, worldToScreen } from './render/camera.js';
+import { mapBounds, iso } from './render/iso.js';
 import { createGroundLayer } from './render/ground.js';
 import { createSceneRenderer } from './render/scene.js';
 import { installPageGuards } from './input/guards.js';
+import { attachPointerInput } from './input/pointer.js';
+import { attachKeyboard } from './input/keyboard.js';
 import { createHud } from './ui/hud.js';
 
+const FLASH_SECONDS = 0.9;
+const BANNER_SECONDS = 2.2;
+
 const params = new URLSearchParams(location.search);
+const debug = params.has('debug');
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha: false });
 
 document.title = STRINGS.documentTitle;
 canvas.setAttribute('aria-label', STRINGS.canvasLabel);
 installPageGuards(canvas);
+// Canvas text uses Bangers; make sure it is loaded before the first labels are drawn.
+document.fonts?.load('24px Bangers').catch(() => {});
 
-const state = createGameState(normalizeSeed(params.get('seed')) ?? randomSeed());
-const hud = createHud(document.getElementById('hud'), { debug: params.has('debug') });
-const stepper = createFixedStepper({
-  step: SIM_STEP,
-  maxSteps: MAX_STEPS_PER_FRAME,
-  maxFrameTime: MAX_FRAME_TIME,
-});
+let state = createGameState(normalizeSeed(params.get('seed')) ?? randomSeed());
+/** Speed to restore when unpausing with Space. */
+let lastSpeed = 1;
 
+const stepper = createFixedStepper({ step: SIM_STEP, maxSteps: MAX_STEPS_PER_FRAME, maxFrameTime: MAX_FRAME_TIME });
 const camera = createCamera();
-const bounds = mapBounds(state.map.size);
+let bounds = mapBounds(state.map.size);
 const ground = createGroundLayer();
 const renderScene = createSceneRenderer();
+
+/** Render-side UI state; never read by the simulation. */
 const ui = {
   hoverCell: null,
+  /** Last cell the pointer was over or tapped, for the H key. */
+  cursorCell: null,
   flashes: [],
+  banner: null,
+  obstacleMode: false,
   reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
   /** True until the player moves the camera; then resizes keep their view. */
   autoFit: true,
@@ -47,6 +61,108 @@ const view = createCanvasView(canvas, (v) => {
   else clampCamera(camera, bounds, CAMERA);
 });
 
+// ---------- Actions ----------
+
+function cellAt(x, y) {
+  const cell = screenToCell(camera, view, x, y);
+  const { size } = state.map;
+  return cell.x >= 0 && cell.y >= 0 && cell.x < size && cell.y < size ? cell : null;
+}
+
+function flash(cell, ok, label) {
+  ui.flashes.push({ cell, ok, label, life: FLASH_SECONDS, max: FLASH_SECONDS });
+}
+
+function showBanner(text) {
+  ui.banner = { text, life: BANNER_SECONDS };
+}
+
+function applyObstacle(cell) {
+  if (!cell) return;
+  const result = toggleObstacle(state, cell);
+  const t = STRINGS.placement;
+  if (result.ok) flash(cell, true, result.action === 'added' ? t.added : t.removed);
+  else if (t[result.reason]) flash(cell, false, t[result.reason]);
+}
+
+function newGame() {
+  state = createGameState(randomSeed());
+  bounds = mapBounds(state.map.size);
+  stepper.reset();
+  ui.flashes.length = 0;
+  ui.banner = null;
+  const url = new URL(location.href);
+  url.searchParams.set('seed', state.seed);
+  history.replaceState(null, '', url);
+}
+
+function onAction(action) {
+  if (action.startsWith('speed')) {
+    const speed = Number(action.slice(5));
+    if (speed > 0) lastSpeed = speed;
+    setSpeed(state, speed);
+  } else if (action === 'pause') {
+    setSpeed(state, state.speed === 0 ? lastSpeed : 0);
+  } else if (action === 'startWave') {
+    startWave(state);
+  } else if (action === 'newGame') {
+    newGame();
+  } else if (action === 'obstacleMode') {
+    ui.obstacleMode = !ui.obstacleMode;
+  } else if (action === 'toggleObstacle') {
+    applyObstacle(ui.cursorCell);
+  } else if (action === 'zoomIn' || action === 'zoomOut') {
+    const f = action === 'zoomIn' ? CAMERA.wheelZoomStep : 1 / CAMERA.wheelZoomStep;
+    zoomAt(camera, view, f, view.width / 2, view.height / 2, CAMERA);
+    clampCamera(camera, bounds, CAMERA);
+    ui.autoFit = false;
+  }
+}
+
+const hud = createHud(document.getElementById('hud'), { debug, onAction });
+
+attachPointerInput(canvas, {
+  onTap(x, y) {
+    const cell = cellAt(x, y);
+    ui.cursorCell = cell;
+    ui.hoverCell = cell;
+    if (ui.obstacleMode) applyObstacle(cell);
+  },
+  onPan(dx, dy) {
+    panBy(camera, dx, dy);
+    clampCamera(camera, bounds, CAMERA);
+    ui.autoFit = false;
+  },
+  onZoom(factor, x, y) {
+    zoomAt(camera, view, factor, x, y, CAMERA);
+    clampCamera(camera, bounds, CAMERA);
+    ui.autoFit = false;
+  },
+  onGestureStart() {
+    ui.hoverCell = null;
+  },
+  onHover(x, y) {
+    const cell = x === null ? null : cellAt(x, y);
+    ui.hoverCell = cell;
+    if (cell) ui.cursorCell = cell;
+  },
+});
+
+const keyboard = attachKeyboard({ onAction });
+
+// ---------- Events from the simulation ----------
+
+function drainEvents() {
+  for (const ev of state.events) {
+    if (ev.type === 'waveCleared') showBanner(STRINGS.banners.waveCleared(ev.wave, ev.leaked));
+    else if (ev.type === 'phase' && ev.phase === 'defeat') showBanner(STRINGS.banners.defeat(state.wave));
+    else if (ev.type === 'phase' && ev.phase === 'victory') showBanner(STRINGS.banners.victory);
+  }
+  state.events.length = 0;
+}
+
+// ---------- Frame loop ----------
+
 let last = performance.now();
 let fpsFrames = 0;
 let fpsTime = 0;
@@ -54,9 +170,29 @@ let fpsTime = 0;
 function frame(now) {
   const dt = (now - last) / 1000;
   last = now;
+  const realDt = Math.min(dt, MAX_FRAME_TIME);
+
+  const [kx, ky] = keyboard.panDirection();
+  if (kx || ky) {
+    panBy(camera, kx * CAMERA.keyPanSpeed * realDt, ky * CAMERA.keyPanSpeed * realDt);
+    clampCamera(camera, bounds, CAMERA);
+    ui.autoFit = false;
+  }
 
   stepper.advance(dt, state.speed, (stepDt) => stepSimulation(state, stepDt));
+  drainEvents();
+
+  for (const f of ui.flashes) f.life -= realDt;
+  ui.flashes = ui.flashes.filter((f) => f.life > 0);
+  if (ui.banner) {
+    // End-of-game banners stay until a new game starts.
+    const over = state.phase === 'defeat' || state.phase === 'victory';
+    if (!over) ui.banner.life -= realDt;
+    if (ui.banner.life <= 0) ui.banner = null;
+  }
+
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);
+  hud.update(state, ui, { totalWaves: totalWaves(), canStart: canStartWave(state) });
 
   fpsFrames++;
   fpsTime += dt;
@@ -75,5 +211,27 @@ document.addEventListener('visibilitychange', () => {
     stepper.reset();
   }
 });
+
+// Test hook for the Playwright input checks (read-only snapshot).
+if (debug) {
+  window.__nachschub = {
+    camera: () => ({ ...camera }),
+    cellAt: (x, y) => cellAt(x, y),
+    canPlace: (x, y) => checkPlacement(state.map, [{ x, y }]).ok,
+    screenOfCell: (cx, cy) => worldToScreen(camera, view, ...iso(cx + 0.5, cy + 0.5)),
+    state: () => ({
+      phase: state.phase,
+      wave: state.wave,
+      lives: state.lives,
+      obstacles: state.map.obstacles.length,
+      route: state.route?.length ?? null,
+      hover: ui.hoverCell,
+      enemies: state.enemies.length,
+      speed: state.speed,
+      routeCells: state.route?.cells ?? [],
+      rift: state.map.rift,
+    }),
+  };
+}
 
 requestAnimationFrame(frame);

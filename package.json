@@ -8,6 +8,7 @@
     "serve": "python3 -m http.server 8000",
     "test": "node --test \"tests/unit/**/*.test.js\"",
     "screenshots": "node tests/screenshots.mjs",
+    "test:input": "node tests/input.mjs",
     "icons": "node tests/tools/make-icons.mjs"
   },
   "devDependencies": {
