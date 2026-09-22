@@ -154,6 +154,23 @@ try {
       assert.ok(end.lives < 20, `lives ${end.lives}`);
     });
 
+    await check('defeat shows a banner and "Neue Partie" starts a fresh match', async () => {
+      // Without towers the second wave overruns the bastion.
+      await page.getByRole('button', { name: 'Welle starten' }).tap();
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'defeat', null, { timeout: 90000 });
+      const banner = await page.locator('.hud-banner').textContent();
+      assert.match(banner, /Bastion ist gefallen/);
+      assert.ok(await page.getByRole('button', { name: 'Welle starten' }).isHidden());
+      await page.getByRole('button', { name: 'Neue Partie' }).tap();
+      await frames(page);
+      const s = await game(page);
+      assert.equal(s.phase, 'planning');
+      assert.equal(s.wave, 0);
+      assert.equal(s.lives, 20);
+      assert.ok(!page.url().includes(`seed=${SEED}`), 'new match gets a new seed');
+      assert.equal(await page.locator('.hud-banner').textContent(), '');
+    });
+
     await context.close();
   }
 
