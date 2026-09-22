@@ -6,6 +6,7 @@ import { bestTarget, targetsInRange, canTarget, distanceSq } from './targeting.j
 import { damageEnemy } from './damage.js';
 import { applyBurn, applySlow, applyStun } from './effects.js';
 import { launchShell } from './projectiles.js';
+import { bannerBonus } from './commands.js';
 
 /** Reload time in seconds, or null for weapons that fire continuously. */
 function period(stats) {
@@ -210,6 +211,8 @@ const CONTINUOUS = {
 export function updateCombat(state, dt) {
   for (const tower of state.towers) {
     const stats = towerStats(tower);
+    // A holy banner makes every tower under it hit harder for one wave.
+    stats.damage *= bannerBonus(state, tower);
     updateSecondaryAura(state, tower, stats, dt);
     const continuous = CONTINUOUS[stats.behaviour];
     if (continuous) {

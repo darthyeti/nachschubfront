@@ -38,6 +38,14 @@ export function createGameState(seed) {
     commandPoints: ECONOMY.startCommandPoints,
     /** Rubble piles demolished in this match; every one makes the next dearer. */
     demolished: 0,
+    /** Wave in which each special command was last used (sim/commands.js). */
+    commandUses: {},
+    /** Orbital strikes counting down to their impact. */
+    pendingStrikes: [],
+    /** Holy banners standing in the running wave. */
+    banners: [],
+    /** Ranks the next salvo gets for free (Priorisierter Nachschub). */
+    supplyBonus: 0,
     /** Enemies killed in the whole match (score, GDD section 12). */
     kills: 0,
     /** Landing zones marked during planning, at most PODS.perSalvo. */

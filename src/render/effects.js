@@ -182,6 +182,17 @@ export function createEffects() {
     }
     ctx.globalAlpha = 1;
 
+    // Orbital strikes counting down, and the banners standing this wave.
+    for (const hit of state.pendingStrikes) {
+      const u = Math.min(1, hit.t / hit.warnSeconds);
+      drawTargetRing(ctx, hit.x, hit.y, hit.radius, '#ff6a4a', reducedMotion ? 0.7 : 0.45 + u * 0.5, 1 - u * 0.25);
+      const [x, y] = project(hit.x, hit.y, 0);
+      comicText(ctx, String(Math.ceil(hit.warnSeconds - hit.t)), x, y - 8, 22, '#ff9a6a');
+    }
+    for (const banner of state.banners) {
+      drawTargetRing(ctx, banner.x, banner.y, banner.radius, C.gold, 0.5, 1);
+    }
+
     for (const tower of state.towers) {
       if (!tower.firing || !tower.aim) continue;
       // The behaviour, not the doctrine: a purge shrine is a flame tower with a ring.
@@ -189,6 +200,27 @@ export function createEffects() {
       if (stats.behaviour === 'aura' || stats.behaviour === 'psi') drawAura(ctx, tower, stats, t, reducedMotion);
       else if (stats.behaviour === 'cone' || stats.behaviour === 'flame') drawCone(ctx, tower, t, reducedMotion);
     }
+  }
+
+  /** Flat ring on the ground: aiming, orbital strikes, banners. */
+  function drawTargetRing(ctx, x, y, radius, colour, alpha, scale = 1) {
+    const [sx, sy] = project(x, y);
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.scale(1, 0.5);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 4;
+    ctx.setLineDash([12, 8]);
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 32 * scale, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = alpha * 0.25;
+    ctx.fillStyle = colour;
+    ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   /** Ring on the ground in the guide colour of the tower's doctrine. */
@@ -381,6 +413,10 @@ export function createEffects() {
   return {
     update,
     drawGround,
+    /** Radius ring under the pointer while a command is being aimed. */
+    drawAiming(ctx, cell, radius) {
+      drawTargetRing(ctx, cell.x + 0.5, cell.y + 0.5, radius, C.gold, 0.8);
+    },
     drawAbove,
     clear() {
       particles.length = 0;

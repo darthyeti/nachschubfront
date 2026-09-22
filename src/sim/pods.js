@@ -4,8 +4,10 @@ import { createRng } from '../core/random.js';
 import { DOCTRINE_IDS } from '../data/doctrines.js';
 import { supplyWeights } from '../data/supply.js';
 import { PODS } from '../data/pods.js';
+import { MAX_RANK } from '../data/ranks.js';
 import { setBlocked } from './grid.js';
 import { computeRoute } from './route.js';
+import { takeSupplyBonus } from './commands.js';
 
 /**
  * Random stream of the salvo that prepares the next wave. Derived from the seed
@@ -41,11 +43,15 @@ export function rollPod(rng, supplyLevel) {
  */
 export function createPods(state) {
   const rng = salvoRng(state).fork('contents');
+  // Priorisierter Nachschub raises every rank of this salvo by one. The draw
+  // itself is untouched, so the seed still decides what is in the pods.
+  const bonus = takeSupplyBonus(state);
+  const raise = (pod) => ({ ...pod, rank: Math.min(MAX_RANK, pod.rank + bonus) });
   state.pods = state.zones.map((zone, i) => ({
     index: i,
     x: zone.x,
     y: zone.y,
-    ...rollPod(rng, state.supplyLevel),
+    ...raise(rollPod(rng, state.supplyLevel)),
     t: -i * PODS.staggerSeconds,
     landed: false,
   }));

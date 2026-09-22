@@ -74,8 +74,34 @@ try {
     }
   }
 
+  /**
+   * Uses whatever special command is ready: tap the button, then a cell on the
+   * route for the ones that need a target.
+   */
+  async function useCommands() {
+    if (!(await page.locator('.commands').isVisible())) return 0;
+    let used = 0;
+    for (const button of await page.$$('.commands button')) {
+      if (!(await button.isVisible()) || !(await button.isEnabled())) continue;
+      await button.click();
+      const aiming = await page.evaluate(() => window.__nachschub.ui().commandTarget);
+      if (aiming) {
+        const point = await page.evaluate(() => {
+          const s = window.__nachschub.state();
+          const cell = s.routeCells[Math.floor(s.routeCells.length / 2)];
+          return window.__nachschub.screenOfCell(cell.x, cell.y);
+        });
+        await page.touchscreen.tap(point[0], point[1]);
+      }
+      used += 1;
+    }
+    return used;
+  }
+
   let shot = false;
+  let commandsUsed = 0;
   for (let round = 1; round <= WAVES; round++) {
+    commandsUsed += await useCommands();
     await markZones();
     await page.getByRole('button', { name: 'Salve anfordern' }).tap();
     await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 30000 });
@@ -83,6 +109,8 @@ try {
     const actions = await page.$$('.selection-actions button');
     await actions[actions.length - 1].click();
     await page.waitForFunction(() => window.__nachschub.state().phase === 'wave', null, { timeout: 10000 });
+    // Commands are used while the wave runs; the planning-only one before it.
+    commandsUsed += await useCommands();
 
     if (!shot && round >= SHOT_WAVE) {
       await page.waitForFunction(() => window.__nachschub.state().enemies >= 12, null, { timeout: 60000 });
@@ -106,7 +134,11 @@ try {
   const s = await state(page);
   assert.ok(s.wave >= WAVES, `only reached wave ${s.wave} of ${WAVES} (phase ${s.phase})`);
   assert.ok(shot, 'no battle screenshot taken');
-  console.log(`${engine}: ${WAVES} waves played at ${SPEED}x, lives ${s.lives}.`);
+  if (WAVES >= 16) assert.ok(commandsUsed > 0, 'no special command was ever ready');
+  console.log(
+    `${engine}: ${WAVES} waves played at ${SPEED}x, lives ${s.lives}, ` +
+      `${commandsUsed} commands used, ${s.commandPoints} KP left.`,
+  );
 } finally {
   await context.close();
   await browser.close();

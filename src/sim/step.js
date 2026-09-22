@@ -8,6 +8,7 @@ import { updateEnemies, removeDead } from './enemies.js';
 import { updateAbilities } from './abilities.js';
 import { updateCombat } from './combat.js';
 import { updateProjectiles } from './projectiles.js';
+import { updateCommands } from './commands.js';
 import { updateEffects } from './effects.js';
 import { updateShields, updateFlashes } from './damage.js';
 import { settleWave } from './economy.js';
@@ -33,6 +34,7 @@ export function stepSimulation(state, dt) {
     updateAbilities(state, dt);
     updateCombat(state, dt);
     updateProjectiles(state, dt);
+    updateCommands(state, dt);
     updateEffects(state, dt);
     updateShields(state, dt);
     updateFlashes(state, dt);

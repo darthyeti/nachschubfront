@@ -137,6 +137,10 @@ export function createSceneRenderer(sprites) {
     ui.effects?.drawGround(ctx, state, t, ui.reducedMotion);
 
     if (ui.hoverCell) drawCellMarker(ctx, ui.hoverCell, 'rgba(242,193,78,.12)', 'rgba(242,193,78,.8)', 2);
+    // While a command is aimed, the cell under the pointer shows its reach.
+    if (ui.commandTarget && ui.hoverCell && ui.commandRadius) {
+      ui.effects?.drawAiming(ctx, ui.hoverCell, ui.commandRadius);
+    }
     for (const f of ui.flashes) {
       const a = Math.max(0, f.life / f.max);
       const col = f.ok ? `rgba(156,207,74,${a})` : `rgba(255,58,42,${a})`;

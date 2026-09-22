@@ -33,6 +33,9 @@ export function beginWave(state) {
   state.waveRoutes = { ground: groundPolyline(state.route), flyer: flyerPolyline(state.map) };
   state.waveStats = { spawned: 0, leaked: 0, killed: 0, bossKills: 0 };
   state.projectiles.length = 0;
+  // Banners and strikes belong to one wave only.
+  state.pendingStrikes.length = 0;
+  state.banners.length = 0;
   for (const tower of state.towers) tower.damage = 0;
   state.events.push({ type: 'waveStart', wave: state.wave });
 }

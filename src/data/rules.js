@@ -9,4 +9,9 @@ export const RULES = {
   bossLeakCost: 5,
   /** Seconds the evaluation banner stays before planning resumes. */
   evaluationSeconds: 2,
+
+  /** Score (GDD section 12): wave x 1000 plus kills plus lives x 200. */
+  scorePerWave: 1000,
+  scorePerKill: 1,
+  scorePerLife: 200,
 };

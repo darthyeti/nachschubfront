@@ -10,6 +10,8 @@ import { stepSimulation } from './sim/step.js';
 import { requestSalvo, canRequestSalvo, chooseSelection, setSpeed, toggleObstacle } from './sim/actions.js';
 import { toggleZone } from './sim/zones.js';
 import { buySupply, demolish } from './sim/economy.js';
+import { useCommand, canUseCommand } from './sim/commands.js';
+import { commandById } from './data/commands.js';
 import { podAt } from './sim/pods.js';
 import { checkPlacement } from './sim/route.js';
 import { totalWaves } from './sim/waves.js';
@@ -25,6 +27,8 @@ import { attachKeyboard } from './input/keyboard.js';
 import { createHud } from './ui/hud.js';
 import { createSelectionPanel } from './ui/selection.js';
 import { createCodex } from './ui/codex.js';
+import { createCommandBar } from './ui/commands.js';
+import { createInfoPanel } from './ui/info.js';
 import { createLoadingScreen } from './ui/loading.js';
 import { createSpriteCache } from './render/sprites/rasterizer.js';
 import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
@@ -70,6 +74,10 @@ const ui = {
   obstacleMode: false,
   /** Taps clear rubble instead of marking zones while this is on. */
   demolishMode: false,
+  /** Id of the command being aimed; the next tap on the map fires it. */
+  commandTarget: null,
+  /** Cell the info panel describes; set by a long press or the mouse pointer. */
+  inspect: null,
   reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
   /** 'sprites' (concept art) or 'placeholder' (M1 shapes); debug switch. */
   art: params.get('art') === 'placeholder' ? 'placeholder' : 'sprites',
@@ -142,6 +150,41 @@ function applyDemolish(cell) {
   else if (t[result.reason]) flash(cell, false, t[result.reason]);
 }
 
+/** Fires the command being aimed at the tapped cell. */
+function applyCommand(cell) {
+  const id = ui.commandTarget;
+  ui.commandTarget = null;
+  if (!cell) return;
+  const result = useCommand(state, id, cell);
+  const name = STRINGS.commands[id].name;
+  if (result.ok) {
+    flash(cell, true, name);
+    showBanner(STRINGS.commandBar.used(name));
+  } else if (STRINGS.placement[result.reason]) {
+    flash(cell, false, STRINGS.placement[result.reason]);
+  }
+}
+
+/** A command from the bar: aim it, or fire it straight away if it has no target. */
+function pickCommand(id) {
+  if (ui.commandTarget === id) {
+    ui.commandTarget = null;
+    return;
+  }
+  const check = canUseCommand(state, id, { x: 0, y: 0 });
+  if (!check.ok && check.reason !== 'outside') {
+    if (STRINGS.placement[check.reason]) showBanner(STRINGS.placement[check.reason]);
+    return;
+  }
+  if (commandById(id).target === 'none') {
+    const result = useCommand(state, id);
+    if (result.ok) showBanner(STRINGS.commandBar.used(STRINGS.commands[id].name));
+    return;
+  }
+  ui.commandTarget = id;
+  showBanner(STRINGS.commandBar.aimHint(STRINGS.commands[id].name));
+}
+
 /** During the selection a tap on a pod picks it; the panel then offers the actions. */
 function applyPodTap(cell) {
   if (!cell) return;
@@ -162,7 +205,8 @@ function applyChoice(choice) {
 }
 
 function onCellTap(cell) {
-  if (ui.obstacleMode) applyObstacle(cell);
+  if (ui.commandTarget) applyCommand(cell);
+  else if (ui.obstacleMode) applyObstacle(cell);
   else if (ui.demolishMode && state.phase === 'planning') applyDemolish(cell);
   else if (state.phase === 'planning') applyZone(cell);
   else if (state.phase === 'selection') applyPodTap(cell);
@@ -195,6 +239,8 @@ function onAction(action) {
   } else if (action === 'codex') {
     codex.toggle();
   } else if (action === 'closeCodex') {
+    // Escape also drops whatever command is being aimed.
+    if (ui.commandTarget) ui.commandTarget = null;
     codex.setOpen(false);
   } else if (action === 'supplyLevel') {
     // Debug only until requisition arrives in M3, so merges and recipes are testable.
@@ -213,6 +259,12 @@ function onAction(action) {
 
 const codex = createCodex(document.body);
 const hud = createHud(document.getElementById('hud'), { debug, onAction });
+const commandBar = createCommandBar(hud.bottom, { onPick: pickCommand });
+const infoPanel = createInfoPanel(document.getElementById('hud'), {
+  onClose: () => {
+    ui.inspect = null;
+  },
+});
 const selectionPanel = createSelectionPanel(hud.bottom, {
   onSelect: (index) => {
     ui.podSelected = index;
@@ -244,6 +296,14 @@ attachPointerInput(canvas, {
     const cell = x === null ? null : cellAt(x, y);
     ui.hoverCell = cell;
     if (cell) ui.cursorCell = cell;
+    // Mouse: the info panel follows the pointer (GDD section 13).
+    ui.inspect = cell;
+  },
+  /** Touch: a long press pins the info panel to that cell. */
+  onLongPress(x, y, pointerType) {
+    const cell = cellAt(x, y);
+    ui.inspect = cell;
+    if (pointerType !== 'mouse' && cell) ui.cursorCell = cell;
   },
 });
 
@@ -297,9 +357,12 @@ function frame(now) {
   }
 
   ui.podHighlights = state.phase === 'selection' ? state.pods.map((p) => p.index) : [];
+  ui.commandRadius = ui.commandTarget ? commandById(ui.commandTarget).radius : 0;
 
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);
   hud.update(state, ui, { totalWaves: totalWaves(), canStart: canRequestSalvo(state) });
+  commandBar.update(state, ui);
+  infoPanel.update(state, ui);
   selectionPanel.update(state, ui);
 
   fpsFrames++;
@@ -365,6 +428,7 @@ if (debug) {
       frameMs: ui.frameMs,
       obstacleMode: ui.obstacleMode,
       demolishMode: ui.demolishMode,
+      commandTarget: ui.commandTarget,
       podSelected: ui.podSelected,
     }),
   };
