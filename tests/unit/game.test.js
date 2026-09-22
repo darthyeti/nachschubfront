@@ -412,3 +412,47 @@ test('forced pod contents override the draw', () => {
   assert.ok(state.pods.every((p) => p.doctrine === 'tesla' && p.rank === 4));
   forcePod(state, null);
 });
+
+test('a whole wave with towers plays out the same way twice', () => {
+  const run = () => {
+    const state = createGameState('REPLAY');
+    state.lives = 100000;
+    state.supplyLevel = MAX_SUPPLY_LEVEL;
+    for (let round = 0; round < 3; round++) {
+      playSalvo(state, { type: 'keep', anchor: round % PODS.perSalvo });
+      runUntil(state, (s) => s.phase === 'planning' || s.phase === 'defeat', 600);
+    }
+    return JSON.stringify({
+      towers: state.towers,
+      requisition: state.requisition,
+      kills: state.kills,
+      lives: state.lives,
+      obstacles: state.map.obstacles.length,
+    });
+  };
+  assert.equal(run(), run());
+});
+
+test('a full match of fifty waves runs through without a hitch', () => {
+  const state = createGameState('FULLMATCH');
+  // Lives are taken out of the equation: this test is about fifty waves running
+  // cleanly, not about a match being winnable (that is measured with
+  // npm run playmatch, where the towers are placed the way a player would).
+  state.lives = 100000;
+  state.supplyLevel = MAX_SUPPLY_LEVEL;
+  let handled = 0;
+  for (let round = 0; round < totalWaves(); round++) {
+    assert.ok(playSalvo(state), `wave ${round + 1}`);
+    runUntil(state, (s) => s.phase === 'planning' || s.phase === 'victory', 900);
+    handled += state.waveStats.killed + state.waveStats.leaked;
+    assert.equal(state.enemies.length, 0, `wave ${state.wave} left enemies behind`);
+    assert.equal(state.projectiles.length, 0, `wave ${state.wave} left shells in the air`);
+    assert.ok(state.waveStats.spawned > 0, `wave ${state.wave} sent nothing`);
+  }
+  assert.equal(state.phase, 'victory');
+  assert.equal(state.wave, totalWaves());
+  assert.ok(handled > 1500, `only ${handled} enemies dealt with`);
+  assert.ok(state.kills > 500, `only ${state.kills} kills`);
+  assert.ok(state.requisition > 0);
+  assert.ok(score(state) > 50000);
+});

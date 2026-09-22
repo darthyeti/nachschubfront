@@ -49,6 +49,11 @@ export function updateSpawns(state) {
   }
 }
 
+/**
+ * A wave is over when nothing is left to spawn, nothing is left alive and no
+ * shell is still in the air; otherwise the last mortar round would hang over
+ * the map through the whole evaluation.
+ */
 export function waveCleared(state) {
-  return state.spawns.length === 0 && state.enemies.length === 0;
+  return state.spawns.length === 0 && state.enemies.length === 0 && state.projectiles.length === 0;
 }

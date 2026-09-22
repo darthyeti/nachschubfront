@@ -79,6 +79,9 @@ try {
    * route for the ones that need a target.
    */
   async function useCommands() {
+    // The bar is refreshed in the frame loop, so give it a moment after a phase
+    // change before asking which buttons are live.
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     if (!(await page.locator('.commands').isVisible())) return 0;
     let used = 0;
     for (const button of await page.$$('.commands button')) {

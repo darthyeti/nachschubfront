@@ -47,7 +47,8 @@ function fireSingle(state, tower, stats, target) {
 // ---------- Storm battery: one volley, several targets ----------
 
 function fireMulti(state, tower, stats, target) {
-  const targets = targetsInRange(state, tower, stats).slice(0, stats.def.multiTargets);
+  // The leading targets, so the volley goes to whatever is closest to breaking through.
+  const targets = targetsInRange(state, tower, stats, stats.range, true).slice(0, stats.def.multiTargets);
   if (targets.length === 0) targets.push(target);
   for (const e of targets) {
     hit(tower, stats, e, stats.damage);
@@ -164,6 +165,7 @@ function fireCone(state, tower, stats, dt) {
 function fireAura(state, tower, stats, dt) {
   const targets = targetsInRange(state, tower, stats);
   if (targets.length === 0) return false;
+  let lead = targets[0];
   const percent = stats.def.percentPerSecond ?? 0;
   for (const e of targets) {
     // Damage in percent of maximum health is what makes the soulfire obelisk a
@@ -171,8 +173,9 @@ function fireAura(state, tower, stats, dt) {
     hit(tower, stats, e, (stats.damage + percent * e.maxHealth) * dt);
     if (stats.def.slow) applySlow(state, e, stats.def.slow);
     if (stats.def.burn) applyBurn(state, e, stats.def.burn, stats.doctrine, tower.id, { stack: stats.burnStacks });
+    if (e.d > lead.d) lead = e;
   }
-  tower.aim = { x: targets[0].x, y: targets[0].y };
+  tower.aim = { x: lead.x, y: lead.y };
   return true;
 }
 

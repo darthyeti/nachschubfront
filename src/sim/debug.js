@@ -114,7 +114,11 @@ export function stopStress(state) {
   state.mapVersion += 1;
 }
 
-/** Moves stress-test enemies and wraps them back to the rift at the end. */
+/**
+ * Moves stress-test enemies and wraps them back to the rift at the end. The
+ * towers fight them for real (that is what the measurement is about), so the
+ * enemies are patched up every step and the treadmill never empties.
+ */
 export function updateStress(state, dt) {
   const { ground, flyer } = state.waveRoutes;
   for (const e of state.enemies) {
@@ -122,5 +126,8 @@ export function updateStress(state, dt) {
     e.d += e.speed * dt;
     if (e.d >= line.length) e.d = 0.5;
     positionAt(line, e.d, e);
+    e.health = e.maxHealth;
+    e.shield = e.maxShield;
+    e.dead = false;
   }
 }

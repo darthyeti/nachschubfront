@@ -20,7 +20,13 @@ export function stepSimulation(state, dt) {
   state.phaseTime += dt;
 
   if (state.stress) {
+    // The whole fight runs, only the dying is skipped: the point of the test is
+    // the load of a busy wave, effects and all.
     updateStress(state, dt);
+    updateCombat(state, dt);
+    updateProjectiles(state, dt);
+    updateEffects(state, dt);
+    updateFlashes(state, dt);
     return;
   }
 

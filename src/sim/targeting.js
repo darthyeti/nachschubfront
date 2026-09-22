@@ -38,10 +38,13 @@ export function bestTarget(state, tower, stats) {
 }
 
 /**
- * Every enemy inside the range, front of the route first.
+ * Every enemy inside the range, in spawn order.
  * @param {number} [radius] Overrides the tower range, e.g. for a splash radius.
+ * @param {boolean} [sorted] True puts the enemy furthest along the route first.
+ *   Sorting costs time in every step, so only the weapons that pick the leading
+ *   targets ask for it.
  */
-export function targetsInRange(state, tower, stats, radius = stats.range) {
+export function targetsInRange(state, tower, stats, radius = stats.range, sorted = false) {
   const found = [];
   const r2 = radius * radius;
   for (const e of state.enemies) {
@@ -49,7 +52,7 @@ export function targetsInRange(state, tower, stats, radius = stats.range) {
     if (distanceSq(tower, e) > r2) continue;
     found.push(e);
   }
-  found.sort((a, b) => b.d - a.d || a.id - b.id);
+  if (sorted) found.sort((a, b) => b.d - a.d || a.id - b.id);
   return found;
 }
 
@@ -63,6 +66,5 @@ export function enemiesAround(state, point, radius, { air = true, ground = true 
     const dy = e.y - point.y;
     if (dx * dx + dy * dy <= r2) found.push(e);
   }
-  found.sort((a, b) => b.d - a.d || a.id - b.id);
   return found;
 }

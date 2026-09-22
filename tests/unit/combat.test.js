@@ -205,8 +205,9 @@ test('targets in range come back with the leading enemy first', () => {
   put(state, 'warrior', 4);
   put(state, 'warrior', 6);
   put(state, 'warrior', 5);
-  const list = targetsInRange(state, tower, towerStats(tower));
-  assert.deepEqual(list.map((e) => e.d), [6, 5, 4]);
+  const stats = towerStats(tower);
+  assert.deepEqual(targetsInRange(state, tower, stats, stats.range, true).map((e) => e.d), [6, 5, 4]);
+  assert.deepEqual(targetsInRange(state, tower, stats).map((e) => e.d), [4, 6, 5], 'unsorted is spawn order');
 });
 
 test('the same situation always produces the same fight', () => {
