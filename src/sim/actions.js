@@ -8,7 +8,7 @@ import { setBlocked } from './grid.js';
 import { totalWaves } from './waves.js';
 
 export function canStartWave(state) {
-  return state.phase === 'planning' && state.wave < totalWaves() && state.route !== null;
+  return state.phase === 'planning' && state.wave < totalWaves() && state.route !== null && !state.stress;
 }
 
 /** Requests the next wave. Salvo and selection pass through until M2. */
@@ -39,7 +39,7 @@ function obstacleAt(map, cell) {
  * @returns {{ok: boolean, action?: 'added' | 'removed', reason?: string}}
  */
 export function toggleObstacle(state, cell) {
-  if (state.phase !== 'planning') return { ok: false, reason: 'phase' };
+  if (state.phase !== 'planning' || state.stress) return { ok: false, reason: 'phase' };
   const { map } = state;
   const index = obstacleAt(map, cell);
   if (index >= 0) {

@@ -10,7 +10,7 @@ const PAN_KEYS = {
 /**
  * @param {{
  *   onAction: (action: string) => void,
- * }} callbacks  Actions: 'pause', 'speed1', 'speed2', 'speed3', 'zoomIn', 'zoomOut', 'toggleObstacle', 'startWave'.
+ * }} callbacks  Actions: 'pause', 'speed1', 'speed2', 'speed3', 'zoomIn', 'zoomOut', 'toggleObstacle', 'startWave', 'toggleArt'.
  */
 export function attachKeyboard(callbacks) {
   const held = new Set();
@@ -35,6 +35,8 @@ export function attachKeyboard(callbacks) {
       h: 'toggleObstacle',
       H: 'toggleObstacle',
       Enter: 'startWave',
+      g: 'toggleArt',
+      G: 'toggleArt',
     }[ev.key];
     if (action) {
       ev.preventDefault();

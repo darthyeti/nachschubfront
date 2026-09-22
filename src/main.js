@@ -18,8 +18,13 @@ import { installPageGuards } from './input/guards.js';
 import { attachPointerInput } from './input/pointer.js';
 import { attachKeyboard } from './input/keyboard.js';
 import { createHud } from './ui/hud.js';
+import { createLoadingScreen } from './ui/loading.js';
+import { createSpriteCache } from './render/sprites/rasterizer.js';
+import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
+import { startStress, stopStress } from './sim/debug.js';
 
 const FLASH_SECONDS = 0.9;
+const STRESS_ENEMIES = 200;
 const BANNER_SECONDS = 2.2;
 
 const params = new URLSearchParams(location.search);
@@ -41,7 +46,8 @@ const stepper = createFixedStepper({ step: SIM_STEP, maxSteps: MAX_STEPS_PER_FRA
 const camera = createCamera();
 let bounds = mapBounds(state.map.size);
 const ground = createGroundLayer();
-const renderScene = createSceneRenderer();
+const sprites = createSpriteCache();
+const renderScene = createSceneRenderer(sprites);
 
 /** Render-side UI state; never read by the simulation. */
 const ui = {
@@ -52,6 +58,8 @@ const ui = {
   banner: null,
   obstacleMode: false,
   reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+  /** 'sprites' (concept art) or 'placeholder' (M1 shapes); debug switch. */
+  art: params.get('art') === 'placeholder' ? 'placeholder' : 'sprites',
   /** True until the player moves the camera; then resizes keep their view. */
   autoFit: true,
 };
@@ -107,6 +115,11 @@ function onAction(action) {
     startWave(state);
   } else if (action === 'newGame') {
     newGame();
+  } else if (action === 'toggleArt') {
+    ui.art = ui.art === 'sprites' ? 'placeholder' : 'sprites';
+  } else if (action === 'stress') {
+    if (state.stress) stopStress(state);
+    else startStress(state, STRESS_ENEMIES);
   } else if (action === 'obstacleMode') {
     ui.obstacleMode = !ui.obstacleMode;
   } else if (action === 'toggleObstacle') {
@@ -201,7 +214,16 @@ function frame(now) {
     fpsFrames = 0;
     fpsTime = 0;
   }
-  requestAnimationFrame(frame);
+  // Rasterize the enemy sprites for the start zoom before the first wave can begin.
+const loading = createLoadingScreen(document.body);
+sprites
+  .preload(ENEMY_SPRITE_DEFS, camera.zoom, view.dpr, (done, total) => loading.progress(done, total))
+  .finally(() => {
+    loading.close();
+    document.body.dataset.ready = 'true';
+  });
+
+requestAnimationFrame(frame);
 }
 
 // Returning from a background tab must not dump the whole pause into one frame.
@@ -230,8 +252,20 @@ if (debug) {
       speed: state.speed,
       routeCells: state.route?.cells ?? [],
       rift: state.map.rift,
+      stress: state.stress,
     }),
+    sprites: () => ({ ...sprites.stats }),
+    ui: () => ({ art: ui.art }),
   };
 }
+
+// Rasterize the enemy sprites for the start zoom before the first wave can begin.
+const loading = createLoadingScreen(document.body);
+sprites
+  .preload(ENEMY_SPRITE_DEFS, camera.zoom, view.dpr, (done, total) => loading.progress(done, total))
+  .finally(() => {
+    loading.close();
+    document.body.dataset.ready = 'true';
+  });
 
 requestAnimationFrame(frame);

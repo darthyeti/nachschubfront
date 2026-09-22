@@ -14,6 +14,7 @@ import {
   drawBeaconLabel,
   drawEnemy,
 } from './objects.js';
+import { createEnemySpriteRenderer } from './enemySprites.js';
 
 const KIND_OBSTACLE = 0;
 const KIND_RIFT = 1;
@@ -89,12 +90,16 @@ function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
   ctx.stroke();
 }
 
-export function createSceneRenderer() {
+/**
+ * @param {ReturnType<import('./sprites/rasterizer.js').createSpriteCache>} sprites
+ */
+export function createSceneRenderer(sprites) {
   const drawVignette = createVignette();
+  const drawEnemySprite = createEnemySpriteRenderer(sprites);
   const items = [];
 
   /**
-   * @param {object} ui  Render-side state: hover cell, flashes, reduced motion.
+   * @param {object} ui  Render-side state: hover cell, flashes, reduced motion, art mode.
    * @param {object} ground  Ground layer from createGroundLayer().
    */
   return function renderScene(ctx, view, cam, state, ui, ground, t) {
@@ -135,7 +140,7 @@ export function createSceneRenderer() {
       else if (kind === KIND_RIFT) drawRift(ctx, o, t);
       else if (kind === KIND_BASTION) drawBastion(ctx, o, t);
       else if (kind === KIND_BEACON) drawBeacon(ctx, o, t);
-      else drawEnemy(ctx, o, t);
+      else if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, cam.zoom, view.dpr)) drawEnemy(ctx, o, t);
     }
 
     map.beacons.forEach((b, i) => drawBeaconLabel(ctx, b, i + 1));

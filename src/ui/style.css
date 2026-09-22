@@ -257,3 +257,48 @@ button[hidden] {
   padding: 4px 8px;
   border-radius: 3px;
 }
+
+.loading {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--bg);
+  font-family: var(--font-title);
+  font-size: clamp(24px, 3vw, 34px);
+  text-shadow: 3px 3px 0 var(--ink);
+  transition: opacity 0.3s;
+  z-index: 10;
+}
+
+.loading p {
+  margin: 0;
+}
+
+.loading-bar {
+  width: min(320px, 70vw);
+  height: 14px;
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  background: var(--panel);
+}
+
+.loading-bar > div {
+  height: 100%;
+  width: 0;
+  background: var(--btn);
+}
+
+.loading.done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading {
+    transition: none;
+  }
+}

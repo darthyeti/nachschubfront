@@ -17,6 +17,14 @@ export const STRINGS = {
     speed: (n) => `${n}x`,
     speedGroup: 'Spielgeschwindigkeit',
     obstacleMode: 'Hindernis-Modus',
+    artSprites: 'Grafik: Sprites',
+    artPlaceholder: 'Grafik: Platzhalter',
+    stress: 'Belastungstest',
+    stressOn: 'Belastungstest läuft',
+  },
+
+  loading: {
+    title: 'Nachschub wird geladen …',
   },
 
   phases: {

@@ -4,6 +4,7 @@
 import { iso } from './iso.js';
 import { poly, box, ell, shadow, comicText } from './draw.js';
 import { C } from './palette.js';
+import { lateralOffset } from './enemySprites.js';
 
 const STONE = C.stone;
 const RUIN_HEIGHTS = [34, 44, 52, 40];
@@ -189,7 +190,7 @@ export function drawBeaconLabel(ctx, p, number) {
   comicText(ctx, String(number), x, y, 24, C.gold);
 }
 
-// ---------- Enemies ----------
+// ---------- Enemies (placeholder shapes, kept for the art debug switch) ----------
 
 const ENEMY_STYLE = {
   swarmer: { r: 6, body: C.bloodL, dark: C.blood },
@@ -200,11 +201,6 @@ const ENEMY_STYLE = {
   burster: { r: 11, body: '#b9c24a', dark: '#6f7a24' },
   healer: { r: 9, body: C.bone, dark: C.boneD },
 };
-
-/** Visual-only sideways offset per enemy, so a column does not render as one blob. */
-function lateralOffset(e) {
-  return (((e.id * 0.6180339887) % 1) - 0.5) * 0.36;
-}
 
 export function drawEnemy(ctx, e, t) {
   const style = ENEMY_STYLE[e.type] ?? ENEMY_STYLE.warrior;

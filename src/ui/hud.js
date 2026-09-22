@@ -59,9 +59,13 @@ export function createHud(root, { debug, onAction }) {
   bar.append(speedGroup, start, restart);
 
   let obstacleButton = null;
+  let artButton = null;
+  let stressButton = null;
   if (debug) {
     obstacleButton = button(T.obstacleMode, 'alt', () => onAction('obstacleMode'));
-    bar.append(obstacleButton);
+    artButton = button(T.artSprites, 'alt', () => onAction('toggleArt'));
+    stressButton = button(T.stress, 'alt', () => onAction('stress'));
+    bar.append(obstacleButton, artButton, stressButton);
   }
 
   const banner = el('div', 'hud-banner');
@@ -105,6 +109,13 @@ export function createHud(root, { debug, onAction }) {
         restart.hidden = !v;
       });
       if (obstacleButton) set('obstacleMode', ui.obstacleMode, (v) => obstacleButton.classList.toggle('on', v));
+      if (artButton) set('art', ui.art, (v) => (artButton.textContent = v === 'sprites' ? T.artSprites : T.artPlaceholder));
+      if (stressButton) {
+        set('stress', state.stress, (v) => {
+          stressButton.textContent = v ? T.stressOn : T.stress;
+          stressButton.classList.toggle('on', v);
+        });
+      }
       set('banner', ui.banner?.text ?? '', (v) => {
         banner.textContent = v;
         banner.classList.toggle('show', v !== '');

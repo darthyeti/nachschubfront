@@ -4,6 +4,7 @@ import { RULES } from '../data/rules.js';
 import { setPhase, PASS_THROUGH } from '../core/phases.js';
 import { beginWave, updateSpawns, waveCleared, totalWaves } from './waves.js';
 import { updateEnemies } from './enemies.js';
+import { updateStress } from './debug.js';
 
 export function stepSimulation(state, dt) {
   state.tick += 1;
@@ -17,6 +18,11 @@ export function stepSimulation(state, dt) {
       setPhase(state, 'wave');
       beginWave(state);
     }
+  }
+
+  if (state.stress) {
+    updateStress(state, dt);
+    return;
   }
 
   if (state.phase === 'wave') {

@@ -42,6 +42,9 @@ export function createGameState(seed) {
     /** Simulated seconds (scaled by game speed). */
     time: 0,
 
+    /** Debug stress test running (enemies loop, no lives lost). */
+    stress: false,
+
     /** Events for UI and effects, drained once per frame by main.js. */
     events: [],
   };
