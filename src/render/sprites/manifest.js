@@ -1,6 +1,8 @@
 // Maps game types to concept-art symbols and sets their size in the world.
 // Rules: docs/ART.md. Symbol ids come from the generated enemies.js / towers.js.
 
+import { MAX_RANK } from '../../data/ranks.js';
+
 /** World pixels per SVG unit. A cell is 64 x 32 world pixels. */
 export const SPRITE_SCALE = {
   /** The base's top face (88 SVG units wide) covers 90 % of a cell. */
@@ -42,20 +44,10 @@ export const DOCTRINE_SYMBOLS = {
   tesla: 't-tesla',
 };
 
-/** Guide colours per doctrine (ART.md), also used by the pod hologram in M2. */
-export const DOCTRINE_COLORS = {
-  flame: '#ff8a2a',
-  autocannon: '#f0e2b8',
-  laser: '#ff4a4a',
-  mortar: '#d8ae5f',
-  psi: '#b784ff',
-  tesla: '#5fd4ff',
-};
-
 /**
  * These doctrines already carry a sandbag ring in their base form, so the veteran
  * ring is skipped for them (decision M1b; a dedicated veteran detail follows later).
  */
 export const OWN_SANDBAGS = new Set(['autocannon', 'mortar']);
 
-export const RANK_COUNT = 5;
+export const RANK_COUNT = MAX_RANK;

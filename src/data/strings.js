@@ -27,6 +27,36 @@ export const STRINGS = {
     title: 'Nachschub wird geladen …',
   },
 
+  doctrines: {
+    flame: 'Flamme',
+    autocannon: 'Autokanone',
+    laser: 'Laser',
+    mortar: 'Mörser',
+    psi: 'Psi',
+    tesla: 'Tesla',
+  },
+
+  /** Rank names by rank number (1 to 5). */
+  ranks: {
+    1: 'Rekrut',
+    2: 'Veteran',
+    3: 'Elite',
+    4: 'Held',
+    5: 'Legende',
+  },
+
+  recipes: {
+    purgeShrine: { name: 'Reinigungsschrein', effect: 'Großer Flammenring, verlangsamt, Brand stapelt' },
+    stormBattery: { name: 'Sturmbatterie', effect: 'Schnellfeuer auf drei Ziele, stark gegen Luft' },
+    emberCauldron: { name: 'Glutkessel', effect: 'Brennende Aura, Blitze entzünden' },
+    siegeMortar: { name: 'Belagerungsmörser', effect: 'Sehr große Reichweite, riesiger Explosionsradius' },
+    thunderTower: { name: 'Gewitterturm', effect: 'Kette über 8 Ziele, kurze Betäubung' },
+    soulfireObelisk: {
+      name: 'Seelenfeuer-Obelisk',
+      effect: 'Schaden in Prozent der maximalen Lebenspunkte, Waffe gegen Bosse',
+    },
+  },
+
   phases: {
     planning: 'Planung',
     salvo: 'Salve',

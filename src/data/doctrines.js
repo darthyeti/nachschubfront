@@ -1,0 +1,72 @@
+// The six weapon doctrines (GDD section 6).
+// M2 only uses `color` and the ids; the combat values are read from M3 on.
+
+/**
+ * `fire` is either shots per second, 'stream' (continuous damage) or 'aura'.
+ * Ranges are in cells, damage is the recruit value before the rank factor.
+ */
+export const DOCTRINES = {
+  flame: {
+    color: '#ff8a2a',
+    damage: 18,
+    fire: 'stream',
+    range: 2.0,
+    targets: ['ground'],
+    /** Cone hits every enemy inside the range. */
+    cone: true,
+    burn: { damagePerSecond: 6, seconds: 3 },
+  },
+  autocannon: {
+    color: '#f0e2b8',
+    damage: 6,
+    fire: 5,
+    range: 3.5,
+    targets: ['ground', 'air'],
+  },
+  laser: {
+    color: '#ff4a4a',
+    damage: 40,
+    fire: 0.8,
+    range: 4.5,
+    targets: ['ground', 'air'],
+    /** The beam pierces every enemy on its line. */
+    pierce: true,
+  },
+  mortar: {
+    color: '#d8ae5f',
+    damage: 30,
+    fire: 0.45,
+    range: 7.0,
+    minRange: 1.5,
+    targets: ['ground'],
+    splashRadius: 1.2,
+    flightSeconds: 1,
+  },
+  psi: {
+    color: '#b784ff',
+    damage: 4,
+    fire: 'aura',
+    range: 3.0,
+    targets: ['ground', 'air'],
+    /** Slows enemies inside the aura by this fraction. */
+    slow: 0.3,
+    /** Damage multiplier against warp shields. */
+    shieldFactor: 3,
+  },
+  tesla: {
+    color: '#5fd4ff',
+    damage: 14,
+    fire: 1,
+    range: 3.0,
+    targets: ['ground', 'air'],
+    chain: { targets: 4, falloff: 0.2 },
+  },
+};
+
+/** Fixed order: sprite gallery and codex follow it. */
+export const DOCTRINE_IDS = Object.keys(DOCTRINES);
+
+/** Guide colours (ART.md), also used by the pod hologram. */
+export const DOCTRINE_COLORS = Object.fromEntries(
+  DOCTRINE_IDS.map((id) => [id, DOCTRINES[id].color]),
+);
