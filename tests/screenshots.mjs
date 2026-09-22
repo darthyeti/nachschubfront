@@ -1,12 +1,12 @@
 // Takes desktop and tablet screenshots of the game and fails on console errors,
 // page errors or failed requests. Serves the repository itself, like GitHub Pages.
 //
-// Usage: npm run screenshots [-- --query "debug"]
+// Usage: npm run screenshots [-- --query "debug"] [--browser webkit]
 
-import { chromium } from 'playwright';
+import * as playwright from 'playwright';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ROOT, startServer, watchProblems } from './tools/server.mjs';
+import { ROOT, startServer, watchProblems, browserName, launchBrowser } from './tools/server.mjs';
 
 const OUT = join(ROOT, 'tests', 'output');
 
@@ -32,7 +32,8 @@ const query = queryArg > 0 ? `?${process.argv[queryArg + 1]}` : '';
 await mkdir(OUT, { recursive: true });
 const server = await startServer();
 const base = server.url;
-const browser = await chromium.launch();
+const engine = browserName();
+const browser = await launchBrowser(playwright, engine);
 const problems = [];
 
 try {
@@ -51,7 +52,7 @@ try {
       const c = document.getElementById('game');
       return { width: c.width, height: c.height, cssWidth: c.clientWidth, dpr: devicePixelRatio };
     });
-    const file = join(OUT, `${vp.name}.png`);
+    const file = join(OUT, engine === 'chromium' ? `${vp.name}.png` : `${vp.name}-${engine}.png`);
     await page.screenshot({ path: file });
     console.log(
       `${vp.name}: ${file} (canvas ${canvas.width}x${canvas.height}, css ${canvas.cssWidth}px, dpr ${canvas.dpr})`,

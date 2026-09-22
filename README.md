@@ -42,8 +42,10 @@ Das Spiel selbst hat keine Abhängigkeiten. Nur die Werkzeuge brauchen Node (ab 
 
 ```bash
 npm install
-npx playwright install chromium
+npx playwright install chromium webkit
 ```
+
+Alle Browser-Skripte laufen standardmäßig in Chromium. Mit `-- --browser webkit` laufen sie in WebKit, der Engine von Safari. Das ist der nächste automatisierte Ersatz für das iPad.
 
 | Befehl | Zweck |
 |---|---|
@@ -52,6 +54,7 @@ npx playwright install chromium
 | `npm run screenshots -- --query debug` | wie oben, mit Debug-Anzeige |
 | `npm run test:input` | Eingabetests im Browser: Touch (Wischen, Tippen, Pinch), Maus, Tastatur, eine Welle auf 3x, Niederlage, Sprite-Galerie |
 | `npm run test:perf` | Belastungstest mit 200 Gegnern bei Start- und Maximalzoom, Desktop und Tablet: prüft 60 fps (nur mit echter GPU) und dass im Betrieb kein SVG gerastert wird |
+| `npm run test:webkit` | Eingabetests, Screenshots und Leistungsmessung in WebKit |
 | `npm run sprites` | Konzeptgrafiken aus `reference/konzept/` neu nach `src/render/sprites/` übernehmen (nach jeder Änderung an den SVGs) |
 | `npm run icons` | Platzhalter-Icons neu erzeugen |
 | `npm run serve` | lokaler Server auf Port 8000 |

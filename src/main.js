@@ -262,7 +262,7 @@ if (debug) {
       stress: state.stress,
     }),
     sprites: () => ({ ...sprites.stats }),
-    ui: () => ({ art: ui.art, frameMs: ui.frameMs }),
+    ui: () => ({ art: ui.art, frameMs: ui.frameMs, obstacleMode: ui.obstacleMode }),
   };
 }
 

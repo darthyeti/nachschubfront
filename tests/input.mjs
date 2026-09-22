@@ -3,20 +3,22 @@
 // click, H and G keys. Also plays a wave at 3x and checks the sprite gallery.
 // Fails on any assertion or console error.
 //
-// Usage: npm run test:input
+// Usage: npm run test:input [-- --browser webkit]
 
-import { chromium } from 'playwright';
+import * as playwright from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ROOT, startServer, watchProblems } from './tools/server.mjs';
+import { ROOT, startServer, watchProblems, browserName, launchBrowser } from './tools/server.mjs';
 
 const OUT = join(ROOT, 'tests', 'output');
 const SEED = 'BASTION';
 
 await mkdir(OUT, { recursive: true });
 const server = await startServer();
-const browser = await chromium.launch();
+const engine = browserName();
+const browser = await launchBrowser(playwright, engine);
+console.log(`engine: ${engine}`);
 const problems = [];
 const results = [];
 
@@ -46,6 +48,48 @@ async function openGame(options) {
   return { context, page };
 }
 
+/**
+ * Multi-touch input. Chromium: native touch events via CDP. WebKit has no CDP, so
+ * touch-type PointerEvents are dispatched on the canvas (what the game listens to).
+ * Same call shape for both: touch('touchStart' | 'touchMove' | 'touchEnd', [[x, y], ...]).
+ */
+async function touchDriver(context, page) {
+  if (engine === 'chromium') {
+    const cdp = await context.newCDPSession(page);
+    return (type, points) =>
+      cdp.send('Input.dispatchTouchEvent', {
+        type,
+        touchPoints: points.map(([x, y], id) => ({ x, y, id, radiusX: 4, radiusY: 4, force: 1 })),
+      });
+  }
+  let active = [];
+  return (type, points) =>
+    page.evaluate(
+      ([kind, pts, prev]) => {
+        const canvas = document.getElementById('game');
+        const fire = (name, id, [x, y]) =>
+          canvas.dispatchEvent(
+            new PointerEvent(name, {
+              pointerId: 100 + id,
+              pointerType: 'touch',
+              isPrimary: id === 0,
+              clientX: x,
+              clientY: y,
+              button: 0,
+              buttons: name === 'pointerup' ? 0 : 1,
+              bubbles: true,
+              cancelable: true,
+            }),
+          );
+        if (kind === 'touchEnd') prev.forEach((p, id) => fire('pointerup', id, p));
+        else pts.forEach((p, id) => fire(kind === 'touchStart' && !prev[id] ? 'pointerdown' : 'pointermove', id, p));
+      },
+      [type, points, active],
+    ).then(() => {
+      active = type === 'touchEnd' ? [] : points;
+    });
+}
+
 /** Finds a route cell near the middle of the route that may be blocked. */
 async function blockableRouteCell(page) {
   return page.evaluate(() => {
@@ -66,12 +110,7 @@ try {
       hasTouch: true,
       isMobile: true,
     });
-    const cdp = await context.newCDPSession(page);
-    const touch = (type, points) =>
-      cdp.send('Input.dispatchTouchEvent', {
-        type,
-        touchPoints: points.map(([x, y], id) => ({ x, y, id, radiusX: 4, radiusY: 4, force: 1 })),
-      });
+    const touch = await touchDriver(context, page);
 
     await check('start view: cells at least 40 px wide', async () => {
       const cam = await camera(page);
@@ -232,6 +271,17 @@ try {
       await page.keyboard.press(' ');
       await frames(page);
       assert.equal((await game(page)).speed, 1);
+    });
+
+    await check('after clicking a HUD button, Space still toggles pause', async () => {
+      await page.getByRole('button', { name: '2x' }).click();
+      assert.equal((await game(page)).speed, 2);
+      await page.keyboard.press(' ');
+      await frames(page);
+      assert.equal((await game(page)).speed, 0, 'Space must pause, not re-press the focused button');
+      await page.keyboard.press(' ');
+      await frames(page);
+      assert.equal((await game(page)).speed, 2);
     });
 
     await check('G switches between sprites and placeholder art', async () => {

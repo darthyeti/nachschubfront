@@ -16,9 +16,12 @@ function button(label, className, onClick) {
   const b = el('button', className, label);
   b.type = 'button';
   b.classList.add('interactive');
-  b.addEventListener('click', onClick);
-  // Keep buttons from stealing keyboard focus, so Space still toggles pause.
-  b.addEventListener('pointerdown', (ev) => ev.preventDefault());
+  b.addEventListener('click', (ev) => {
+    onClick(ev);
+    // Give focus back, so Space keeps toggling pause instead of re-pressing this button.
+    // (Not preventDefault on pointerdown: WebKit then drops the click after a touch.)
+    b.blur();
+  });
   return b;
 }
 

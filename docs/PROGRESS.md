@@ -29,7 +29,9 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Stellungen: Sockel, Waffe, ab Veteran Sandsackring, Winkel für den Rang auf der linken Sockelseite (Legende in Gold). Im Spiel kommen sie erst mit M2 vor, zu sehen sind sie in der Sprite-Galerie `tests/sprites.html`.
   - Debug: Umschalter Sprites/Platzhalter (`G`, Knopf, `?art=placeholder`), Belastungstest mit 200 Gegnern, Rechenzeit pro Frame in der Debug-Anzeige.
   - Leistung (Playwright, Apple M2 mit GPU): 200 Gegner bei Start- und Maximalzoom konstant 60 fps, reine Rechenzeit 0,6 bis 1,3 ms pro Frame, im Betrieb 0 Rasterungen (`npm run test:perf`).
-  - Tests: 100 Unit-Tests. Dazu 16 Eingabeprüfungen im Browser, jetzt auch Sprite-Galerie und Grafik-Umschalter.
+  - Tests: 100 Unit-Tests. Dazu 17 Eingabeprüfungen im Browser, jetzt auch Sprite-Galerie, Grafik-Umschalter und Leertaste nach Knopfklick.
+  - WebKit (Safari-Engine) über Playwright: Alle 17 Eingabeprüfungen bestehen, alle Sprites werden fehlerfrei gerastert und sind bei maximalem Zoom scharf. Die Leistungsmessung mit 200 Gegnern ergibt etwa 17 ms pro Frame (WebKit rundet auf ganze Millisekunden), die Rechenzeit liegt bei 1,4 ms. `npm run test:webkit` führt alles aus.
+  - Behobener iPad-Fehler, gefunden mit WebKit: HUD-Knöpfe reagierten nicht auf Touch. Ursache war `preventDefault()` auf `pointerdown` der Knöpfe; WebKit löst danach kein `click` aus. Jetzt geben die Knöpfe nach dem Klick den Fokus ab, damit die Leertaste weiter pausiert.
 
 ## Offen
 - M1-Abnahme durch dich: am Desktop und auf dem iPad testen (`?debug` für den Hindernis-Modus).
@@ -43,7 +45,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).
 - Ohne Stellungen fällt die Bastion in Welle 2 (12 Krieger plus 24 Schwärmer bei 20 Leben). Das ist bis M2 erwartbar, zum Testen einfach „Neue Partie“.
 - Der Boden-Cache ist auf 12 Megapixel begrenzt (Speichergrenze von Safari). Bei maximalem Zoom auf dem iPad kann der Boden leicht unscharf werden, Objekte und Gegner bleiben scharf.
-- Headless-Chromium mit Software-Rendering schafft nur etwa 30 bis 60 fps. Mit GPU (Apple M2) stabil 60 fps, auch mit 200 Sprite-Gegnern. Auf echtem iPad noch nicht gemessen. Safari/WebKit ist nicht automatisch getestet, nur Chromium.
+- Headless-Chromium mit Software-Rendering schafft nur etwa 30 bis 60 fps. Mit GPU (Apple M2) stabil 60 fps, auch mit 200 Sprite-Gegnern. Auf echtem iPad noch nicht gemessen. WebKit (Safari-Engine) wird automatisch getestet. Das ersetzt aber nicht den Test auf dem echten iPad, besonders nicht für Touch-Gesten mit mehreren Fingern: Die werden in WebKit als synthetische PointerEvents erzeugt, weil Playwright dort keine echten Mehrfinger-Berührungen senden kann.
 - Im Belastungstest liegen die 200 Gegner sehr dicht auf der Route (bewusst, als Worst Case).
 - Die Treffer-Variante ist vorbereitet, im Spiel blitzt aber noch nichts auf, weil es bis M3 keinen Schaden gibt.
 - Hinweis: iPadOS ignoriert `display: fullscreen` im Manifest und nutzt `standalone`.
@@ -60,6 +62,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Der Warp-Seher schwebt laut Skizze leicht über dem Boden, die Heiler-Aura reicht unter die Füße. Beides bleibt so.
   - Winkel liegen im Band oberhalb des Warnstreifens, gezeichnet nach Waffe und Sandsäcken, damit nichts sie verdeckt.
   - Die Treffer-Variante ist ein warmweißer Überzug mit 65 % Deckkraft. So bleiben Silhouette und Tuschelinien erkennbar.
+  - Browser-Tests laufen in Chromium und WebKit. Schalter `--browser webkit`, Standard ist Chromium.
   - SVG-Bilder werden über das `load`-Ereignis geladen, nicht über `img.decode()`, weil Safari das bei SVG teils ablehnt. Die SVGs bekommen eine feste Pixelgröße, weil Safari sonst in ihrer Eigengröße rastert und das Bild unscharf wird.
 - Plattform: Desktop und Tablet gleichwertig, Tablet ist der Haupteinsatz.
 - Hosting: GitHub Pages, PWA. Speichern lokal, Speicherschicht für spätere Online-Bestenliste vorbereitet.

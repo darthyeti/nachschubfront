@@ -57,3 +57,24 @@ export function watchProblems(page, label, problems) {
     if (res.status() >= 400) problems.push(`[${label}] HTTP ${res.status()}: ${res.url()}`);
   });
 }
+
+/**
+ * Browser engine from `--browser <name>` or PW_BROWSER: chromium (default) or webkit.
+ * WebKit is Safari's engine and the closest automated stand-in for the iPad.
+ */
+export function browserName() {
+  const i = process.argv.indexOf('--browser');
+  const name = (i > 0 ? process.argv[i + 1] : process.env.PW_BROWSER) || 'chromium';
+  if (!['chromium', 'webkit'].includes(name)) throw new Error(`Unsupported browser: ${name}`);
+  return name;
+}
+
+/** Launches the chosen engine; Chromium gets the flags that enable the real GPU. */
+export async function launchBrowser(playwright, name = browserName()) {
+  if (name === 'chromium') {
+    return playwright.chromium.launch({
+      args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'],
+    });
+  }
+  return playwright.webkit.launch();
+}

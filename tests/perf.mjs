@@ -5,13 +5,14 @@
 // Frame-time limits are only enforced on a hardware GPU; with software rendering
 // (e.g. CI without GPU) the numbers are reported but not judged.
 //
-// Usage: npm run test:perf
+// Usage: npm run test:perf [-- --browser webkit]
+// WebKit timings are reported only: headless WebKit is not representative of Safari's GPU path.
 
-import { chromium } from 'playwright';
+import * as playwright from 'playwright';
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
-import { ROOT, startServer, watchProblems } from './tools/server.mjs';
+import { ROOT, startServer, watchProblems, browserName, launchBrowser } from './tools/server.mjs';
 
 const OUT = join(ROOT, 'tests', 'output');
 const SAMPLE_FRAMES = 240;
@@ -21,9 +22,8 @@ const P95_LIMIT_MS = 25;
 
 await mkdir(OUT, { recursive: true });
 const server = await startServer();
-const browser = await chromium.launch({
-  args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'],
-});
+const engine = browserName();
+const browser = await launchBrowser(playwright, engine);
 const problems = [];
 const report = [];
 
@@ -61,15 +61,15 @@ try {
       const info = gl?.getExtension('WEBGL_debug_renderer_info');
       return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : 'unknown';
     });
-    const hardware = !/SwiftShader|llvmpipe|software/i.test(renderer);
+    const hardware = engine === 'chromium' && !/SwiftShader|llvmpipe|software/i.test(renderer);
 
     await page.getByRole('button', { name: 'Belastungstest' }).click();
     assert.equal((await page.evaluate(() => window.__nachschub.state())).enemies, 200);
 
     for (const zoomLabel of ['start', 'max']) {
       if (zoomLabel === 'max') {
-        await page.mouse.move(options.viewport.width / 2, options.viewport.height / 2);
-        for (let i = 0; i < 12; i++) await page.mouse.wheel(0, -200);
+        // Zoom with the + key: mobile WebKit does not support mouse wheel events.
+        for (let i = 0; i < 12; i++) await page.keyboard.press('+');
       }
       // Let new raster levels finish, then the counter must stay put.
       await page.waitForTimeout(1500);
@@ -84,7 +84,7 @@ try {
       report.push(
         `${label.padEnd(8)} zoom ${zoom.toFixed(2).padStart(4)}: median ${median.toFixed(1)} ms, p95 ${p95.toFixed(1)} ms` +
           `, JS per frame ${work.toFixed(1)} ms` +
-          `, rasterized during run: ${after - before}${hardware ? '' : ' (software rendering, not judged)'}`,
+          `, rasterized during run: ${after - before}${hardware ? '' : ' (timings not judged)'}`,
       );
       assert.equal(after - before, 0, `${label}/${zoomLabel}: SVG rasterized while running`);
       if (hardware) {
@@ -93,7 +93,7 @@ try {
       }
       await page.screenshot({ path: join(OUT, `perf-${label}-${zoomLabel}.png`) });
     }
-    report.push(`${label.padEnd(8)} renderer: ${renderer}`);
+    report.push(`${label.padEnd(8)} ${engine}, renderer: ${renderer}`);
     await context.close();
   }
 } finally {
