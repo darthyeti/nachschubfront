@@ -37,6 +37,10 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
     /** Seconds of hit flash left, and the flag the death pass looks for. */
     flash: 0,
     dead: false,
+    /** True if this type does more than walk (sim/abilities.js). */
+    hasAbility: Boolean(def.heal || def.spawnTrail || def.warpJump || def.armorCycle),
+    /** Seconds since the ability last went off. */
+    abilityTimer: 0,
     /** Status effects (sim/effects.js): slow fraction, its end, frozen until. */
     slow: 0,
     slowUntil: 0,
@@ -61,6 +65,8 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
  */
 export function removeDead(state) {
   let write = 0;
+  /** What dying enemies leave behind; spawned once the list is compacted. */
+  const hatch = [];
   for (let read = 0; read < state.enemies.length; read++) {
     const e = state.enemies[read];
     if (!e.dead) {
@@ -72,8 +78,16 @@ export function removeDead(state) {
     state.waveStats.killed += 1;
     if (e.boss) state.waveStats.bossKills += 1;
     state.events.push({ type: 'kill', enemyId: e.id, enemyType: e.type, x: e.x, y: e.y, boss: e.boss });
+    const death = enemyDef(e.type).death;
+    if (death) {
+      for (let i = 0; i < death.count; i++) hatch.push({ type: death.type, d: Math.max(0, e.d - i * 0.15) });
+    }
   }
   state.enemies.length = write;
+  for (const { type, d } of hatch) {
+    spawnEnemy(state, type, { d });
+    state.waveStats.spawned += 1;
+  }
 }
 
 /**
