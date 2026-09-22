@@ -8,6 +8,10 @@ import { DOCTRINES, DOCTRINE_IDS, DOCTRINE_COLORS } from '../../src/data/doctrin
 import { RANKS, MAX_RANK, MIN_RANK, isRank, rankStats } from '../../src/data/ranks.js';
 import { SUPPLY_LEVELS, MAX_SUPPLY_LEVEL, supplyWeights, supplyCost } from '../../src/data/supply.js';
 import { RECIPES, RECIPE_IDS, recipeById } from '../../src/data/recipes.js';
+import { ENEMIES, ENEMY_IDS, enemyDef } from '../../src/data/enemies.js';
+import { ARMOR_TYPES, DAMAGE_MATRIX, damageFactor } from '../../src/data/combat.js';
+import { ECONOMY, waveBonus, rubbleCost } from '../../src/data/economy.js';
+import { COMMANDS, COMMAND_IDS, commandById } from '../../src/data/commands.js';
 import { STRINGS } from '../../src/data/strings.js';
 import { DOCTRINE_SYMBOLS, RANK_COUNT } from '../../src/render/sprites/manifest.js';
 
@@ -102,4 +106,84 @@ test('every recipe has a name and an effect text', () => {
     assert.equal(typeof STRINGS.recipes[id]?.effect, 'string', id);
   }
   assert.deepEqual(Object.keys(STRINGS.recipes), RECIPE_IDS);
+});
+
+test('the damage matrix covers every doctrine and armour type', () => {
+  assert.equal(ARMOR_TYPES.length, 4);
+  assert.deepEqual(Object.keys(DAMAGE_MATRIX), DOCTRINE_IDS);
+  for (const id of DOCTRINE_IDS) {
+    assert.deepEqual(Object.keys(DAMAGE_MATRIX[id]), ARMOR_TYPES, id);
+    for (const armor of ARMOR_TYPES) assert.ok(damageFactor(id, armor) >= 0, `${id}/${armor}`);
+  }
+  // A doctrine that cannot hurt an armour must not target it either, otherwise
+  // towers would pick targets they can never kill.
+  for (const id of DOCTRINE_IDS) {
+    if (damageFactor(id, 'flyer') === 0) assert.ok(!DOCTRINES[id].targets.includes('air'), id);
+  }
+  assert.equal(damageFactor('psi', 'warpshield'), 3, 'psi triples against shields');
+  assert.throws(() => damageFactor('nope', 'flesh'));
+  assert.throws(() => damageFactor('psi', 'nope'));
+});
+
+test('every armour type has a name', () => {
+  for (const armor of ARMOR_TYPES) assert.equal(typeof STRINGS.armor[armor], 'string', armor);
+  assert.deepEqual(Object.keys(STRINGS.armor), ARMOR_TYPES);
+});
+
+test('enemy types have health, speed, reward, a known armour and a name', () => {
+  assert.equal(ENEMY_IDS.length, 7);
+  for (const id of ENEMY_IDS) {
+    const def = ENEMIES[id];
+    assert.ok(def.health > 0, id);
+    assert.ok(def.speed > 0, id);
+    assert.ok(def.reward > 0, id);
+    assert.ok(ARMOR_TYPES.includes(def.armor), `${id}: ${def.armor}`);
+    assert.equal(typeof def.flying, 'boolean', id);
+    assert.equal(def.flying, def.armor === 'flyer', `${id}: flyers and the flyer armour go together`);
+    assert.equal(typeof STRINGS.enemies[id], 'string', id);
+    assert.equal(enemyDef(id), def);
+  }
+  assert.throws(() => enemyDef('nope'));
+});
+
+test('enemy specials follow the GDD', () => {
+  const seer = ENEMIES.warpseer;
+  assert.ok(seer.shield > 0 && seer.shieldRegen > 0);
+  assert.ok(ARMOR_TYPES.includes(seer.armorBelow), 'the shield covers a normal armour');
+  assert.ok(ENEMIES.burster.death.count > 0);
+  assert.ok(ENEMIES[ENEMIES.burster.death.type], 'bursters release a known enemy');
+  assert.ok(ENEMIES.healer.heal.perSecond > 0 && ENEMIES.healer.heal.radius > 0);
+  // Only warp shields carry a shield pool; anything else would need its own rules.
+  for (const id of ENEMY_IDS) {
+    if (ENEMIES[id].shield) assert.equal(ENEMIES[id].armor, 'warpshield', id);
+  }
+});
+
+test('economy values grow the way the GDD describes', () => {
+  assert.equal(waveBonus(1), 11);
+  assert.equal(waveBonus(50), 60);
+  assert.equal(rubbleCost(0), ECONOMY.rubbleCost);
+  assert.equal(rubbleCost(3) - rubbleCost(2), ECONOMY.rubbleCostStep);
+  assert.ok(ECONOMY.pointsPerBoss > ECONOMY.pointsPerCleanWave);
+});
+
+test('special commands unlock in order and have costs, cooldowns and texts', () => {
+  assert.equal(COMMANDS.length, 4);
+  assert.equal(new Set(COMMAND_IDS).size, COMMANDS.length, 'ids are unique');
+  for (const c of COMMANDS) {
+    assert.ok(c.cost > 0, c.id);
+    assert.ok(c.fromWave > 0, c.id);
+    assert.ok(c.cooldownWaves > 0, c.id);
+    assert.ok(c.phase === 'wave' || c.phase === 'planning', `${c.id}: ${c.phase}`);
+    assert.ok(c.target === 'cell' || c.target === 'none', `${c.id}: ${c.target}`);
+    if (c.target === 'cell') assert.ok(c.radius > 0, c.id);
+    assert.equal(typeof STRINGS.commands[c.id]?.name, 'string', c.id);
+    assert.equal(typeof STRINGS.commands[c.id]?.effect, 'string', c.id);
+    assert.equal(commandById(c.id), c);
+  }
+  assert.deepEqual(Object.keys(STRINGS.commands), COMMAND_IDS);
+  assert.equal(commandById('nope'), null);
+  const waves = COMMANDS.map((c) => c.fromWave);
+  assert.deepEqual(waves, [...waves].sort((a, b) => a - b), 'listed in unlock order');
+  assert.ok(COMMANDS.find((c) => c.id === 'orbitalStrike').bossDamageFraction <= 0.25);
 });

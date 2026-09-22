@@ -70,6 +70,30 @@ export const STRINGS = {
     },
   },
 
+  enemies: {
+    swarmer: 'Schwärmer',
+    warrior: 'Krieger',
+    breaker: 'Brecher',
+    warpseer: 'Warp-Seher',
+    carrionflyer: 'Aasflieger',
+    burster: 'Zerplatzer',
+    healer: 'Heiler',
+  },
+
+  armor: {
+    flesh: 'Fleisch',
+    plate: 'Panzer',
+    warpshield: 'Warp-Schild',
+    flyer: 'Flieger',
+  },
+
+  commands: {
+    orbitalStrike: { name: 'Orbitalschlag', effect: 'Ziel markieren, nach 2 s schwerer Flächenschaden' },
+    stasisField: { name: 'Stasisfeld', effect: 'Friert Gegner im Umkreis ein' },
+    prioritySupply: { name: 'Priorisierter Nachschub', effect: 'Nächste Salve: ein Rang mehr' },
+    holyBanner: { name: 'Heiliges Banner', effect: 'Stellungen im Umkreis schlagen härter zu' },
+  },
+
   phases: {
     planning: 'Planung',
     salvo: 'Salve',

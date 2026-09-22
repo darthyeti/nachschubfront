@@ -1,5 +1,6 @@
 // The six weapon doctrines (GDD section 6).
-// M2 only uses `color` and the ids; the combat values are read from M3 on.
+// How well a doctrine fares against an armour type is not here but in the
+// damage matrix (data/combat.js), so every factor has exactly one home.
 
 /**
  * `fire` is either shots per second, 'stream' (continuous damage) or 'aura'.
@@ -50,8 +51,6 @@ export const DOCTRINES = {
     targets: ['ground', 'air'],
     /** Slows enemies inside the aura by this fraction. */
     slow: 0.3,
-    /** Damage multiplier against warp shields. */
-    shieldFactor: 3,
   },
   tesla: {
     color: '#5fd4ff',
