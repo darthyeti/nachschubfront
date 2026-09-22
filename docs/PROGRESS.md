@@ -1,7 +1,7 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M1b: Grafik-Pipeline (eingeschoben vor M2, Plan wird vorgelegt)
+M1b: Grafik-Pipeline (eingeschoben vor M2, in Arbeit)
 
 Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
@@ -25,7 +25,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
 ## Offen
 - M1-Abnahme durch dich: am Desktop und auf dem iPad testen (`?debug` für den Hindernis-Modus).
-- M1b Grafik-Pipeline (`docs/meilensteine/M1b-grafik-pipeline.md`): Konzeptgrafiken aus `reference/konzept/` als Sprites einbauen, Regeln in `docs/ART.md`. Plan vorlegen und Freigabe abwarten.
+- M1b Grafik-Pipeline (`docs/meilensteine/M1b-grafik-pipeline.md`): Konzeptgrafiken aus `reference/konzept/` als Sprites einbauen, Regeln in `docs/ART.md`. In Arbeit.
 - Danach M2 Kapselmechanik.
 
 ## Bekannte Probleme
@@ -37,6 +37,10 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
 ## Entscheidungen
 - Grafik-Konzept (22.09.2026): Gegner sind eine insektoide Brut (`docs/ART.md`). Umbenennung in der GDD: Mutant heißt jetzt Krieger, Warp-Geist heißt jetzt Warp-Seher. M1b wird als Grafik-Pipeline vor M2 eingeschoben.
+- M1b-Plan freigegeben (22.09.2026):
+  - Autokanone und Mörser haben den Sandsackring schon in der Grundform. Beim Veteran zeigen sie in M1b nur den zweiten Winkel, ein eigenes Veteran-Detail wird später festgelegt (z. B. zusätzliche Munitionskisten).
+  - Eingebaute Effekte in den SVGs (Flammenstrahl, Mündungsbögen, Rauch, Blitze, Leuchten) bleiben in M1b im Sprite. In M4 werden sie aus den SVGs entfernt und per Code animiert.
+  - GDD Abschnitt 1: „Mutanten“ und „Mutantenhorden“ durch „Schwarmbrut“ ersetzt.
 - Plattform: Desktop und Tablet gleichwertig, Tablet ist der Haupteinsatz.
 - Hosting: GitHub Pages, PWA. Speichern lokal, Speicherschicht für spätere Online-Bestenliste vorbereitet.
 - Kapseln nur in der Planungsphase. Spezialkommandos auch während der Welle.

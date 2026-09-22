@@ -4,11 +4,11 @@ Stand: Grundlagen v1. Alle Zahlen sind Startwerte für das Balancing und liegen 
 
 ## 1. Vision
 
-Ein Tower-Defense-Spiel im Stil der klassischen Mazing-Maps (Vorbild: Gem TD aus Warcraft 3), angesiedelt in einem eigenen Grimdark-Sci-Fi-Setting. Der Spieler verteidigt eine Bastion gegen immer stärkere Wellen von Mutanten und Warp-Kreaturen. Vor jeder Welle fordert er eine Salve aus fünf Nachschubkapseln an, bestimmt ihre Landezonen, behält eine Waffenstellung und lässt die übrigen zu Trümmern werden. So entsteht Runde für Runde ein Labyrinth, das in jeder Partie anders aussieht.
+Ein Tower-Defense-Spiel im Stil der klassischen Mazing-Maps (Vorbild: Gem TD aus Warcraft 3), angesiedelt in einem eigenen Grimdark-Sci-Fi-Setting. Der Spieler verteidigt eine Bastion gegen immer stärkere Wellen einer insektoiden Schwarmbrut und ihrer Warp-Kreaturen. Vor jeder Welle fordert er eine Salve aus fünf Nachschubkapseln an, bestimmt ihre Landezonen, behält eine Waffenstellung und lässt die übrigen zu Trümmern werden. So entsteht Runde für Runde ein Labyrinth, das in jeder Partie anders aussieht.
 
 Kernerlebnis: Jede Runde verlangt eine Abwägung zwischen Feuerkraft (welche Stellung behalte ich?) und Wegführung (wo stehen meine Trümmer?). Die Kapseleinschläge sind der spektakuläre Höhepunkt jeder Runde.
 
-Setting: eigene Namen und Fraktionen, inspiriert vom Grimdark-Genre (gotische Ruinen, fanatische Verteidiger, Mutantenhorden, Warp-Kreaturen). Keine geschützten Namen, Logos oder Figuren aus Warhammer 40k oder One Page Rules.
+Setting: eigene Namen und Fraktionen, inspiriert vom Grimdark-Genre (gotische Ruinen, fanatische Verteidiger, Schwarmbrut aus Chitin und Klingen, Warp-Kreaturen). Keine geschützten Namen, Logos oder Figuren aus Warhammer 40k oder One Page Rules.
 
 Optik: 2D-Isometrie im Comicstil mit dicken Tuschekonturen, harter Zellschattierung, schmutziger Palette (Rost, Knochenweiß, Blutrot, Giftgrün) und kräftigen Effekten. Referenz: `reference/stiltest.html`. Gestaltungsregeln für Stellungen und Gegner (Silhouetten, Leitfarben, Rangdetails, Rüstungsmerkmale, Sprite-Technik): `docs/ART.md`, Konzeptgrafiken in `reference/konzept/`.
 
