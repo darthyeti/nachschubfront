@@ -4,7 +4,7 @@
 import { pickLevel, RASTER_LEVELS } from './compose.js';
 
 /** Tint for the pre-rendered hit-flash variant. */
-const FLASH_TINT = 'rgba(255, 246, 228, 0.82)';
+const FLASH_TINT = 'rgba(255, 246, 228, 0.65)';
 /** Rasterizations running at the same time. */
 const MAX_PARALLEL = 4;
 

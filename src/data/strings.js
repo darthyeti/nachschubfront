@@ -52,6 +52,14 @@ export const STRINGS = {
     removed: 'Entfernt',
   },
 
+  gallery: {
+    title: 'Sprite-Galerie',
+    intro: 'Jede schräge Reihe ist eine Doktrin (hinten Flamme, dann Autokanone, Laser, Mörser, Psi, vorn Tesla). In jeder Reihe steigt der Rang von 1 (hinten rechts) bis 5 (vorn links). Gegner unten: hintere Reihe läuft nach links, vordere nach rechts.',
+    flash: 'Treffer-Variante',
+    zoom: (z) => `Zoom ${z}`,
+    stats: (zoom, count) => `Zoom ${zoom} · gerastert: ${count}`,
+  },
+
   debug: {
     fps: 'fps',
     steps: 'Simulationsschritte',

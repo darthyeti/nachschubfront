@@ -69,8 +69,8 @@ export function chevronMarkup(rank) {
   // The hazard stripe occupies y 8-13, so the chevrons sit in the band above it.
   let marks = '';
   for (let i = 0; i < rank; i++) {
-    const x = 7 + i * 7;
-    const points = `${x},6.4 ${x + 2.6},2.2 ${x + 5.2},6.4`;
+    const x = 5 + i * 7.6;
+    const points = `${x},6.6 ${x + 3.2},2.6 ${x + 6.4},6.6`;
     marks +=
       `<polyline points="${points}" fill="none" stroke="#1a1410" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>` +
       `<polyline points="${points}" fill="none" stroke="${fill}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -93,7 +93,7 @@ export function towerParts(doctrine, rank) {
 
 /**
  * A sprite definition: everything the rasterizer needs, plus placement data.
- * `anchor` is the SVG point that sits on the entity's ground position.
+ * The SVG origin sits on the entity's ground position, lifted by `anchorZ` world pixels.
  * @typedef {{key: string, bbox: number[], unitScale: number, anchorZ: number, svg: (pixelScale: number) => string}} SpriteDef
  */
 
