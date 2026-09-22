@@ -1,6 +1,7 @@
 // Game state as plain data. Systems in sim/ mutate it, render/ only reads it.
 
 import { RULES } from '../data/rules.js';
+import { ECONOMY } from '../data/economy.js';
 import { MIN_SUPPLY_LEVEL } from '../data/supply.js';
 import { createRng } from './random.js';
 import { generateMap } from '../sim/mapgen.js';
@@ -29,8 +30,16 @@ export function createGameState(seed) {
     /** Game speed multiplier, one of GAME_SPEEDS. */
     speed: 1,
 
-    /** Supply level (GDD section 7); raised with requisition from M3 on. */
+    /** Supply level (GDD section 7), raised with requisition. */
     supplyLevel: MIN_SUPPLY_LEVEL,
+    /** Requisition: paid for kills and cleared waves (GDD section 10). */
+    requisition: ECONOMY.startRequisition,
+    /** Command points for the special commands (GDD section 11). */
+    commandPoints: ECONOMY.startCommandPoints,
+    /** Rubble piles demolished in this match; every one makes the next dearer. */
+    demolished: 0,
+    /** Enemies killed in the whole match (score, GDD section 12). */
+    kills: 0,
     /** Landing zones marked during planning, at most PODS.perSalvo. */
     zones: [],
     /** Route as it will be once the marked zones are built; null without zones. */
@@ -50,7 +59,7 @@ export function createGameState(seed) {
     /** Health factor of the running wave (data/waves.js). */
     waveScale: 1,
     /** Stats of the running or last wave. */
-    waveStats: { spawned: 0, leaked: 0, killed: 0 },
+    waveStats: { spawned: 0, leaked: 0, killed: 0, bossKills: 0 },
 
     /** Simulation steps executed so far. */
     tick: 0,

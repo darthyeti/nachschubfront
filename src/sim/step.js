@@ -4,7 +4,9 @@ import { RULES } from '../data/rules.js';
 import { setPhase } from '../core/phases.js';
 import { updateSpawns, waveCleared, totalWaves } from './waves.js';
 import { updatePods, salvoDone } from './pods.js';
-import { updateEnemies } from './enemies.js';
+import { updateEnemies, removeDead } from './enemies.js';
+import { updateCombat } from './combat.js';
+import { updateShields, updateFlashes } from './damage.js';
 import { updateStress } from './debug.js';
 
 export function stepSimulation(state, dt) {
@@ -24,6 +26,10 @@ export function stepSimulation(state, dt) {
   } else if (state.phase === 'wave') {
     updateSpawns(state);
     updateEnemies(state, dt);
+    updateCombat(state, dt);
+    updateShields(state, dt);
+    updateFlashes(state, dt);
+    removeDead(state);
     if (state.lives <= 0) {
       setPhase(state, 'defeat');
     } else if (waveCleared(state)) {

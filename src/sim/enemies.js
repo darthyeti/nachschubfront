@@ -27,7 +27,15 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
     maxShield: shield,
     /** Current armour type; the daemon prince changes it while it walks. */
     armor: def.armor,
+    /** Armour under the shield; the same as `armor` for everything else. */
+    armorBelow: def.armorBelow ?? def.armor,
+    shieldRegen: (def.shieldRegen ?? 0) * scale,
+    /** Seconds since the last hit on the shield. */
+    shieldTimer: 0,
     reward: def.reward,
+    /** Seconds of hit flash left, and the flag the death pass looks for. */
+    flash: 0,
+    dead: false,
     /** Distance travelled along the route, in cells. */
     d,
     x: 0,
@@ -38,6 +46,28 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
   positionAt(line, d, e);
   state.enemies.push(e);
   return e;
+}
+
+/**
+ * Removes enemies killed in this step, pays their reward and reports them.
+ * Kept apart from the systems that deal damage, so nothing has to worry about
+ * the list changing while it is being walked.
+ */
+export function removeDead(state) {
+  let write = 0;
+  for (let read = 0; read < state.enemies.length; read++) {
+    const e = state.enemies[read];
+    if (!e.dead) {
+      state.enemies[write++] = e;
+      continue;
+    }
+    state.requisition += e.reward;
+    state.kills += 1;
+    state.waveStats.killed += 1;
+    if (e.boss) state.waveStats.bossKills += 1;
+    state.events.push({ type: 'kill', enemyId: e.id, enemyType: e.type, x: e.x, y: e.y, boss: e.boss });
+  }
+  state.enemies.length = write;
 }
 
 /**
