@@ -1,7 +1,7 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M1b: Grafik-Pipeline (eingeschoben vor M2, in Arbeit)
+M1b: Grafik-Pipeline (umgesetzt, Test durch dich steht aus)
 
 Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
@@ -22,17 +22,30 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - HUD: Welle, Leben, Phase, Routenlänge, Seed, Pause/1x/2x/3x, „Welle starten“, „Neue Partie“, Banner nach Wellen und bei Niederlage oder Sieg.
   - Debug-Werkzeug: Taste `H` oder mit `?debug` der Hindernis-Modus. Abgelehnte Felder blinken rot mit Grund.
   - Tests: 91 Unit-Tests. Dazu `npm run test:input` mit 13 Prüfungen im Browser (Touch-Wischen, Tippen, Pinch, Maus, Tastatur, Welle auf 3x, Niederlage und neue Partie).
+- M1b Grafik-Pipeline (22.09.2026):
+  - Import (`npm run sprites`, `tests/tools/import-sprites.mjs`): Die Konzept-SVGs werden zusammengeführt, jede Figur wird im Browser vermessen. Das Ergebnis liegt als Module in `src/render/sprites/enemies.js` und `towers.js`. Welche Figur zu welchem Typ gehört und in welcher Größe, steht in `src/render/sprites/manifest.js`.
+  - Rasterizer (`src/render/sprites/rasterizer.js`): Jede Figur wird einmal pro Stufe gerastert (0,5 / 1 / 2 / 2,5 mal DPR), mit vorgerenderter heller Treffer-Variante. Fehlende Stufen entstehen im Hintergrund, bis dahin wird die nächste vorhandene Stufe skaliert. Eine Ladeanzeige läuft beim Start.
+  - Gegner aus den Sprites: Schatten, Wippen, Spiegeln je nach Laufrichtung mit Totzone. Flieger schweben über ihrem Schatten.
+  - Stellungen: Sockel, Waffe, ab Veteran Sandsackring, Winkel für den Rang auf der linken Sockelseite (Legende in Gold). Im Spiel kommen sie erst mit M2 vor, zu sehen sind sie in der Sprite-Galerie `tests/sprites.html`.
+  - Debug: Umschalter Sprites/Platzhalter (`G`, Knopf, `?art=placeholder`), Belastungstest mit 200 Gegnern, Rechenzeit pro Frame in der Debug-Anzeige.
+  - Leistung (Playwright, Apple M2 mit GPU): 200 Gegner bei Start- und Maximalzoom konstant 60 fps, reine Rechenzeit 0,6 bis 1,3 ms pro Frame, im Betrieb 0 Rasterungen (`npm run test:perf`).
+  - Tests: 100 Unit-Tests. Dazu 16 Eingabeprüfungen im Browser, jetzt auch Sprite-Galerie und Grafik-Umschalter.
 
 ## Offen
 - M1-Abnahme durch dich: am Desktop und auf dem iPad testen (`?debug` für den Hindernis-Modus).
-- M1b Grafik-Pipeline (`docs/meilensteine/M1b-grafik-pipeline.md`): Konzeptgrafiken aus `reference/konzept/` als Sprites einbauen, Regeln in `docs/ART.md`. In Arbeit.
+- M1b-Abnahme durch dich: Spiel mit `?debug` (Belastungstest, Rechenzeit) und `tests/sprites.html` auf dem iPad prüfen, auf Schärfe bei allen Zoomstufen und flüssigen Lauf.
+- Veteran-Detail für Autokanone und Mörser festlegen (sie haben den Sandsackring schon).
+- Ränge Elite, Held und Legende: Panzerplatten, Banner, Goldkanten und Halo fehlen noch (laut M1b später).
+- Zerlegung der SVGs in bewegliche Teile (Läufe, Waffenköpfe, Beine, Flügel) und Herauslösen der eingebauten Effekte: M4.
 - Danach M2 Kapselmechanik.
 
 ## Bekannte Probleme
 - Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).
 - Ohne Stellungen fällt die Bastion in Welle 2 (12 Krieger plus 24 Schwärmer bei 20 Leben). Das ist bis M2 erwartbar, zum Testen einfach „Neue Partie“.
 - Der Boden-Cache ist auf 12 Megapixel begrenzt (Speichergrenze von Safari). Bei maximalem Zoom auf dem iPad kann der Boden leicht unscharf werden, Objekte und Gegner bleiben scharf.
-- Headless-Chromium mit Software-Rendering schafft nur etwa 30 bis 60 fps. Mit GPU (Apple M2) stabil 60 fps. Auf echtem iPad noch nicht gemessen.
+- Headless-Chromium mit Software-Rendering schafft nur etwa 30 bis 60 fps. Mit GPU (Apple M2) stabil 60 fps, auch mit 200 Sprite-Gegnern. Auf echtem iPad noch nicht gemessen. Safari/WebKit ist nicht automatisch getestet, nur Chromium.
+- Im Belastungstest liegen die 200 Gegner sehr dicht auf der Route (bewusst, als Worst Case).
+- Die Treffer-Variante ist vorbereitet, im Spiel blitzt aber noch nichts auf, weil es bis M3 keinen Schaden gibt.
 - Hinweis: iPadOS ignoriert `display: fullscreen` im Manifest und nutzt `standalone`.
 
 ## Entscheidungen
@@ -41,6 +54,13 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Autokanone und Mörser haben den Sandsackring schon in der Grundform. Beim Veteran zeigen sie in M1b nur den zweiten Winkel, ein eigenes Veteran-Detail wird später festgelegt (z. B. zusätzliche Munitionskisten).
   - Eingebaute Effekte in den SVGs (Flammenstrahl, Mündungsbögen, Rauch, Blitze, Leuchten) bleiben in M1b im Sprite. In M4 werden sie aus den SVGs entfernt und per Code animiert.
   - GDD Abschnitt 1: „Mutanten“ und „Mutantenhorden“ durch „Schwarmbrut“ ersetzt.
+- M1b, Umsetzung:
+  - Kennungen im Code folgen der GDD: `warrior` (Krieger) und `warpseer` (Warp-Seher). Die Symbolnamen im SVG bleiben `e-mutant` und `e-ghost`, die Zuordnung steht im Manifest.
+  - Maßstab: Die Sockel-Oberseite deckt 90 % der Feldbreite ab. Gegner werden einheitlich mit 0,42 Weltpixeln pro SVG-Einheit gezeichnet, so bleiben die Größenverhältnisse der Skizzen erhalten (Krieger etwa 48 px hoch, Brecher knapp feldbreit).
+  - Der Warp-Seher schwebt laut Skizze leicht über dem Boden, die Heiler-Aura reicht unter die Füße. Beides bleibt so.
+  - Winkel liegen im Band oberhalb des Warnstreifens, gezeichnet nach Waffe und Sandsäcken, damit nichts sie verdeckt.
+  - Die Treffer-Variante ist ein warmweißer Überzug mit 65 % Deckkraft. So bleiben Silhouette und Tuschelinien erkennbar.
+  - SVG-Bilder werden über das `load`-Ereignis geladen, nicht über `img.decode()`, weil Safari das bei SVG teils ablehnt. Die SVGs bekommen eine feste Pixelgröße, weil Safari sonst in ihrer Eigengröße rastert und das Bild unscharf wird.
 - Plattform: Desktop und Tablet gleichwertig, Tablet ist der Haupteinsatz.
 - Hosting: GitHub Pages, PWA. Speichern lokal, Speicherschicht für spätere Online-Bestenliste vorbereitet.
 - Kapseln nur in der Planungsphase. Spezialkommandos auch während der Welle.
