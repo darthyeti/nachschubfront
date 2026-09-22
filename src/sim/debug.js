@@ -1,6 +1,7 @@
 // Debug-only simulation tools. Never used by normal play.
 
 import { ENEMIES } from '../data/enemies.js';
+import { WAVES } from '../data/waves.js';
 import { DOCTRINE_IDS } from '../data/doctrines.js';
 import { RECIPES } from '../data/recipes.js';
 import { MAX_RANK } from '../data/ranks.js';
@@ -16,6 +17,38 @@ import { addTower, removeTower } from './towers.js';
 export function setLives(state, lives) {
   state.lives = Math.max(0, Math.round(lives));
   return state.lives;
+}
+
+/**
+ * Jumps to a wave: the next salvo prepares it. Only while planning, because the
+ * running wave would otherwise lose its spawn list.
+ * @returns {boolean} Whether the jump happened.
+ */
+export function setWave(state, wave) {
+  if (state.phase !== 'planning' || state.stress) return false;
+  const total = WAVES.length;
+  state.wave = Math.max(0, Math.min(total - 1, Math.round(wave) - 1));
+  return true;
+}
+
+/** Adds requisition and command points out of thin air. */
+export function grant(state, { requisition = 0, commandPoints = 0 }) {
+  state.requisition = Math.max(0, state.requisition + requisition);
+  state.commandPoints = Math.max(0, state.commandPoints + commandPoints);
+}
+
+/**
+ * Forces the contents of every pod in the coming salvoes, or clears the setting
+ * with null. The seeded draw still happens, so nothing else shifts.
+ */
+export function forcePod(state, content) {
+  state.forcedPod = content;
+}
+
+/** Breakthroughs still count, but the bastion stops losing lives. */
+export function toggleInvulnerable(state) {
+  state.invulnerable = !state.invulnerable;
+  return state.invulnerable;
 }
 
 /** Towers to scatter over the map during the stress test (a long match has about this many). */

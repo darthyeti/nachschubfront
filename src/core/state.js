@@ -77,6 +77,9 @@ export function createGameState(seed) {
     /** Simulated seconds (scaled by game speed). */
     time: 0,
 
+    /** Debug: forced pod contents, and the bastion taking no damage. */
+    forcedPod: null,
+    invulnerable: false,
     /** Debug stress test running (enemies loop, no lives lost). */
     stress: false,
     /** Ids of the towers the stress test added, removed again when it stops. */

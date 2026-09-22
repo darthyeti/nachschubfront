@@ -29,10 +29,12 @@ import { createSelectionPanel } from './ui/selection.js';
 import { createCodex } from './ui/codex.js';
 import { createCommandBar } from './ui/commands.js';
 import { createInfoPanel } from './ui/info.js';
+import { createDebugPanel } from './ui/debug.js';
 import { createLoadingScreen } from './ui/loading.js';
 import { createSpriteCache } from './render/sprites/rasterizer.js';
 import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
-import { startStress, stopStress, setLives } from './sim/debug.js';
+import { startStress, stopStress, setLives, setWave, grant, forcePod, toggleInvulnerable } from './sim/debug.js';
+import { score } from './sim/score.js';
 
 const FLASH_SECONDS = 0.9;
 const STRESS_ENEMIES = 200;
@@ -107,8 +109,17 @@ function flash(cell, ok, label) {
   ui.flashes.push({ cell, ok, label, life: FLASH_SECONDS, max: FLASH_SECONDS });
 }
 
-function showBanner(text) {
-  ui.banner = { text, life: BANNER_SECONDS };
+function showBanner(text, detail = '') {
+  ui.banner = { text, detail, life: BANNER_SECONDS };
+}
+
+/** Wave, kills, lives and the score (GDD section 12). */
+function scoreLine() {
+  const t = STRINGS.score;
+  return (
+    `${t.wave} ${state.wave} · ${state.kills} ${t.kills} · ` +
+    `${state.lives} ${t.lives} · ${score(state)} ${t.total}`
+  );
 }
 
 function applyObstacle(cell) {
@@ -260,6 +271,16 @@ function onAction(action) {
 const codex = createCodex(document.body);
 const hud = createHud(document.getElementById('hud'), { debug, onAction });
 const commandBar = createCommandBar(hud.bottom, { onPick: pickCommand });
+const debugPanel = debug
+  ? createDebugPanel(document.getElementById('hud'), {
+      onAction: (action, value) => {
+        if (action === 'setWave') setWave(state, value.wave);
+        else if (action === 'grant') grant(state, value);
+        else if (action === 'forcePod') forcePod(state, value);
+        else if (action === 'invulnerable') toggleInvulnerable(state);
+      },
+    })
+  : null;
 const infoPanel = createInfoPanel(document.getElementById('hud'), {
   onClose: () => {
     ui.inspect = null;
@@ -315,8 +336,8 @@ function drainEvents() {
   for (const ev of state.events) {
     if (ev.type === 'phase' && ev.phase === 'salvo') ui.podSelected = 0;
     else if (ev.type === 'waveCleared') showBanner(STRINGS.banners.waveCleared(ev.wave, ev.leaked));
-    else if (ev.type === 'phase' && ev.phase === 'defeat') showBanner(STRINGS.banners.defeat(state.wave));
-    else if (ev.type === 'phase' && ev.phase === 'victory') showBanner(STRINGS.banners.victory);
+    else if (ev.type === 'phase' && ev.phase === 'defeat') showBanner(STRINGS.banners.defeat(state.wave), scoreLine());
+    else if (ev.type === 'phase' && ev.phase === 'victory') showBanner(STRINGS.banners.victory, scoreLine());
   }
   state.events.length = 0;
 }
@@ -363,6 +384,7 @@ function frame(now) {
   hud.update(state, ui, { totalWaves: totalWaves(), canStart: canRequestSalvo(state) });
   commandBar.update(state, ui);
   infoPanel.update(state, ui);
+  debugPanel?.update(state);
   selectionPanel.update(state, ui);
 
   fpsFrames++;

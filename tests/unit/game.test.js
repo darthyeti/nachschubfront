@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { createGameState } from '../../src/core/state.js';
 import { canTransition, setPhase } from '../../src/core/phases.js';
 import { stepSimulation } from '../../src/sim/step.js';
-import { requestSalvo, chooseSelection, setSpeed, toggleObstacle, canRequestSalvo } from '../../src/sim/actions.js';
+import {
+  requestSalvo,
+  chooseSelection,
+  setSpeed,
+  toggleObstacle,
+  canRequestSalvo,
+} from '../../src/sim/actions.js';
 import { buildSpawns, totalWaves } from '../../src/sim/waves.js';
 import { spawnEnemy, updateEnemies } from '../../src/sim/enemies.js';
 import { groundPolyline, flyerPolyline, computeRoute } from '../../src/sim/route.js';
@@ -21,6 +27,8 @@ import {
   settleWave,
 } from '../../src/sim/economy.js';
 import { selectionOptions } from '../../src/sim/selection.js';
+import { score } from '../../src/sim/score.js';
+import { setWave, grant, forcePod, toggleInvulnerable } from '../../src/sim/debug.js';
 import { isBlocked } from '../../src/sim/grid.js';
 import { SIM_STEP } from '../../src/data/settings.js';
 import { playSalvo } from './helpers.js';
@@ -367,4 +375,40 @@ test('a boss and a clean wave pay command points', () => {
   assert.equal(payout.commandPoints, ECONOMY.pointsPerBoss + ECONOMY.pointsPerCleanWave);
   assert.equal(payout.requisition, ECONOMY.waveBonusBase + 10);
   assert.equal(state.commandPoints, payout.commandPoints);
+});
+
+test('the score counts waves, kills and the lives that are left', () => {
+  const state = createGameState(SEED);
+  state.wave = 33;
+  state.kills = 1240;
+  state.lives = 7;
+  assert.equal(score(state), 33 * 1000 + 1240 + 7 * 200);
+  assert.equal(score(createGameState(SEED)), RULES.startLives * 200, 'a fresh match is worth its lives');
+});
+
+test('the debug tools jump waves, grant money and spare the bastion', () => {
+  const state = createGameState(SEED);
+  assert.ok(setWave(state, 20));
+  assert.equal(state.wave, 19, 'the next salvo prepares wave 20');
+  playSalvo(state);
+  assert.equal(state.wave, 20);
+  assert.equal(setWave(state, 5), false, 'not while a wave is running');
+
+  grant(state, { requisition: 500, commandPoints: 5 });
+  assert.equal(state.requisition, 500);
+  assert.equal(state.commandPoints, 5);
+
+  assert.equal(toggleInvulnerable(state), true);
+  const lives = state.lives;
+  runUntil(state, (s) => s.waveStats.leaked > 0, 600);
+  assert.equal(state.lives, lives, 'breakthroughs are counted but cost nothing');
+  assert.ok(state.waveStats.leaked > 0);
+});
+
+test('forced pod contents override the draw', () => {
+  const state = createGameState(SEED);
+  forcePod(state, { doctrine: 'tesla', rank: 4 });
+  requestSalvo(state);
+  assert.ok(state.pods.every((p) => p.doctrine === 'tesla' && p.rank === 4));
+  forcePod(state, null);
 });

@@ -105,7 +105,8 @@ export function updateEnemies(state, dt) {
     if (e.d >= line.length) {
       const cost = e.boss ? RULES.bossLeakCost : RULES.leakCost;
       lost += cost;
-      state.lives = Math.max(0, state.lives - cost);
+      // Debug invulnerability still counts the breakthrough, it only spares the bastion.
+      if (!state.invulnerable) state.lives = Math.max(0, state.lives - cost);
       state.waveStats.leaked += 1;
       state.events.push({ type: 'leak', enemyId: e.id, cost, x: e.x, y: e.y });
       continue;

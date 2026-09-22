@@ -234,6 +234,21 @@ export const STRINGS = {
     stats: (zoom, count) => `Zoom ${zoom} · gerastert: ${count}`,
   },
 
+  debugPanel: {
+    title: 'Debug',
+    wave: 'Welle',
+    jump: 'Springen',
+    grant: 'Geben',
+    requisition: '+500 R',
+    commandPoints: '+5 KP',
+    pod: 'Kapsel',
+    podFree: 'zufällig',
+    invulnerable: 'Unverwundbar',
+    waveStats: (wave, spawned, killed, leaked) =>
+      `Welle ${wave}: ${spawned} Gegner, ${killed} tot, ${leaked} durch`,
+    towerDamage: (name, damage, share) => `${name}: ${damage} (${share} %)`,
+  },
+
   debug: {
     fps: 'fps',
     frameTime: (ms) => `Rechenzeit ${ms} ms`,

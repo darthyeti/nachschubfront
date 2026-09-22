@@ -46,7 +46,11 @@ export function createPods(state) {
   // Priorisierter Nachschub raises every rank of this salvo by one. The draw
   // itself is untouched, so the seed still decides what is in the pods.
   const bonus = takeSupplyBonus(state);
-  const raise = (pod) => ({ ...pod, rank: Math.min(MAX_RANK, pod.rank + bonus) });
+  const raise = (pod) => {
+    // Debug: forced contents replace the draw, which keeps the stream in step.
+    const rolled = state.forcedPod ? { ...pod, ...state.forcedPod } : pod;
+    return { ...rolled, rank: Math.min(MAX_RANK, rolled.rank + bonus) };
+  };
   state.pods = state.zones.map((zone, i) => ({
     index: i,
     x: zone.x,

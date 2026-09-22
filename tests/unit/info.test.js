@@ -10,6 +10,7 @@ import { damageEnemy } from '../../src/sim/damage.js';
 import { applyBurn, applySlow } from '../../src/sim/effects.js';
 import { createPolyline } from '../../src/sim/route.js';
 import { describeCell, enemyOn, damagePerSecond } from '../../src/ui/info.js';
+import { topTowers } from '../../src/ui/debug.js';
 import { towerStats } from '../../src/sim/towers.js';
 import { DOCTRINES } from '../../src/data/doctrines.js';
 import { STRINGS } from '../../src/data/strings.js';
@@ -97,4 +98,19 @@ test('enemies come before towers, towers before the ground', () => {
   assert.equal(describeCell(state, { x: 7, y: 10 }).kind, 'tower');
   spawnEnemy(state, 'swarmer', { d: 7 });
   assert.equal(describeCell(state, { x: 7, y: 10 }).kind, 'enemy');
+});
+
+test('the wave statistics rank the towers by the damage they did', () => {
+  const state = world();
+  const weak = addTower(state, { x: 3, y: 3, doctrine: 'psi', rank: 1 });
+  const strong = addTower(state, { x: 4, y: 3, doctrine: 'laser', rank: 1 });
+  addTower(state, { x: 5, y: 3, doctrine: 'tesla', rank: 1 });
+  weak.damage = 100;
+  strong.damage = 300;
+  const top = topTowers(state);
+  assert.equal(top.length, 2, 'towers that did nothing are left out');
+  assert.equal(top[0].tower.id, strong.id);
+  assert.equal(top[0].share, 0.75);
+  assert.equal(top[0].damage, 300);
+  assert.match(top[0].name, /Laser/);
 });

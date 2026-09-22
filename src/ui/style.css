@@ -625,3 +625,81 @@ button[hidden] {
   padding: 4px 10px;
   font-size: 15px;
 }
+
+/* Debug panel (?debug only): controls and wave statistics, right below the fps line. */
+.debug-panel {
+  position: absolute;
+  right: calc(16px + var(--safe-right));
+  top: calc(92px + var(--safe-top));
+  width: 300px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  border-radius: 4px;
+  padding: 7px 8px;
+  font-size: 14px;
+}
+
+.debug-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.debug-row button {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 3px 8px;
+  font-size: 14px;
+}
+
+.debug-label {
+  color: var(--muted);
+  min-width: 52px;
+}
+
+.debug-input {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  min-height: 32px;
+  padding: 2px 6px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: var(--btn);
+  color: var(--ink);
+  width: 84px;
+}
+
+.debug-stats {
+  border-top: 2px solid var(--ink);
+  padding-top: 4px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.debug-stats-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Second line under a banner: the score after the last wave. */
+.hud-banner-detail {
+  font-family: var(--font-body);
+  font-size: 19px;
+  letter-spacing: 0;
+  color: var(--text);
+  -webkit-text-stroke: 0;
+  text-shadow: 2px 2px 0 var(--ink);
+  margin-top: 6px;
+}
+
+.hud-banner-detail:empty {
+  display: none;
+}

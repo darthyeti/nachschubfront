@@ -87,6 +87,8 @@ export function createHud(root, { debug, onAction }) {
   const banner = el('div', 'hud-banner');
   banner.setAttribute('role', 'status');
   banner.setAttribute('aria-live', 'polite');
+  const bannerDetail = el('div', 'hud-banner-detail');
+  banner.append(bannerDetail);
 
   let debugEl = null;
   if (debug) {
@@ -160,9 +162,11 @@ export function createHud(root, { debug, onAction }) {
         });
       }
       set('banner', ui.banner?.text ?? '', (v) => {
-        banner.textContent = v;
+        banner.firstChild?.remove();
+        banner.prepend(document.createTextNode(v));
         banner.classList.toggle('show', v !== '');
       });
+      set('bannerDetail', ui.banner?.detail ?? '', (v) => (bannerDetail.textContent = v));
     },
 
     updateDebug({ fps, frameMs, enemies, view }) {
