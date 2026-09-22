@@ -122,11 +122,11 @@ export function createHud(root, { debug, onAction }) {
       });
     },
 
-    updateDebug({ fps, tick, view }) {
+    updateDebug({ fps, frameMs, enemies, view }) {
       if (!debugEl) return;
       const t = STRINGS.debug;
       debugEl.textContent =
-        `${fps} ${t.fps} · ${t.steps} ${tick} · ` +
+        `${fps} ${t.fps} · ${t.frameTime(frameMs.toFixed(1))} · ${t.enemies(enemies)} · ` +
         `${t.canvas} ${view.width}×${view.height} @${view.dpr}x`;
     },
   };

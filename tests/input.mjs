@@ -1,6 +1,7 @@
 // End-to-end input checks in a real browser (Playwright, Chromium).
 // Tablet: touch swipe, tap, pinch via CDP touch events. Desktop: wheel, right drag,
-// click, H key. Also plays a wave at 3x. Fails on any assertion or console error.
+// click, H and G keys. Also plays a wave at 3x and checks the sprite gallery.
+// Fails on any assertion or console error.
 //
 // Usage: npm run test:input
 
@@ -40,7 +41,7 @@ async function openGame(options) {
   const page = await context.newPage();
   watchProblems(page, options.hasTouch ? 'tablet' : 'desktop', problems);
   await page.goto(`${server.url}?seed=${SEED}&debug`, { waitUntil: 'networkidle' });
-  await page.waitForFunction(() => window.__nachschub);
+  await page.waitForSelector('body[data-ready]');
   await frames(page, 5);
   return { context, page };
 }
@@ -233,7 +234,50 @@ try {
       assert.equal((await game(page)).speed, 1);
     });
 
+    await check('G switches between sprites and placeholder art', async () => {
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).art, 'sprites');
+      await page.keyboard.press('g');
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).art, 'placeholder');
+      await page.keyboard.press('g');
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).art, 'sprites');
+    });
+
     await page.screenshot({ path: join(OUT, 'desktop-input.png') });
+    await context.close();
+  }
+
+  // ---------- Sprite gallery ----------
+  console.log('sprite gallery (tablet)');
+  {
+    const context = await browser.newContext({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+    const page = await context.newPage();
+    watchProblems(page, 'gallery', problems);
+    await page.goto(`${server.url}tests/sprites.html`, { waitUntil: 'networkidle' });
+
+    await check('gallery rasterizes all 30 towers and 7 enemies without failures', async () => {
+      await page.waitForSelector('body[data-ready]', { timeout: 20000 });
+      const stats = await page.evaluate(() => window.__gallery.stats());
+      assert.equal(stats.failed, 0);
+      assert.ok(stats.rasterized >= 37, `rasterized ${stats.rasterized}`);
+    });
+
+    await check('gallery zoom presets reach every raster level', async () => {
+      for (const z of ['0.5', '1', '2', '2.5']) {
+        await page.getByRole('button', { name: `Zoom ${z}`, exact: true }).tap();
+        await frames(page, 3);
+        const cam = await page.evaluate(() => window.__gallery.camera());
+        assert.ok(Math.abs(cam.zoom - Number(z)) < 1e-6, `zoom ${cam.zoom}`);
+      }
+      await page.waitForTimeout(800);
+      assert.equal((await page.evaluate(() => window.__gallery.stats())).failed, 0);
+    });
+
+    await page.screenshot({ path: join(OUT, 'gallery.png') });
     await context.close();
   }
 } finally {

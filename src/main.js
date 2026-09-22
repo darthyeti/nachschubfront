@@ -179,8 +179,11 @@ function drainEvents() {
 let last = performance.now();
 let fpsFrames = 0;
 let fpsTime = 0;
+/** Summed JS time of the frame callbacks since the last debug update (ms). */
+let workTime = 0;
 
 function frame(now) {
+  const workStart = performance.now();
   const dt = (now - last) / 1000;
   last = now;
   const realDt = Math.min(dt, MAX_FRAME_TIME);
@@ -209,10 +212,14 @@ function frame(now) {
 
   fpsFrames++;
   fpsTime += dt;
+  workTime += performance.now() - workStart;
   if (fpsTime >= 0.5) {
-    hud.updateDebug({ fps: Math.round(fpsFrames / fpsTime), tick: state.tick, view });
+    const frameMs = workTime / fpsFrames;
+    ui.frameMs = frameMs;
+    hud.updateDebug({ fps: Math.round(fpsFrames / fpsTime), frameMs, enemies: state.enemies.length, view });
     fpsFrames = 0;
     fpsTime = 0;
+    workTime = 0;
   }
   // Rasterize the enemy sprites for the start zoom before the first wave can begin.
 const loading = createLoadingScreen(document.body);
@@ -255,7 +262,7 @@ if (debug) {
       stress: state.stress,
     }),
     sprites: () => ({ ...sprites.stats }),
-    ui: () => ({ art: ui.art }),
+    ui: () => ({ art: ui.art, frameMs: ui.frameMs }),
   };
 }
 

@@ -62,7 +62,8 @@ export const STRINGS = {
 
   debug: {
     fps: 'fps',
-    steps: 'Simulationsschritte',
+    frameTime: (ms) => `Rechenzeit ${ms} ms`,
+    enemies: (n) => `${n} Gegner`,
     canvas: 'Canvas',
   },
 };

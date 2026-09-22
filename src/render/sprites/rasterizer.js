@@ -33,9 +33,14 @@ export function createSpriteCache() {
     const height = Math.max(1, Math.ceil(h * pixelScale));
     const url = URL.createObjectURL(new Blob([def.svg(pixelScale)], { type: 'image/svg+xml' }));
     try {
-      const img = new Image();
-      img.src = url;
-      await img.decode();
+      // Wait for the load event rather than img.decode(): Safari has rejected decode()
+      // for SVG images in some versions, while load works everywhere.
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('SVG image failed to load'));
+        image.src = url;
+      });
       const canvas = makeCanvas(width, height);
       canvas.getContext('2d').drawImage(img, 0, 0, width, height);
       const flash = makeCanvas(width, height);

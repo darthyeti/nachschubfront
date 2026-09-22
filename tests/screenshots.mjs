@@ -43,6 +43,7 @@ try {
 
     await page.goto(base + query, { waitUntil: 'networkidle' });
     await page.evaluate(() => document.fonts.ready);
+    await page.waitForSelector('body[data-ready]');
     // Let a few frames run so the loop and HUD have settled.
     await page.waitForTimeout(700);
 
