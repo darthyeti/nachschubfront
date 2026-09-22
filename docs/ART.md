@@ -22,6 +22,10 @@ Verbindliche Gestaltungsregeln für alle Figuren. Die Konzeptskizzen liegen als 
 | Psi | Gotischer Schrein, schwebender Kristall mit Ringen | #b784ff |
 | Tesla | Kupferspule mit Kugel, Blitze | #5fd4ff |
 
+### Spezialstellungen
+
+Die sechs Rezept-Stellungen (GDD Abschnitt 8) haben noch keine Konzeptgrafik. Bis dahin (M4) zeichnet das Spiel sie als Sprite der erstgenannten Zutat im Legendenrang, dazu ein goldener Bodenring und ein Halo in der Leitfarbe. Sie brauchen jeweils eine eigene Silhouette, die sich auf der kleinsten Zoomstufe von den sechs Grundformen unterscheidet.
+
 ### Ränge
 
 Jeder Rang ergänzt ein sichtbares Detail, kumulativ:

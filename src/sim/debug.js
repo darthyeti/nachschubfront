@@ -1,17 +1,51 @@
 // Debug-only simulation tools. Never used by normal play.
 
 import { ENEMIES } from '../data/enemies.js';
-import { groundPolyline, flyerPolyline, positionAt } from './route.js';
+import { DOCTRINE_IDS } from '../data/doctrines.js';
+import { RECIPES } from '../data/recipes.js';
+import { MAX_RANK } from '../data/ranks.js';
+import { groundPolyline, flyerPolyline, positionAt, computeRoute } from './route.js';
+import { isBlocked, setBlocked } from './grid.js';
 import { spawnEnemy } from './enemies.js';
+import { addTower, removeTower } from './towers.js';
+
+/** Towers to scatter over the map during the stress test (a long match has about this many). */
+const STRESS_TOWERS = 40;
+
+/** Fills the map with towers of every doctrine and rank, spread over free cells. */
+function addStressTowers(state) {
+  const { map } = state;
+  const doctrines = DOCTRINE_IDS;
+  state.stressTowers = [];
+  let placed = 0;
+  // Fixed stride over the grid, so the load is the same on every run.
+  for (let i = 0; placed < STRESS_TOWERS && i < map.size * map.size; i += 7) {
+    const x = i % map.size;
+    const y = Math.floor(i / map.size);
+    if (map.protected[y * map.size + x] || isBlocked(map.grid, x, y)) continue;
+    const special = placed % 9 === 0 ? RECIPES[placed % RECIPES.length].id : null;
+    const tower = addTower(state, {
+      x,
+      y,
+      doctrine: doctrines[placed % doctrines.length],
+      rank: special ? null : (placed % MAX_RANK) + 1,
+      special,
+    });
+    state.stressTowers.push(tower.id);
+    placed++;
+  }
+}
 
 /**
  * Stress test: `count` mixed enemies loop along the current route forever without
- * costing lives, so rendering can be measured. Only during planning.
+ * costing lives, so rendering can be measured. Towers are added as well, because
+ * they are part of the load in a real match. Only during planning.
  */
 export function startStress(state, count) {
   if (state.phase !== 'planning' || !state.route || state.stress) return false;
   state.stress = true;
   state.waveRoutes = { ground: groundPolyline(state.route), flyer: flyerPolyline(state.map) };
+  addStressTowers(state);
   const types = Object.keys(ENEMIES);
   for (let i = 0; i < count; i++) {
     const e = spawnEnemy(state, types[i % types.length]);
@@ -28,6 +62,14 @@ export function stopStress(state) {
   state.stress = false;
   state.enemies.length = 0;
   state.waveRoutes = null;
+  // Only the towers this test added; towers the player built stay.
+  for (const id of state.stressTowers ?? []) {
+    const tower = removeTower(state, id);
+    if (tower) setBlocked(state.map.grid, tower.x, tower.y, false);
+  }
+  state.stressTowers = [];
+  state.route = computeRoute(state.map);
+  state.mapVersion += 1;
 }
 
 /** Moves stress-test enemies and wraps them back to the rift at the end. */

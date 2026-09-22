@@ -10,6 +10,9 @@ import { groundPolyline, flyerPolyline, computeRoute } from '../../src/sim/route
 import { ENEMIES } from '../../src/data/enemies.js';
 import { RULES } from '../../src/data/rules.js';
 import { PODS } from '../../src/data/pods.js';
+import { MAX_SUPPLY_LEVEL } from '../../src/data/supply.js';
+import { selectionOptions } from '../../src/sim/selection.js';
+import { isBlocked } from '../../src/sim/grid.js';
 import { SIM_STEP } from '../../src/data/settings.js';
 import { playSalvo } from './helpers.js';
 
@@ -230,4 +233,69 @@ test('speed only accepts known values', () => {
   assert.equal(state.speed, 3);
   assert.equal(setSpeed(state, 7), false);
   assert.equal(state.speed, 3);
+});
+
+test('every salvo of a match leaves one tower, four heaps of rubble and an open route', () => {
+  const state = createGameState('MATCH');
+  state.lives = 100000;
+  // Debug supply level, as in the browser, so merges and recipes can come up.
+  state.supplyLevel = MAX_SUPPLY_LEVEL;
+  let specials = 0;
+
+  for (let round = 0; round < totalWaves(); round++) {
+    const towers = state.towers.length;
+    const rubble = state.map.obstacles.filter((o) => o.kind === 'rubble').length;
+
+    assert.ok(requestSalvo(state), `round ${round + 1}`);
+    assert.equal(state.pods.length, PODS.perSalvo);
+    const cells = state.pods.map(({ x, y }) => ({ x, y }));
+    runUntil(state, (s) => s.phase === 'selection', 30);
+
+    // Prefer the richest option the salvo offers.
+    const options = selectionOptions(state);
+    const recipe = options.recipes[0];
+    const merge = [...options.merges].sort((a, b) => b.size - a.size)[0];
+    const choice = recipe
+      ? { type: 'recipe', recipeId: recipe.recipeId, anchor: recipe.anchors[0] }
+      : merge
+        ? { type: 'merge', size: merge.size, anchor: merge.anchors[0] }
+        : { type: 'keep', anchor: 0 };
+    const consumed = recipe ? recipe.towerIds.length : 0;
+    assert.ok(chooseSelection(state, choice).ok, `round ${round + 1}: ${choice.type}`);
+    if (recipe) specials += 1;
+
+    assert.equal(state.towers.length, towers + 1 - consumed, 'exactly one new tower');
+    assert.equal(
+      state.map.obstacles.filter((o) => o.kind === 'rubble').length,
+      rubble + PODS.perSalvo - 1 + consumed,
+      'four heaps of rubble plus the consumed towers',
+    );
+    for (const c of cells) assert.ok(isBlocked(state.map.grid, c.x, c.y), `${c.x},${c.y} stays blocked`);
+    assert.ok(state.route, `round ${round + 1}: route open after the salvo`);
+    assert.ok(computeRoute(state.map), 'every leg still has a path');
+
+    runUntil(state, (s) => s.phase === 'planning' || s.phase === 'victory');
+  }
+  assert.equal(state.phase, 'victory');
+  assert.ok(specials > 0, 'at least one recipe came up at the top supply level');
+});
+
+test('same seed and the same decisions give the same pods', () => {
+  const run = () => {
+    const state = createGameState('REPLAY');
+    state.lives = 100000;
+    state.supplyLevel = 5;
+    const seen = [];
+    for (let round = 0; round < 3; round++) {
+      requestSalvo(state);
+      seen.push(state.pods.map((p) => `${p.x},${p.y} ${p.doctrine} ${p.rank}`).join(' | '));
+      runUntil(state, (s) => s.phase === 'selection', 30);
+      chooseSelection(state, { type: 'keep', anchor: round % PODS.perSalvo });
+      runUntil(state, (s) => s.phase === 'planning');
+    }
+    return seen;
+  };
+  const first = run();
+  assert.deepEqual(run(), first);
+  assert.equal(new Set(first).size, first.length, 'each salvo differs from the others');
 });

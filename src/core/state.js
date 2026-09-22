@@ -55,6 +55,8 @@ export function createGameState(seed) {
 
     /** Debug stress test running (enemies loop, no lives lost). */
     stress: false,
+    /** Ids of the towers the stress test added, removed again when it stops. */
+    stressTowers: [],
 
     /** Events for UI and effects, drained once per frame by main.js. */
     events: [],

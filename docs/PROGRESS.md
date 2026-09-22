@@ -1,7 +1,7 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M2: Kapselmechanik (M1 und M1b abgenommen am 22.09.2026)
+M2 ist umgesetzt und wartet auf die Abnahme (M1 und M1b abgenommen am 22.09.2026).
 
 Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
@@ -15,7 +15,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Kartengenerator (`src/sim/mapgen.js`, Werte in `src/data/map.js`): 24 × 24, Riss und Bastion an gegenüberliegenden Kanten, ein Signalfeuer pro Viertel, 12 bis 20 Ruinen, Krater und Mauerreste, geschützte Ringe. Über 500 Seeds geprüft.
   - Kamera (`src/render/camera.js`): Startansicht mit der ganzen Karte, Felder mindestens 40 px breit. Zoom um den Zeiger oder die Fingermitte, Begrenzung auf die Karte.
   - Eingabe (`src/input/`): Gestenerkennung ohne DOM mit Unit-Tests. Tippen und Ziehen werden über 8 px Schwelle unterschieden, dazu langes Drücken (für M3 vorbereitet), Pinch, Mausrad und Trackpad-Pinch, Pfeiltasten und Tastenkürzel.
-  - Phasenautomat (`src/core/phases.js`): Planung → Salve → Auswahl → Welle → Auswertung → Planung, dazu Niederlage und Sieg. Salve und Auswahl laufen bis M2 ohne Inhalt durch.
+  - Phasenautomat (`src/core/phases.js`): Planung → Salve → Auswahl → Welle → Auswertung → Planung, dazu Niederlage und Sieg. Salve und Auswahl liefen in M1 noch ohne Inhalt durch.
   - Gegner laufen die bei Wellenstart festgeschriebene Route. Durchbrüche kosten Leben, bei 0 Leben ist die Partie verloren.
   - Fünf Testwellen in `src/data/waves.js`, Gegnertabelle aus dem GDD in `src/data/enemies.js`, Regeln in `src/data/rules.js`.
   - Platzhaltergrafik im Stil des Stiltests: Boden im Offscreen-Cache, Riss, Signalfeuer, Bastion, Ruinen, Krater, Mauern, Trümmer und vier Gegnerformen. Die Routenvorschau ist eine laufende gestrichelte Linie, bei `prefers-reduced-motion` steht sie still.
@@ -33,7 +33,24 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - WebKit (Safari-Engine) über Playwright: Alle 17 Eingabeprüfungen bestehen, alle Sprites werden fehlerfrei gerastert und sind bei maximalem Zoom scharf. Die Leistungsmessung mit 200 Gegnern ergibt etwa 17 ms pro Frame (WebKit rundet auf ganze Millisekunden), die Rechenzeit liegt bei 1,4 ms. `npm run test:webkit` führt alles aus.
   - Behobener iPad-Fehler, gefunden mit WebKit: HUD-Knöpfe reagierten nicht auf Touch. Ursache war `preventDefault()` auf `pointerdown` der Knöpfe; WebKit löst danach kein `click` aus. Jetzt geben die Knöpfe nach dem Klick den Fokus ab, damit die Leertaste weiter pausiert.
 
+- M2 Kapselmechanik (22.09.2026, Abnahme offen):
+  - Datentabellen aus dem GDD: Doktrinen mit Kampfwerten und Leitfarben (`src/data/doctrines.js`), Ränge (`ranks.js`), Nachschubstufen (`supply.js`), Rezepte (`recipes.js`), Kapselzeiten (`pods.js`). Das Sprite-Manifest bezieht Farben und Rangzahl von dort, damit die Tabellen nicht auseinanderlaufen.
+  - Landezonen (`src/sim/zones.js`): bis zu fünf Markierungen, Tippen setzt und löscht. Geprüft wird immer die ganze Menge, nicht das einzelne Feld, darum kann eine Salve den Weg nie schließen. Fehlende Zonen ergänzt „Salve anfordern“ aus einer geseedeten Mischung aller Felder, bevorzugt mit zwei Feldern Abstand.
+  - Kapseln (`src/sim/pods.js`): Inhalt aus Doktrin und Rang nach Nachschubstufe. Der Zufallsstrom hängt nur an Seed und Wellennummer (`fork('pods').fork(welle)`), also ändern weder Markierungen noch frühere Entscheidungen den Inhalt. Die Kapseln schlagen gestaffelt ein und blockieren ihr Feld beim Aufschlag.
+  - Auswahl (`src/sim/selection.js`): Behalten, Verschmelzen von zwei oder vier gleichen, Rezept erfüllen. Das Ergebnis steht auf dem Feld der gewählten Kapsel, alle übrigen Kapseln werden zu Trümmern. Jede Salve hinterlässt damit genau eine Stellung und vier Trümmer.
+  - Auswahldialog (`src/ui/selection.js`): fünf Kapselkarten mit Leitfarbe, Name, Rang und einem Abzeichen, wenn mehr als Behalten möglich ist. Darunter die Aktionen für die gewählte Kapsel. Auswahl per Karte oder durch Antippen der Kapsel auf der Karte, erkennbar am goldenen Ring.
+  - Nachschlagewerk (`src/ui/codex.js`): alle sechs Rezepte mit Zutaten, Mindestrang und Wirkung. Knopf „Rezepte“, Taste `R`, schließt mit Escape oder Tippen daneben.
+  - Kapselgrafik nach Stiltest (`src/render/pods.js`): Zielmarkierung, Sturz mit Glutschweif und Bremsflamme, Aufschlag, öffnende Luken, Hologramm mit Leitfarbe und Rang-Winkeln.
+  - HUD: „Salve anfordern“ statt „Welle starten“, Zonenzähler, Nachschubstufe. Die untere Leiste ist jetzt eine Spalte, damit der Auswahldialog sie nie überdeckt.
+  - Debug: Nachschubstufe umschalten (`N` oder `?supply=`), Belastungstest zeichnet zusätzlich 40 Stellungen aller Doktrinen und Ränge.
+  - Leistung (Playwright, Apple M2 mit GPU): 200 Gegner und 40 Stellungen bei Start- und Maximalzoom konstant 60 fps, Rechenzeit 1,3 bis 1,6 ms pro Frame, 0 Rasterungen im Betrieb. WebKit: 17 ms pro Frame, Rechenzeit 2,0 bis 2,3 ms.
+  - Tests: 136 Unit-Tests (dazu Tabellen, Zonen, Kapselinhalte, Verschmelzen, Rezepte, eine ganze Partie mit Prüfung der Invarianten und der Wiederholbarkeit) und 21 Eingabeprüfungen im Browser, in Chromium und WebKit.
+  - Behobener Fehler aus M1b: In `main.js` lag ein doppelter Block in `frame()`, der pro Bild einen Ladebildschirm anlegte und `sprites.preload()` aufrief. Gemessen nach zwei Sekunden: vorher 18 Überlagerungen über dem Canvas, jetzt 0.
+
 ## Offen
+- Wirtschaft (Requisition, Nachschubstufe kaufen, Trümmer abreißen, Kommandopunkte) gehört zu M3. Ohne Debug-Schalter bleibt die Nachschubstufe auf 1, es kommen also nur Rekruten. Verschmelzen von zwei Rekruten ist dann der einzige Weg zum Veteran, Rezepte brauchen entsprechend mehrere Runden.
+- Spezialstellungen haben keine eigene Grafik. Bis M4 nutzen sie das Sprite der ersten Zutat im Legendenrang mit goldenem Ring und Halo. Eigene Silhouetten stehen in M4 im Umfang.
+- Die Kapselsequenz dauert bei 1x etwa 5,4 Sekunden (Werte aus dem Stiltest). Beim Neuaufbau in M4 sollte das noch einmal geprüft werden.
 - Veteran-Detail für Autokanone und Mörser festlegen (sie haben den Sandsackring schon).
 - Ränge Elite, Held und Legende: Panzerplatten, Banner, Goldkanten und Halo fehlen noch (laut M1b später).
 - Zerlegung der SVGs in bewegliche Teile (Läufe, Waffenköpfe, Beine, Flügel) und Herauslösen der eingebauten Effekte: M4.
@@ -41,6 +58,8 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - M2 Kapselmechanik: Plan vorlegen und Freigabe abwarten.
 
 ## Bekannte Probleme
+- Der Auswahldialog verdeckt den unteren Teil der Karte. Kapseln dahinter lassen sich nicht antippen, über die Karten im Dialog aber trotzdem wählen.
+- Das Ergänzen fehlender Landezonen prüft im schlimmsten Fall alle freien Felder (etwa 75 ms in einem sehr engen Labyrinth). Das passiert einmal pro Salve, fällt also nur als kurzer Hänger auf.
 - Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).
 - Ohne Stellungen fällt die Bastion in Welle 2 (12 Krieger plus 24 Schwärmer bei 20 Leben). Das ist bis M2 erwartbar, zum Testen einfach „Neue Partie“.
 - Der Boden-Cache ist auf 12 Megapixel begrenzt (Speichergrenze von Safari). Bei maximalem Zoom auf dem iPad kann der Boden leicht unscharf werden, Objekte und Gegner bleiben scharf.
@@ -50,6 +69,19 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - Hinweis: iPadOS ignoriert `display: fullscreen` im Manifest und nutzt `standalone`.
 
 ## Entscheidungen
+- M2-Plan freigegeben (22.09.2026):
+  - Nachschubstufe bleibt ohne Wirtschaft auf 1, dazu ein Debug-Schalter (`N`, `?supply=`), damit Verschmelzen und Rezepte prüfbar sind.
+  - Spezialstellungen bekommen in M2 nur eine Platzhaltergrafik, eigene Silhouetten kommen in M4.
+  - Verschmelzen endet bei Legende: zwei Legenden lassen sich nicht verschmelzen, für die Viererverschmelzung ist Elite der höchste Ausgangsrang. Das steht so nicht im GDD, folgt aber aus der Rangtabelle.
+  - Erfüllen mehrere stehende Stellungen eine Zutat, wird die mit dem niedrigsten ausreichenden Rang verbraucht, bei Gleichstand die zuerst gebaute.
+  - Trümmer abreißen gehört zur Wirtschaft und damit zu M3.
+- M2, Umsetzung:
+  - Kapseln werden Kapseln vorgezogen: Deckt eine Zutat sowohl eine Kapsel der Salve als auch eine stehende Stellung ab, wird die Kapsel genommen. Nicht genutzte Kapseln werden ohnehin zu Trümmern, eine verbrauchte Stellung ist ein echter Verlust.
+  - Welche Kapseln beim Verschmelzen als „benutzt“ gelten, ist gleichgültig: Alles außer der gewählten Kapsel wird zu Trümmern. Entscheidend ist allein, auf welchem Feld das Ergebnis steht.
+  - Der Auswahldialog braucht zwei Tipper (Kapsel, dann Aktion). Ein Tipp auf die Kapsel auf der Karte wählt sie aus, löst aber nichts aus, damit nichts versehentlich festgelegt wird.
+  - Kapselfelder werden beim Aufschlag blockiert, nicht schon beim Anfordern. So schließt sich das Labyrinth sichtbar, und die Route wird nach jedem Einschlag neu berechnet.
+  - Der Zufall der Salve wird in zwei Zweige geteilt: `fork('zones')` für das Ergänzen der Zonen, `fork('contents')` für die Inhalte. Damit hängt der Kapselinhalt nicht davon ab, wie viele Zonen der Spieler markiert hat.
+  - Der Belastungstest stellt zusätzlich 40 Stellungen auf und räumt sie beim Beenden wieder weg, damit die Messung die Last einer späten Partie abbildet.
 - Grafik-Konzept (22.09.2026): Gegner sind eine insektoide Brut (`docs/ART.md`). Umbenennung in der GDD: Mutant heißt jetzt Krieger, Warp-Geist heißt jetzt Warp-Seher. M1b wird als Grafik-Pipeline vor M2 eingeschoben.
 - M1b-Plan freigegeben (22.09.2026):
   - Autokanone und Mörser haben den Sandsackring schon in der Grundform. Beim Veteran zeigen sie in M1b nur den zweiten Winkel, ein eigenes Veteran-Detail wird später festgelegt (z. B. zusätzliche Munitionskisten).
