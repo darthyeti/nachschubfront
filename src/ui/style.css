@@ -1,0 +1,116 @@
+@font-face {
+  font-family: 'Pirata One';
+  src: url('../../assets/fonts/pirata-one-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../../assets/fonts/barlow-condensed-latin-500-normal.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../../assets/fonts/barlow-condensed-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Bangers';
+  src: url('../../assets/fonts/bangers-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* Palette from reference/stiltest.html. The game is always dark. */
+:root {
+  --bg: #110c0a;
+  --panel: rgba(24, 18, 14, 0.86);
+  --text: #eadfc4;
+  --muted: #b5a385;
+  --btn: #e8c872;
+  --btn-alt: #cbbd9f;
+  --accent: #c9462a;
+  --ink: #000;
+  --font-body: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+  --font-title: 'Pirata One', Georgia, 'Times New Roman', serif;
+  --font-comic: Bangers, Impact, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 500;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+#game {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+/* HUD layer: transparent to input except for its interactive children. */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  padding: calc(12px + var(--safe-top)) calc(16px + var(--safe-right))
+    calc(12px + var(--safe-bottom)) calc(16px + var(--safe-left));
+}
+
+#hud .interactive {
+  pointer-events: auto;
+}
+
+.hud-title h1 {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: clamp(28px, 4.2vw, 44px);
+  line-height: 1;
+  margin: 0;
+  text-shadow: 3px 3px 0 var(--ink);
+}
+
+.hud-title p {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.hud-debug {
+  position: absolute;
+  right: calc(16px + var(--safe-right));
+  bottom: calc(12px + var(--safe-bottom));
+  font-size: 14px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  padding: 4px 8px;
+  border-radius: 3px;
+}
