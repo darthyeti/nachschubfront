@@ -7,3 +7,8 @@ tests/output/
 
 # Throwaway scripts from a working session; they never belong in a commit.
 *-tmp.*
+
+# Update packages unpack a copy of their docs into the root; docs/ is where they
+# are read from, so the root copies stay out of the repository.
+/ART-kapsel.md
+/UPDATE.md
