@@ -23,9 +23,11 @@ import {
   canBuySupply,
   demolish,
   nextRubbleCost,
+  nextTowerCost,
   nextSupplyCost,
   settleWave,
 } from '../../src/sim/economy.js';
+import { towerAt } from '../../src/sim/towers.js';
 import { selectionOptions } from '../../src/sim/selection.js';
 import { score } from '../../src/sim/score.js';
 import { setWave, grant, forcePod, toggleInvulnerable } from '../../src/sim/debug.js';
@@ -363,9 +365,59 @@ test('demolishing rubble costs more every time', () => {
   assert.equal(state.map.obstacles.filter((o) => o.kind === 'rubble').length, rubble.length - 1);
   assert.ok(nextRubbleCost(state) > first, 'the next one is dearer');
 
-  assert.equal(demolish(state, cell).reason, 'rubble', 'nothing left to clear there');
+  assert.equal(demolish(state, cell).reason, 'target', 'nothing left to clear there');
   state.requisition = 0;
   assert.equal(demolish(state, rubble[1].cells[0]).reason, 'funds');
+});
+
+test('tearing down a position costs three times the rubble price', () => {
+  const state = createGameState('MATCH');
+  state.lives = 100000;
+  state.requisition = 1000;
+  playSalvo(state);
+  runUntil(state, (s) => s.phase === 'planning', 600);
+  const tower = state.towers[0];
+  assert.ok(tower, 'the salvo left a position standing');
+
+  assert.equal(nextTowerCost(state), nextRubbleCost(state) * 3);
+  const cost = nextTowerCost(state);
+  const before = state.requisition;
+  const result = demolish(state, tower);
+  assert.deepEqual(result, { ok: true, cost, kind: 'tower' });
+  assert.equal(state.requisition, before - cost, 'a position gives nothing back');
+  assert.equal(towerAt(state, tower), null, 'the position is gone');
+  assert.ok(!isBlocked(state.map.grid, tower.x, tower.y), 'and its cell is free');
+  assert.ok(!state.map.obstacles.some((o) => o.cells.some((c) => c.x === tower.x && c.y === tower.y)),
+    'no rubble is left in its place');
+});
+
+test('every demolition makes the next one dearer, whatever it was', () => {
+  const state = createGameState('MATCH');
+  state.lives = 100000;
+  state.requisition = 5000;
+  playSalvo(state);
+  runUntil(state, (s) => s.phase === 'planning', 600);
+  const rubble = state.map.obstacles.filter((o) => o.kind === 'rubble');
+
+  const first = nextRubbleCost(state);
+  assert.ok(demolish(state, state.towers[0]).ok, 'a position first');
+  assert.equal(nextRubbleCost(state), first + 5, 'the rubble price moved on too');
+  assert.ok(demolish(state, rubble[0].cells[0]).ok);
+  assert.equal(nextRubbleCost(state), first + 10);
+});
+
+test('terrain is not demolishable, and nothing is outside the planning phase', () => {
+  const state = createGameState('MATCH');
+  state.requisition = 5000;
+  const terrain = state.map.obstacles.find((o) => o.kind !== 'rubble');
+  assert.ok(terrain, 'the map came with ruins');
+  assert.equal(demolish(state, terrain.cells[0]).reason, 'target', 'ruins stay');
+
+  playSalvo(state);
+  const tower = state.towers[0];
+  state.phase = 'wave';
+  assert.equal(demolish(state, tower).reason, 'phase');
+  assert.ok(towerAt(state, tower), 'the position is still there');
 });
 
 test('a boss and a clean wave pay command points', () => {

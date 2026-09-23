@@ -245,7 +245,7 @@ export const STRINGS = {
     full: 'Alle Zonen vergeben',
     added: 'Hindernis',
     removed: 'Entfernt',
-    rubble: 'Keine Trümmer',
+    target: 'Nichts zum Abreißen',
     locked: 'Noch nicht verfügbar',
     cooldown: 'Kommando lädt nach',
     points: 'Zu wenig Kommandopunkte',

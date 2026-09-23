@@ -16,6 +16,8 @@ export const ECONOMY = {
   rubbleCost: 15,
   /** ... and every further demolition in the same match costs this much more. */
   rubbleCostStep: 5,
+  /** A position of your own costs this many times the current rubble price. */
+  towerCostFactor: 3,
 
   /** Command points for a defeated boss. */
   pointsPerBoss: 3,
@@ -29,9 +31,18 @@ export function waveBonus(wave) {
 }
 
 /**
- * Cost of the next demolition.
- * @param {number} demolished  Rubble piles already cleared in this match.
+ * Cost of the next demolition of a heap of rubble.
+ * @param {number} demolished  Cells already cleared in this match, rubble and
+ *   positions alike: every demolition makes the next one dearer.
  */
 export function rubbleCost(demolished) {
   return ECONOMY.rubbleCost + ECONOMY.rubbleCostStep * demolished;
+}
+
+/**
+ * Cost of tearing down one of your own positions: three times the current
+ * rubble price, and it gives nothing back (GDD section 10).
+ */
+export function towerCost(demolished) {
+  return rubbleCost(demolished) * ECONOMY.towerCostFactor;
 }
