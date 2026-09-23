@@ -232,9 +232,13 @@ test('the wave list covers 50 waves of known enemies', () => {
 
 test('the wave cycle and the boss waves follow the GDD', () => {
   const cycle = ['horde', 'armour', 'air', 'warp', 'mixed'];
+  // The gentler start (GDD section 9) holds breakers back until wave 4 and
+  // flyers until wave 6, so the cycle slots before that are called what is left
+  // of them: a horde of warriors and swarmers.
+  const eased = { 2: 'horde', 3: 'horde' };
   for (const [i, wave] of WAVES.entries()) {
     const n = i + 1;
-    const expected = n % 10 === 0 ? 'boss' : cycle[(n - 1) % cycle.length];
+    const expected = n % 10 === 0 ? 'boss' : eased[n] ?? cycle[(n - 1) % cycle.length];
     assert.equal(wave.kind, expected, `wave ${n}`);
     const bossGroup = wave.groups.find((g) => ALL_ENEMIES[g.type].boss);
     if (n % 10 === 0) {
@@ -245,6 +249,25 @@ test('the wave cycle and the boss waves follow the GDD', () => {
       assert.equal(bossGroup, undefined, `wave ${n} has no boss`);
     }
   }
+});
+
+test('the opening waves are eased in (GDD section 9)', () => {
+  const total = (wave) => WAVES[wave - 1].groups.reduce((sum, g) => sum + g.count, 0);
+  const types = (wave) => new Set(WAVES[wave - 1].groups.map((g) => g.type));
+
+  // No armour before wave 4, no flyers before wave 6.
+  for (let n = 1; n <= 3; n++) assert.ok(!types(n).has('breaker'), `wave ${n}: no breakers yet`);
+  for (let n = 1; n <= 5; n++) assert.ok(!types(n).has('carrionflyer'), `wave ${n}: no flyers yet`);
+  assert.ok(types(5).has('breaker'), 'breakers have arrived by wave 5');
+  // Wave 8 is the first air slot after the flyers unlock at 6; waves 6 and 7
+  // are a horde and an armour wave, neither of which fields flyers anyway.
+  assert.ok(types(8).has('carrionflyer'), 'flyers are back in the air wave');
+
+  // The first five waves are the thinned-out ones; wave 6 is back to full size.
+  assert.ok(total(1) < total(6), `${total(1)} vs ${total(6)}`);
+
+  // A locked lead enemy hands its share on, so no wave is a mere handful.
+  for (let n = 1; n <= 5; n++) assert.ok(total(n) >= 8, `wave ${n} has only ${total(n)} enemies`);
 });
 
 test('health grows by 12 percent per wave and waves get bigger', () => {
