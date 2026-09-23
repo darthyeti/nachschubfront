@@ -46,6 +46,19 @@ export function isOpening(pod) {
   return sinceImpact(pod) >= PODS.openDelaySeconds;
 }
 
+/** How long the burst open takes to hide the shell. */
+const BURST_SECONDS = PODS.openSeconds * 0.35;
+
+/**
+ * How solid the closed shell still is while the capsule bursts open, 1 to 0.
+ * The shell and the standing core are two different drawings; without this the
+ * wide shell would vanish in one frame and leave the narrow core behind. Fading
+ * it out over the first segments reads as the walls coming apart.
+ */
+export function shellFade(since) {
+  return 1 - clamp01((since - PODS.openDelaySeconds) / BURST_SECONDS);
+}
+
 /** Marker of a planned landing zone: dashed ring with its number. */
 export function drawZoneMarker(ctx, zone, index, t, reducedMotion) {
   const [x, y] = iso(zone.x + 0.5, zone.y + 0.5);
@@ -115,7 +128,10 @@ function drawDescent(ctx, sx, by, z) {
  */
 export function createPodRenderer(cache) {
   /**
-   * @param {{zoom: number, dpr: number}} view
+   * @param {{zoom: number, dpr: number, heat?: number}} view  `heat` overrides the
+   *   re-entry glow, which the sprite gallery needs: a capsule is only ever
+   *   closed while it is still hot, so there is no moment in time that shows the
+   *   cold shell.
    * @returns {boolean} False when nothing is rasterized yet, so a caller can fall back.
    */
   function drawPod(ctx, pod, t, view) {
@@ -124,7 +140,7 @@ export function createPodRenderer(cache) {
     const [sx, sy] = iso(pod.x + 0.5, pod.y + 0.5);
     const z = pod.landed ? 0 : podHeight(pod);
     const since = sinceImpact(pod);
-    const heat = pod.landed ? Math.max(0, 1 - since / HEAT_SECONDS) : 1;
+    const heat = view.heat ?? (pod.landed ? Math.max(0, 1 - since / HEAT_SECONDS) : 1);
     const color = DOCTRINE_COLORS[pod.doctrine];
     const k = 1 - Math.min(1, z / FALL_HEIGHT);
     // Grown to the heat shield: 66 world pixels across once it is down.
@@ -137,9 +153,9 @@ export function createPodRenderer(cache) {
     // it is laid over the cold one with the heat as its opacity. Switching
     // between the two would turn the capsule white and then grey again in one
     // step; this way it cools down.
-    const glowOver = (def, entry) => {
+    const glowOver = (def, entry, alpha = 1) => {
       if (heat <= 0.02) return;
-      ctx.globalAlpha = heat * 0.85;
+      ctx.globalAlpha = heat * 0.85 * alpha;
       drawSprite(ctx, def, entry, sx, by, { flash: true });
       ctx.globalAlpha = 1;
     };
@@ -154,6 +170,17 @@ export function createPodRenderer(cache) {
 
     const core = cache.get(SET.core, zoom, dpr);
     if (!core) return false;
+    // The shell comes apart rather than disappearing between two frames.
+    const fade = shellFade(since);
+    if (fade > 0) {
+      const shell = cache.get(SET.shell, zoom, dpr);
+      if (shell) {
+        ctx.globalAlpha = fade;
+        drawSprite(ctx, SET.shell, shell, sx, by);
+        ctx.globalAlpha = 1;
+        glowOver(SET.shell, shell, fade);
+      }
+    }
     const petal = (p) => {
       const entry = cache.get(p.sprite, zoom, dpr);
       const u = petalOpen(since, p.order);

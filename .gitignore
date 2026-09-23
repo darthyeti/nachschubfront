@@ -4,3 +4,6 @@ tests/output/
 
 # Update packages dropped into the working tree; the unpacked docs are what counts.
 *.zip
+
+# Throwaway scripts from a working session; they never belong in a commit.
+*-tmp.*

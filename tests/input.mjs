@@ -595,11 +595,20 @@ try {
     watchProblems(page, 'gallery', problems);
     await page.goto(`${server.url}tests/sprites.html`, { waitUntil: 'networkidle' });
 
-    await check('gallery rasterizes all 30 towers and 7 enemies without failures', async () => {
+    await check('gallery rasterizes towers, enemies and the capsule without failures', async () => {
       await page.waitForSelector('body[data-ready]', { timeout: 20000 });
       const stats = await page.evaluate(() => window.__gallery.stats());
       assert.equal(stats.failed, 0);
       assert.ok(stats.rasterized >= 37, `rasterized ${stats.rasterized}`);
+    });
+
+    await check('the capsule stands in the gallery from closed to fully open', async () => {
+      const pods = await page.evaluate(() => window.__gallery.pods());
+      assert.equal(pods.length, 5, 'one capsule per stage of the drop');
+      // Each stage is further along than the one before it, so the row reads
+      // left to right as the opening sequence.
+      for (let i = 1; i < pods.length; i++) assert.ok(pods[i].t > pods[i - 1].t, `stage ${i}`);
+      assert.equal((await page.evaluate(() => window.__gallery.stats())).failed, 0, 'no capsule part failed');
     });
 
     await check('gallery zoom presets reach every raster level', async () => {

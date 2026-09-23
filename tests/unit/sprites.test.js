@@ -11,14 +11,18 @@ import {
   SPECIALS,
   RANK_DETAIL,
   enemySprite,
+  podSpriteSet,
   chevronMarkup,
   ENEMY_TYPES,
   DOCTRINES,
   RASTER_LEVELS,
 } from '../../src/render/sprites/compose.js';
-import { TOWER_WEAPONS } from '../../src/render/sprites/manifest.js';
+import { TOWER_WEAPONS, POD_PETALS, POD_PETAL_ORDER, POD_OPEN_SCALE, SPRITE_SCALE } from '../../src/render/sprites/manifest.js';
 import { ENEMY_SPRITES } from '../../src/render/sprites/enemies.js';
 import { TOWER_SPRITES } from '../../src/render/sprites/towers.js';
+import { POD_SPRITES } from '../../src/render/sprites/pods.js';
+import { petalOpen, isOpening, shellFade, POD_SPRITE_DEFS } from '../../src/render/pods.js';
+import { PODS } from '../../src/data/pods.js';
 import { ENEMIES, BOSSES, ALL_ENEMIES } from '../../src/data/enemies.js';
 import { RECIPE_IDS } from '../../src/data/recipes.js';
 
@@ -47,6 +51,107 @@ test('imported libraries contain all concept symbols', () => {
   }
   assert.ok(!TOWER_SPRITES.symbols['t-tesla-gun'], 'the tesla coil has no moving weapon');
   assert.ok(!ENEMY_SPRITES.defs.includes('id="sil"'), 'unused silhouette filter is dropped');
+
+  // M4c: the capsule, closed in one piece and open in core plus four segments.
+  for (const id of ['pod-shell', 'pod-core', ...POD_PETALS.map((p) => p.id)]) {
+    assert.ok(POD_SPRITES.symbols[id], id);
+  }
+  for (const id of ['pod-a', 'pod-c']) {
+    assert.ok(!POD_SPRITES.symbols[id], `${id} is a discarded design and is not imported`);
+  }
+  for (const id of ['pod-b', 'pod-open']) {
+    assert.ok(!POD_SPRITES.symbols[id], `${id} is only a wrapper for the concept sheet`);
+  }
+});
+
+test('the capsule: one closed sprite, four segments around a core', () => {
+  const set = podSpriteSet();
+  assert.equal(set.petals.length, 4);
+  assert.deepEqual(set.petals.map((p) => p.id), POD_PETAL_ORDER, 'drawn in opening order');
+  assert.equal(set.petals.filter((p) => p.layer === 'back').length, 2, 'two behind the core');
+  assert.equal(set.petals.filter((p) => p.layer === 'front').length, 2, 'two in front of it');
+  assert.deepEqual([...new Set(set.petals.map((p) => p.order))].sort(), [0, 1, 2, 3], 'each opens at its own time');
+
+  // The opened capsule is drawn smaller, so it does not bury its neighbours.
+  assert.equal(set.shell.unitScale, SPRITE_SCALE.pod);
+  assert.equal(set.core.unitScale, SPRITE_SCALE.pod * POD_OPEN_SCALE);
+  for (const p of set.petals) assert.equal(p.sprite.unitScale, set.core.unitScale, p.id);
+
+  // Two scales of the same artwork must not share a raster.
+  const keys = [set.shell, set.core, ...set.petals.map((p) => p.sprite)].map((d) => d.key);
+  assert.equal(new Set(keys).size, keys.length, 'every part has its own key');
+});
+
+test('the capsule stands on the ground and fits its cell', () => {
+  const PAD = 5; // stroke padding added by the importer
+  const set = podSpriteSet();
+  const [, y, w, h] = set.shell.bbox;
+  assert.ok(Math.abs(y + h - PAD - 6) <= 1, `closed capsule bottom ${y + h - PAD}`);
+  // The heat shield covers about nine tenths of a cell, like an emplacement's base.
+  assert.ok(Math.abs((w - 2 * PAD) * set.shell.unitScale - 64 * 0.9) < 1.5, 'closed width');
+
+  // Open it spans more than a cell, which docs/ART.md accepts, but not two.
+  const spread = set.petals.map((p) => {
+    const [bx, , bw] = p.sprite.bbox;
+    return [bx, bx + bw];
+  });
+  const width = (Math.max(...spread.map((s) => s[1])) - Math.min(...spread.map((s) => s[0]))) * set.core.unitScale;
+  assert.ok(width > 64 && width < 128, `opened capsule spans ${width.toFixed(0)} world pixels`);
+});
+
+test('the capsule opens segment by segment, and all of it within openSeconds', () => {
+  const pod = (since) => ({ t: since + PODS.warnSeconds + PODS.fallSeconds });
+  assert.equal(isOpening(pod(PODS.openDelaySeconds - 0.01)), false, 'shell is still one piece');
+  assert.equal(isOpening(pod(PODS.openDelaySeconds)), true, 'the bolts have blown');
+
+  // Nothing moves before the delay, and the first segment leads.
+  for (let order = 0; order < 4; order++) {
+    assert.equal(petalOpen(PODS.openDelaySeconds, order), 0, `segment ${order} waits for its turn`);
+  }
+  const midway = PODS.openDelaySeconds + PODS.openSeconds * 0.4;
+  const opened = [0, 1, 2, 3].map((order) => petalOpen(midway, order));
+  for (let i = 1; i < opened.length; i++) {
+    assert.ok(opened[i] <= opened[i - 1], `segment ${i} is not ahead of ${i - 1}: ${opened}`);
+  }
+  assert.ok(opened[0] > opened[3], 'they do not all move together');
+
+  // By the end of the opening every segment is flat, and none overshoots.
+  for (let order = 0; order < 4; order++) {
+    assert.equal(petalOpen(PODS.openDelaySeconds + PODS.openSeconds, order), 1, `segment ${order} is down`);
+    assert.equal(petalOpen(999, order), 1, 'and stays down');
+  }
+});
+
+test('the closed shell fades out while the segments come down', () => {
+  // The shell and the standing core are different drawings; the shell has to be
+  // gone by the time the first segment is out, or it would cover it.
+  assert.equal(shellFade(PODS.openDelaySeconds), 1, 'still whole when the bolts blow');
+  assert.ok(shellFade(PODS.openDelaySeconds + PODS.openSeconds * 0.2) < 1, 'coming apart');
+  assert.equal(shellFade(PODS.openDelaySeconds + PODS.openSeconds), 0, 'gone once they are open');
+  assert.equal(shellFade(999), 0);
+  // It must not outlast the first segment, which would leave the shell on top of it.
+  const gone = PODS.openDelaySeconds + PODS.openSeconds * 0.35;
+  assert.ok(shellFade(gone) < 1e-9, `the shell is gone by the time a segment is fully out: ${shellFade(gone)}`);
+});
+
+test('every capsule sprite is preloaded, so the first salvo is never empty', () => {
+  const set = podSpriteSet();
+  const keys = new Set(POD_SPRITE_DEFS.map((d) => d.key));
+  for (const def of [set.shell, set.core, ...set.petals.map((p) => p.sprite)]) {
+    assert.ok(keys.has(def.key), def.key);
+  }
+  assert.equal(POD_SPRITE_DEFS.length, 6, 'shell, core and four segments');
+});
+
+test('the capsule renders as standalone SVG at the size asked for', () => {
+  const set = podSpriteSet();
+  for (const def of [set.shell, set.core, ...set.petals.map((p) => p.sprite)]) {
+    const svg = def.svg(2);
+    assert.match(svg, /^<svg xmlns=/, def.key);
+    assert.ok(svg.includes(`<use href="#`), def.key);
+    const [, , w, h] = def.bbox;
+    assert.match(svg, new RegExp(`width="${Math.ceil(w * 2)}" height="${Math.ceil(h * 2)}"`), def.key);
+  }
 });
 
 test('enemies stand on the ground: sprite bottom is at SVG y = 0 (flyers hover above)', () => {

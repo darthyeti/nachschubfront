@@ -286,8 +286,10 @@ export const STRINGS = {
     intro:
       'Jede schräge Reihe ist eine Doktrin (hinten Flamme, dann Autokanone, Laser, Mörser, Psi, vorn Tesla). ' +
       'In jeder Reihe steigt der Rang von 1 (hinten rechts) bis 5 (vorn links). Davor die sechs Rezept-Stellungen. ' +
-      'Gegner unten: erste Reihe läuft nach links, zweite nach rechts, ganz vorn die fünf Bosse.',
+      'Gegner unten: erste Reihe läuft nach links, zweite nach rechts, dahinter die fünf Bosse. ' +
+      'Ganz vorn die Nachschubkapsel in fünf Stufen: geschlossen bis vollständig geöffnet.',
     flash: 'Treffer-Variante',
+    podStage: (n) => `Kapsel ${n}`,
     silhouette: 'Silhouetten',
     labels: 'Beschriftung',
     zoom: (z) => `Zoom ${z}`,

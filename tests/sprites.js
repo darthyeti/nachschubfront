@@ -15,6 +15,9 @@ import { iso } from '../src/render/iso.js';
 import { comicText } from '../src/render/draw.js';
 import { allTowerDefs, drawTowerSprite } from '../src/render/towerSprites.js';
 import { ENEMY_SPRITE_DEFS, createEnemySpriteRenderer } from '../src/render/enemySprites.js';
+import { POD_SPRITE_DEFS, createPodRenderer } from '../src/render/pods.js';
+import { PODS } from '../src/data/pods.js';
+import { DOCTRINE_IDS } from '../src/data/doctrines.js';
 import { attachPointerInput } from '../src/input/pointer.js';
 import { installPageGuards } from '../src/input/guards.js';
 
@@ -61,11 +64,27 @@ bosses.forEach((type, i) => {
   });
 });
 
+// Capsules: one row frozen at the stages of the drop, so the closed shell can be
+// held against an emplacement and the opening checked frame by frame.
+const IMPACT = PODS.warnSeconds + PODS.fallSeconds;
+const POD_STAGES = [0, PODS.openDelaySeconds * 0.5, PODS.openDelaySeconds + PODS.openSeconds * 0.35,
+  PODS.openDelaySeconds + PODS.openSeconds * 0.7, PODS.openDelaySeconds + PODS.openSeconds + 3];
+const pods = POD_STAGES.map((since, i) => ({
+  index: i,
+  x: 3.4 + i * 2.6,
+  y: 18.4,
+  doctrine: DOCTRINE_IDS[i % DOCTRINE_IDS.length],
+  rank: 1,
+  landed: true,
+  t: IMPACT + since,
+}));
+
 const camera = createCamera();
 const bounds = mapBounds(SIZE);
 const ground = createGroundLayer();
 const cache = createSpriteCache();
 const drawEnemy = createEnemySpriteRenderer(cache);
+const drawPodSprite = createPodRenderer(cache);
 let flash = false;
 /** Everything drawn in flat black, to check the rule "silhouette before detail". */
 let silhouette = false;
@@ -142,13 +161,16 @@ function frame(now) {
   const items = [
     ...towers.map((o) => [o.x + o.y + 1, 0, o]),
     ...enemies.map((o) => [o.x + o.y, 1, o]),
+    ...pods.map((o) => [o.x + o.y, 2, o]),
   ].sort((a, b) => a[0] - b[0]);
   // A canvas filter is fine here: this is a tool, not the game loop.
   if (silhouette) ctx.filter = 'brightness(0)';
   for (const [, kind, o] of items) {
     o.flash = flash ? 1 : 0;
     if (kind === 0) drawTowerSprite(ctx, cache, o, camera.zoom, view.dpr, t, dt);
-    else drawEnemy(ctx, o, t, { zoom: camera.zoom, dpr: view.dpr, dt });
+    else if (kind === 1) drawEnemy(ctx, o, t, { zoom: camera.zoom, dpr: view.dpr, dt });
+    // Cold: the gallery is here to judge the artwork, not the re-entry glow.
+    else drawPodSprite(ctx, o, t, { zoom: camera.zoom, dpr: view.dpr, heat: 0 });
   }
   ctx.filter = 'none';
 
@@ -163,17 +185,22 @@ function frame(now) {
       const [x, y] = iso(o.x, o.y + 0.9);
       comicText(ctx, STRINGS.enemies[o.type], x, y, 13, '#e8dcc0');
     }
+    for (const o of pods) {
+      const [x, y] = iso(o.x + 0.5, o.y + 1.1);
+      comicText(ctx, T.podStage(o.index + 1), x, y, 13, '#e8dcc0');
+    }
   }
   stats.textContent = T.stats(camera.zoom.toFixed(2), cache.stats.rasterized);
   requestAnimationFrame(frame);
 }
 
-cache.preload([...allTowerDefs(), ...ENEMY_SPRITE_DEFS], camera.zoom, view.dpr).then(() => {
+cache.preload([...allTowerDefs(), ...ENEMY_SPRITE_DEFS, ...POD_SPRITE_DEFS], camera.zoom, view.dpr).then(() => {
   document.body.dataset.ready = 'true';
 });
 window.__gallery = {
   camera: () => ({ ...camera }),
   stats: () => ({ ...cache.stats }),
   mode: () => ({ silhouette, labels, flash, filter: ctx.filter }),
+  pods: () => pods.map(({ index, x, y, t }) => ({ index, x, y, t })),
 };
 requestAnimationFrame(frame);
