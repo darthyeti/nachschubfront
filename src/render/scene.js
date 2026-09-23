@@ -34,6 +34,27 @@ const KIND_ENEMY = 6;
 /** Phases that show the route preview and the planned landing zones. */
 const PLANNING_PHASES = new Set(['planning', 'salvo', 'selection']);
 
+/**
+ * Margin around the viewport in world pixels when deciding what to draw. Objects
+ * are sorted by their ground point, but their artwork reaches far above it (a
+ * laser mast) and a little below (its shadow).
+ */
+const CULL_ABOVE = 260;
+const CULL_BELOW = 60;
+const CULL_SIDE = 90;
+
+/** Visible area in world pixels, widened so nothing pops in at the edges. */
+function visibleArea(cam, view) {
+  const halfW = view.width / 2 / cam.zoom;
+  const halfH = view.height / 2 / cam.zoom;
+  return {
+    x0: cam.x - halfW - CULL_SIDE,
+    x1: cam.x + halfW + CULL_SIDE,
+    y0: cam.y - halfH - CULL_BELOW,
+    y1: cam.y + halfH + CULL_ABOVE,
+  };
+}
+
 function createVignette() {
   const canvas = document.createElement('canvas');
   let key = '';
@@ -153,17 +174,29 @@ export function createSceneRenderer(sprites) {
       drawCellMarker(ctx, f.cell, fill, col, 3);
     }
 
-    // Depth-sorted objects: key is x + y of the object's front.
+    // Depth-sorted objects: key is x + y of the object's front. Anything whose
+    // ground point lies well outside the viewport is skipped; with 200 enemies at
+    // full zoom that is most of them.
+    const area = visibleArea(shaken, view);
+    const onScreen = (gx, gy) => {
+      const [px, py] = iso(gx, gy);
+      return px >= area.x0 && px <= area.x1 && py >= area.y0 && py <= area.y1;
+    };
     items.length = 0;
     for (const o of map.obstacles) {
-      for (let i = 0; i < o.cells.length; i++) items.push([o.cells[i].x + o.cells[i].y + 1, KIND_OBSTACLE, o, i]);
+      for (let i = 0; i < o.cells.length; i++) {
+        const c = o.cells[i];
+        if (onScreen(c.x + 0.5, c.y + 0.5)) items.push([c.x + c.y + 1, KIND_OBSTACLE, o, i]);
+      }
     }
-    for (const tower of state.towers) items.push([tower.x + tower.y + 1, KIND_TOWER, tower, 0]);
+    for (const tower of state.towers) {
+      if (onScreen(tower.x + 0.5, tower.y + 0.5)) items.push([tower.x + tower.y + 1, KIND_TOWER, tower, 0]);
+    }
     for (const pod of state.pods) items.push([pod.x + pod.y + 1, KIND_POD, pod, 0]);
     items.push([map.rift.x + map.rift.y + 1, KIND_RIFT, map.rift, 0]);
     items.push([map.bastion.x + map.bastion.y + 1, KIND_BASTION, map.bastion, 0]);
     map.beacons.forEach((b, i) => items.push([b.x + b.y + 1, KIND_BEACON, b, i]));
-    for (const e of state.enemies) items.push([e.x + e.y, KIND_ENEMY, e, 0]);
+    for (const e of state.enemies) if (onScreen(e.x, e.y)) items.push([e.x + e.y, KIND_ENEMY, e, 0]);
     items.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 
     for (const [, kind, o, i] of items) {
@@ -177,7 +210,9 @@ export function createSceneRenderer(sprites) {
           drawTowerPlaceholder(ctx, o);
         }
       } else {
-        if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, cam.zoom, view.dpr)) drawEnemy(ctx, o, t);
+        if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, cam.zoom, view.dpr, ui.reducedMotion)) {
+          drawEnemy(ctx, o, t);
+        }
         drawEnemyBar(ctx, o, ENEMY_TOP[o.type] ?? 20);
       }
     }

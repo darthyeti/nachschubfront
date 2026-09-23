@@ -73,15 +73,23 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - `prefers-reduced-motion`: kein Wackeln, Blitz auf ein Viertel, Asche und Glut stehen still. Im Browser geprüft.
   - Tests: 226 Unit-Tests (neu: die Begrenzung der Parallaxe), 23 Eingabeprüfungen, Screenshots ohne Konsolenfehler.
 
+- M4 Schritt 2 von 8: Bewegliche Teile (23.09.2026):
+  - Zerlegung der Konzept-SVGs in Teile mit zwei einmaligen Werkzeugen (`tests/tools/split-towers.py`, `split-enemies.py`). Die Teile stehen in `docs/ART.md`.
+  - Stellungen: Die Waffe ist ein eigenes Sprite, dreht sich zum Ziel, wird gespiegelt, wenn das Ziel rechts steht, und federt nach dem Schuss zurück. Der Mörser neigt sein Rohr nur (22 % des Winkels), statt flach zu zielen. Ein Schuss wird daran erkannt, dass der Nachladezähler wieder hochspringt; die Simulation musste dafür nichts liefern.
+  - Aus den SVGs entfernte Effekte werden jetzt gezeichnet (`src/render/towerFx.js`): Zündflamme, Laserlinse, Psi-Ringe mit Aura, Tesla-Glühen und Blitze.
+  - Gegner: Beine schwingen im Gegentakt um ihre Hüften, Flügel klappen durch die Körperebene. Betäubte Gegner und `prefers-reduced-motion` halten still.
+  - Sichtbarkeitsprüfung im Szenenrenderer: Was weit außerhalb des Bildfensters steht, wird nicht mehr gezeichnet. Bei Maximalzoom mit 200 Gegnern senkt das die Rechenzeit von 5,8 auf 2,3 ms pro Frame.
+  - Sprite-Schlüssel kommen jetzt aus den Teilen statt aus Doktrin und Rang: Gleich aussehende Ebenen teilen sich eine Rasterung (38 statt 81 Rasterungen für alle Stellungen).
+  - Leistung (Apple M2 mit GPU, 200 Gegner und 40 Stellungen): 2,3 bis 3,6 ms Rechenzeit pro Frame, 0 Rasterungen im Betrieb. Vor der Zerlegung waren es 1,7 bis 2,1 ms; die drei Zeichenaufrufe pro Figur kosten also gut eine halbe Millisekunde.
+  - Tests: 227 Unit-Tests (neu: Teileaufteilung, Drehpunkte innerhalb der Waffenumrisse, geteilte Rasterungen, keine Effekte mehr im SVG), 23 Eingabeprüfungen, eine volle Partie über 12 Wellen ohne Konsolenfehler.
+
 ## Offen
 - Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
 - Spezialstellungen haben keine eigene Grafik. Bis M4 nutzen sie das Sprite der ersten Zutat im Legendenrang mit goldenem Ring und Halo. Eigene Silhouetten stehen in M4 im Umfang.
 - Bosse haben keine eigene Grafik. Bis M4 leihen sie sich die Figur eines verwandten Gegners, deutlich größer gezeichnet (`docs/ART.md`).
-- Waffen drehen sich noch nicht zum Ziel. Die Sprites sind starr, der Schuss geht als Effekt vom Sockel aus. Bewegliche Läufe und Waffenköpfe kommen mit der SVG-Zerlegung in M4.
 - Der Rüstungswechsel des Dämonenprinzen ist nur in der Infoanzeige zu sehen, an der Figur noch nicht.
 - Veteran-Detail für Autokanone und Mörser festlegen (sie haben den Sandsackring schon).
 - Ränge Elite, Held und Legende: Panzerplatten, Banner, Goldkanten und Halo fehlen noch (laut M1b später).
-- Zerlegung der SVGs in bewegliche Teile (Läufe, Waffenköpfe, Beine, Flügel) und Herauslösen der eingebauten Effekte: M4.
 - Sprite-Galerie (`tests/sprites.html`) ist nur ein Schaukasten: Verschieben, Zoomen, Treffer-Variante. Vorgeschlagen und vertagt: Beschriftungen der Figuren und ein Silhouetten-Schalter für die Regel „Silhouette vor Detail“ aus ART.md.
 - Balancing wird **nicht** mit den automatischen Werkzeugen beurteilt (Entscheidung vom 23.09.2026): Wo die Stellungen stehen, entscheidet im Spiel immer der Spieler, und daran hängt das Ergebnis mehr als an jedem Tabellenwert. `npm run playmatch` und `npm run test:battle` setzen die Zonen nach einer festen Regel und sind darum Regressionsprüfungen („läuft eine ganze Partie fehlerfrei durch"), keine Balancing-Messung. Ihre Wellenzahlen sagen nichts über die Schwierigkeit für einen Menschen.
 - Beobachtung, die davon unberührt bleibt: Flieger überfliegen das Labyrinth, und nur Autokanone, Laser, Psi und Tesla treffen sie. Wer ohne Luftabwehr baut, verliert an einer Flieger-Welle, egal wie gut das Labyrinth ist. Für M6 zu entscheiden, ob das so gewollt ist oder ob das Spiel darauf hinweist.

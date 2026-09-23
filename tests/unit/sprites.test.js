@@ -140,7 +140,6 @@ test('tower sprites cover all layers and render as standalone SVG', () => {
           continue;
         }
         const def = set[name];
-        assert.equal(def.key, `tower:${doctrine}:${rank}:${name}`);
         const svg = def.svg(2);
         assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"'));
         for (const id of layers[name]) assert.ok(svg.includes(`<use href="#${id}"/>`), id);
@@ -152,6 +151,13 @@ test('tower sprites cover all layers and render as standalone SVG', () => {
       assert.equal((set.back.svg(1).match(/<polyline/g) ?? []).length, rank * 2);
     }
   }
+});
+
+test('layers that look the same at several ranks share one raster', () => {
+  // Only the back layer changes with the rank (chevrons, sandbags).
+  assert.equal(towerSpriteSet('flame', 3).gun.key, towerSpriteSet('flame', 5).gun.key);
+  assert.notEqual(towerSpriteSet('flame', 3).back.key, towerSpriteSet('flame', 5).back.key);
+  assert.notEqual(towerSpriteSet('flame', 1).gun.key, towerSpriteSet('laser', 1).gun.key);
 });
 
 test('effects painted into the concept art are gone; code draws them now', () => {

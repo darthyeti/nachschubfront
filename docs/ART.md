@@ -85,6 +85,16 @@ Der Dämonenprinz wechselt im Kampf alle vier Sekunden die Rüstungsart. Das ist
 
 - **SVG als Quelle, Canvas als Ausgabe.** Die SVGs werden beim Start einmal in Offscreen-Canvas gerastert und danach nur noch per `drawImage` gezeichnet. Kein SVG-Zeichnen pro Frame.
 - **Rasterstufen nach Zoom.** Pro Figur werden wenige Auflösungsstufen vorgehalten (etwa 0,5x, 1x, 2x mal devicePixelRatio) und die passende gewählt, damit beim Zoomen nichts unscharf wird.
-- **Statische Teile als Sprite, Bewegung im Code.** Sockel, Gehäuse, Körper, Köpfe und Klingen kommen aus dem SVG. Was sich bewegt, wird wie im Stiltest per Code gezeichnet: drehende Läufe, schwenkende Waffen, Flammen, Blitze, Insektenbeine im Laufzyklus, Flügelschlag.
-- Dafür werden die SVGs in Teile zerlegt (z. B. `krieger-koerper`, `krieger-klinge`) und jeweils mit Ankerpunkt versehen. Die Zerlegung ist Teil von M1b.
+- **Statische Teile als Sprite, Bewegung im Code.** Sockel, Gehäuse, Körper, Köpfe und Klingen kommen aus dem SVG. Was sich bewegt, wird wie im Stiltest per Code gezeichnet: schwenkende Waffen, Flammen, Blitze, Insektenbeine im Laufzyklus, Flügelschlag.
+- Die Zerlegung ist in M4 passiert (`tests/tools/split-towers.py` und `split-enemies.py`, beides einmalige Eingriffe in `reference/konzept/`). Die Symbolbibliothek trägt seitdem pro Figur mehrere Teile:
+
+| Teil | Stellungen | Gegner |
+|---|---|---|
+| `-back` | Sockelaufbau, Mast, Tanks | Beine oder Flügel hinter dem Körper |
+| `-gun` / `-body` | Waffe, dreht sich zum Ziel | Körper |
+| `-front` | Sandsäcke und Kisten vor der Waffe | Beine oder Flügel vor dem Körper |
+
+  Wo die Teile sitzen und wie sie sich bewegen (Drehpunkt, Ruhewinkel, Mündung, Ausschlag), steht in `src/render/sprites/manifest.js`. Der Warp-Seher schwebt und bleibt ein Stück.
+- **Aus den SVGs entfernt und jetzt Code** (`src/render/towerFx.js`): Flammenstrahl, Mündungsbögen, Mörserrauch, das Leuchten von Laser und Tesla, die Blitze der Spule, Aura und Ringe des Psi-Schreins.
+- Abweichung: Die drei Läufe der Autokanone bleiben ein Teil. Ihre Drehung wird über Rückstoß und ein leichtes Wandern quer zur Achse angedeutet, statt jeden Lauf einzeln zu bewegen.
 - Treffer-Aufblitzen über eine vorgerenderte helle Variante des Sprites, nicht über Filter pro Frame.

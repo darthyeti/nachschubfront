@@ -29,16 +29,16 @@ export function towerSet(doctrine, rank) {
   return set;
 }
 
-/** All tower sprite definitions, e.g. for preloading the gallery. */
+/** Every distinct tower sprite, e.g. for preloading the gallery (layers are shared). */
 export function allTowerDefs() {
-  const all = [];
+  const byKey = new Map();
   for (const doctrine of DOCTRINES) {
     for (let rank = 1; rank <= RANK_COUNT; rank++) {
       const set = towerSet(doctrine, rank);
-      all.push(set.back, set.gun, set.front);
+      for (const def of [set.back, set.gun, set.front]) if (def) byKey.set(def.key, def);
     }
   }
-  return all.filter(Boolean);
+  return [...byKey.values()];
 }
 
 /** Rank whose sprite a tower uses; special towers borrow the legend artwork. */

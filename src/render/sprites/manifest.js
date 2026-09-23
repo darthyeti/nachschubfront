@@ -59,6 +59,25 @@ export const ENEMY_SHADOW = {
   ),
 };
 
+/**
+ * Limbs that move by themselves (M4): the creature is drawn as far limbs, body
+ * and near limbs, and the two limb groups are animated in code.
+ * Pivots are SVG units, taken from where the limbs meet the body
+ * (printed by tests/tools/split-enemies.py). Keyed by symbol, so bosses that
+ * borrow a figure get the same movement.
+ *
+ * - `legs`  the group swings around its hips, far and near in counter-phase.
+ * - `wings` the pair folds up and down through the body's plane.
+ */
+export const ENEMY_LIMBS = {
+  'e-swarm': { kind: 'legs', back: [4, -15.3], front: [7.3, -12.7], swing: 0.22, speed: 13 },
+  'e-mutant': { kind: 'legs', back: [1, -30], front: [4, -28], swing: 0.17, speed: 9 },
+  'e-brute': { kind: 'legs', back: [-2, -24], front: [5, -20], swing: 0.12, speed: 6 },
+  'e-burst': { kind: 'legs', back: [5.3, -16.7], front: [-0.7, -16], swing: 0.19, speed: 10 },
+  'e-heal': { kind: 'legs', back: [2, -44], front: [4, -42], swing: 0.14, speed: 8 },
+  'e-flyer': { kind: 'wings', back: [0, -78], front: [0, -78], speed: 9 },
+};
+
 export const DOCTRINE_SYMBOLS = {
   flame: 't-flame',
   autocannon: 't-ac',

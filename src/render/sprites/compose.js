@@ -9,6 +9,7 @@ import {
   ALL_ENEMY_SYMBOLS,
   ENEMY_EXTRA_SCALE,
   DOCTRINE_SYMBOLS,
+  ENEMY_LIMBS,
   OWN_SANDBAGS,
   SHARED_SANDBAGS,
   TOWER_WEAPONS,
@@ -109,27 +110,55 @@ export function towerLayers(doctrine, rank) {
  * @typedef {{key: string, bbox: number[], unitScale: number, anchorZ: number, svg: (pixelScale: number) => string}} SpriteDef
  */
 
-export function enemySprite(type) {
-  const id = ALL_ENEMY_SYMBOLS[type];
-  if (!id) throw new Error(`Unknown enemy type: ${type}`);
-  const { bbox } = ENEMY_SPRITES.symbols[id];
+/** One symbol of the brood as a sprite definition, in the size the type is drawn at. */
+function enemyPart(type, symbol, key) {
+  const entry = ENEMY_SPRITES.symbols[symbol];
+  if (!entry) throw new Error(`Unknown enemy symbol: ${symbol}`);
   return {
-    key: `enemy:${type}`,
-    bbox,
+    key,
+    bbox: entry.bbox,
     // Bosses share the symbol of a normal enemy but are drawn larger, so the
     // scale is part of the key via the type.
     unitScale: SPRITE_SCALE.enemy * (ENEMY_EXTRA_SCALE[type] ?? 1),
     anchorZ: 0,
-    svg: (pixelScale) => svgDocument(ENEMY_SPRITES, `<use href="#${id}"/>`, bbox, pixelScale),
+    svg: (pixelScale) => svgDocument(ENEMY_SPRITES, `<use href="#${symbol}"/>`, entry.bbox, pixelScale),
   };
 }
 
-/** One layer of an emplacement as a sprite definition. */
-function towerPart(key, ids, extra = '') {
+/** The whole creature in one piece: concept sheets, gallery, and creatures without limbs. */
+export function enemySprite(type) {
+  const id = ALL_ENEMY_SYMBOLS[type];
+  if (!id) throw new Error(`Unknown enemy type: ${type}`);
+  return enemyPart(type, id, `enemy:${type}`);
+}
+
+/**
+ * How a creature is drawn: either in one piece, or as far limbs, body and near
+ * limbs with the movement data for the limbs.
+ * @returns {{whole?: object, back?: object, body?: object, front?: object, limbs: object|null}}
+ */
+export function enemySpriteSet(type) {
+  const id = ALL_ENEMY_SYMBOLS[type];
+  if (!id) throw new Error(`Unknown enemy type: ${type}`);
+  const limbs = ENEMY_LIMBS[id] ?? null;
+  if (!limbs) return { whole: enemySprite(type), limbs: null };
+  return {
+    back: enemyPart(type, `${id}-back`, `enemy:${type}:back`),
+    body: enemyPart(type, `${id}-body`, `enemy:${type}:body`),
+    front: enemyPart(type, `${id}-front`, `enemy:${type}:front`),
+    limbs,
+  };
+}
+
+/**
+ * One layer of an emplacement as a sprite definition. The key is made from the
+ * parts, so layers that are the same at several ranks share one raster.
+ */
+function towerPart(ids, extra = '') {
   const bbox = union(ids.map((id) => TOWER_SPRITES.symbols[id].bbox));
   const body = ids.map((id) => `<use href="#${id}"/>`).join('') + extra;
   return {
-    key,
+    key: `tower:${ids.join('+')}${extra ? `+${extra.length}` : ''}`,
     bbox,
     unitScale: SPRITE_SCALE.tower,
     // The symbol origin is the centre of the base's top face, TOWER_BASE_TOP units above ground.
@@ -146,9 +175,9 @@ export function towerSpriteSet(doctrine, rank) {
   const layers = towerLayers(doctrine, rank);
   return {
     // The rank chevrons belong to the base and are drawn with the back layer.
-    back: towerPart(`tower:${doctrine}:${rank}:back`, layers.back, chevronMarkup(rank)),
-    gun: layers.gun ? towerPart(`tower:${doctrine}:${rank}:gun`, layers.gun) : null,
-    front: layers.front ? towerPart(`tower:${doctrine}:${rank}:front`, layers.front) : null,
+    back: towerPart(layers.back, chevronMarkup(rank)),
+    gun: layers.gun ? towerPart(layers.gun) : null,
+    front: layers.front ? towerPart(layers.front) : null,
     weapon: TOWER_WEAPONS[doctrine] ?? null,
   };
 }

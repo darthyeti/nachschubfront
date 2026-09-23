@@ -139,58 +139,63 @@ PLAN = {
     },
 }
 
-files = sorted(FOLDER.glob('*.svg'))
-if not files:
-    raise SystemExit(f'no SVGs in {FOLDER}')
+def main():
+    files = sorted(FOLDER.glob('*.svg'))
+    if not files:
+        raise SystemExit(f'no SVGs in {FOLDER}')
 
-sources = {}
-for path in files:
-    text = path.read_text()
-    m = re.search(r'<defs>(.*?)</defs>', text, re.S)
-    if not m:
-        raise SystemExit(f'{path.name}: no <defs>')
-    sources[path] = (text, m.span(1), m.group(1))
+    sources = {}
+    for path in files:
+        text = path.read_text()
+        m = re.search(r'<defs>(.*?)</defs>', text, re.S)
+        if not m:
+            raise SystemExit(f'{path.name}: no <defs>')
+        sources[path] = (text, m.span(1), m.group(1))
 
-defs_texts = {d for (_, _, d) in sources.values()}
-if len(defs_texts) != 1:
-    raise SystemExit('the concept files no longer share one symbol library')
-defs = defs_texts.pop()
+    defs_texts = {d for (_, _, d) in sources.values()}
+    if len(defs_texts) != 1:
+        raise SystemExit('the concept files no longer share one symbol library')
+    defs = defs_texts.pop()
 
-groups = top_level_groups(defs)
-children = {gid: split_elements(inner) for gid, (_, inner) in groups.items()}
+    groups = top_level_groups(defs)
+    children = {gid: split_elements(inner) for gid, (_, inner) in groups.items()}
 
-# Everything that is not a doctrine group is kept as it is, in the original order.
-doctrine_ids = {f't-{name}' for name in PLAN}
-doctrine_ids.add('ac-core')
-kept = [raw for gid, (raw, _) in groups.items() if gid not in doctrine_ids]
+    # Everything that is not a doctrine group is kept as it is, in the original order.
+    doctrine_ids = {f't-{name}' for name in PLAN}
+    doctrine_ids.add('ac-core')
+    kept = [raw for gid, (raw, _) in groups.items() if gid not in doctrine_ids]
 
-new_groups = []
-report = []
-for name, plan in PLAN.items():
-    src = children[plan['source']]
-    used = []
-    pieces = []
-    for part in ('back', 'gun', 'front'):
-        spec = plan.get(part)
-        if not spec:
-            continue
-        source = children[plan.get(f'{part}_source', plan['source'])]
-        elements = pick(source, spec)
-        new_groups.append(f'<g id="t-{name}-{part}">{"".join(elements)}</g>')
-        pieces.append(part)
-        if plan.get(f'{part}_source', plan['source']) == plan['source']:
-            used.extend(elements)
-    used.extend(pick(src, plan.get('drop', [])))
-    if plan.get('front_source') is None and len(used) != len(src):
-        raise SystemExit(f'{name}: {len(src) - len(used)} children unaccounted for')
-    order = plan.get('wrapper') or pieces
-    uses = ''.join(f'<use href="#{p if p.startswith("sb-") else f"t-{name}-{p}"}"></use>' for p in order)
-    new_groups.append(f'<g id="t-{name}">{uses}</g>')
-    report.append(f't-{name}: ' + ', '.join(f'{p} {len(pick(children[plan.get(f"{p}_source", plan["source"])], plan[p]))}' for p in pieces))
+    new_groups = []
+    report = []
+    for name, plan in PLAN.items():
+        src = children[plan['source']]
+        used = []
+        pieces = []
+        for part in ('back', 'gun', 'front'):
+            spec = plan.get(part)
+            if not spec:
+                continue
+            source = children[plan.get(f'{part}_source', plan['source'])]
+            elements = pick(source, spec)
+            new_groups.append(f'<g id="t-{name}-{part}">{"".join(elements)}</g>')
+            pieces.append(part)
+            if plan.get(f'{part}_source', plan['source']) == plan['source']:
+                used.extend(elements)
+        used.extend(pick(src, plan.get('drop', [])))
+        if plan.get('front_source') is None and len(used) != len(src):
+            raise SystemExit(f'{name}: {len(src) - len(used)} children unaccounted for')
+        order = plan.get('wrapper') or pieces
+        uses = ''.join(f'<use href="#{p if p.startswith("sb-") else f"t-{name}-{p}"}"></use>' for p in order)
+        new_groups.append(f'<g id="t-{name}">{uses}</g>')
+        report.append(f't-{name}: ' + ', '.join(f'{p} {len(pick(children[plan.get(f"{p}_source", plan["source"])], plan[p]))}' for p in pieces))
 
-new_defs = ''.join(kept + new_groups)
-for path, (text, (start, end), _) in sources.items():
-    path.write_text(text[:start] + new_defs + text[end:])
+    new_defs = ''.join(kept + new_groups)
+    for path, (text, (start, end), _) in sources.items():
+        path.write_text(text[:start] + new_defs + text[end:])
 
-print('\n'.join(report))
-print(f'{len(files)} files rewritten, defs {len(defs)} -> {len(new_defs)} characters')
+    print('\n'.join(report))
+    print(f'{len(files)} files rewritten, defs {len(defs)} -> {len(new_defs)} characters')
+
+
+if __name__ == '__main__':
+    main()
