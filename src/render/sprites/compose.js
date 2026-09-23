@@ -10,6 +10,8 @@ import {
   ENEMY_EXTRA_SCALE,
   DOCTRINE_SYMBOLS,
   OWN_SANDBAGS,
+  SHARED_SANDBAGS,
+  TOWER_WEAPONS,
   RANK_COUNT,
 } from './manifest.js';
 
@@ -80,16 +82,25 @@ export function chevronMarkup(rank) {
 }
 
 /**
- * Parts of a tower sprite, back to front.
+ * The three layers of an emplacement, back to front: everything behind the weapon,
+ * the weapon itself (turned in code, may be missing) and what covers it from the front.
  * @param {string} doctrine  Key of DOCTRINE_SYMBOLS.
  * @param {number} rank  1 (recruit) to 5 (legend).
+ * @returns {{back: string[], gun: string[]|null, front: string[]|null}}
  */
-export function towerParts(doctrine, rank) {
+export function towerLayers(doctrine, rank) {
   const body = DOCTRINE_SYMBOLS[doctrine];
   if (!body) throw new Error(`Unknown doctrine: ${doctrine}`);
   if (!(rank >= 1 && rank <= RANK_COUNT)) throw new Error(`Invalid rank: ${rank}`);
-  const ring = rank >= 2 && !OWN_SANDBAGS.has(doctrine);
-  return ['base', ...(ring ? ['sb-back'] : []), body, ...(ring ? ['sb-front'] : [])];
+  // Sandbags: from veteran on, or always where the concept art expects them.
+  const ring = SHARED_SANDBAGS.has(doctrine) || (rank >= 2 && !OWN_SANDBAGS.has(doctrine));
+  const has = (id) => Boolean(TOWER_SPRITES.symbols[id]);
+  const front = [...(ring ? ['sb-front'] : []), ...(has(`${body}-front`) ? [`${body}-front`] : [])];
+  return {
+    back: ['base', ...(ring ? ['sb-back'] : []), `${body}-back`],
+    gun: has(`${body}-gun`) ? [`${body}-gun`] : null,
+    front: front.length ? front : null,
+  };
 }
 
 /**
@@ -113,17 +124,32 @@ export function enemySprite(type) {
   };
 }
 
-export function towerSprite(doctrine, rank) {
-  const parts = towerParts(doctrine, rank);
-  const bbox = union(parts.map((id) => TOWER_SPRITES.symbols[id].bbox));
-  const body = parts.map((id) => `<use href="#${id}"/>`).join('') + chevronMarkup(rank);
+/** One layer of an emplacement as a sprite definition. */
+function towerPart(key, ids, extra = '') {
+  const bbox = union(ids.map((id) => TOWER_SPRITES.symbols[id].bbox));
+  const body = ids.map((id) => `<use href="#${id}"/>`).join('') + extra;
   return {
-    key: `tower:${doctrine}:${rank}`,
+    key,
     bbox,
     unitScale: SPRITE_SCALE.tower,
     // The symbol origin is the centre of the base's top face, TOWER_BASE_TOP units above ground.
     anchorZ: TOWER_BASE_TOP * SPRITE_SCALE.tower,
     svg: (pixelScale) => svgDocument(TOWER_SPRITES, body, bbox, pixelScale),
+  };
+}
+
+/**
+ * Every sprite an emplacement is drawn from, plus how its weapon moves.
+ * @returns {{back: object, gun: object|null, front: object|null, weapon: object|null}}
+ */
+export function towerSpriteSet(doctrine, rank) {
+  const layers = towerLayers(doctrine, rank);
+  return {
+    // The rank chevrons belong to the base and are drawn with the back layer.
+    back: towerPart(`tower:${doctrine}:${rank}:back`, layers.back, chevronMarkup(rank)),
+    gun: layers.gun ? towerPart(`tower:${doctrine}:${rank}:gun`, layers.gun) : null,
+    front: layers.front ? towerPart(`tower:${doctrine}:${rank}:front`, layers.front) : null,
+    weapon: TOWER_WEAPONS[doctrine] ?? null,
   };
 }
 

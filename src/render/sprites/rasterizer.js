@@ -130,6 +130,11 @@ export function createSpriteCache() {
   };
 }
 
+/** World position of the sprite's SVG origin for an entity standing on (wx, wy). */
+export function spriteOrigin(def, wx, wy) {
+  return [wx, wy - def.anchorZ];
+}
+
 /**
  * Draws a sprite with its anchor on world position (wx, wy); the context must carry
  * the camera transform (world pixels).
@@ -146,4 +151,26 @@ export function drawSprite(ctx, def, entry, wx, wy, { flip = false, flash = fals
   } else {
     ctx.drawImage(image, wx + bx * s, y, bw * s, bh * s);
   }
+}
+
+/**
+ * Draws a sprite that turns around a pivot, e.g. the weapon of an emplacement.
+ * The pivot and the offset are SVG units in the sprite's own frame; the offset
+ * (recoil, wobble) is applied after the rotation, so it follows the barrel.
+ *
+ * @param {number[]} pivot  [x, y] in SVG units.
+ * @param {number} angle  Rotation in radians on top of the pose in the artwork.
+ * @param {{flip?: boolean, offset?: number[], flash?: boolean}} options
+ */
+export function drawSpriteTurned(ctx, def, entry, wx, wy, pivot, angle, { flip = false, offset, flash = false } = {}) {
+  const s = def.unitScale;
+  const [bx, by, bw, bh] = def.bbox;
+  const [ox, oy] = spriteOrigin(def, wx, wy);
+  ctx.save();
+  ctx.translate(ox + pivot[0] * s, oy + pivot[1] * s);
+  if (flip) ctx.scale(-1, 1);
+  ctx.rotate(angle);
+  if (offset) ctx.translate(offset[0] * s, offset[1] * s);
+  ctx.drawImage(flash ? entry.flash : entry.canvas, (bx - pivot[0]) * s, (by - pivot[1]) * s, bw * s, bh * s);
+  ctx.restore();
 }

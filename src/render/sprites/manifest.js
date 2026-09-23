@@ -74,4 +74,33 @@ export const DOCTRINE_SYMBOLS = {
  */
 export const OWN_SANDBAGS = new Set(['autocannon', 'mortar']);
 
+/**
+ * The autocannon's own ring is not drawn into its group: the concept sheet wraps the
+ * shared sandbag symbols around it, so it always gets them, at every rank.
+ */
+export const SHARED_SANDBAGS = new Set(['autocannon']);
+
+/**
+ * The moving part of each emplacement (M4: the weapon comes out of the sprite and is
+ * turned in code). All values are SVG units in the symbol's own frame.
+ *
+ * - `pivot`   where the weapon sits on its mount and turns around.
+ * - `rest`    screen angle the weapon points at in the artwork (atan2, y downwards).
+ * - `muzzle`  distance from the pivot to the muzzle, for flames, glows and arcs.
+ * - `track`   how much of the way to the target it turns; the mortar only leans.
+ * - `turn`    turning speed in radians per second.
+ * - `recoil`  how far the weapon is pushed back along its axis after a shot.
+ * - `spin`    sideways wobble of a barrel cluster while firing.
+ * - `float`   the part hovers instead of aiming (the psi crystal).
+ * - `static`  nothing moves; the entry only marks where the glow sits (tesla sphere).
+ */
+export const TOWER_WEAPONS = {
+  flame: { pivot: [-4, -8], rest: 2.8024, muzzle: 36, track: 1, turn: 10 },
+  autocannon: { pivot: [-6, -19], rest: 2.7687, muzzle: 49.4, track: 1, turn: 14, recoil: 4, spin: 1.4 },
+  laser: { pivot: [0, -112], rest: 2.78, muzzle: 48.1, track: 1, turn: 8, recoil: 2.5 },
+  mortar: { pivot: [4, -6], rest: -1.7819, muzzle: 57.3, track: 0.22, turn: 5, recoil: 7 },
+  psi: { pivot: [0, -100], float: true },
+  tesla: { pivot: [0, -100], static: true },
+};
+
 export const RANK_COUNT = MAX_RANK;

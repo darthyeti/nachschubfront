@@ -3,14 +3,15 @@ import assert from 'node:assert/strict';
 import {
   pickLevel,
   nextFlip,
-  towerParts,
-  towerSprite,
+  towerLayers,
+  towerSpriteSet,
   enemySprite,
   chevronMarkup,
   ENEMY_TYPES,
   DOCTRINES,
   RASTER_LEVELS,
 } from '../../src/render/sprites/compose.js';
+import { TOWER_WEAPONS } from '../../src/render/sprites/manifest.js';
 import { ENEMY_SPRITES } from '../../src/render/sprites/enemies.js';
 import { TOWER_SPRITES } from '../../src/render/sprites/towers.js';
 import { ENEMIES, BOSSES, ALL_ENEMIES } from '../../src/data/enemies.js';
@@ -31,6 +32,14 @@ test('imported libraries contain all concept symbols', () => {
   for (const id of ['base', 'sb-back', 'sb-front', 't-flame', 't-ac', 't-laser', 't-mortar', 't-psi', 't-tesla']) {
     assert.ok(TOWER_SPRITES.symbols[id], id);
   }
+  // M4: every doctrine is split into a back layer, and all but the tesla into a weapon.
+  for (const id of ['t-flame', 't-ac', 't-laser', 't-mortar', 't-psi', 't-tesla']) {
+    assert.ok(TOWER_SPRITES.symbols[`${id}-back`], `${id}-back`);
+  }
+  for (const id of ['t-flame', 't-ac', 't-laser', 't-mortar', 't-psi']) {
+    assert.ok(TOWER_SPRITES.symbols[`${id}-gun`], `${id}-gun`);
+  }
+  assert.ok(!TOWER_SPRITES.symbols['t-tesla-gun'], 'the tesla coil has no moving weapon');
   assert.ok(!ENEMY_SPRITES.defs.includes('id="sil"'), 'unused silhouette filter is dropped');
 });
 
@@ -69,15 +78,46 @@ test('nextFlip mirrors when moving right on screen, with a dead zone', () => {
   assert.equal(nextFlip(false, 0.7071, 0.7071), false);
 });
 
-test('tower parts: sandbag ring from veteran on, except doctrines with their own', () => {
-  assert.deepEqual(towerParts('flame', 1), ['base', 't-flame']);
-  assert.deepEqual(towerParts('flame', 2), ['base', 'sb-back', 't-flame', 'sb-front']);
-  assert.deepEqual(towerParts('tesla', 5), ['base', 'sb-back', 't-tesla', 'sb-front']);
-  assert.deepEqual(towerParts('autocannon', 3), ['base', 't-ac']);
-  assert.deepEqual(towerParts('mortar', 2), ['base', 't-mortar']);
-  assert.throws(() => towerParts('flame', 0));
-  assert.throws(() => towerParts('flame', 6));
-  assert.throws(() => towerParts('bogus', 1));
+test('tower layers: sandbag ring from veteran on, except doctrines with their own', () => {
+  assert.deepEqual(towerLayers('flame', 1), { back: ['base', 't-flame-back'], gun: ['t-flame-gun'], front: null });
+  assert.deepEqual(towerLayers('flame', 2), {
+    back: ['base', 'sb-back', 't-flame-back'],
+    gun: ['t-flame-gun'],
+    front: ['sb-front'],
+  });
+  assert.deepEqual(towerLayers('tesla', 5), { back: ['base', 'sb-back', 't-tesla-back'], gun: null, front: ['sb-front'] });
+  // The mortar brings its own sandbags inside its group, the autocannon uses the shared ones.
+  assert.deepEqual(towerLayers('mortar', 2), {
+    back: ['base', 't-mortar-back'],
+    gun: ['t-mortar-gun'],
+    front: ['t-mortar-front'],
+  });
+  assert.deepEqual(towerLayers('autocannon', 1), {
+    back: ['base', 'sb-back', 't-ac-back'],
+    gun: ['t-ac-gun'],
+    front: ['sb-front', 't-ac-front'],
+  });
+  assert.throws(() => towerLayers('flame', 0));
+  assert.throws(() => towerLayers('flame', 6));
+  assert.throws(() => towerLayers('bogus', 1));
+});
+
+test('every doctrine with a weapon knows where it turns and where its muzzle is', () => {
+  for (const doctrine of DOCTRINES) {
+    const set = towerSpriteSet(doctrine, 1);
+    const weapon = TOWER_WEAPONS[doctrine];
+    assert.ok(weapon, doctrine);
+    assert.equal(weapon.pivot.length, 2, doctrine);
+    if (!set.gun) continue;
+    // A weapon that aims needs a resting angle and a muzzle; the psi crystal only floats.
+    if (weapon.float) continue;
+    assert.equal(typeof weapon.rest, 'number', doctrine);
+    assert.ok(weapon.muzzle > 0, doctrine);
+    // The pivot has to lie inside the weapon's own bounds, otherwise it turns off its mount.
+    const [x, y, w, h] = set.gun.bbox;
+    assert.ok(weapon.pivot[0] >= x && weapon.pivot[0] <= x + w, `${doctrine}: pivot x`);
+    assert.ok(weapon.pivot[1] >= y && weapon.pivot[1] <= y + h, `${doctrine}: pivot y`);
+  }
 });
 
 test('chevrons: one per rank, gold only for legend', () => {
@@ -89,19 +129,36 @@ test('chevrons: one per rank, gold only for legend', () => {
   }
 });
 
-test('tower sprites cover all parts and render as standalone SVG', () => {
+test('tower sprites cover all layers and render as standalone SVG', () => {
   for (const doctrine of DOCTRINES) {
     for (let rank = 1; rank <= 5; rank++) {
-      const s = towerSprite(doctrine, rank);
-      assert.equal(s.key, `tower:${doctrine}:${rank}`);
-      const svg = s.svg(2);
-      assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"'));
-      for (const id of towerParts(doctrine, rank)) assert.ok(svg.includes(`<use href="#${id}"/>`), id);
-      const [x, y, w, h] = s.bbox;
+      const set = towerSpriteSet(doctrine, rank);
+      const layers = towerLayers(doctrine, rank);
+      for (const name of ['back', 'gun', 'front']) {
+        if (!layers[name]) {
+          assert.equal(set[name], null, `${doctrine} ${name}`);
+          continue;
+        }
+        const def = set[name];
+        assert.equal(def.key, `tower:${doctrine}:${rank}:${name}`);
+        const svg = def.svg(2);
+        assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"'));
+        for (const id of layers[name]) assert.ok(svg.includes(`<use href="#${id}"/>`), id);
+      }
+      // The base and the rank chevrons ride on the back layer.
+      const [x, y, w, h] = set.back.bbox;
       const base = TOWER_SPRITES.symbols.base.bbox;
       assert.ok(x <= base[0] && y <= base[1] && x + w >= base[0] + base[2] && y + h >= base[1] + base[3]);
+      assert.equal((set.back.svg(1).match(/<polyline/g) ?? []).length, rank * 2);
     }
   }
+});
+
+test('effects painted into the concept art are gone; code draws them now', () => {
+  // Flame jet, muzzle arcs, mortar smoke, laser and tesla glow, lightning.
+  assert.ok(!TOWER_SPRITES.defs.includes('id="ac-core"'), 'the autocannon core is split up');
+  const gun = towerSpriteSet('flame', 1).gun.svg(1);
+  assert.ok(!gun.includes('#ff8a2a'), 'no flame is baked into the nozzle');
 });
 
 test('svg pixel size follows the requested scale', () => {

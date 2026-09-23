@@ -88,8 +88,11 @@ attachPointerInput(canvas, {
 });
 
 // ---------- Frame ----------
+let lastT = null;
 function frame(now) {
   const t = now / 1000;
+  const dt = lastT === null ? 0 : Math.min(0.05, t - lastT);
+  lastT = t;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#110c0a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -102,7 +105,7 @@ function frame(now) {
   ].sort((a, b) => a[0] - b[0]);
   for (const [, kind, o] of items) {
     o.flash = flash ? 1 : 0;
-    if (kind === 0) drawTowerSprite(ctx, cache, o, camera.zoom, view.dpr);
+    if (kind === 0) drawTowerSprite(ctx, cache, o, camera.zoom, view.dpr, t, dt);
     else drawEnemy(ctx, o, t, camera.zoom, view.dpr);
   }
   stats.textContent = T.stats(camera.zoom.toFixed(2), cache.stats.rasterized);

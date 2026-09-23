@@ -173,7 +173,7 @@ export function createSceneRenderer(sprites) {
       else if (kind === KIND_BEACON) drawBeacon(ctx, o, t);
       else if (kind === KIND_POD) drawPod(ctx, o, t);
       else if (kind === KIND_TOWER) {
-        if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, o, cam.zoom, view.dpr, t)) {
+        if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, o, cam.zoom, view.dpr, t, dt, ui.reducedMotion)) {
           drawTowerPlaceholder(ctx, o);
         }
       } else {
