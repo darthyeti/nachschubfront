@@ -1,11 +1,13 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M4b Designanpassungen aus Spieltest 1 ist umgesetzt und wartet auf die Abnahme (besonders der Abbruchmodus und der Nachschub-Knopf auf dem iPad). Die Vorarbeit ist erledigt: `docs/GDD-update-v2.md` ist in `docs/GDD.md` eingearbeitet (Stand jetzt "Grundlagen v2"), das GDD ist wieder die einzige Quelle.
+M4c Neue Kapselform (`docs/meilensteine/M4c-kapselform.md`) ist der nächste Meilenstein und wartet auf die Freigabe des Plans. Die Vorarbeit ist erledigt: `docs/ART-kapsel.md` ist als Abschnitt "Nachschubkapsel" in `docs/ART.md` eingearbeitet, `docs/ART.md` ist wieder die einzige Quelle für die Grafik.
+
+M4b Designanpassungen aus Spieltest 1 ist umgesetzt und wartet auf die Abnahme (besonders der Abbruchmodus und der Nachschub-Knopf auf dem iPad). Die Vorarbeit dazu: `docs/GDD-update-v2.md` ist in `docs/GDD.md` eingearbeitet (Stand jetzt "Grundlagen v2"), das GDD ist wieder die einzige Quelle.
 
 M4 Präsentation ist umgesetzt und wartet auf die Abnahme auf dem iPad (Ton und Mehrfinger-Gesten lassen sich nur dort wirklich beurteilen). M3 wartet ebenfalls auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
 
-Reihenfolge: M1 → M1b → M2 → M3 → M4 → **M4b** → M5 → M6
+Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → **M4c** → M5 → M6
 
 ## Erledigt
 - Game-Design-Grundlagen (docs/GDD.md)
