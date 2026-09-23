@@ -270,23 +270,23 @@ try {
       assert.equal(cards.length, 5);
       assert.equal((await page.evaluate(() => window.__nachschub.ui())).podSelected, 0, 'first pod preselected');
 
-      // Pick a pod other than the preselected one and pan it clear of the panel;
+      // Pick a pod other than the preselected one that the panel does not cover;
       // on the map only the free area is tappable, the cards reach every pod.
-      const panelTop = await page.evaluate(() => document.querySelector('.selection').getBoundingClientRect().top);
+      const panel = await page.evaluate(() => {
+        const r = document.querySelector('.selection').getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      });
       const pods = (await game(page)).pods;
-      const heights = await Promise.all(pods.map((p) => screenOf(page, p)));
-      const index = heights.map(([, y], i) => [y, i]).filter(([, i]) => i > 0).sort((a, b) => a[0] - b[0])[0][1];
-      const target = panelTop - 90;
-      let [px, py] = heights[index];
-      if (py > target) {
-        const dy = py - target;
-        await touch('touchStart', [[600, 420]]);
-        for (let i = 1; i <= 10; i++) await touch('touchMove', [[600, 420 - (dy * i) / 10]]);
-        await touch('touchEnd', []);
-        await frames(page);
-        [px, py] = await screenOf(page, pods[index]);
-      }
-      assert.ok(py < panelTop, `pod ${index} at y ${py}, panel starts at ${panelTop}`);
+      const spots = await Promise.all(pods.map((p) => screenOf(page, p)));
+      const clear = ([x, y]) => x < panel.left - 10 || x > panel.right + 10 || y < panel.top - 10 || y > panel.bottom + 10;
+      // Highest on screen first, so the match plays out the same way as before
+      // the panel moved to the side.
+      const index = spots
+        .map(([x, y], i) => [y, i, [x, y]])
+        .filter(([, i, spot]) => i > 0 && clear(spot))
+        .sort((a, b) => a[0] - b[0])[0]?.[1];
+      assert.ok(index > 0, `no pod beside the panel: ${JSON.stringify(spots)} vs ${JSON.stringify(panel)}`);
+      const [px, py] = spots[index];
       const pod = pods[index];
       await page.touchscreen.tap(px, py);
       await frames(page);
@@ -485,6 +485,35 @@ try {
       assert.equal((await page.evaluate(() => window.__nachschub.ui())).art, 'placeholder');
       await page.keyboard.press('g');
       assert.equal((await page.evaluate(() => window.__nachschub.ui())).art, 'sprites');
+    });
+
+    await check('sound starts after the first interaction', async () => {
+      const audio = await page.evaluate(() => window.__nachschub.audio());
+      assert.equal(audio.ready, true, 'the context is running');
+      assert.equal(audio.muted, false);
+    });
+
+    await check('every sound recipe actually makes a sound', async () => {
+      // Rendered offline, so the check works on a machine without speakers.
+      const peaks = await page.evaluate(async () => {
+        const { playSound } = await import('/src/audio/synth.js');
+        const { SOUNDS } = await import('/src/data/audio.js');
+        const out = {};
+        for (const [name, sound] of Object.entries(SOUNDS)) {
+          const ctx = new OfflineAudioContext(1, 44100 * 3, 44100);
+          playSound(ctx, ctx.destination, sound, { at: 0 });
+          const data = (await ctx.startRendering()).getChannelData(0);
+          let peak = 0;
+          for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i]));
+          out[name] = peak;
+        }
+        return out;
+      });
+      for (const [name, peak] of Object.entries(peaks)) {
+        assert.ok(peak > 0.005, `${name} is silent (peak ${peak})`);
+        assert.ok(peak < 2, `${name} clips (peak ${peak})`);
+      }
+      assert.ok(Object.keys(peaks).length >= 15, 'all sounds were rendered');
     });
 
     await page.screenshot({ path: join(OUT, 'desktop-input.png') });

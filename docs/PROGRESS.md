@@ -116,6 +116,13 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Der Auswahldialog rückt auf breiten Bildschirmen an den rechten Rand und stapelt die Kapselkarten. Die Vorderkante der Karte bleibt frei, jede Kapsel ist antippbar (bekanntes Problem aus M2).
   - Tests: 25 Eingabeprüfungen im Browser (neu: Ende-Bildschirm statt Banner, Pausenmenü mit Escape, Einstellungen werden gespeichert), 229 Unit-Tests. Die Browser-Werkzeuge verlassen den Titelbildschirm jetzt über denselben Knopf wie ein Spieler (`startMatch` in `tests/tools/server.mjs`), die Screenshots halten ihn zusätzlich fest.
 
+- M4 Schritt 7 von 8: Ton (23.09.2026):
+  - Alle Geräusche sind synthetisiert (Entscheidung zum M4-Plan): keine Audiodateien im Repository, keine Lizenzfragen, offline-fähig. Die Rezepte stehen als Daten in `src/data/audio.js`, der Synthesizer (`src/audio/synth.js`) baut daraus Oszillatoren und gefiltertes Rauschen mit Hüllkurve.
+  - Zwanzig Klänge: Autokanone, Laser, Tesla, Mörser, Flamme, Explosion, Abschuss, Bossabschuss, Durchbruch, Kapseleinschlag, Luken, Stellung gebaut, Wellenstart, Welle abgewehrt, Kommando, Sieg, Niederlage, Knopfdruck, Ablehnung.
+  - Musik: eine tiefe Drone aus drei Stimmen, dazu eine Trommel auf jedem Takt, solange eine Welle läuft, und alle vier Takte eine Glocke. Die Ereignisse werden gut eine Sekunde im Voraus eingeplant, damit der Browser dazwischen schlafen kann. In der Planung ist die Musik leiser als im Gefecht.
+  - Der Ton startet erst nach der ersten Berührung oder Taste (Safari), die Lautstärkeregler aus Schritt 6 wirken sofort, ein Hintergrund-Tab wird stummgeschaltet. Obergrenze von 18 gleichzeitigen Stimmen, dazu eine Mindestpause je Klang, damit 200 Gegner den Ton nicht zumauern.
+  - Tests: 232 Unit-Tests (neu: jedes Klangrezept ist abspielbar, die häufigen haben eine Mindestpause, die Musikzeiten sind stimmig) und 27 Eingabeprüfungen. Zwei davon prüfen den Ton im Browser: Der Kontext läuft nach dem ersten Klick, und jeder der zwanzig Klänge wird in einem OfflineAudioContext gerendert — keiner ist still, keiner übersteuert. Das läuft auch ohne Lautsprecher, in Chromium und in WebKit.
+
 ## Offen
 - Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
 - Balancing wird **nicht** mit den automatischen Werkzeugen beurteilt (Entscheidung vom 23.09.2026): Wo die Stellungen stehen, entscheidet im Spiel immer der Spieler, und daran hängt das Ergebnis mehr als an jedem Tabellenwert. `npm run playmatch` und `npm run test:battle` setzen die Zonen nach einer festen Regel und sind darum Regressionsprüfungen („läuft eine ganze Partie fehlerfrei durch"), keine Balancing-Messung. Ihre Wellenzahlen sagen nichts über die Schwierigkeit für einen Menschen.

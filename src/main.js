@@ -32,6 +32,7 @@ import { createInfoPanel } from './ui/info.js';
 import { createDebugPanel } from './ui/debug.js';
 import { createMenus } from './ui/menu.js';
 import { createPrefs, wantsReducedMotion } from './core/prefs.js';
+import { createAudio } from './audio/index.js';
 import { storage } from './storage/index.js';
 import { createLoadingScreen } from './ui/loading.js';
 import { createSpriteCache } from './render/sprites/rasterizer.js';
@@ -341,6 +342,18 @@ prefs.onChange(applyMotion);
 systemMotion.addEventListener('change', applyMotion);
 prefs.load().then(applyMotion);
 
+// Sound starts with the first real interaction (Safari refuses before that).
+const audio = createAudio(prefs);
+for (const type of ['pointerdown', 'keydown']) {
+  window.addEventListener(type, () => audio.unlock(), { once: false, passive: true });
+}
+// A button under the finger should click, not just arm the audio.
+document.addEventListener('click', (ev) => {
+  if (ev.target instanceof HTMLElement && ev.target.closest('button')) audio.play('click');
+});
+// Nothing should keep playing in a background tab.
+document.addEventListener('visibilitychange', () => audio.setMuted(document.hidden));
+
 /** Speed to go back to once every screen is closed again. */
 let speedBeforeMenu = 1;
 
@@ -420,6 +433,7 @@ function frame(now) {
   stepper.advance(dt, state.speed, (stepDt) => stepSimulation(state, stepDt));
   // The effects read the events before they are drained.
   ui.effects.update(realDt, state, ui.reducedMotion);
+  audio.update(realDt, state);
   drainEvents();
 
   for (const f of ui.flashes) f.life -= realDt;
@@ -501,6 +515,7 @@ if (debug) {
       setWave: (n) => setWave(state, n),
     },
     sprites: () => ({ ...sprites.stats }),
+    audio: () => ({ ready: audio.ready, muted: audio.muted }),
     ui: () => ({
       art: ui.art,
       frameMs: ui.frameMs,
