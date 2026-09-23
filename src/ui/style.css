@@ -214,6 +214,39 @@ button.primary {
   padding: 6px 20px;
 }
 
+/* The supply button carries its own readout: label on top, rank chances below. */
+.supply-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 14px;
+}
+
+.supply-chances {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+}
+
+.supply-bar {
+  width: 11px;
+  height: 100%;
+  /* Dark track, so a part-filled bar reads at a glance on a light button. */
+  background: rgba(26, 20, 16, 0.55);
+  border: 1px solid var(--ink);
+  display: flex;
+  align-items: flex-end;
+}
+
+.supply-bar-fill {
+  display: block;
+  width: 100%;
+  /* Height is the rank's percentage; a rank at 0 shows an empty slot. */
+  min-height: 0;
+}
+
 button:disabled {
   opacity: 0.45;
   cursor: default;

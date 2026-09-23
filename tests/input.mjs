@@ -383,6 +383,34 @@ try {
       await page.locator('.menu[data-menu="pause"]').waitFor({ state: 'hidden' });
     });
 
+    await check('the supply button names its level, price and the chances it buys', async () => {
+      const supply = page.getByRole('button', { name: /Nachschubstufe/ });
+      const label = await supply.locator('.supply-label').textContent();
+      const level = (await game(page)).supplyLevel;
+      assert.match(label, new RegExp(`Nachschubstufe ${level} auf ${level + 1}`), label);
+
+      // One bar per rank, filled to that rank's chance at the level being bought.
+      const bars = await supply.locator('.supply-bar-fill').evaluateAll((els) =>
+        els.map((e) => e.style.height));
+      assert.equal(bars.length, 5, 'one bar per rank');
+      assert.deepEqual(bars, ['80%', '20%', '0%', '0%', '0%'], 'the chances of level 2');
+
+      // The explanation must not be hover-only: a long press puts it in the banner.
+      const box = await supply.boundingBox();
+      const [bx, by] = [box.x + box.width / 2, box.y + box.height / 2];
+      await page.touchscreen.tap(bx, by);
+      await frames(page);
+      const afterTap = await game(page);
+      await touch('touchStart', [[bx, by]]);
+      await page.waitForTimeout(700);
+      await touch('touchEnd', []);
+      await frames(page);
+      const banner = await page.locator('.hud-banner').textContent();
+      assert.match(banner, /nur für künftige Kapseln/, banner);
+      assert.match(banner, /Rekrut 80 %/, banner);
+      assert.equal((await game(page)).supplyLevel, afterTap.supplyLevel, 'a long press buys nothing');
+    });
+
     await check('demolish mode clears several cells in a row, each after a confirming tap', async () => {
       // Debug rubble stands in for the heaps a salvo leaves behind.
       await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();

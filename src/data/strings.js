@@ -17,8 +17,13 @@ export const STRINGS = {
     requisition: (n) => `Requisition ${n}`,
     commandPoints: (n) => `${n} KP`,
     commandPointsTitle: 'Kommandopunkte',
-    buySupply: (cost) => `Nachschub ausbauen · ${cost}`,
-    supplyMax: 'Nachschub voll',
+    buySupply: (level, next, cost) => `Nachschubstufe ${level} auf ${next} · ${cost}`,
+    supplyMax: 'Nachschubstufe voll',
+    /** Read out for screen readers and shown on hover or a long press. */
+    supplyChancesLabel: 'Rangchancen der nächsten Stufe',
+    supplyChance: (rank, percent) => `${rank} ${percent} %`,
+    supplyHint:
+      'Die Stufe gilt nur für künftige Kapseln, nicht für Stellungen, die schon stehen.',
     demolish: (cost) => `Abreißen · ab ${cost}`,
     demolishConfirm: (cost) => `Abreißen? ${cost}`,
     newGame: 'Neue Partie',

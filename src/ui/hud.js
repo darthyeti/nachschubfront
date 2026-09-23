@@ -2,6 +2,8 @@
 
 import { STRINGS } from '../data/strings.js';
 import { GAME_SPEEDS } from '../data/settings.js';
+import { RANK_COLORS } from '../data/ranks.js';
+import { supplyWeights, MAX_SUPPLY_LEVEL } from '../data/supply.js';
 import { previewRoute, zoneLimit } from '../sim/zones.js';
 import { canBuySupply, nextSupplyCost, nextRubbleCost } from '../sim/economy.js';
 
@@ -19,12 +21,44 @@ function button(label, className, onClick) {
   b.type = 'button';
   b.classList.add('interactive');
   b.addEventListener('click', (ev) => {
+    if (b.dataset.heldOpen === '1') {
+      // The long press already answered; swallow the click that follows it.
+      delete b.dataset.heldOpen;
+      return;
+    }
     onClick(ev);
     // Give focus back, so Space keeps toggling pause instead of re-pressing this button.
     // (Not preventDefault on pointerdown: WebKit then drops the click after a touch.)
     b.blur();
   });
   return b;
+}
+
+/** Seconds a finger has to rest on a button before it counts as a long press. */
+const LONG_PRESS_MS = 450;
+
+/**
+ * Explains a button on hover and on a long press. `title` alone would leave the
+ * text out of reach on a tablet, and nothing may be hover-only (GDD section 13).
+ */
+function explain(b, text, show) {
+  b.title = text;
+  let timer = null;
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+  };
+  b.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType === 'mouse') return;
+    timer = setTimeout(() => {
+      timer = null;
+      b.dataset.heldOpen = '1';
+      show();
+    }, LONG_PRESS_MS);
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
+    b.addEventListener(type, cancel);
+  }
 }
 
 /**
@@ -68,7 +102,25 @@ export function createHud(root, { debug, onAction }) {
   const restart = button(T.newGame, 'primary', () => onAction('newGame'));
   const codex = button(T.codex, 'alt', () => onAction('codex'));
   const menu = button(T.menu, 'alt', () => onAction('menu'));
-  const buySupplyButton = button(T.buySupply(0), 'alt', () => onAction('buySupply'));
+  // The supply button says what it buys and what that changes (GDD section 13):
+  // the level it moves to, the price, and the rank chances that follow, as bars
+  // in the rank colours. The explanation hangs off `title`, so hovering is never
+  // the only way to it: a long press on a touch device shows the same text.
+  const buySupplyButton = button('', 'alt supply-button', () => onAction('buySupply'));
+  const supplyLabel = el('span', 'supply-label');
+  const supplyChances = el('span', 'supply-chances');
+  supplyChances.setAttribute('aria-label', T.supplyChancesLabel);
+  const supplyBars = RANK_COLORS.map((color, i) => {
+    const bar = el('span', 'supply-bar');
+    const fill = el('span', 'supply-bar-fill');
+    fill.style.background = color;
+    bar.append(fill);
+    bar.title = STRINGS.ranks[i + 1];
+    supplyChances.append(bar);
+    return fill;
+  });
+  buySupplyButton.append(supplyLabel, supplyChances);
+  explain(buySupplyButton, T.supplyHint, () => onAction('supplyHint'));
   const demolishButton = button(T.demolish(0), 'alt', () => onAction('demolishMode'));
   bar.append(speedGroup, start, restart, buySupplyButton, demolishButton, codex, menu);
 
@@ -132,7 +184,22 @@ export function createHud(root, { debug, onAction }) {
       set('requisition', state.requisition, (v) => (requisition.textContent = T.requisition(v)));
       set('points', state.commandPoints, (v) => (points.textContent = T.commandPoints(v)));
       const supplyCost = nextSupplyCost(state);
-      set('buySupply', supplyCost, (v) => (buySupplyButton.textContent = v === null ? T.supplyMax : T.buySupply(v)));
+      set('buySupply', `${state.supplyLevel}/${supplyCost}`, () => {
+        const top = supplyCost === null;
+        supplyLabel.textContent = top
+          ? T.supplyMax
+          : T.buySupply(state.supplyLevel, state.supplyLevel + 1, supplyCost);
+        // At the top there is no next level, so the bars show what is in force.
+        const shown = supplyWeights(top ? MAX_SUPPLY_LEVEL : state.supplyLevel + 1);
+        supplyBars.forEach((fill, i) => {
+          fill.style.height = `${shown[i]}%`;
+          fill.parentElement.title = T.supplyChance(STRINGS.ranks[i + 1], shown[i]);
+        });
+        supplyChances.setAttribute(
+          'aria-label',
+          `${T.supplyChancesLabel}: ${shown.map((p, i) => T.supplyChance(STRINGS.ranks[i + 1], p)).join(', ')}`,
+        );
+      });
       set('canBuySupply', canBuySupply(state).ok, (v) => (buySupplyButton.disabled = !v));
       const rubbleCost = nextRubbleCost(state);
       set('demolishCost', rubbleCost, (v) => (demolishButton.textContent = T.demolish(v)));
