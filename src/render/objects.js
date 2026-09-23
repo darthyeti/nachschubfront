@@ -6,6 +6,7 @@ import { poly, box, ell, shadow, comicText } from './draw.js';
 import { C } from './palette.js';
 import { lateralOffset } from './enemySprites.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
+import { BOSSES } from '../data/enemies.js';
 import { RANK_COUNT } from './sprites/manifest.js';
 
 const STONE = C.stone;
@@ -221,8 +222,16 @@ const ENEMY_STYLE = {
   healer: { r: 9, body: C.bone, dark: C.boneD },
 };
 
+/** Bosses borrow the shape of a related enemy here too, twice the size. */
+const BOSS_STYLE = Object.fromEntries(
+  Object.entries(BOSSES).map(([id, boss]) => [
+    id,
+    { ...ENEMY_STYLE[boss.sprite], r: ENEMY_STYLE[boss.sprite].r * boss.scale },
+  ]),
+);
+
 export function drawEnemy(ctx, e, t) {
-  const style = ENEMY_STYLE[e.type] ?? ENEMY_STYLE.warrior;
+  const style = ENEMY_STYLE[e.type] ?? BOSS_STYLE[e.type] ?? ENEMY_STYLE.warrior;
   const off = lateralOffset(e);
   const [sx, sy] = iso(e.x - e.dy * off, e.y + e.dx * off);
   const bob = Math.abs(Math.sin(t * 9 + e.id)) * 2;

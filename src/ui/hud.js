@@ -87,8 +87,11 @@ export function createHud(root, { debug, onAction }) {
   const banner = el('div', 'hud-banner');
   banner.setAttribute('role', 'status');
   banner.setAttribute('aria-live', 'polite');
+  // The headline is a text node next to the detail line, so setting one never
+  // touches the other.
+  const bannerText = document.createTextNode('');
   const bannerDetail = el('div', 'hud-banner-detail');
-  banner.append(bannerDetail);
+  banner.append(bannerText, bannerDetail);
 
   let debugEl = null;
   if (debug) {
@@ -162,8 +165,7 @@ export function createHud(root, { debug, onAction }) {
         });
       }
       set('banner', ui.banner?.text ?? '', (v) => {
-        banner.firstChild?.remove();
-        banner.prepend(document.createTextNode(v));
+        bannerText.nodeValue = v;
         banner.classList.toggle('show', v !== '');
       });
       set('bannerDetail', ui.banner?.detail ?? '', (v) => (bannerDetail.textContent = v));

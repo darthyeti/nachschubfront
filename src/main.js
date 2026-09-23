@@ -443,6 +443,8 @@ if (debug) {
     /** Debug actions; the visible debug panel uses the same simulation calls. */
     debug: {
       setLives: (n) => setLives(state, n),
+      grant: (value) => grant(state, value),
+      setWave: (n) => setWave(state, n),
     },
     sprites: () => ({ ...sprites.stats }),
     ui: () => ({

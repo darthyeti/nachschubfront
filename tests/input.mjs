@@ -189,11 +189,12 @@ try {
     });
 
     await check('buttons are at least 44 x 44 CSS px', async () => {
-      // The debug panel is a development tool, not a player surface, so the
-      // thumb-size rule does not apply to it.
+      // Only what is on screen: panels that are closed (commands, selection,
+      // info) have no size. The debug panel is a development tool, not a player
+      // surface, so the thumb-size rule does not apply to it.
       const sizes = await page.$$eval('#hud button:not([hidden])', (bs) =>
         bs
-          .filter((b) => !b.closest('.debug-panel'))
+          .filter((b) => b.offsetParent !== null && !b.closest('.debug-panel'))
           .map((b) => [b.textContent, b.getBoundingClientRect().width, b.getBoundingClientRect().height]),
       );
       for (const [label, w, h] of sizes) assert.ok(w >= 44 && h >= 44, `${label}: ${w} x ${h}`);
@@ -302,7 +303,14 @@ try {
       assert.equal(s.obstacles, before.obstacles + 4, 'the other four pods became rubble');
       await frames(page);
       assert.ok(await page.locator('.selection').isHidden(), 'the panel closes with the choice');
-      await page.waitForFunction(() => window.__nachschub.state().phase === 'planning', null, { timeout: 90000 });
+      // Wave 1 sends 30 enemies against a single tower that lands wherever the
+      // salvo puts it and often cannot even reach the route: the bastion falls
+      // (noted in docs/PROGRESS.md as a balancing question for M6). The checks
+      // that follow need a living match, so the bastion is propped up here and
+      // knocked down again for the defeat check.
+      await page.evaluate(() => window.__nachschub.debug.setLives(200));
+      // At 1x a whole wave takes its time; this waits in real seconds.
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'planning', null, { timeout: 180000 });
     });
 
     await check('second salvo at 3x, the wave runs and the towers kill', async () => {
@@ -327,6 +335,8 @@ try {
       await page.waitForFunction(() => window.__nachschub.state().phase === 'defeat', null, { timeout: 120000 });
       const banner = await page.locator('.hud-banner').textContent();
       assert.match(banner, /Bastion ist gefallen/);
+      // The banner carries the score of the lost match (GDD section 12).
+      assert.match(await page.locator('.hud-banner-detail').textContent(), /Punkte/);
       assert.ok(await page.getByRole('button', { name: 'Salve anfordern' }).isHidden());
       await page.getByRole('button', { name: 'Neue Partie' }).tap();
       await frames(page);
@@ -336,6 +346,34 @@ try {
       assert.equal(s.lives, 20);
       assert.ok(!page.url().includes(`seed=${SEED}`), 'new match gets a new seed');
       assert.equal(await page.locator('.hud-banner').textContent(), '');
+      assert.equal(await page.locator('.hud-banner-detail').textContent(), '', 'and the score with it');
+    });
+
+    await check('demolish mode clears a heap of rubble for requisition', async () => {
+      // Debug rubble stands in for the heaps a salvo leaves behind.
+      await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
+      const cell = await blockableRouteCell(page);
+      const [x, y] = await screenOf(page, cell);
+      await page.touchscreen.tap(x, y);
+      await frames(page);
+      const withRubble = await game(page);
+      await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
+
+      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
+      await frames(page);
+      const demolish = page.getByRole('button', { name: /Trümmer abreißen/ });
+      await demolish.tap();
+      await frames(page);
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishMode, true);
+      await page.touchscreen.tap(x, y);
+      await frames(page);
+      const cleared = await game(page);
+      assert.equal(cleared.obstacles, withRubble.obstacles - 1, 'the heap is gone');
+      assert.ok(cleared.requisition < 500, 'and it was paid for');
+      assert.equal(cleared.demolished, 1);
+      await demolish.tap();
+      await frames(page);
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishMode, false);
     });
 
     await context.close();

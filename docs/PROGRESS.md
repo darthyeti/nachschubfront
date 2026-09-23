@@ -50,8 +50,8 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
 - M3 Kampf und Inhalte (22.09.2026, Abnahme offen):
   - Datentabellen: Schadensmatrix und Rüstungsarten (`src/data/combat.js`), Gegner mit Sonderfähigkeiten und die fünf Bosse (`enemies.js`), Wirtschaft (`economy.js`), Spezialkommandos (`commands.js`), Werte der Spezialstellungen (`specials.js`).
-  - Wellenliste: alle 50 Wellen ausgeschrieben in `src/data/waves.js`, erzeugt mit `npm run waves` aus den Regeln des GDD (Fünferzyklus, jede zehnte Welle Boss mit Begleitung, Leben mal 1,12 hoch Welle minus eins). Handänderungen in der Datei überschreibt der nächste Lauf, gedacht als Werkzeug für M6.
-  - Kampfkern (`src/sim/combat.js`, `targeting.js`, `damage.js`): Ziel ist der Gegner, der am weitesten auf der Route ist, bei Gleichstand die kleinere ID. Nachladen, Schadensmatrix, Warp-Schild vor dem Fleisch darunter, Belohnung pro Abschuss, Schadenszähler pro Stellung für die Wellenstatistik.
+  - Wellenliste: alle 50 Wellen ausgeschrieben in `src/data/waves.js`, erzeugt mit `npm run waves` aus den Regeln des GDD (Fünferzyklus, jede zehnte Welle Boss mit Begleitung, Leben mal 1,12 hoch Welle minus eins). Handänderungen in der Datei überschreibt der nächste Lauf; für M6 ändert man die Regeln im Werkzeug.
+  - Kampfkern (`src/sim/combat.js`, `targeting.js`, `damage.js`): Ziel ist der Gegner, der den größten Teil seiner Route hinter sich hat, bei Gleichstand die kleinere ID. Der Anteil statt der reinen Strecke, weil Flieger eine kürzere Luftlinie fliegen und sonst nie an die Reihe kämen. Nachladen, Schadensmatrix, Warp-Schild vor dem Fleisch darunter, Belohnung pro Abschuss, Schadenszähler pro Stellung für die Wellenstatistik.
   - Doktrinen: Flamme brennt einen Kegel und setzt in Brand, Autokanone einzeln, Laser durchschlägt die Linie, Mörser führt sein Ziel vor und braucht eine Sekunde Flugzeit, Psi schädigt und verlangsamt im Ring, Tesla springt über vier Ziele mit minus 20 % je Sprung. Dazu Statuseffekte (Brand, Verlangsamung, Betäubung) in `effects.js` und Geschosse in `projectiles.js`.
   - Spezialstellungen: alle sechs Rezepte wirken (`src/data/specials.js`). Jede behält die Doktrin ihrer ersten Zutat, die über Schadensmatrix und Leitfarbe entscheidet.
   - Gegner: Heiler heilen 8/s im Radius 1,5, Zerplatzer setzen vier Schwärmer frei, Warp-Schilde regenerieren nach zwei ruhigen Sekunden. Bosse: Brutmutter setzt unterwegs Schwärmer frei, Warp-Herold springt drei Felder vor, Dämonenprinz wechselt alle vier Sekunden die Rüstungsart.
@@ -63,7 +63,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Debug-Panel (`?debug`): Welle anspringen, Requisition und Kommandopunkte geben, Kapselinhalt erzwingen, Unverwundbarkeit, Wellenstatistik mit den drei stärksten Stellungen.
   - Werkzeuge: `npm run playmatch` spielt eine ganze Partie ohne Browser und schreibt eine Zeile pro Welle, `npm run test:battle` spielt eine echte Partie im Browser bei 3x und scheitert an jedem Konsolenfehler.
   - Leistung (Playwright, Apple M2 mit GPU): Der Belastungstest kämpft jetzt mit. 200 Gegner und 40 feuernde Stellungen mit allen Effekten bleiben bei 60 fps, Rechenzeit 1,3 bis 2,0 ms pro Frame, 0 Rasterungen im Betrieb.
-  - Tests: 221 Unit-Tests (Kampf, Doktrinen, Spezialstellungen, Fähigkeiten, Kommandos, Wirtschaft, Infoanzeige, Wellentabelle) und die Browser-Prüfungen.
+  - Tests: 222 Unit-Tests (Kampf, Doktrinen, Spezialstellungen, Fähigkeiten, Kommandos, Wirtschaft, Infoanzeige, Wellentabelle), darunter eine ganze Partie über 50 Wellen mit Prüfung der Invarianten und der Wiederholbarkeit.
 
 ## Offen
 - Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
@@ -80,6 +80,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - Die Spezialstellungen, die Boss-Werte und die Kegel-, Strahl- und Sprungweiten der Doktrinen stehen nicht im GDD. Die eingetragenen Zahlen sind hergeleitet (siehe Entscheidungen) und gehören in M6 auf den Prüfstand.
 
 ## Bekannte Probleme
+- **Welle 1 ist ohne eigene Markierungen verloren.** Wer nur „Salve anfordern" drückt, bekommt fünf zufällig verteilte Kapseln; die eine Stellung daraus steht oft nicht an der Route und trifft nichts. Welle 1 schickt nach GDD 30 Gegner (12 plus 0,5 pro Welle, bei Schwärmern das Doppelte) gegen 20 Leben: gemessen 30 Durchbrüche, Niederlage nach 55 Sekunden. Markiert man die Zonen neben der Route, fällt dieselbe Welle ohne einen einzigen Durchbruch. Zur Entscheidung für M6: Welle 1 verkleinern, das Ergänzen fehlender Zonen routennah machen oder im Spiel darauf hinweisen. Die Browser-Prüfung stützt die Bastion deshalb mit dem Debug-Hebel ab.
 - Der Auswahldialog liegt über dem unteren Rand der Karte (620 × 141 px auf dem Tablet). Eine Kapsel, die genau dahinter liegt, lässt sich nicht antippen, über die Karten im Dialog aber trotzdem wählen.
 - Das Ergänzen fehlender Landezonen prüft im schlimmsten Fall alle freien Felder (etwa 75 ms in einem sehr engen Labyrinth). Das passiert einmal pro Salve, fällt also nur als kurzer Hänger auf.
 - Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).
