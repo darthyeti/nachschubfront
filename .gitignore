@@ -1,3 +1,6 @@
 node_modules/
 tests/output/
 .DS_Store
+
+# Update packages dropped into the working tree; the unpacked docs are what counts.
+*.zip
