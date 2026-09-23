@@ -52,7 +52,7 @@ export const STRINGS = {
     toMenu: 'Hauptmenü',
     newGame: 'Neue Partie',
     howTo:
-      'Landezonen antippen, Salve anfordern, aus den fünf Kapseln eine Stellung wählen. ' +
+      'Landezonen antippen, Salve anfordern, aus den Kapseln eine Stellung wählen. ' +
       'Die Gegner laufen immer den kürzesten freien Weg — mit Trümmern und Stellungen wird er länger.',
     hint: 'Leertaste pausiert · Escape öffnet das Menü · R zeigt die Rezepte',
   },

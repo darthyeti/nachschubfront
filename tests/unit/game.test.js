@@ -14,7 +14,7 @@ import { buildSpawns, totalWaves } from '../../src/sim/waves.js';
 import { spawnEnemy, updateEnemies } from '../../src/sim/enemies.js';
 import { groundPolyline, flyerPolyline, computeRoute } from '../../src/sim/route.js';
 import { ENEMIES } from '../../src/data/enemies.js';
-import { RULES } from '../../src/data/rules.js';
+import { RULES, RULESET_VERSION } from '../../src/data/rules.js';
 import { salvoSize } from '../../src/data/pods.js';
 import { MAX_SUPPLY_LEVEL, supplyCost } from '../../src/data/supply.js';
 import { ECONOMY } from '../../src/data/economy.js';
@@ -29,7 +29,7 @@ import {
 } from '../../src/sim/economy.js';
 import { towerAt } from '../../src/sim/towers.js';
 import { selectionOptions } from '../../src/sim/selection.js';
-import { score } from '../../src/sim/score.js';
+import { score, scoreEntry } from '../../src/sim/score.js';
 import { setWave, grant, forcePod, toggleInvulnerable } from '../../src/sim/debug.js';
 import { isBlocked } from '../../src/sim/grid.js';
 import { SIM_STEP } from '../../src/data/settings.js';
@@ -437,6 +437,16 @@ test('the score counts waves, kills and the lives that are left', () => {
   state.lives = 7;
   assert.equal(score(state), 33 * 1000 + 1240 + 7 * 200);
   assert.equal(score(createGameState(SEED)), RULES.startLives * 200, 'a fresh match is worth its lives');
+});
+
+test('a result carries the ruleset it was played under', () => {
+  const state = createGameState(SEED);
+  state.wave = 12;
+  state.kills = 300;
+  const entry = scoreEntry(state);
+  assert.equal(entry.ruleset, RULESET_VERSION, 'so old and new matches never share a list');
+  assert.equal(entry.seed, SEED);
+  assert.equal(entry.score, score(state));
 });
 
 test('the debug tools jump waves, grant money and spare the bastion', () => {

@@ -396,14 +396,19 @@ try {
       assert.deepEqual(bars, ['80%', '20%', '0%', '0%', '0%'], 'the chances of level 2');
 
       // The explanation must not be hover-only: a long press puts it in the banner.
-      const box = await supply.boundingBox();
-      const [bx, by] = [box.x + box.width / 2, box.y + box.height / 2];
-      await page.touchscreen.tap(bx, by);
-      await frames(page);
+      // The events go straight to the button, because the shared touch driver
+      // aims at the canvas and this is a HUD button.
       const afterTap = await game(page);
-      await touch('touchStart', [[bx, by]]);
+      await supply.evaluate((b) => {
+        const opts = { pointerType: 'touch', pointerId: 1, isPrimary: true, bubbles: true, cancelable: true };
+        b.dispatchEvent(new PointerEvent('pointerdown', opts));
+      });
       await page.waitForTimeout(700);
-      await touch('touchEnd', []);
+      await supply.evaluate((b) => {
+        const opts = { pointerType: 'touch', pointerId: 1, isPrimary: true, bubbles: true, cancelable: true };
+        b.dispatchEvent(new PointerEvent('pointerup', opts));
+        b.click();
+      });
       await frames(page);
       const banner = await page.locator('.hud-banner').textContent();
       assert.match(banner, /nur für künftige Kapseln/, banner);

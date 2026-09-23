@@ -1,5 +1,14 @@
 // Core match rules (GDD section 12).
 
+/**
+ * Which set of rules a match was played under. M4b changed the map (two signal
+ * fires instead of four), the salvo size and the opening waves, so a score from
+ * before it says nothing about one after it, not even on the same seed. Best
+ * scores are stored with this number (M5) so the two never end up in one list.
+ * Raise it whenever a change makes old results incomparable.
+ */
+export const RULESET_VERSION = 2;
+
 export const RULES = {
   /** Bastion lives at the start of a match. */
   startLives: 20,
