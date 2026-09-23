@@ -100,6 +100,19 @@ export const OWN_SANDBAGS = new Set(['autocannon', 'mortar']);
 export const SHARED_SANDBAGS = new Set(['autocannon']);
 
 /**
+ * Veteran detail for the two doctrines that already have a ring: an ammunition
+ * crate. The mortar's right side is taken by its own crate, so it gets the
+ * mirrored one (decision M1b, settled in M4).
+ */
+export const VETERAN_CRATE = { autocannon: 'crate', mortar: 'crate-l' };
+
+/**
+ * Where the elite armour plates sit on doctrines whose weapon does not aim
+ * (SVG units). Everything else gets them on the barrel, along its axis.
+ */
+export const PLATE_SPOT = { psi: [0, -46], tesla: [0, -52] };
+
+/**
  * The moving part of each emplacement (M4: the weapon comes out of the sprite and is
  * turned in code). All values are SVG units in the symbol's own frame.
  *

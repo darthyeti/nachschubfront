@@ -30,15 +30,15 @@ Die sechs Rezept-Stellungen (GDD Abschnitt 8) haben noch keine Konzeptgrafik. Bi
 
 Jeder Rang ergänzt ein sichtbares Detail, kumulativ:
 
-| Rang | Ergänzung | Winkel am Sockel |
-|---|---|---|
-| Rekrut | Grundform | 1 |
-| Veteran | Sandsackring | 2 |
-| Elite | Panzerplatten an der Waffe | 3 |
-| Held | Banner | 4 |
-| Legende | Goldkanten, Halo | 5 (gold) |
+| Rang | Ergänzung | Winkel am Sockel | Umsetzung |
+|---|---|---|---|
+| Rekrut | Grundform | 1 | — |
+| Veteran | Sandsackring | 2 | Symbole `sb-back`/`sb-front`; Autokanone und Mörser haben den Ring schon und bekommen stattdessen eine Munitionskiste (`crate`, `crate-l`) |
+| Elite | Panzerplatten an der Waffe | 3 | erzeugtes SVG quer zum Lauf, auf einem Drittel des Wegs zur Mündung; wo die Waffe nicht zielt (Psi, Tesla) sitzt die Platte am Gehäuse |
+| Held | Banner | 4 | im Code gezeichnet, weht in der Leitfarbe mit Goldsaum |
+| Legende | Goldkanten, Halo | 5 (gold) | Goldkante am Sockelrand als SVG, Halo im Code |
 
-Die Winkel sitzen auf der linken Vorderseite des Sockels.
+Die Winkel sitzen auf der linken Vorderseite des Sockels. Abweichung: Die Goldkante der Legende läuft am Sockel entlang, nicht an der Figur — ein Umriss pro Doktrin wäre für jede Waffe eine eigene Zeichnung.
 
 ## Gegner: insektoide Brut
 
@@ -79,7 +79,7 @@ Die fünf Bosse (GDD Abschnitt 9) haben noch keine Konzeptgrafik. Bis M4 leiht s
 | Schwarmkönigin | Aasflieger | 2,4x | Doppelflügel, Legestachel |
 | Dämonenprinz | Krieger | 2,6x | Wechselnde Rüstung sichtbar machen (Fleisch, Panzer, Warp-Schild) |
 
-Der Dämonenprinz wechselt im Kampf alle vier Sekunden die Rüstungsart. Das ist bisher nur in der Infoanzeige zu sehen und braucht in M4 ein sichtbares Zeichen an der Figur.
+Der Dämonenprinz wechselt im Kampf alle vier Sekunden die Rüstungsart. Sichtbar ist das seit M4 an einem Ring auf dem Boden und einem Schild auf seinem Leib, beides in der Farbe der gerade getragenen Rüstung (Fleisch #c23a2a, Panzer #a4502a, Warp-Schild #9a6ae0); beim Wechsel läuft ein Ring nach außen.
 
 ## Technische Umsetzung
 

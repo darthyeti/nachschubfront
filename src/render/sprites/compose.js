@@ -1,6 +1,7 @@
 // Pure sprite logic without DOM access: sprite definitions (SVG text + bounds),
 // raster level choice and enemy facing. Unit-tested in node.
 
+import { seedFromString } from '../../core/random.js';
 import { ENEMY_SPRITES } from './enemies.js';
 import { TOWER_SPRITES } from './towers.js';
 import {
@@ -12,6 +13,8 @@ import {
   ENEMY_LIMBS,
   OWN_SANDBAGS,
   SHARED_SANDBAGS,
+  VETERAN_CRATE,
+  PLATE_SPOT,
   TOWER_WEAPONS,
   RANK_COUNT,
 } from './manifest.js';
@@ -82,6 +85,49 @@ export function chevronMarkup(rank) {
   return `<g transform="matrix(1 0.5 0 1 -44 0)">${marks}</g>`;
 }
 
+/** Rank at which each detail from docs/ART.md appears. */
+export const RANK_DETAIL = { ring: 2, crate: 2, plates: 3, banner: 4, gold: 5 };
+
+/**
+ * Elite armour plates on the weapon: a plate across the barrel, a third of the
+ * way to the muzzle, so it reads on every doctrine without its own artwork.
+ * Doctrines whose weapon does not aim get it at a fixed spot on the housing.
+ */
+export function plateMarkup(doctrine) {
+  const weapon = TOWER_WEAPONS[doctrine];
+  const spot = PLATE_SPOT[doctrine];
+  const [cx, cy, ax, ay, size] = spot
+    ? [spot[0], spot[1], 1, 0, 13]
+    : [
+        weapon.pivot[0] + Math.cos(weapon.rest) * weapon.muzzle * 0.32,
+        weapon.pivot[1] + Math.sin(weapon.rest) * weapon.muzzle * 0.32,
+        Math.cos(weapon.rest),
+        Math.sin(weapon.rest),
+        weapon.muzzle * 0.17,
+      ];
+  // Across the axis, a little longer than wide.
+  const px = -ay * size;
+  const py = ax * size;
+  const lx = ax * size * 0.42;
+  const ly = ay * size * 0.42;
+  const corner = (sx, sy) => `${(cx + px * sx + lx * sy).toFixed(1)},${(cy + py * sx + ly * sy).toFixed(1)}`;
+  const points = `${corner(1, 1)} ${corner(1, -1)} ${corner(-1, -1)} ${corner(-1, 1)}`;
+  const edge = `${corner(1, -1)} ${corner(-1, -1)}`;
+  return (
+    `<polygon class="k2" points="${points}" fill="#6a655e"/>` +
+    `<polyline points="${edge}" fill="none" stroke="#a8a195" stroke-width="2" stroke-linecap="round"/>`
+  );
+}
+
+/** Legend rank: gold edging along the top face of the base. */
+export function goldEdgeMarkup() {
+  return (
+    '<polygon points="0,-22 44,0 0,22 -44,0" fill="none" stroke="#f2c14e" stroke-width="2.4" ' +
+    'stroke-linejoin="round" opacity="0.9"/>' +
+    '<polyline points="-44,0 0,22 44,0" fill="none" stroke="#fff0b8" stroke-width="1.2" stroke-linejoin="round"/>'
+  );
+}
+
 /**
  * The three layers of an emplacement, back to front: everything behind the weapon,
  * the weapon itself (turned in code, may be missing) and what covers it from the front.
@@ -94,9 +140,15 @@ export function towerLayers(doctrine, rank) {
   if (!body) throw new Error(`Unknown doctrine: ${doctrine}`);
   if (!(rank >= 1 && rank <= RANK_COUNT)) throw new Error(`Invalid rank: ${rank}`);
   // Sandbags: from veteran on, or always where the concept art expects them.
-  const ring = SHARED_SANDBAGS.has(doctrine) || (rank >= 2 && !OWN_SANDBAGS.has(doctrine));
+  const ring = SHARED_SANDBAGS.has(doctrine) || (rank >= RANK_DETAIL.ring && !OWN_SANDBAGS.has(doctrine));
   const has = (id) => Boolean(TOWER_SPRITES.symbols[id]);
-  const front = [...(ring ? ['sb-front'] : []), ...(has(`${body}-front`) ? [`${body}-front`] : [])];
+  // Veteran: a sandbag ring, or a crate where the ring is already part of the artwork.
+  const crate = rank >= RANK_DETAIL.crate ? VETERAN_CRATE[doctrine] : null;
+  const front = [
+    ...(ring ? ['sb-front'] : []),
+    ...(has(`${body}-front`) ? [`${body}-front`] : []),
+    ...(crate ? [crate] : []),
+  ];
   return {
     back: ['base', ...(ring ? ['sb-back'] : []), `${body}-back`],
     gun: has(`${body}-gun`) ? [`${body}-gun`] : null,
@@ -158,7 +210,7 @@ function towerPart(ids, extra = '') {
   const bbox = union(ids.map((id) => TOWER_SPRITES.symbols[id].bbox));
   const body = ids.map((id) => `<use href="#${id}"/>`).join('') + extra;
   return {
-    key: `tower:${ids.join('+')}${extra ? `+${extra.length}` : ''}`,
+    key: `tower:${ids.join('+')}${extra ? `+${seedFromString(extra).toString(36)}` : ''}`,
     bbox,
     unitScale: SPRITE_SCALE.tower,
     // The symbol origin is the centre of the base's top face, TOWER_BASE_TOP units above ground.
@@ -173,12 +225,16 @@ function towerPart(ids, extra = '') {
  */
 export function towerSpriteSet(doctrine, rank) {
   const layers = towerLayers(doctrine, rank);
+  const plates = rank >= RANK_DETAIL.plates ? plateMarkup(doctrine) : '';
+  const onGun = Boolean(layers.gun) && !PLATE_SPOT[doctrine];
+  const backExtra = chevronMarkup(rank) + (rank >= RANK_DETAIL.gold ? goldEdgeMarkup() : '') + (onGun ? '' : plates);
   return {
-    // The rank chevrons belong to the base and are drawn with the back layer.
-    back: towerPart(layers.back, chevronMarkup(rank)),
-    gun: layers.gun ? towerPart(layers.gun) : null,
+    // The rank chevrons and the legend's gold edging belong to the base.
+    back: towerPart(layers.back, backExtra),
+    gun: layers.gun ? towerPart(layers.gun, onGun ? plates : '') : null,
     front: layers.front ? towerPart(layers.front) : null,
     weapon: TOWER_WEAPONS[doctrine] ?? null,
+    rank,
   };
 }
 

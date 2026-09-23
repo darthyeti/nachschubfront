@@ -83,14 +83,18 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Leistung (Apple M2 mit GPU, 200 Gegner und 40 Stellungen): 2,3 bis 3,6 ms Rechenzeit pro Frame, 0 Rasterungen im Betrieb. Vor der Zerlegung waren es 1,7 bis 2,1 ms; die drei Zeichenaufrufe pro Figur kosten also gut eine halbe Millisekunde.
   - Tests: 227 Unit-Tests (neu: Teileaufteilung, Drehpunkte innerhalb der Waffenumrisse, geteilte Rasterungen, keine Effekte mehr im SVG), 23 Eingabeprüfungen, eine volle Partie über 12 Wellen ohne Konsolenfehler.
 
+- M4 Schritt 3 von 8: Ränge und Sonderzeichen (23.09.2026):
+  - Elite-Panzerplatten, Helden-Banner, Goldkante und Halo der Legende. Was sich bewegt (Banner, Halo), ist Code, der Rest erzeugtes SVG im Sprite. Die Tabelle in `docs/ART.md` sagt jetzt pro Rang, wie das Detail entsteht.
+  - Veteran-Detail für Autokanone und Mörser festgelegt: eine Munitionskiste. Sie wird mit `tests/tools/add-crate.py` einmalig aus der Mörser-Zeichnung gelöst (`crate`, gespiegelt `crate-l`), weil der Mörser rechts schon eine hat.
+  - Der Dämonenprinz zeigt seine Rüstung: Bodenring und Schild auf dem Leib in der Farbe der Rüstung, dazu ein auslaufender Ring beim Wechsel.
+  - Sprite-Galerie: Beschriftung jeder Figur und ein Silhouetten-Schalter (Canvas-Filter, nur im Werkzeug) für die Regel „Silhouette vor Detail". Geprüft: Mit Silhouetten bleibt kein farbiger Bildpunkt übrig.
+  - Der Rasterschlüssel enthält jetzt einen Hash der erzeugten Zusatzgrafik statt ihrer Länge, damit zwei verschiedene Ranggrafiken sich nie eine Rasterung teilen können.
+  - Tests: 228 Unit-Tests (neu: Rangdetails erscheinen genau ab dem Rang aus ART.md und bleiben, Kiste statt Ring bei Autokanone und Mörser), 23 Eingabeprüfungen.
+
 ## Offen
 - Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
 - Spezialstellungen haben keine eigene Grafik. Bis M4 nutzen sie das Sprite der ersten Zutat im Legendenrang mit goldenem Ring und Halo. Eigene Silhouetten stehen in M4 im Umfang.
 - Bosse haben keine eigene Grafik. Bis M4 leihen sie sich die Figur eines verwandten Gegners, deutlich größer gezeichnet (`docs/ART.md`).
-- Der Rüstungswechsel des Dämonenprinzen ist nur in der Infoanzeige zu sehen, an der Figur noch nicht.
-- Veteran-Detail für Autokanone und Mörser festlegen (sie haben den Sandsackring schon).
-- Ränge Elite, Held und Legende: Panzerplatten, Banner, Goldkanten und Halo fehlen noch (laut M1b später).
-- Sprite-Galerie (`tests/sprites.html`) ist nur ein Schaukasten: Verschieben, Zoomen, Treffer-Variante. Vorgeschlagen und vertagt: Beschriftungen der Figuren und ein Silhouetten-Schalter für die Regel „Silhouette vor Detail“ aus ART.md.
 - Balancing wird **nicht** mit den automatischen Werkzeugen beurteilt (Entscheidung vom 23.09.2026): Wo die Stellungen stehen, entscheidet im Spiel immer der Spieler, und daran hängt das Ergebnis mehr als an jedem Tabellenwert. `npm run playmatch` und `npm run test:battle` setzen die Zonen nach einer festen Regel und sind darum Regressionsprüfungen („läuft eine ganze Partie fehlerfrei durch"), keine Balancing-Messung. Ihre Wellenzahlen sagen nichts über die Schwierigkeit für einen Menschen.
 - Beobachtung, die davon unberührt bleibt: Flieger überfliegen das Labyrinth, und nur Autokanone, Laser, Psi und Tesla treffen sie. Wer ohne Luftabwehr baut, verliert an einer Flieger-Welle, egal wie gut das Labyrinth ist. Für M6 zu entscheiden, ob das so gewollt ist oder ob das Spiel darauf hinweist.
 - Requisition staut sich: Ab Nachschubstufe 8 (etwa Welle 20) gibt es nur noch Trümmer abreißen als Ausgabe, am Ende liegen über 4000 ungenutzt herum. Kommandopunkte ebenso (50 KP bei vier Kommandos mit Abklingzeit). Beides ist ein Thema für M6, kein Fehler.

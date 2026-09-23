@@ -12,7 +12,7 @@ import { drawSprite, drawSpriteTurned, spriteOrigin } from './sprites/rasterizer
 import { towerSpriteSet, DOCTRINES } from './sprites/compose.js';
 import { RANK_COUNT } from './sprites/manifest.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
-import { drawWeaponGlow, drawWeaponSpark } from './towerFx.js';
+import { drawWeaponGlow, drawWeaponSpark, drawRankMarks } from './towerFx.js';
 
 const sets = new Map();
 /** Render-side movement of each weapon; forgotten with the tower it belongs to. */
@@ -129,6 +129,15 @@ export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, red
     ? [pivot[0] + Math.cos(facing) * weapon.muzzle * scale, pivot[1] + Math.sin(facing) * weapon.muzzle * scale]
     : pivot;
   const view = { doctrine: tower.doctrine, pivot, muzzle, scale, t, reducedMotion };
+  // Banner and halo stand behind the weapon, so the figure covers the pole.
+  drawRankMarks(ctx, {
+    rank: set.rank,
+    colour: DOCTRINE_COLORS[tower.doctrine] ?? C.gold,
+    origin: [ox, oy],
+    scale,
+    t,
+    reducedMotion,
+  });
   drawWeaponGlow(ctx, tower, view);
 
   const gun = set.gun && cache.get(set.gun, zoom, dpr);

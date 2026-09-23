@@ -199,6 +199,9 @@ export function createSceneRenderer(sprites) {
     for (const e of state.enemies) if (onScreen(e.x, e.y)) items.push([e.x + e.y, KIND_ENEMY, e, 0]);
     items.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 
+    // One view object for all enemies, instead of one per creature per frame.
+    const enemyView = { zoom: cam.zoom, dpr: view.dpr, reducedMotion: ui.reducedMotion, simTime: state.time, dt };
+
     for (const [, kind, o, i] of items) {
       if (kind === KIND_OBSTACLE) drawObstacleCell(ctx, o, i);
       else if (kind === KIND_RIFT) drawRift(ctx, o, t);
@@ -210,9 +213,7 @@ export function createSceneRenderer(sprites) {
           drawTowerPlaceholder(ctx, o);
         }
       } else {
-        if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, cam.zoom, view.dpr, ui.reducedMotion)) {
-          drawEnemy(ctx, o, t);
-        }
+        if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, enemyView)) drawEnemy(ctx, o, t);
         drawEnemyBar(ctx, o, ENEMY_TOP[o.type] ?? 20);
       }
     }

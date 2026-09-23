@@ -5,6 +5,9 @@ import {
   nextFlip,
   towerLayers,
   towerSpriteSet,
+  plateMarkup,
+  goldEdgeMarkup,
+  RANK_DETAIL,
   enemySprite,
   chevronMarkup,
   ENEMY_TYPES,
@@ -87,16 +90,19 @@ test('tower layers: sandbag ring from veteran on, except doctrines with their ow
   });
   assert.deepEqual(towerLayers('tesla', 5), { back: ['base', 'sb-back', 't-tesla-back'], gun: null, front: ['sb-front'] });
   // The mortar brings its own sandbags inside its group, the autocannon uses the shared ones.
-  assert.deepEqual(towerLayers('mortar', 2), {
+  // Both get a crate as their veteran detail instead of a second ring.
+  assert.deepEqual(towerLayers('mortar', 1), {
     back: ['base', 't-mortar-back'],
     gun: ['t-mortar-gun'],
     front: ['t-mortar-front'],
   });
+  assert.deepEqual(towerLayers('mortar', 2).front, ['t-mortar-front', 'crate-l']);
   assert.deepEqual(towerLayers('autocannon', 1), {
     back: ['base', 'sb-back', 't-ac-back'],
     gun: ['t-ac-gun'],
     front: ['sb-front', 't-ac-front'],
   });
+  assert.deepEqual(towerLayers('autocannon', 2).front, ['sb-front', 't-ac-front', 'crate']);
   assert.throws(() => towerLayers('flame', 0));
   assert.throws(() => towerLayers('flame', 6));
   assert.throws(() => towerLayers('bogus', 1));
@@ -148,7 +154,21 @@ test('tower sprites cover all layers and render as standalone SVG', () => {
       const [x, y, w, h] = set.back.bbox;
       const base = TOWER_SPRITES.symbols.base.bbox;
       assert.ok(x <= base[0] && y <= base[1] && x + w >= base[0] + base[2] && y + h >= base[1] + base[3]);
-      assert.equal((set.back.svg(1).match(/<polyline/g) ?? []).length, rank * 2);
+      assert.ok(set.back.svg(1).includes(chevronMarkup(rank)), `${doctrine} ${rank}: chevrons`);
+    }
+  }
+});
+
+test('rank details appear at the rank ART.md sets, and stay', () => {
+  for (const doctrine of DOCTRINES) {
+    for (let rank = 1; rank <= 5; rank++) {
+      const set = towerSpriteSet(doctrine, rank);
+      const all = set.back.svg(1) + (set.gun?.svg(1) ?? '');
+      // The plates sit on the weapon, or on the housing where the weapon cannot aim.
+      assert.equal(all.includes(plateMarkup(doctrine)), rank >= RANK_DETAIL.plates, `${doctrine} ${rank}: plates`);
+      assert.equal(set.back.svg(1).includes(goldEdgeMarkup()), rank >= RANK_DETAIL.gold, `${doctrine} ${rank}: gold`);
+      // Banner and halo are drawn in code, so they are not in the sprite.
+      assert.equal(set.rank, rank);
     }
   }
 });

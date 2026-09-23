@@ -9,6 +9,8 @@ import { mapBounds } from '../src/render/iso.js';
 import { createGroundLayer } from '../src/render/ground.js';
 import { createSpriteCache } from '../src/render/sprites/rasterizer.js';
 import { DOCTRINES, ENEMY_TYPES, RASTER_LEVELS } from '../src/render/sprites/compose.js';
+import { iso } from '../src/render/iso.js';
+import { comicText } from '../src/render/draw.js';
 import { allTowerDefs, drawTowerSprite } from '../src/render/towerSprites.js';
 import { ENEMY_SPRITE_DEFS, createEnemySpriteRenderer } from '../src/render/enemySprites.js';
 import { attachPointerInput } from '../src/input/pointer.js';
@@ -39,6 +41,9 @@ const ground = createGroundLayer();
 const cache = createSpriteCache();
 const drawEnemy = createEnemySpriteRenderer(cache);
 let flash = false;
+/** Everything drawn in flat black, to check the rule "silhouette before detail". */
+let silhouette = false;
+let labels = true;
 
 const view = createCanvasView(canvas, (v) => fitCamera(camera, v, bounds, { top: 90, bottom: 84, side: 16 }, { ...CAMERA, minCellPx: 0 }));
 
@@ -67,6 +72,15 @@ const flashButton = mk(T.flash, () => {
   flash = !flash;
   flashButton.classList.toggle('on', flash);
 });
+const silhouetteButton = mk(T.silhouette, () => {
+  silhouette = !silhouette;
+  silhouetteButton.classList.toggle('on', silhouette);
+});
+const labelButton = mk(T.labels, () => {
+  labels = !labels;
+  labelButton.classList.toggle('on', labels);
+});
+labelButton.classList.add('on');
 for (const z of RASTER_LEVELS) {
   mk(T.zoom(z), () => {
     zoomAt(camera, view, z / camera.zoom, view.width / 2, view.height / 2, CAMERA);
@@ -103,10 +117,25 @@ function frame(now) {
     ...towers.map((o) => [o.x + o.y + 1, 0, o]),
     ...enemies.map((o) => [o.x + o.y, 1, o]),
   ].sort((a, b) => a[0] - b[0]);
+  // A canvas filter is fine here: this is a tool, not the game loop.
+  if (silhouette) ctx.filter = 'brightness(0)';
   for (const [, kind, o] of items) {
     o.flash = flash ? 1 : 0;
     if (kind === 0) drawTowerSprite(ctx, cache, o, camera.zoom, view.dpr, t, dt);
-    else drawEnemy(ctx, o, t, camera.zoom, view.dpr);
+    else drawEnemy(ctx, o, t, { zoom: camera.zoom, dpr: view.dpr, dt });
+  }
+  ctx.filter = 'none';
+
+  if (labels) {
+    for (const o of towers) {
+      const [x, y] = iso(o.x + 0.5, o.y + 1.1);
+      comicText(ctx, `${STRINGS.doctrines[o.doctrine]} ${o.rank}`, x, y, 13, '#e8dcc0');
+    }
+    for (const o of enemies) {
+      if (o.dy !== 1) continue; // label the back row only, once per type
+      const [x, y] = iso(o.x, o.y + 0.9);
+      comicText(ctx, STRINGS.enemies[o.type], x, y, 13, '#e8dcc0');
+    }
   }
   stats.textContent = T.stats(camera.zoom.toFixed(2), cache.stats.rasterized);
   requestAnimationFrame(frame);
@@ -115,5 +144,9 @@ function frame(now) {
 cache.preload([...allTowerDefs(), ...ENEMY_SPRITE_DEFS], camera.zoom, view.dpr).then(() => {
   document.body.dataset.ready = 'true';
 });
-window.__gallery = { camera: () => ({ ...camera }), stats: () => ({ ...cache.stats }) };
+window.__gallery = {
+  camera: () => ({ ...camera }),
+  stats: () => ({ ...cache.stats }),
+  mode: () => ({ silhouette, labels, flash, filter: ctx.filter }),
+};
 requestAnimationFrame(frame);

@@ -9,6 +9,9 @@ import { ell } from './draw.js';
 import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 
+/** Where the hero's banner stands on the base and how big it is (SVG units). */
+const BANNER = { x: 31, y: -9, height: 46, cloth: 21 };
+
 /** Arcs around the tesla sphere: idle it crackles, while firing it flares. */
 const ARC_IDLE = 1;
 const ARC_FIRING = 3;
@@ -45,6 +48,64 @@ function arc(ctx, x, y, angle, length, colour, jitter) {
     for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
     ctx.stroke();
   }
+}
+
+/**
+ * Rank details that move (docs/ART.md): the hero's banner waves, the legend
+ * stands in a halo. Drawn right behind the weapon, so the figure covers the pole.
+ * @param {{rank: number, colour: string, origin: number[], scale: number, t: number, reducedMotion: boolean}} view
+ */
+export function drawRankMarks(ctx, view) {
+  const { rank, colour, origin, scale, t, reducedMotion } = view;
+  if (rank >= 5) {
+    // Legend: a halo standing behind the emplacement.
+    const [hx, hy] = [origin[0], origin[1] - 54 * scale];
+    glow(ctx, hx, hy, 34 * scale, C.gold, reducedMotion ? 0.22 : 0.18 + Math.sin(t * 2) * 0.06);
+    ctx.strokeStyle = 'rgba(242,193,78,.55)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(hx, hy, 26 * scale, 10 * scale, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (rank < 4) return;
+
+  // Hero: a pole on the back corner of the base with a waving cloth.
+  const px = origin[0] + BANNER.x * scale;
+  const py = origin[1] + BANNER.y * scale;
+  const top = py - BANNER.height * scale;
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(px, top);
+  ctx.stroke();
+  ctx.strokeStyle = C.steelL;
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  const wave = reducedMotion ? 0 : Math.sin(t * 3) * 3 * scale;
+  const w = BANNER.cloth * scale;
+  const h = BANNER.cloth * 0.75 * scale;
+  ctx.beginPath();
+  ctx.moveTo(px, top);
+  ctx.quadraticCurveTo(px - w * 0.5, top - wave, px - w, top + wave * 0.5);
+  ctx.lineTo(px - w, top + h + wave * 0.5);
+  ctx.quadraticCurveTo(px - w * 0.5, top + h * 0.8 - wave, px, top + h * 0.7);
+  ctx.closePath();
+  ctx.fillStyle = colour;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = C.ink;
+  ctx.stroke();
+  // Golden fringe along the lower edge.
+  ctx.beginPath();
+  ctx.moveTo(px - w, top + h + wave * 0.5);
+  ctx.quadraticCurveTo(px - w * 0.5, top + h * 0.8 - wave, px, top + h * 0.7);
+  ctx.strokeStyle = C.gold;
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  ell(ctx, px, top, 2.2 * scale, 2.2 * scale, C.gold, C.ink, 1.2);
 }
 
 /**
