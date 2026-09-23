@@ -145,8 +145,8 @@ test('ground enemies pass every beacon, flyers take the straight chain', () => {
       if (Math.hypot(flyer.x - b.x, flyer.y - b.y) < 0.05) seenFlyer.add(i);
     });
   }
-  assert.equal(seenWalker.size, 4);
-  assert.equal(seenFlyer.size, 4);
+  assert.equal(seenWalker.size, beacons.length);
+  assert.equal(seenFlyer.size, beacons.length);
   assert.ok(state.waveRoutes.flyer.length < state.waveRoutes.ground.length);
 });
 

@@ -8,19 +8,24 @@ export const MAP = {
   edgeMargin: 6,
 
   /**
-   * Beacon order, seen from the rift. 'near' is the rift's half of the map,
-   * 'left'/'right' split along the rift edge. This order makes the two
-   * diagonal legs (1 -> 2 and 3 -> 4) cross in the middle of the map.
+   * Beacons the route runs through, in order (GDD section 4). Two of them, one
+   * per map half, so the base route is short and open: the player lengthens it.
+   * The halves are the ones left and right of the rift-to-bastion axis, which
+   * forces a sideways sweep without sending the route back and forth in depth.
    */
-  beaconOrder: [
-    { depth: 'near', side: 'left' },
-    { depth: 'far', side: 'right' },
-    { depth: 'far', side: 'left' },
-    { depth: 'near', side: 'right' },
-  ],
+  beaconCount: 2,
 
-  /** Beacons sit at their quadrant's centre, shifted by up to this many cells per axis. */
-  beaconJitter: 3,
+  /** Cells between the two beacons, measured in king steps (8-way movement). */
+  minBeaconDistance: 10,
+
+  /** Cells between a beacon and the rift or the bastion, same measure. */
+  minAnchorDistance: 8,
+
+  /**
+   * Beacons keep this many cells from the map border. Not a GDD number: it
+   * stops a beacon from sitting in a corner where the route hugs the edge.
+   */
+  beaconMargin: 2,
 
   /** Rift, beacons and bastion protect their surrounding ring of this radius. */
   protectRadius: 1,

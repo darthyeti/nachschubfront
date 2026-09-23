@@ -1,9 +1,11 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
+M4b Designanpassungen aus Spieltest 1 (`docs/meilensteine/M4b-designanpassungen.md`) ist der nächste Meilenstein und wartet auf die Freigabe des Plans. Die Vorarbeit ist erledigt: `docs/GDD-update-v2.md` ist in `docs/GDD.md` eingearbeitet (Stand jetzt "Grundlagen v2"), das GDD ist wieder die einzige Quelle.
+
 M4 Präsentation ist umgesetzt und wartet auf die Abnahme auf dem iPad (Ton und Mehrfinger-Gesten lassen sich nur dort wirklich beurteilen). M3 wartet ebenfalls auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
 
-Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
+Reihenfolge: M1 → M1b → M2 → M3 → M4 → **M4b** → M5 → M6
 
 ## Erledigt
 - Game-Design-Grundlagen (docs/GDD.md)
@@ -138,6 +140,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - Die Spezialstellungen, die Boss-Werte und die Kegel-, Strahl- und Sprungweiten der Doktrinen stehen nicht im GDD. Die eingetragenen Zahlen sind hergeleitet (siehe Entscheidungen) und gehören in M6 auf den Prüfstand.
 
 ## Bekannte Probleme
+- **Bestwerte und Seeds aus der Zeit vor M4b sind nicht mehr vergleichbar.** Zwei Signalfeuer statt vier, eine andere Salvengröße und entschärfte erste Wellen ergeben aus demselben Seed eine andere Partie. Beim Speichern der Bestwerte (M5) muss eine Regelversion mitgeschrieben werden, damit alte und neue Partien getrennt bleiben.
 - **Ohne eigene Markierungen ist Welle 1 verloren.** Wer nur „Salve anfordern" drückt, bekommt fünf zufällig verteilte Kapseln; die Stellung daraus steht oft außer Reichweite der Route und feuert die ganze Welle nicht. Gemessen: 30 Durchbrüche, Niederlage nach 55 Sekunden. Das ist eine Frage der Bedienführung, nicht des Balancings — das Spiel sollte deutlich machen, dass die Zonen gesetzt werden wollen. Die Browser-Prüfung stützt die Bastion deshalb mit dem Debug-Hebel ab.
 - Das Ergänzen fehlender Landezonen prüft im schlimmsten Fall alle freien Felder (etwa 75 ms in einem sehr engen Labyrinth). Das passiert einmal pro Salve, fällt also nur als kurzer Hänger auf.
 - Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).

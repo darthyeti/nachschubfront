@@ -16,6 +16,52 @@ function toMap(u, v, edge, size) {
   return { x, y };
 }
 
+/** Distance in king steps, the measure that matches 8-way movement. */
+function kingDistance(a, b) {
+  return Math.max(Math.abs(a.u - b.u), Math.abs(a.v - b.v));
+}
+
+/**
+ * Cells of one half that keep `minAnchorDistance` from rift and bastion, in a
+ * fixed scan order so the pick below only depends on the random stream.
+ * @param {{u: number, v: number}} rift  Local coordinates of the anchors.
+ */
+function beaconCandidates(config, half, rift, bastion) {
+  const { size, beaconMargin: margin, minAnchorDistance: minAnchor } = config;
+  const uFrom = half === 0 ? margin : size / 2;
+  const uTo = half === 0 ? size / 2 - 1 : size - 1 - margin;
+  const cells = [];
+  for (let v = margin; v <= size - 1 - margin; v++) {
+    for (let u = uFrom; u <= uTo; u++) {
+      const cell = { u, v };
+      if (kingDistance(cell, rift) < minAnchor) continue;
+      if (kingDistance(cell, bastion) < minAnchor) continue;
+      cells.push(cell);
+    }
+  }
+  return cells;
+}
+
+/**
+ * Picks the two beacons (GDD section 4): one per map half, `minBeaconDistance`
+ * apart and `minAnchorDistance` away from rift and bastion. Candidates are
+ * enumerated and then drawn, so a valid pair is always found in one pass
+ * instead of being sampled until it happens to fit.
+ * @returns {{u: number, v: number}[]} In the order the route visits them.
+ */
+function placeBeacons(rng, config, rift, bastion) {
+  // Which half the route reaches first.
+  const firstHalf = rng.int(0, 1);
+  const halves = [firstHalf, 1 - firstHalf].map((h) => beaconCandidates(config, h, rift, bastion));
+  const [first, second] = halves;
+
+  // Every first-half cell that still leaves a partner in the other half.
+  const usable = first.filter((a) => second.some((b) => kingDistance(a, b) >= config.minBeaconDistance));
+  const a = rng.pick(usable);
+  const b = rng.pick(second.filter((c) => kingDistance(a, c) >= config.minBeaconDistance));
+  return [a, b];
+}
+
 function pickWeighted(rng, entries) {
   const total = entries.reduce((sum, e) => sum + e.weight, 0);
   let roll = rng.next() * total;
@@ -60,29 +106,22 @@ function canOccupy(map, cells) {
  */
 export function generateMap(rng, config = MAP) {
   const { size } = config;
-  const half = size / 2;
   const edge = rng.int(0, 3);
   const at = (u, v) => toMap(u, v, edge, size);
+
+  const rift = { u: rng.int(config.edgeMargin, size - 1 - config.edgeMargin), v: 0 };
+  const bastion = { u: rng.int(config.edgeMargin, size - 1 - config.edgeMargin), v: size - 1 };
 
   const map = {
     size,
     edge,
     grid: createGrid(size),
     protected: new Uint8Array(size * size),
-    rift: at(rng.int(config.edgeMargin, size - 1 - config.edgeMargin), 0),
-    bastion: at(rng.int(config.edgeMargin, size - 1 - config.edgeMargin), size - 1),
-    beacons: [],
+    rift: at(rift.u, rift.v),
+    bastion: at(bastion.u, bastion.v),
+    beacons: placeBeacons(rng, config, rift, bastion).map((b) => at(b.u, b.v)),
     obstacles: [],
   };
-
-  const center = (half - 1) / 2; // centre cell of a quadrant, e.g. 5.5 for 12 cells
-  for (const { depth, side } of config.beaconOrder) {
-    const u0 = side === 'left' ? 0 : half;
-    const v0 = depth === 'near' ? 0 : half;
-    const du = Math.round(center + rng.range(-config.beaconJitter, config.beaconJitter));
-    const dv = Math.round(center + rng.range(-config.beaconJitter, config.beaconJitter));
-    map.beacons.push(at(u0 + du, v0 + dv));
-  }
 
   for (const p of [map.rift, map.bastion, ...map.beacons]) protect(map, p, config.protectRadius);
 

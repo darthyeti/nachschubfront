@@ -21,15 +21,22 @@ export function gridFromAscii(rows) {
   return { grid, marks };
 }
 
-/** A map-shaped object for route tests: waypoints R, 1-4, B from the ASCII art. */
+/**
+ * A map-shaped object for route tests: the rift R, the bastion B and as many
+ * beacons as the ASCII art has digits, visited in ascending order.
+ */
 export function mapFromAscii(rows) {
   const { grid, marks } = gridFromAscii(rows);
+  const beacons = Object.keys(marks)
+    .filter((k) => /[1-9]/.test(k))
+    .sort()
+    .map((k) => marks[k]);
   return {
     size: grid.size,
     grid,
     protected: new Uint8Array(grid.size * grid.size),
     rift: marks.R,
-    beacons: [marks['1'], marks['2'], marks['3'], marks['4']],
+    beacons,
     bastion: marks.B,
     obstacles: [],
   };

@@ -48,23 +48,60 @@ test('rift and bastion sit on opposite edges', () => {
   }
 });
 
-test('one beacon per quadrant', () => {
-  const half = MAP.size / 2;
+/** King distance; a quarter turn leaves it unchanged, so map coordinates do. */
+const kingDistance = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+
+/**
+ * The map half a cell lies in, split along the rift-to-bastion axis: the rift
+ * and the bastion sit on opposite edges, so the axis tells which coordinate runs
+ * across the map.
+ */
+function halfOf(map, p) {
+  const last = map.size - 1;
+  const alongX = (map.rift.x === 0 && map.bastion.x === last) || (map.rift.x === last && map.bastion.x === 0);
+  return (alongX ? p.y : p.x) < map.size / 2 ? 0 : 1;
+}
+
+test('two beacons, one per map half', () => {
   for (const [seed, map] of maps) {
-    const quadrants = new Set(map.beacons.map((b) => `${b.x < half ? 0 : 1}${b.y < half ? 0 : 1}`));
-    assert.equal(quadrants.size, 4, `seed ${seed}`);
+    assert.equal(map.beacons.length, MAP.beaconCount, `seed ${seed}`);
+    const halves = map.beacons.map((b) => halfOf(map, b));
+    assert.notEqual(halves[0], halves[1], `seed ${seed}: both beacons in half ${halves[0]}`);
   }
 });
 
-test('beacon order makes the two diagonal legs cross', () => {
-  // Legs 1 -> 2 and 3 -> 4 connect diagonally opposite quadrants.
-  const half = MAP.size / 2;
-  const q = (b) => [b.x < half ? 0 : 1, b.y < half ? 0 : 1];
+test('beacons keep their distance to each other and to rift and bastion', () => {
   for (const [seed, map] of maps) {
-    const [a, b, c, d] = map.beacons.map(q);
-    assert.ok(a[0] !== b[0] && a[1] !== b[1], `seed ${seed}: 1 -> 2 not diagonal`);
-    assert.ok(c[0] !== d[0] && c[1] !== d[1], `seed ${seed}: 3 -> 4 not diagonal`);
+    const [a, b] = map.beacons;
+    assert.ok(
+      kingDistance(a, b) >= MAP.minBeaconDistance,
+      `seed ${seed}: beacons only ${kingDistance(a, b)} apart`,
+    );
+    for (const beacon of map.beacons) {
+      for (const [name, anchor] of [['rift', map.rift], ['bastion', map.bastion]]) {
+        assert.ok(
+          kingDistance(beacon, anchor) >= MAP.minAnchorDistance,
+          `seed ${seed}: beacon ${JSON.stringify(beacon)} only ${kingDistance(beacon, anchor)} from the ${name}`,
+        );
+      }
+    }
   }
+});
+
+test('beacons keep clear of the map border', () => {
+  for (const [seed, map] of maps) {
+    for (const b of map.beacons) {
+      const edge = Math.min(b.x, b.y, map.size - 1 - b.x, map.size - 1 - b.y);
+      assert.ok(edge >= MAP.beaconMargin, `seed ${seed}: beacon ${JSON.stringify(b)} is ${edge} from the border`);
+    }
+  }
+});
+
+test('both beacon orders occur', () => {
+  // Which half the route visits first comes from the seed, so over many maps
+  // both directions have to show up.
+  const firsts = new Set(maps.map(([, map]) => halfOf(map, map.beacons[0])));
+  assert.equal(firsts.size, 2);
 });
 
 test('obstacle count within range, never on protected cells', () => {

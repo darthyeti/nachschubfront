@@ -1,10 +1,10 @@
 # Nachschubfront: Game-Design-Dokument
 
-Stand: Grundlagen v1. Alle Zahlen sind Startwerte für das Balancing und liegen später in Datendateien, nicht im Code.
+Stand: Grundlagen v2 (nach Spieltest 1: zwei Signalfeuer, Salvengröße nach Welle, sanfterer Einstieg, Abreißen eigener Stellungen). Alle Zahlen sind Startwerte für das Balancing und liegen später in Datendateien, nicht im Code.
 
 ## 1. Vision
 
-Ein Tower-Defense-Spiel im Stil der klassischen Mazing-Maps (Vorbild: Gem TD aus Warcraft 3), angesiedelt in einem eigenen Grimdark-Sci-Fi-Setting. Der Spieler verteidigt eine Bastion gegen immer stärkere Wellen einer insektoiden Schwarmbrut und ihrer Warp-Kreaturen. Vor jeder Welle fordert er eine Salve aus fünf Nachschubkapseln an, bestimmt ihre Landezonen, behält eine Waffenstellung und lässt die übrigen zu Trümmern werden. So entsteht Runde für Runde ein Labyrinth, das in jeder Partie anders aussieht.
+Ein Tower-Defense-Spiel im Stil der klassischen Mazing-Maps (Vorbild: Gem TD aus Warcraft 3), angesiedelt in einem eigenen Grimdark-Sci-Fi-Setting. Der Spieler verteidigt eine Bastion gegen immer stärkere Wellen einer insektoiden Schwarmbrut und ihrer Warp-Kreaturen. Vor jeder Welle fordert er eine Salve Nachschubkapseln an, bestimmt ihre Landezonen, behält eine Waffenstellung und lässt die übrigen zu Trümmern werden. So entsteht Runde für Runde ein Labyrinth, das in jeder Partie anders aussieht.
 
 Kernerlebnis: Jede Runde verlangt eine Abwägung zwischen Feuerkraft (welche Stellung behalte ich?) und Wegführung (wo stehen meine Trümmer?). Die Kapseleinschläge sind der spektakuläre Höhepunkt jeder Runde.
 
@@ -25,9 +25,9 @@ Optik: 2D-Isometrie im Comicstil mit dicken Tuschekonturen, harter Zellschattier
 
 Eine Partie besteht aus bis zu 50 Wellen. Jede Runde hat vier Phasen:
 
-1. **Planung** (ohne Zeitdruck): Der Spieler markiert bis zu fünf Landezonen auf freien Feldern. Die aktuelle Route der Gegner wird als gestrichelte Linie mit Längenangabe angezeigt und aktualisiert sich bei jeder Markierung. Eine Markierung, die den Weg blockieren würde, wird rot angezeigt und ist ungültig. In dieser Phase kann auch Requisition ausgegeben werden. Nicht markierte Zonen werden beim Anfordern zufällig ergänzt.
-2. **Salve:** Fünf Kapseln schlagen gestaffelt ein (Vorwarnung, Absturz, Bremstriebwerke, Einschlag, Öffnen, Hologramm). Jede enthält eine zufällige Doktrin mit einem Rang gemäß Nachschubstufe.
-3. **Auswahl:** Der Spieler wählt genau eine der fünf Optionen:
+1. **Planung** (ohne Zeitdruck): Der Spieler markiert bis zu so viele Landezonen auf freien Feldern, wie die kommende Salve Kapseln hat. Die aktuelle Route der Gegner wird als gestrichelte Linie mit Längenangabe angezeigt und aktualisiert sich bei jeder Markierung. Eine Markierung, die den Weg blockieren würde, wird rot angezeigt und ist ungültig. In dieser Phase kann auch Requisition ausgegeben werden. Nicht markierte Zonen werden beim Anfordern zufällig ergänzt.
+2. **Salve:** Die Kapseln schlagen gestaffelt ein (Vorwarnung, Absturz, Bremstriebwerke, Einschlag, Öffnen, Hologramm). Jede enthält eine zufällige Doktrin mit einem Rang gemäß Nachschubstufe.
+3. **Auswahl:** Der Spieler wählt genau eine der Optionen:
    - eine Stellung behalten,
    - zwei identische Stellungen (gleiche Doktrin, gleicher Rang) aus dieser Salve verschmelzen: das Ergebnis hat einen Rang mehr und steht auf dem Feld einer der beiden,
    - vier identische verschmelzen: zwei Ränge mehr,
@@ -38,18 +38,31 @@ Eine Partie besteht aus bis zu 50 Wellen. Jede Runde hat vier Phasen:
 
 Kapseln werden ausschließlich in der Planungsphase angefordert. Während einer Welle ändert sich das Labyrinth nicht.
 
+### Salvengröße
+
+Die Anzahl der Kapseln pro Salve hängt von der Welle ab:
+
+| Wellen | Kapseln pro Salve | Mindestrang |
+|---|---|---|
+| 1 bis 15 | 6 | keiner |
+| 16 bis 35 | 5 | keiner |
+| ab 36 | 4 | Veteran (kein Rekrut mehr) |
+
+Früh entsteht das Labyrinth schneller und die Karte füllt sich dort, wo noch Platz ist. Spät entstehen weniger neue Trümmer, dafür ist jede einzelne Kapsel wertvoller. Die Anzahl wird in der Planungsphase angezeigt.
+
 ## 4. Karte
 
 - Größe 24 x 24 Felder, Kamera mit Zoom und Verschieben.
 - Jede Partie wird aus einem Zufallswert (Seed) erzeugt. Der Seed wird angezeigt und kann eingegeben werden, damit Freunde dieselbe Karte spielen und vergleichen können.
-- Fest platziert: Warp-Riss an einer Kante, Bastion an der gegenüberliegenden Kante, vier Signalfeuer, je eines pro Kartenviertel mit zufälliger Verschiebung, in einer Reihenfolge, die zum Kreuzen der Wege führt.
-- Zufällig: 12 bis 20 Ruinen, Krater und Mauerreste als vorhandene Hindernisse. Der Generator stellt sicher, dass der Weg über alle Signalfeuer möglich ist.
+- Fest platziert: Warp-Riss an einer Kante, Bastion an der gegenüberliegenden Kante und **zwei** Signalfeuer.
+- Platzierungsregel für die Signalfeuer: je eines in einer anderen Kartenhälfte, Mindestabstand 10 Felder zueinander und je 8 Felder zu Riss und Bastion. Ziel ist ein kurzer, offener Grundweg, den der Spieler selbst verlängern muss.
+- Zufällig: 12 bis 20 Ruinen, Krater und Mauerreste als vorhandene Hindernisse. Der Generator stellt sicher, dass der Weg über beide Signalfeuer möglich ist.
 - Geschützte Felder: Riss, Signalfeuer, Bastion und jeweils ihr direktes Umfeld (1 Feld) dürfen nicht bebaut werden.
 
 ## 5. Wegfindung
 
 - Gegner laufen in acht Richtungen. Diagonale Schritte sind nur erlaubt, wenn beide angrenzenden Felder frei sind (kein Eckenschneiden).
-- Die Route ist eine Kette von Teilstrecken: Riss zu Signalfeuer 1, 1 zu 2, 2 zu 3, 3 zu 4, 4 zu Bastion. Jede Teilstrecke ist der kürzeste Weg.
+- Die Route ist eine Kette von Teilstrecken: Riss zu Signalfeuer 1, 1 zu 2, 2 zur Bastion. Jede Teilstrecke ist der kürzeste Weg.
 - Eine Markierung ist gültig, wenn danach jede Teilstrecke weiterhin einen Weg hat. Die Prüfung muss schnell genug sein, um sie beim Antippen sofort anzuzeigen.
 - Flieger ignorieren Hindernisse und fliegen geradlinig von Punkt zu Punkt derselben Kette.
 
@@ -156,10 +169,19 @@ Tempo in Feldern pro Sekunde.
 - Gegneranzahl steigt langsam, etwa 12 plus 0,5 pro Welle, bei Schwärmern das Doppelte.
 - Die komplette Wellenliste liegt als Datentabelle vor und ist ohne Codeänderung anpassbar.
 
+### Einstieg
+
+Weil der Grundweg mit zwei Signalfeuern kürzer ist, sind die ersten Wellen entschärft:
+
+- Wellen 1 bis 5: Gegneranzahl minus 30 Prozent.
+- Panzergegner (Brecher) erst ab Welle 4, Flieger erst ab Welle 6.
+
 ## 10. Wirtschaft
 
 - **Requisition** gibt es pro Abschuss (Belohnung laut Tabelle) und als Wellenbonus (10 plus Wellennummer).
-- Ausgaben: Nachschubstufe erhöhen (Abschnitt 7) und Trümmer abreißen (Startwert 15, jedes weitere Abreißen in derselben Partie kostet 5 mehr).
+- Ausgaben: Nachschubstufe erhöhen (Abschnitt 7) und Abreißen.
+- Abreißen gilt für Trümmer **und** eigene Stellungen, damit späte Karten umgebaut werden können. Trümmer kosten 15, jedes weitere Abreißen in derselben Partie 5 mehr. Eine Stellung kostet das Dreifache des aktuellen Trümmerpreises und gibt nichts zurück.
+- Abgerissen wird nur in der Planungsphase. Der Weg muss danach offen bleiben, sonst wird abgelehnt.
 - **Kommandopunkte** sind eine eigene Währung: 3 pro besiegtem Boss, 1 pro Welle ohne Durchbruch.
 
 ## 11. Spezialkommandos
@@ -189,6 +211,10 @@ Einsatz jederzeit während einer Welle, außer wo anders angegeben. Sie setzen k
 | Infos zu Stellung, Gegner, Feld | Mauszeiger darüber oder Klick | Langes Drücken |
 | Kommando zielen | Klick auf Ziel | Tippen auf Ziel |
 
+**Abbruchmodus.** Eigener Knopf in der Planungsphase. Ist er aktiv, werden alle abreißbaren Felder hervorgehoben und der Preis steht am jeweiligen Feld. Antippen reißt ab, auf dem Tablet mit kurzer Bestätigung. Der Modus bleibt aktiv, bis er beendet wird, damit mehrere Felder nacheinander geräumt werden können. Solange er aktiv ist, können keine Landezonen markiert werden.
+
+**Nachschubstufe.** Der Knopf heißt nicht "Nachschub ausbauen", sondern nennt Stufe und Preis, zum Beispiel "Nachschubstufe 3 auf 4, 80". Darunter stehen die neuen Rangchancen als Zeile (zum Beispiel 40 / 40 / 20 / 0 / 0) oder als kleine Balken, jeweils in den Rangfarben. Langes Drücken oder Hover zeigt eine kurze Erklärung: Die Stufe beeinflusst nur künftige Kapseln, nicht bestehende Stellungen.
+
 Regeln: Nichts darf ausschließlich über Hover erreichbar sein. Trefferflächen mindestens 44 x 44 CSS-Pixel. Die Standard-Zoomstufe auf dem Tablet sorgt dafür, dass ein Feld mindestens etwa 40 Pixel breit ist. Wichtige Knöpfe liegen in Daumenreichweite am unteren Rand. Zwischen Tippen und Ziehen wird über eine kleine Bewegungsschwelle unterschieden, damit beim Verschieben keine Markierungen entstehen.
 
 ## 14. Offene Punkte
@@ -197,3 +223,4 @@ Regeln: Nichts darf ausschließlich über Hover erreichbar sein. Trefferflächen
 - Online-Bestenliste für Freunde: später, über die vorbereitete Speicherschicht.
 - Weitere Rezepte, Karten, Endlosmodus-Details.
 - Sprites für Gegner (Blender mit Toon-Shader) falls die Code-Grafik nicht reicht.
+- **Aufwertung statt Bau (vorgemerkt, noch nicht umsetzen).** Ab etwa Welle 30 könnte eine vierte Option in der Auswahlphase erscheinen: Eine Kapsel wird nicht gebaut, sondern auf eine bestehende Stellung derselben Doktrin gelegt und hebt sie um einen Rang. Das verlagert die späte Partie vom Bauen zum Veredeln, ohne weitere Felder zu belegen. Entscheidung erst nach dem nächsten Spieltest.

@@ -14,14 +14,14 @@ import { mapFromAscii } from './helpers.js';
 
 const OPEN = [
   '..........',
-  '.1......2.',
+  '.1........',
   '..........',
   '..........',
   'R........B',
   '..........',
   '..........',
   '..........',
-  '.4......3.',
+  '........2.',
   '..........',
 ];
 
@@ -38,7 +38,7 @@ test('route visits every beacon in order', () => {
   assert.deepEqual([...order].sort((a, b) => a - b), order, 'visited in chain order');
   assert.deepEqual(route.cells[0], map.rift);
   assert.deepEqual(route.cells.at(-1), map.bastion);
-  assert.equal(route.legs.length, 5);
+  assert.equal(route.legs.length, 3);
   const sum = route.legs.reduce((a, b) => a + b, 0);
   assert.ok(Math.abs(sum - route.length) < 1e-9);
 });
@@ -71,7 +71,6 @@ test('placement that would cut off a beacon is rejected', () => {
     '.#.#.',
     'R...B',
   ]);
-  map.beacons = [map.beacons[0], map.beacons[0], map.beacons[0], map.beacons[0]];
   assert.ok(routeExists(map));
   const result = checkPlacement(map, [{ x: 2, y: 3 }]);
   assert.deepEqual(result, { ok: false, reason: 'blocks' });
@@ -96,7 +95,6 @@ test('multi-cell placement is checked as a whole', () => {
     '#...#',
     '#####',
   ]);
-  map.beacons = [map.beacons[0], map.beacons[0], map.beacons[0], map.beacons[0]];
   const wall = [{ x: 2, y: 1 }, { x: 2, y: 2 }, { x: 2, y: 3 }];
   assert.ok(checkPlacement(map, [wall[0], wall[1]]).ok);
   assert.equal(checkPlacement(map, wall).reason, 'blocks');
@@ -111,8 +109,6 @@ test('blockade check is fast enough for instant feedback', () => {
   put(23, 11, 'B');
   put(5, 5, '1');
   put(18, 18, '2');
-  put(18, 5, '3');
-  put(5, 18, '4');
   const map = mapFromAscii(rows);
   const start = performance.now();
   const runs = 200;
@@ -124,7 +120,7 @@ test('blockade check is fast enough for instant feedback', () => {
 test('flyer route is the straight chain of waypoints', () => {
   const map = mapFromAscii(OPEN);
   const line = flyerPolyline(map);
-  assert.equal(line.points.length, 6);
+  assert.equal(line.points.length, 4);
   assert.deepEqual(line.points[0], { x: 0.5, y: 4.5 });
   // Obstacles do not matter for flyers.
   map.grid.blocked.fill(1);
