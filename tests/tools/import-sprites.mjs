@@ -13,13 +13,21 @@ import { ROOT } from './server.mjs';
 const SOURCES = [
   { dir: 'reference/konzept/gegner', out: 'src/render/sprites/enemies.js', name: 'ENEMY_SPRITES' },
   { dir: 'reference/konzept/stellungen', out: 'src/render/sprites/towers.js', name: 'TOWER_SPRITES' },
+  {
+    dir: 'reference/konzept/kapsel',
+    out: 'src/render/sprites/pods.js',
+    name: 'POD_SPRITES',
+    // pod-a and pod-c are the designs the sheet discarded (docs/ART.md); pod-b
+    // and pod-open are only wrappers around the parts the game draws.
+    drop: ['pod-a', 'pod-c', 'pod-b', 'pod-open'],
+  },
 ];
 
 /** Extra room around getBBox() (which ignores stroke width), in SVG units. */
 const PAD = 5;
 
 // Runs in the browser: parses the files, merges <defs>, measures each symbol.
-function analyse(files) {
+function analyse({ files, drop }) {
   const parser = new DOMParser();
   const style = new Set();
   const defs = new Map(); // id -> outerHTML
@@ -41,8 +49,10 @@ function analyse(files) {
   }
   if (style.size !== 1) throw new Error(`expected one shared <style>, found ${style.size}`);
 
-  // Unused helpers from the concept sheets (silhouette filter) are dropped.
+  // Unused helpers from the concept sheets (silhouette filter) are dropped, and
+  // with them whatever the source declares it does not need.
   defs.delete('sil');
+  for (const id of drop) defs.delete(id);
   const defsText = [...defs.values()].join('');
   const [styleText] = style;
 
@@ -76,7 +86,10 @@ try {
     const files = await Promise.all(
       names.map(async (name) => ({ name, text: await readFile(join(ROOT, source.dir, name), 'utf8') })),
     );
-    const { style, defs, boxes, shown } = await page.evaluate(analyse, files);
+    const { style, defs, boxes, shown } = await page.evaluate(analyse, {
+      files,
+      drop: source.drop ?? [],
+    });
 
     const symbols = {};
     for (const [id, [x, y, w, h]] of Object.entries(boxes)) {

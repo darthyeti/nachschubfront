@@ -10,7 +10,38 @@ export const SPRITE_SCALE = {
   tower: (64 * 0.9) / 88,
   /** Enemies share one scale so their relative sizes from the concept sheet are kept. */
   enemy: 0.42,
+  /** The capsule's heat shield (66 SVG units wide) covers 90 % of a cell. */
+  pod: (64 * 0.9) / 66,
 };
+
+/**
+ * The supply pod (docs/ART.md, "Nachschubkapsel"). Closed it is one piece; open
+ * it is a core and four wall segments, named for the direction they fall in.
+ *
+ * `hinge` is the midpoint of the edge a segment shares with the core, in SVG
+ * units (printed by tests/tools/split-pod.py). A segment grows out of that point
+ * while it opens, which is what turns the standing wall into the lying plate.
+ * `layer` says whether it is drawn behind or in front of the core.
+ */
+export const POD_PETALS = [
+  { id: 'pod-petal-bl', hinge: [-13.4, -6], layer: 'back' },
+  { id: 'pod-petal-br', hinge: [13.4, -6], layer: 'back' },
+  { id: 'pod-petal-fr', hinge: [13.4, 6], layer: 'front' },
+  { id: 'pod-petal-fl', hinge: [-13.4, 6], layer: 'front' },
+];
+
+/**
+ * The order the segments blow open in. Opposite corners first, so the capsule
+ * does not unpeel tidily round the circle.
+ */
+export const POD_PETAL_ORDER = ['pod-petal-br', 'pod-petal-fr', 'pod-petal-bl', 'pod-petal-fl'];
+
+/**
+ * The opened pod is drawn this much smaller than the sketch. Open, it spans
+ * almost two cells, and neighbouring emplacements would disappear under it
+ * (docs/ART.md).
+ */
+export const POD_OPEN_SCALE = 0.85;
 
 /** Height of the base's top face above ground, in SVG units (the symbol origin sits on it). */
 export const TOWER_BASE_TOP = 18;

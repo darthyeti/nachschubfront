@@ -160,9 +160,14 @@ export function drawSprite(ctx, def, entry, wx, wy, { flip = false, flash = fals
  *
  * @param {number[]} pivot  [x, y] in SVG units.
  * @param {number} angle  Rotation in radians on top of the pose in the artwork.
- * @param {{flip?: boolean, offset?: number[], flash?: boolean}} options
+ * @param {{flip?: boolean, offset?: number[], flash?: boolean, scale?: number}} options
+ *   `scale` shrinks the sprite towards the pivot, which is how a pod's wall
+ *   segment grows out of the core while it opens.
  */
-export function drawSpriteTurned(ctx, def, entry, wx, wy, pivot, angle, { flip = false, offset, flash = false } = {}) {
+export function drawSpriteTurned(
+  ctx, def, entry, wx, wy, pivot, angle,
+  { flip = false, offset, flash = false, scale = 1 } = {},
+) {
   const s = def.unitScale;
   const [bx, by, bw, bh] = def.bbox;
   const [ox, oy] = spriteOrigin(def, wx, wy);
@@ -170,6 +175,7 @@ export function drawSpriteTurned(ctx, def, entry, wx, wy, pivot, angle, { flip =
   ctx.translate(ox + pivot[0] * s, oy + pivot[1] * s);
   if (flip) ctx.scale(-1, 1);
   ctx.rotate(angle);
+  if (scale !== 1) ctx.scale(scale, scale);
   if (offset) ctx.translate(offset[0] * s, offset[1] * s);
   ctx.drawImage(flash ? entry.flash : entry.canvas, (bx - pivot[0]) * s, (by - pivot[1]) * s, bw * s, bh * s);
   ctx.restore();

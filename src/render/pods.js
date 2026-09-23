@@ -1,6 +1,8 @@
-// Landing zones and supply pods, drawn after reference/stiltest.html.
-// M2 shows warning, fall, impact, opening and hologram; the full staging with
-// brake thrusters, bolts and hatches follows in M4.
+// Landing zones and supply pods. The capsule itself comes from the concept art
+// since M4c (docs/ART.md, "Nachschubkapsel"): closed it is one sprite, open it is
+// a core with four wall segments that grow out of it one after another.
+// Everything that carries the doctrine's colour — the glow in the core, the
+// light column, the hologram — stays code, as does the fall trail and the flame.
 
 import { iso } from './iso.js';
 import { poly, ell, shadow, comicText } from './draw.js';
@@ -9,9 +11,9 @@ import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { STRINGS } from '../data/strings.js';
 import { PODS } from '../data/pods.js';
 import { IMPACT_SECONDS, sinceImpact } from '../sim/pods.js';
+import { podSpriteSet } from './sprites/compose.js';
+import { drawSprite, drawSpriteTurned } from './sprites/rasterizer.js';
 
-/** Pod size relative to the style test's drawing units. */
-const SCALE = 1.45;
 /** Height the pod starts from, in screen pixels. */
 const FALL_HEIGHT = 900;
 /** How long the shell glows from re-entry after the impact. */
@@ -25,109 +27,23 @@ function podHeight(pod) {
   return FALL_HEIGHT * (1 - u) * (1 - 0.55 * u);
 }
 
-const DIRS = [
-  [32, 16],
-  [-32, 16],
-  [-32, -16],
-  [32, -16],
-].map(([x, y]) => {
-  const l = Math.hypot(x, y);
-  return [x / l, y / l];
-});
-const PERP = [DIRS[1], DIRS[0], DIRS[1], DIRS[0]];
-
-/** One of the four hatch petals, `open` from 0 (closed) to 1. */
-function petal(ctx, i, open, color) {
-  const [dx, dy] = DIRS[i];
-  const [px, py] = PERP[i];
-  const r0 = 10;
-  const len = 31;
-  const hx = dx * r0;
-  const hy = dy * r0 * 0.9;
-  const tx = dx * (r0 + len * open);
-  const ty = dy * (r0 + len * open) * 0.9 - (1 - open) * 50;
-  const shape = [
-    [hx + px * 9, hy + py * 9],
-    [hx - px * 9, hy - py * 9],
-    [tx - px * 12.5, ty - py * 12.5],
-    [tx + px * 12.5, ty + py * 12.5],
-  ];
-  const fill = open > 0.55 ? '#a39c90' : i === 0 ? '#56514c' : i === 1 ? '#7a746c' : '#4a4642';
-  poly(ctx, shape, fill, C.ink, 2);
-  ctx.strokeStyle = open > 0.55 ? color : C.blood;
-  ctx.lineWidth = open > 0.55 ? 2.5 : 3;
-  ctx.beginPath();
-  ctx.moveTo(hx, hy);
-  ctx.lineTo(tx, ty);
-  ctx.stroke();
-}
-
-/** The steel body with hazard band, rivets and blinking light. */
-function podCore(ctx, pod, heat, t) {
-  const path = () => {
-    ctx.beginPath();
-    ctx.moveTo(-12, -46);
-    ctx.lineTo(-12, 0);
-    ctx.ellipse(0, 0, 12, 6, 0, Math.PI, 0, true);
-    ctx.lineTo(12, -46);
-    ctx.lineTo(5, -64);
-    ctx.lineTo(-5, -64);
-    ctx.closePath();
-  };
-  path();
-  ctx.fillStyle = C.steel;
-  ctx.fill();
-  ctx.save();
-  ctx.clip();
-  ctx.fillStyle = C.steelD;
-  ctx.fillRect(3, -70, 12, 80);
-  ctx.fillStyle = C.steelL;
-  ctx.fillRect(-12, -70, 4, 80);
-  ctx.strokeStyle = 'rgba(26,20,16,.75)';
-  ctx.lineWidth = 1.3;
-  for (const y of [-10, -20, -41]) {
-    ctx.beginPath();
-    ctx.ellipse(0, y, 12, 6, 0, 0, Math.PI);
-    ctx.stroke();
-  }
-  ctx.fillStyle = C.blood;
-  ctx.beginPath();
-  ctx.moveTo(-13, -34);
-  ctx.ellipse(0, -34, 13, 6.5, 0, Math.PI, 0, true);
-  ctx.lineTo(13, -28);
-  ctx.ellipse(0, -28, 13, 6.5, 0, 0, Math.PI);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = '#e8b93a';
-  for (let i = 0; i < 5; i++) ctx.fillRect(-10 + i * 5, -46, 2.5, 4);
-  if (heat > 0) {
-    ctx.fillStyle = `rgba(255,110,30,${heat * 0.6})`;
-    ctx.fillRect(-14, -70, 28, 80);
-  }
-  ctx.restore();
-  path();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = C.ink;
-  ctx.stroke();
-  for (const x of [-8, -3, 2, 7]) ell(ctx, x, -31 + Math.abs(x) * 0.12, 1.1, 1.1, C.ink, null);
-  ell(ctx, 0, -19, 3.5, 3.5, C.bone, C.ink, 1);
-  const on = Math.sin(t * 11 + pod.x) > 0;
-  ell(ctx, 0, -65, 3, 1.8, on ? '#ff3a2a' : '#5a1a14', C.ink, 1);
-}
-
-// The four petals open one after the other; together they take PODS.openSeconds.
-const PETAL_ORDER = [3, 0, 2, 1];
+// The four segments blow open one after the other; together they take
+// PODS.openSeconds. The order is kept from M4: opposite corners first.
 const PETAL_STAGGER = PODS.openSeconds * 0.22;
 const PETAL_SECONDS = PODS.openSeconds * 0.34;
 
-/** How far the hatch petal `i` has opened. */
-function petalOpen(pod) {
-  const since = sinceImpact(pod);
-  return (i) => {
-    const order = PETAL_ORDER.indexOf(i);
-    const u = clamp01((since - PODS.openDelaySeconds - order * PETAL_STAGGER) / PETAL_SECONDS);
-    return u * u;
-  };
+/**
+ * How far the segment in that opening position has swung out, 0 to 1.
+ * @param {number} since  Seconds since the pod hit the ground.
+ */
+export function petalOpen(since, order) {
+  const u = clamp01((since - PODS.openDelaySeconds - order * PETAL_STAGGER) / PETAL_SECONDS);
+  return u * u;
+}
+
+/** True once the bolts have blown and the shell is no longer one piece. */
+export function isOpening(pod) {
+  return sinceImpact(pod) >= PODS.openDelaySeconds;
 }
 
 /** Marker of a planned landing zone: dashed ring with its number. */
@@ -160,59 +76,107 @@ export function drawPodTarget(ctx, pod, t) {
 }
 
 /** The pod itself: fall trail, thruster, shell and hatches. */
-export function drawPod(ctx, pod, t) {
-  if (pod.t < PODS.warnSeconds) return;
-  const [sx, sy] = iso(pod.x + 0.5, pod.y + 0.5);
-  const z = pod.landed ? 0 : podHeight(pod);
-  const since = sinceImpact(pod);
-  const heat = pod.landed ? Math.max(0, 1 - since / HEAT_SECONDS) : 1;
-  const color = DOCTRINE_COLORS[pod.doctrine];
-  const k = 1 - Math.min(1, z / FALL_HEIGHT);
-  shadow(ctx, sx, sy + 2, (12 + 14 * k) * SCALE, (5 + 6 * k) * SCALE, 0.45 * k + 0.05);
+/** The capsule's sprites; the same for every pod, so they are built once. */
+const SET = podSpriteSet();
 
-  const by = sy - z;
-  if (!pod.landed) {
-    const trail = ctx.createLinearGradient(sx, by - 380, sx, by - 50);
-    trail.addColorStop(0, 'rgba(255,140,50,0)');
-    trail.addColorStop(1, 'rgba(255,190,110,.85)');
-    ctx.strokeStyle = trail;
-    ctx.lineWidth = 20;
-    ctx.beginPath();
-    ctx.moveTo(sx, by - 380);
-    ctx.lineTo(sx, by - 50);
-    ctx.stroke();
-    if (z < 280) {
-      const len = Math.min(z + 8, 110);
-      const flame = ctx.createLinearGradient(sx, by, sx, by + len);
-      flame.addColorStop(0, 'rgba(255,250,210,1)');
-      flame.addColorStop(0.35, 'rgba(255,170,60,.9)');
-      flame.addColorStop(1, 'rgba(255,90,30,0)');
-      ctx.fillStyle = flame;
-      ctx.beginPath();
-      ctx.moveTo(sx - 15, by + 2);
-      ctx.lineTo(sx + 15, by + 2);
-      ctx.lineTo(sx + 5, by + len);
-      ctx.lineTo(sx - 5, by + len);
-      ctx.closePath();
-      ctx.fill();
+/** Every pod sprite, for preloading before the first salvo. */
+export const POD_SPRITE_DEFS = [SET.shell, SET.core, ...SET.petals.map((p) => p.sprite)];
+
+/** Fall trail and brake flame, both code since the style test. */
+function drawDescent(ctx, sx, by, z) {
+  const trail = ctx.createLinearGradient(sx, by - 380, sx, by - 50);
+  trail.addColorStop(0, 'rgba(255,140,50,0)');
+  trail.addColorStop(1, 'rgba(255,190,110,.85)');
+  ctx.strokeStyle = trail;
+  ctx.lineWidth = 20;
+  ctx.beginPath();
+  ctx.moveTo(sx, by - 380);
+  ctx.lineTo(sx, by - 50);
+  ctx.stroke();
+  if (z >= 280) return;
+  const len = Math.min(z + 8, 110);
+  const flame = ctx.createLinearGradient(sx, by, sx, by + len);
+  flame.addColorStop(0, 'rgba(255,250,210,1)');
+  flame.addColorStop(0.35, 'rgba(255,170,60,.9)');
+  flame.addColorStop(1, 'rgba(255,90,30,0)');
+  ctx.fillStyle = flame;
+  ctx.beginPath();
+  ctx.moveTo(sx - 15, by + 2);
+  ctx.lineTo(sx + 15, by + 2);
+  ctx.lineTo(sx + 5, by + len);
+  ctx.lineTo(sx - 5, by + len);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/**
+ * The pod itself: fall trail, thruster, shell and the segments opening.
+ * @param {ReturnType<import('./sprites/rasterizer.js').createSpriteCache>} cache
+ */
+export function createPodRenderer(cache) {
+  /**
+   * @param {{zoom: number, dpr: number}} view
+   * @returns {boolean} False when nothing is rasterized yet, so a caller can fall back.
+   */
+  function drawPod(ctx, pod, t, view) {
+    if (pod.t < PODS.warnSeconds) return true;
+    const { zoom, dpr } = view;
+    const [sx, sy] = iso(pod.x + 0.5, pod.y + 0.5);
+    const z = pod.landed ? 0 : podHeight(pod);
+    const since = sinceImpact(pod);
+    const heat = pod.landed ? Math.max(0, 1 - since / HEAT_SECONDS) : 1;
+    const color = DOCTRINE_COLORS[pod.doctrine];
+    const k = 1 - Math.min(1, z / FALL_HEIGHT);
+    // Grown to the heat shield: 66 world pixels across once it is down.
+    shadow(ctx, sx, sy + 2, 18 + 15 * k, 7 + 7 * k, 0.45 * k + 0.05);
+
+    const by = sy - z;
+    if (!pod.landed) drawDescent(ctx, sx, by, z);
+
+    // Re-entry heat: the rasterizer keeps a bright variant of every sprite, and
+    // it is laid over the cold one with the heat as its opacity. Switching
+    // between the two would turn the capsule white and then grey again in one
+    // step; this way it cools down.
+    const glowOver = (def, entry) => {
+      if (heat <= 0.02) return;
+      ctx.globalAlpha = heat * 0.85;
+      drawSprite(ctx, def, entry, sx, by, { flash: true });
+      ctx.globalAlpha = 1;
+    };
+
+    if (!isOpening(pod)) {
+      const entry = cache.get(SET.shell, zoom, dpr);
+      if (!entry) return false;
+      drawSprite(ctx, SET.shell, entry, sx, by);
+      glowOver(SET.shell, entry);
+      return true;
     }
+
+    const core = cache.get(SET.core, zoom, dpr);
+    if (!core) return false;
+    const petal = (p) => {
+      const entry = cache.get(p.sprite, zoom, dpr);
+      const u = petalOpen(since, p.order);
+      // A segment below a sliver of its length is still inside the shell.
+      if (!entry || u < 0.04) return;
+      drawSpriteTurned(ctx, p.sprite, entry, sx, by, p.hinge, 0, { scale: u });
+    };
+
+    for (const p of SET.petals) if (p.layer === 'back') petal(p);
+    // The core lights up in the doctrine's colour once the segments are down.
+    const glow = clamp01((since - PODS.openDelaySeconds - PODS.openSeconds * 0.6) / 0.4);
+    if (glow > 0) {
+      ctx.globalAlpha = glow * 0.55;
+      ell(ctx, sx, by, 26, 13, color, null);
+      ctx.globalAlpha = 1;
+    }
+    drawSprite(ctx, SET.core, core, sx, by);
+    glowOver(SET.core, core);
+    for (const p of SET.petals) if (p.layer === 'front') petal(p);
+    return true;
   }
 
-  ctx.save();
-  ctx.translate(sx, by);
-  ctx.scale(SCALE, SCALE);
-  const open = petalOpen(pod);
-  for (const i of [2, 3]) petal(ctx, i, open(i), color);
-  // Inner light once the hatches are mostly open.
-  const glow = clamp01((since - PODS.openDelaySeconds - PODS.openSeconds * 0.6) / 0.4);
-  if (glow > 0) {
-    ctx.globalAlpha = glow * 0.55;
-    ell(ctx, 0, 0, 22, 11, color, null);
-    ctx.globalAlpha = 1;
-  }
-  podCore(ctx, pod, heat, t);
-  for (const i of [0, 1]) petal(ctx, i, open(i), color);
-  ctx.restore();
+  return drawPod;
 }
 
 /** Hologram above an opened pod: doctrine colour, rank chevrons and label. */

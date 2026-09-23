@@ -4,6 +4,7 @@
 import { seedFromString } from '../../core/random.js';
 import { ENEMY_SPRITES } from './enemies.js';
 import { TOWER_SPRITES } from './towers.js';
+import { POD_SPRITES } from './pods.js';
 import {
   SPRITE_SCALE,
   TOWER_BASE_TOP,
@@ -18,6 +19,9 @@ import {
   PLATE_SPOT,
   TOWER_WEAPONS,
   RANK_COUNT,
+  POD_PETALS,
+  POD_PETAL_ORDER,
+  POD_OPEN_SCALE,
 } from './manifest.js';
 
 /** Raster levels relative to camera zoom (times devicePixelRatio). 2.5 is the max zoom. */
@@ -253,6 +257,44 @@ export function specialSpriteSet(id) {
     front: null,
     weapon: TOWER_WEAPONS[id] ?? null,
     rank: 0,
+  };
+}
+
+/**
+ * One part of the supply pod. The SVG origin sits where the capsule meets the
+ * ground, so it needs no lift; the scale is part of the key, because the opened
+ * pod is drawn smaller than the closed one.
+ */
+function podPart(id, unitScale, tag) {
+  const entry = POD_SPRITES.symbols[id];
+  if (!entry) throw new Error(`Unknown pod symbol: ${id}`);
+  return {
+    key: `pod:${id}${tag ? `:${tag}` : ''}`,
+    bbox: entry.bbox,
+    unitScale,
+    anchorZ: 0,
+    svg: (pixelScale) => svgDocument(POD_SPRITES, `<use href="#${id}"/>`, entry.bbox, pixelScale),
+  };
+}
+
+/**
+ * Every sprite a supply pod is drawn from: the closed shell in one piece, and
+ * for the opened capsule the core plus its four segments in opening order.
+ * The glow, the light column and the hologram stay in code; they carry the
+ * doctrine's colour (docs/ART.md).
+ * @returns {{shell: object, core: object, petals: object[]}}
+ */
+export function podSpriteSet() {
+  const open = SPRITE_SCALE.pod * POD_OPEN_SCALE;
+  const byId = new Map(POD_PETALS.map((p) => [p.id, p]));
+  return {
+    shell: podPart('pod-shell', SPRITE_SCALE.pod),
+    core: podPart('pod-core', open, 'open'),
+    petals: POD_PETAL_ORDER.map((id, order) => {
+      const petal = byId.get(id);
+      if (!petal) throw new Error(`Pod opening order names an unknown segment: ${id}`);
+      return { ...petal, order, sprite: podPart(id, open, 'open') };
+    }),
   };
 }
 

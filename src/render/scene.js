@@ -20,7 +20,7 @@ import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
 import { createBackdropLayer } from './backdrop.js';
 import { createAtmosphere } from './atmosphere.js';
 import { drawTowerSprite } from './towerSprites.js';
-import { drawZoneMarker, drawPod, drawPodTarget, drawPodHologram, drawPodHighlight } from './pods.js';
+import { createPodRenderer, drawZoneMarker, drawPodTarget, drawPodHologram, drawPodHighlight } from './pods.js';
 import { previewRoute } from '../sim/zones.js';
 import { towerAt, towerStats } from '../sim/towers.js';
 import { demolishTarget } from '../sim/economy.js';
@@ -170,6 +170,7 @@ export function createSceneRenderer(sprites) {
   const backdrop = createBackdropLayer();
   const atmosphere = createAtmosphere();
   const drawEnemySprite = createEnemySpriteRenderer(sprites);
+  const drawPod = createPodRenderer(sprites);
   const items = [];
   /** Render-side time of the last frame, for the ash drift. */
   let lastT = null;
@@ -280,7 +281,7 @@ export function createSceneRenderer(sprites) {
       else if (kind === KIND_RIFT) drawRift(ctx, o, t);
       else if (kind === KIND_BASTION) drawBastion(ctx, o, t);
       else if (kind === KIND_BEACON) drawBeacon(ctx, o, t);
-      else if (kind === KIND_POD) drawPod(ctx, o, t);
+      else if (kind === KIND_POD) drawPod(ctx, o, t, enemyView);
       else if (kind === KIND_TOWER) {
         if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, o, cam.zoom, view.dpr, t, dt, ui.reducedMotion)) {
           drawTowerPlaceholder(ctx, o);

@@ -37,6 +37,7 @@ import { storage } from './storage/index.js';
 import { createLoadingScreen } from './ui/loading.js';
 import { createSpriteCache } from './render/sprites/rasterizer.js';
 import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
+import { POD_SPRITE_DEFS } from './render/pods.js';
 import { startStress, stopStress, setLives, setWave, grant, forcePod, toggleInvulnerable } from './sim/debug.js';
 import { score } from './sim/score.js';
 
@@ -573,7 +574,7 @@ menus.show('main');
 // Rasterize the enemy sprites for the start zoom before the first wave can begin.
 const loading = createLoadingScreen(document.body);
 sprites
-  .preload(ENEMY_SPRITE_DEFS, camera.zoom, view.dpr, (done, total) => loading.progress(done, total))
+  .preload([...ENEMY_SPRITE_DEFS, ...POD_SPRITE_DEFS], camera.zoom, view.dpr, (done, total) => loading.progress(done, total))
   .finally(() => {
     loading.close();
     document.body.dataset.ready = 'true';
