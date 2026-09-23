@@ -1,7 +1,7 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M3 ist umgesetzt und wartet auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
+M4 Präsentation ist in Arbeit (Plan freigegeben am 23.09.2026). M3 ist umgesetzt und wartet auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
 
 Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
@@ -66,6 +66,13 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Browser: `npm run test:battle` hat 17 Wellen bei 3x am Stück gespielt (Zonen neben der Route, Boss in Welle 10, Orbitalschlag in Welle 15), ohne Durchbruch und ohne Konsolenfehler.
   - Tests: 222 Unit-Tests (Kampf, Doktrinen, Spezialstellungen, Fähigkeiten, Kommandos, Wirtschaft, Infoanzeige, Wellentabelle), darunter eine ganze Partie über 50 Wellen mit Prüfung der Invarianten und der Wiederholbarkeit. Dazu 23 Eingabeprüfungen im Browser, in Chromium und WebKit, jetzt auch Infoanzeige per langem Drücken, Punkte im Banner und Trümmer abreißen.
 
+- M4 Präsentation, Schritt 1 von 8: Diorama und Atmosphäre (23.09.2026):
+  - Hintergrund (`src/render/backdrop.js`): Himmelsverlauf, Glutschein am Horizont und zwei Reihen Turmruinen wie im Stiltest, einmal pro Bildgröße in eine Offscreen-Schicht gezeichnet. Sie folgt der Kamera nur zu 14 % waagerecht und 7 % senkrecht, dadurch steht die Karte als Platte in einer Landschaft. Gezeichnet wird nur der Ausschnitt unter dem Bildfenster, der Rand ringsum ist die Reserve für die Verschiebung. Aussehen hängt am Seed.
+  - Asche und Glut (`src/render/atmosphere.js`): Flocken fallen, Glutpunkte steigen, beides im Bildschirmraum vor der Kamera, Anzahl aus der Bildfläche mit Ober- und Untergrenze (30 bis 120 Flocken, 6 bis 26 Glutpunkte). Rein optisch, daher `Math.random`.
+  - Bildschirmwackeln und Weißblitz (`src/render/effects.js`): gespeist aus Ereignissen (Kapseleinschlag am stärksten, dann Bossabschuss, Durchbruch, Explosion je nach Radius), schnelle Abklingkurve. Gewackelt wird nicht die Kamera, sondern nur das gezeichnete Bild.
+  - `prefers-reduced-motion`: kein Wackeln, Blitz auf ein Viertel, Asche und Glut stehen still. Im Browser geprüft.
+  - Tests: 226 Unit-Tests (neu: die Begrenzung der Parallaxe), 23 Eingabeprüfungen, Screenshots ohne Konsolenfehler.
+
 ## Offen
 - Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
 - Spezialstellungen haben keine eigene Grafik. Bis M4 nutzen sie das Sprite der ersten Zutat im Legendenrang mit goldenem Ring und Halo. Eigene Silhouetten stehen in M4 im Umfang.
@@ -82,6 +89,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - Die Spezialstellungen, die Boss-Werte und die Kegel-, Strahl- und Sprungweiten der Doktrinen stehen nicht im GDD. Die eingetragenen Zahlen sind hergeleitet (siehe Entscheidungen) und gehören in M6 auf den Prüfstand.
 
 ## Bekannte Probleme
+- Die Leistungsmessung `npm run test:perf` meldet auf diesem Rechner derzeit für Tablet bei Maximalzoom p95 33 ms statt 17 ms. Mit zurückgenommenen M4-Änderungen (git stash) misst sie denselben Wert, es ist also keine Folge des Diorama-Schritts, sondern die Maschine oder das Headless-Chromium. Vor der M4-Abnahme neu zu messen, im Zweifel auf dem iPad.
 - **Ohne eigene Markierungen ist Welle 1 verloren.** Wer nur „Salve anfordern" drückt, bekommt fünf zufällig verteilte Kapseln; die Stellung daraus steht oft außer Reichweite der Route und feuert die ganze Welle nicht. Gemessen: 30 Durchbrüche, Niederlage nach 55 Sekunden. Das ist eine Frage der Bedienführung, nicht des Balancings — das Spiel sollte deutlich machen, dass die Zonen gesetzt werden wollen. Die Browser-Prüfung stützt die Bastion deshalb mit dem Debug-Hebel ab.
 - Eine Stellung, die keine Route erreicht, gibt keinerlei Rückmeldung. Erst die Infoanzeige verrät über „Schaden diese Welle: 0", dass sie nichts tut. Ein sichtbarer Reichweitenkreis bei Auswahl und Infoanzeige wäre der naheliegende Platz dafür (Vorschlag für M4).
 - Der Auswahldialog liegt über dem unteren Rand der Karte (620 × 141 px auf dem Tablet). Eine Kapsel, die genau dahinter liegt, lässt sich nicht antippen, über die Karten im Dialog aber trotzdem wählen.

@@ -17,6 +17,8 @@ import {
   drawTowerPlaceholder,
 } from './objects.js';
 import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
+import { createBackdropLayer } from './backdrop.js';
+import { createAtmosphere } from './atmosphere.js';
 import { drawTowerSprite } from './towerSprites.js';
 import { drawZoneMarker, drawPod, drawPodTarget, drawPodHologram, drawPodHighlight } from './pods.js';
 import { previewRoute } from '../sim/zones.js';
@@ -53,17 +55,6 @@ function createVignette() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(canvas, 0, 0);
   };
-}
-
-function drawBackdrop(ctx, view) {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  const h = view.height * view.dpr;
-  const g = ctx.createLinearGradient(0, 0, 0, h);
-  g.addColorStop(0, '#110c0a');
-  g.addColorStop(0.45, '#2b1a13');
-  g.addColorStop(1, '#1a120e');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, view.width * view.dpr, h);
 }
 
 /** Dashed, slowly marching route line with ink underlay. */
@@ -105,8 +96,12 @@ function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
  */
 export function createSceneRenderer(sprites) {
   const drawVignette = createVignette();
+  const backdrop = createBackdropLayer();
+  const atmosphere = createAtmosphere();
   const drawEnemySprite = createEnemySpriteRenderer(sprites);
   const items = [];
+  /** Render-side time of the last frame, for the ash drift. */
+  let lastT = null;
 
   /**
    * @param {object} ui  Render-side state: hover cell, flashes, reduced motion, art mode.
@@ -114,10 +109,20 @@ export function createSceneRenderer(sprites) {
    */
   return function renderScene(ctx, view, cam, state, ui, ground, t) {
     const { map } = state;
-    drawBackdrop(ctx, view);
-    ground.draw(ctx, cam, view, map.size, state.seed, t * 1000);
+    const dt = lastT === null ? 0 : Math.min(0.05, Math.max(0, t - lastT));
+    lastT = t;
+    atmosphere.update(dt, view, ui.reducedMotion);
 
-    applyCamera(ctx, cam, view);
+    // An explosion shakes the whole picture: the camera stays where it is, only
+    // this frame is drawn from a nudged one.
+    const [shakeX, shakeY] = ui.effects?.shakeOffset(ui.reducedMotion) ?? [0, 0];
+    const shaken =
+      shakeX || shakeY ? { x: cam.x - shakeX / cam.zoom, y: cam.y - shakeY / cam.zoom, zoom: cam.zoom } : cam;
+
+    backdrop.draw(ctx, view, shaken, state.seed, shakeX, shakeY);
+    ground.draw(ctx, shaken, view, map.size, state.seed, t * 1000);
+
+    applyCamera(ctx, shaken, view);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
 
@@ -198,6 +203,8 @@ export function createSceneRenderer(sprites) {
       ctx.globalAlpha = 1;
     }
 
+    atmosphere.draw(ctx, view, t, ui.reducedMotion);
     drawVignette(ctx, view);
+    ui.effects?.drawFlash(ctx, view, ui.reducedMotion);
   };
 }

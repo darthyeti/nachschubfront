@@ -24,6 +24,13 @@ const BEAM_SECONDS = 0.12;
 /** Damage is collected per enemy and shown as one number every so often. */
 const NUMBER_INTERVAL = 0.32;
 
+/** Screen shake in CSS pixels; a pod impact is the loudest thing on the field. */
+const MAX_SHAKE = 16;
+const SHAKE = { explosion: 2.5, podImpact: 13, bossKill: 6, leak: 4 };
+/** White flash over the picture, 0 to 1. Damped with prefers-reduced-motion. */
+const FLASH = { podImpact: 0.45, bossKill: 0.2 };
+const REDUCED_FLASH = 0.25;
+
 const SPARK = { fire: '#ffb13b', smoke: '#6b625a', goo: C.toxic, spark: '#ffe07a', warp: C.warpL };
 
 /** World point to the pixel space the camera transform works in. */
@@ -39,6 +46,14 @@ export function createEffects() {
   const shots = [];
   /** Damage bookkeeping per enemy, for the floating numbers. */
   const tally = new WeakMap();
+  /** Camera shake and white flash, both fed by events and decaying on their own. */
+  let shake = 0;
+  let flash = 0;
+
+  function jolt(amount, flashLevel = 0) {
+    shake = Math.min(MAX_SHAKE, shake + amount);
+    flash = Math.max(flash, flashLevel);
+  }
 
   function addParticle(p) {
     if (particles.length >= MAX_PARTICLES) return;
@@ -94,11 +109,16 @@ export function createEffects() {
       burst(event.x, event.y, 6, 'fire', reducedMotion ? 6 : 14, { speed: 90, size: 5, grow: 4, life: 0.5 });
       burst(event.x, event.y, 6, 'smoke', reducedMotion ? 3 : 7, { speed: 50, size: 6, grow: 9, life: 1.1, gravity: -20 });
       addDecal({ kind: 'scorch', x: event.x, y: event.y, radius: event.radius, life: 12, max: 12 });
+      jolt(SHAKE.explosion * event.radius);
     } else if (event.type === 'kill') {
       burst(event.x, event.y, 10, 'goo', reducedMotion ? 3 : 7, { speed: 70, size: 3.5, life: 0.6 });
       addDecal({ kind: 'goo', x: event.x, y: event.y, radius: 0.35, life: 9, max: 9 });
+      if (event.boss) jolt(SHAKE.bossKill, FLASH.bossKill);
     } else if (event.type === 'leak') {
       burst(event.x, event.y, 12, 'warp', 8, { speed: 60, size: 4, grow: 3, life: 0.6, gravity: -30 });
+      jolt(SHAKE.leak);
+    } else if (event.type === 'podImpact') {
+      jolt(SHAKE.podImpact, FLASH.podImpact);
     }
   }
 
@@ -129,6 +149,10 @@ export function createEffects() {
   function update(dt, state, reducedMotion) {
     for (const event of state.events) handle(event, reducedMotion);
     collectDamage(state, dt);
+
+    // Fast decay: the jolt should be over before the next shot lands.
+    shake = Math.max(0, shake * Math.pow(0.02, dt) - dt * 2);
+    flash = Math.max(0, flash - dt * 3.2);
 
     for (let i = shots.length - 1; i >= 0; i--) {
       shots[i].life -= dt;
@@ -418,11 +442,32 @@ export function createEffects() {
       drawTargetRing(ctx, cell.x + 0.5, cell.y + 0.5, radius, C.gold, 0.8);
     },
     drawAbove,
+    /**
+     * Offset in CSS pixels for the whole picture. Nothing shakes with
+     * prefers-reduced-motion (CLAUDE.md).
+     * @returns {[number, number]}
+     */
+    shakeOffset(reducedMotion) {
+      if (reducedMotion || shake < 0.3) return [0, 0];
+      return [(Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake];
+    },
+
+    /** White flash over everything, drawn last. Damped with prefers-reduced-motion. */
+    drawFlash(ctx, view, reducedMotion) {
+      if (flash <= 0) return;
+      const a = reducedMotion ? flash * REDUCED_FLASH : flash;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = `rgba(255,240,210,${a})`;
+      ctx.fillRect(0, 0, view.width * view.dpr, view.height * view.dpr);
+    },
+
     clear() {
       particles.length = 0;
       decals.length = 0;
       numbers.length = 0;
       shots.length = 0;
+      shake = 0;
+      flash = 0;
     },
     /** For the debug display. */
     counts() {
