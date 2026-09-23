@@ -23,6 +23,7 @@ import { drawTowerSprite } from './towerSprites.js';
 import { drawZoneMarker, drawPod, drawPodTarget, drawPodHologram, drawPodHighlight } from './pods.js';
 import { previewRoute } from '../sim/zones.js';
 import { towerAt, towerStats } from '../sim/towers.js';
+import { demolishTarget } from '../sim/economy.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 
 const KIND_OBSTACLE = 0;
@@ -115,6 +116,53 @@ function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
 }
 
 /**
+ * Everything the demolish mode could clear (GDD section 13). Rubble is marked in
+ * gold, a position of the player's own in red: tearing one down is the
+ * expensive, irreversible move. What the player cannot afford stays dim, and the
+ * cell waiting for its confirming tap pulses.
+ * @returns {{cell: object, cost: number, kind: string, affordable: boolean, armed: boolean}[]}
+ *   The same cells again, so the prices can be written after the sprites.
+ */
+function drawDemolishOverlay(ctx, state, armed, t, reducedMotion) {
+  const cells = [
+    ...state.map.obstacles.filter((o) => o.kind === 'rubble').map((o) => o.cells[0]),
+    ...state.towers.map(({ x, y }) => ({ x, y })),
+  ];
+  const pulse = reducedMotion ? 1 : 0.75 + 0.25 * Math.sin(t * 6);
+  const marked = [];
+  for (const cell of cells) {
+    const target = demolishTarget(state, cell);
+    if (!target) continue;
+    const affordable = state.requisition >= target.cost;
+    const isArmed = Boolean(armed && armed.x === cell.x && armed.y === cell.y);
+    const rgb = target.kind === 'tower' ? '255,58,42' : '242,193,78';
+    const alpha = (affordable ? 1 : 0.35) * (isArmed ? pulse : 1);
+    drawCellMarker(
+      ctx,
+      cell,
+      `rgba(${rgb},${(isArmed ? 0.34 : 0.16) * alpha})`,
+      `rgba(${rgb},${(isArmed ? 1 : 0.8) * alpha})`,
+      isArmed ? 4 : 2.5,
+    );
+    marked.push({ cell, cost: target.cost, kind: target.kind, affordable, armed: isArmed });
+  }
+  return marked;
+}
+
+/**
+ * The prices, written after the sprites so a heap of rubble cannot hide its own
+ * price tag. They sit inside the cell rather than floating above it: cells tile
+ * the ground without overlapping, so two neighbouring prices never collide the
+ * way two labels on stalks would. The question itself goes to the banner.
+ */
+function drawDemolishPrices(ctx, marked) {
+  for (const { cell, cost, affordable, armed } of marked) {
+    const [x, y] = iso(cell.x + 0.5, cell.y + 0.5);
+    comicText(ctx, String(cost), x, y + 5, armed ? 19 : 15, affordable ? C.gold : 'rgba(232,220,192,.4)');
+  }
+}
+
+/**
  * @param {ReturnType<import('./sprites/rasterizer.js').createSpriteCache>} sprites
  */
 export function createSceneRenderer(sprites) {
@@ -156,8 +204,14 @@ export function createSceneRenderer(sprites) {
     const route = previewRoute(state);
     if (PLANNING_PHASES.has(state.phase) && route) drawRoutePreview(ctx, route, t, ui.reducedMotion);
 
+    // The demolish mode takes the map over: no zones are marked while it runs.
+    let demolishable = null;
     if (state.phase === 'planning') {
-      state.zones.forEach((zone, i) => drawZoneMarker(ctx, zone, i, t, ui.reducedMotion));
+      if (ui.demolishMode) {
+        demolishable = drawDemolishOverlay(ctx, state, ui.demolishArmed, t, ui.reducedMotion);
+      } else {
+        state.zones.forEach((zone, i) => drawZoneMarker(ctx, zone, i, t, ui.reducedMotion));
+      }
     }
     for (const pod of state.pods) drawPodTarget(ctx, pod, t);
 
@@ -249,6 +303,8 @@ export function createSceneRenderer(sprites) {
 
     // Shots, shells, particles and damage numbers go on top of the units.
     ui.effects?.drawAbove(ctx, state, t, ui.reducedMotion);
+
+    if (demolishable) drawDemolishPrices(ctx, demolishable);
 
     for (const f of ui.flashes) {
       if (!f.label) continue;

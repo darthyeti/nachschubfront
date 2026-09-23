@@ -9,7 +9,7 @@ import { randomSeed, normalizeSeed } from './core/seed.js';
 import { stepSimulation } from './sim/step.js';
 import { requestSalvo, canRequestSalvo, chooseSelection, setSpeed, toggleObstacle } from './sim/actions.js';
 import { toggleZone } from './sim/zones.js';
-import { buySupply, demolish } from './sim/economy.js';
+import { buySupply, demolish, canDemolish } from './sim/economy.js';
 import { useCommand, canUseCommand } from './sim/commands.js';
 import { commandById } from './data/commands.js';
 import { podAt } from './sim/pods.js';
@@ -78,8 +78,10 @@ const ui = {
   flashes: [],
   banner: null,
   obstacleMode: false,
-  /** Taps clear rubble instead of marking zones while this is on. */
+  /** Taps tear down rubble and positions instead of marking zones. */
   demolishMode: false,
+  /** Touch only: the cell whose demolition is waiting for a confirming tap. */
+  demolishArmed: null,
   /** Id of the command being aimed; the next tap on the map fires it. */
   commandTarget: null,
   /** Cell the info panel describes; set by a long press or the mouse pointer. */
@@ -148,11 +150,35 @@ function applyZone(cell) {
   else if (t[result.reason]) flash(cell, false, t[result.reason]);
 }
 
-/** Clears a heap of rubble for requisition (GDD section 10). */
-function applyDemolish(cell) {
-  if (!cell) return;
-  const result = demolish(state, cell);
+/**
+ * Tears down rubble or one of the player's own positions (GDD section 10).
+ * On touch the first tap only arms the cell and the second one carries it out
+ * (GDD section 13); with a mouse one click is enough, since a misplaced click
+ * is far less likely than a misplaced finger.
+ */
+function applyDemolish(cell, pointerType = 'mouse') {
   const t = STRINGS.placement;
+  if (!cell) {
+    ui.demolishArmed = null;
+    return;
+  }
+  const armed = ui.demolishArmed;
+  const isArmed = armed && armed.x === cell.x && armed.y === cell.y;
+  if (pointerType !== 'mouse' && !isArmed) {
+    const check = canDemolish(state, cell);
+    if (!check.ok) {
+      ui.demolishArmed = null;
+      if (t[check.reason]) flash(cell, false, t[check.reason]);
+      return;
+    }
+    // The question goes to the banner, not onto the map: a label on the cell
+    // would sit on top of the neighbouring cell's price.
+    ui.demolishArmed = { x: cell.x, y: cell.y };
+    showBanner(STRINGS.hud.demolishConfirm(check.cost));
+    return;
+  }
+  ui.demolishArmed = null;
+  const result = demolish(state, cell);
   if (result.ok) flash(cell, true, t.demolished);
   else if (t[result.reason]) flash(cell, false, t[result.reason]);
 }
@@ -211,10 +237,10 @@ function applyChoice(choice) {
   showBanner(STRINGS.selection.built(name));
 }
 
-function onCellTap(cell) {
+function onCellTap(cell, pointerType) {
   if (ui.commandTarget) applyCommand(cell);
   else if (ui.obstacleMode) applyObstacle(cell);
-  else if (ui.demolishMode && state.phase === 'planning') applyDemolish(cell);
+  else if (ui.demolishMode && state.phase === 'planning') applyDemolish(cell, pointerType);
   else if (state.phase === 'planning') applyZone(cell);
   else if (state.phase === 'selection') applyPodTap(cell);
 }
@@ -242,6 +268,7 @@ function onAction(action) {
     }
   } else if (action === 'demolishMode') {
     ui.demolishMode = !ui.demolishMode;
+    ui.demolishArmed = null;
     if (ui.demolishMode) ui.obstacleMode = false;
   } else if (action === 'codex') {
     codex.toggle();
@@ -296,11 +323,11 @@ const selectionPanel = createSelectionPanel(document.getElementById('hud'), {
 });
 
 attachPointerInput(canvas, {
-  onTap(x, y) {
+  onTap(x, y, pointerType) {
     const cell = cellAt(x, y);
     ui.cursorCell = cell;
     ui.hoverCell = cell;
-    onCellTap(cell);
+    onCellTap(cell, pointerType);
   },
   onPan(dx, dy) {
     panBy(camera, dx, dy);
@@ -438,6 +465,8 @@ function frame(now) {
 
   for (const f of ui.flashes) f.life -= realDt;
   ui.flashes = ui.flashes.filter((f) => f.life > 0);
+  // An armed cell is only ever answered in the planning phase it was armed in.
+  if (state.phase !== 'planning') ui.demolishArmed = null;
   if (ui.banner) {
     // End-of-game banners stay until a new game starts.
     const over = state.phase === 'defeat' || state.phase === 'victory';
@@ -521,6 +550,7 @@ if (debug) {
       frameMs: ui.frameMs,
       obstacleMode: ui.obstacleMode,
       demolishMode: ui.demolishMode,
+      demolishArmed: ui.demolishArmed,
       commandTarget: ui.commandTarget,
       podSelected: ui.podSelected,
     }),

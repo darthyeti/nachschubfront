@@ -134,6 +134,8 @@ try {
 
     await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
     const before = await game(page);
+    /** The pods of the first salvo; later checks count rubble against them. */
+    let pods = [];
 
     await check('one-finger swipe pans without selecting or placing', async () => {
       const cam0 = await camera(page);
@@ -232,8 +234,9 @@ try {
         !s.previewCells.some((c) => c.x === cell.x && c.y === cell.y),
         'the preview already walks around the zone',
       );
+      // Wave 1 gets six pods (GDD section 3); the counter names the salvo size.
       const shown = await page.locator('.hud-info .chip').first().textContent();
-      assert.match(shown, /Zonen 1\/5/);
+      assert.match(shown, /Zonen 1\/6/);
 
       await page.touchscreen.tap(x, y);
       await frames(page);
@@ -263,11 +266,11 @@ try {
       assert.deepEqual((await game(page)).zones, []);
     });
 
-    await check('the selection panel lists five pods, a tap on the map picks one', async () => {
+    await check('the selection panel lists the whole salvo, a tap on the map picks one', async () => {
       await page.getByRole('button', { name: 'Salve anfordern' }).click();
       await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 60000 });
       const cards = await page.$$('.selection-card');
-      assert.equal(cards.length, 5);
+      assert.equal(cards.length, (await game(page)).pods.length, 'one card per pod');
       assert.equal((await page.evaluate(() => window.__nachschub.ui())).podSelected, 0, 'first pod preselected');
 
       // Pick a pod other than the preselected one that the panel does not cover;
@@ -276,7 +279,7 @@ try {
         const r = document.querySelector('.selection').getBoundingClientRect();
         return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
       });
-      const pods = (await game(page)).pods;
+      pods = (await game(page)).pods;
       const spots = await Promise.all(pods.map((p) => screenOf(page, p)));
       const clear = ([x, y]) => x < panel.left - 10 || x > panel.right + 10 || y < panel.top - 10 || y > panel.bottom + 10;
       // Highest on screen first, so the match plays out the same way as before
@@ -300,10 +303,10 @@ try {
       const s = await game(page);
       assert.equal(s.towers.length, 1, 'the picked pod became a tower');
       assert.deepEqual({ x: s.towers[0].x, y: s.towers[0].y }, { x: pod.x, y: pod.y }, 'on the picked pod cell');
-      assert.equal(s.obstacles, before.obstacles + 4, 'the other four pods became rubble');
+      assert.equal(s.obstacles, before.obstacles + pods.length - 1, 'every other pod became rubble');
       await frames(page);
       assert.ok(await page.locator('.selection').isHidden(), 'the panel closes with the choice');
-      // Wave 1 sends 30 enemies against a single tower that lands wherever the
+      // Wave 1 sends its enemies against a single tower that lands wherever the
       // salvo puts it and often cannot even reach the route: the bastion falls
       // (noted in docs/PROGRESS.md as a balancing question for M6). The checks
       // that follow need a living match, so the bastion is propped up here and
@@ -319,7 +322,8 @@ try {
       const s = await game(page);
       assert.equal(s.wave, 2);
       assert.equal(s.towers.length, 2, 'every salvo leaves exactly one tower');
-      assert.equal(s.obstacles, before.obstacles + 8, 'and four heaps of rubble');
+      // Two salvos of six pods: two towers and everything else rubble.
+      assert.equal(s.obstacles, before.obstacles + 2 * (pods.length - 1), 'the rest is rubble');
       await page.waitForFunction(() => window.__nachschub.state().enemies >= 6, null, { timeout: 15000 });
       const mid = await game(page);
       assert.equal(mid.phase, 'wave');
@@ -379,28 +383,53 @@ try {
       await page.locator('.menu[data-menu="pause"]').waitFor({ state: 'hidden' });
     });
 
-    await check('demolish mode clears a heap of rubble for requisition', async () => {
+    await check('demolish mode clears several cells in a row, each after a confirming tap', async () => {
       // Debug rubble stands in for the heaps a salvo leaves behind.
       await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
-      const cell = await blockableRouteCell(page);
-      const [x, y] = await screenOf(page, cell);
-      await page.touchscreen.tap(x, y);
-      await frames(page);
+      const cells = [];
+      for (let i = 0; i < 2; i++) {
+        const cell = await blockableRouteCell(page);
+        const [x, y] = await screenOf(page, cell);
+        await page.touchscreen.tap(x, y);
+        await frames(page);
+        cells.push([x, y]);
+      }
       const withRubble = await game(page);
       await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
 
       await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
       await frames(page);
-      const demolish = page.getByRole('button', { name: /Trümmer abreißen/ });
+      const demolish = page.getByRole('button', { name: /Abreißen/ });
       await demolish.tap();
       await frames(page);
       assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishMode, true);
-      await page.touchscreen.tap(x, y);
+
+      // On touch the first tap only arms the cell; nothing has been torn down yet.
+      await page.touchscreen.tap(...cells[0]);
       await frames(page);
-      const cleared = await game(page);
-      assert.equal(cleared.obstacles, withRubble.obstacles - 1, 'the heap is gone');
-      assert.ok(cleared.requisition < 500, 'and it was paid for');
-      assert.equal(cleared.demolished, 1);
+      assert.ok((await page.evaluate(() => window.__nachschub.ui())).demolishArmed, 'cell armed');
+      assert.equal((await game(page)).obstacles, withRubble.obstacles, 'still standing');
+      // Let the placement flashes fade, so the picture shows the mode alone.
+      await frames(page, 70);
+      await page.screenshot({ path: join(OUT, 'tablet-demolish.png') });
+
+      await page.touchscreen.tap(...cells[0]);
+      await frames(page);
+      const once = await game(page);
+      assert.equal(once.obstacles, withRubble.obstacles - 1, 'the heap is gone');
+      assert.ok(once.requisition < 500, 'and it was paid for');
+      assert.equal(once.demolished, 1);
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishArmed, null);
+
+      // The mode stays on, so the next cell goes the same way without a detour.
+      await page.touchscreen.tap(...cells[1]);
+      await page.touchscreen.tap(...cells[1]);
+      await frames(page);
+      const twice = await game(page);
+      assert.equal(twice.obstacles, withRubble.obstacles - 2, 'and so is the second');
+      assert.equal(twice.demolished, 2);
+      assert.ok(twice.requisition < once.requisition - 15, 'the second one cost more');
+
       await demolish.tap();
       await frames(page);
       assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishMode, false);
