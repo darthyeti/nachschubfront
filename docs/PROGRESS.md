@@ -1,7 +1,7 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M4 Präsentation ist in Arbeit (Plan freigegeben am 23.09.2026). M3 ist umgesetzt und wartet auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
+M4 Präsentation ist umgesetzt und wartet auf die Abnahme auf dem iPad (Ton und Mehrfinger-Gesten lassen sich nur dort wirklich beurteilen). M3 wartet ebenfalls auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
 
 Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
@@ -123,7 +123,14 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Der Ton startet erst nach der ersten Berührung oder Taste (Safari), die Lautstärkeregler aus Schritt 6 wirken sofort, ein Hintergrund-Tab wird stummgeschaltet. Obergrenze von 18 gleichzeitigen Stimmen, dazu eine Mindestpause je Klang, damit 200 Gegner den Ton nicht zumauern.
   - Tests: 232 Unit-Tests (neu: jedes Klangrezept ist abspielbar, die häufigen haben eine Mindestpause, die Musikzeiten sind stimmig) und 27 Eingabeprüfungen. Zwei davon prüfen den Ton im Browser: Der Kontext läuft nach dem ersten Klick, und jeder der zwanzig Klänge wird in einem OfflineAudioContext gerendert — keiner ist still, keiner übersteuert. Das läuft auch ohne Lautsprecher, in Chromium und in WebKit.
 
+- M4 Schritt 8 von 8: Abnahme (23.09.2026):
+  - Leistungsziel: `npm run test:perf` läuft in Chromium und WebKit durch. 200 Gegner und 40 Stellungen, Desktop und Tablet, Start- und Maximalzoom: 60 fps, 2,0 bis 2,9 ms Rechenzeit pro Frame, 0 Rasterungen im Betrieb. Auf dem iPad steht die Messung noch aus.
+  - Unterscheidbarkeit: In der Galerie stehen alle 30 Rang-Stellungen, die 6 Rezept-Stellungen, die 7 Gegner und die 5 Bosse nebeneinander. Bei Zoom 0,5 (kleinste Stufe) sind sie an Form und Farbe auseinanderzuhalten, der Silhouetten-Schalter zeigt, dass auch die reinen Schattenrisse verschieden sind.
+  - `prefers-reduced-motion`: zwei volle Wellen mit Kapseln, Kampf, Effekten und Ton ohne Konsolenfehler; kein Wackeln, gedämpfter Blitz, ruhige Asche, stillstehende Beine.
+  - Gesamtstand der Prüfungen: 232 Unit-Tests, 27 Eingabeprüfungen in Chromium und WebKit, eine Partie über 16 Wellen im Browser, Screenshots für Desktop und Tablet (jetzt auch vom Titelbildschirm).
+
 ## Offen
+- Der Ton ist nur maschinell geprüft (jeder Klang erzeugt ein Signal, nichts übersteuert). Wie er sich anhört, muss auf dem iPad beurteilt werden — besonders die Lautstärkeverhältnisse zwischen Musik, Waffen und Kapseleinschlag.
 - Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
 - Balancing wird **nicht** mit den automatischen Werkzeugen beurteilt (Entscheidung vom 23.09.2026): Wo die Stellungen stehen, entscheidet im Spiel immer der Spieler, und daran hängt das Ergebnis mehr als an jedem Tabellenwert. `npm run playmatch` und `npm run test:battle` setzen die Zonen nach einer festen Regel und sind darum Regressionsprüfungen („läuft eine ganze Partie fehlerfrei durch"), keine Balancing-Messung. Ihre Wellenzahlen sagen nichts über die Schwierigkeit für einen Menschen.
 - Beobachtung, die davon unberührt bleibt: Flieger überfliegen das Labyrinth, und nur Autokanone, Laser, Psi und Tesla treffen sie. Wer ohne Luftabwehr baut, verliert an einer Flieger-Welle, egal wie gut das Labyrinth ist. Für M6 zu entscheiden, ob das so gewollt ist oder ob das Spiel darauf hinweist.
@@ -134,14 +141,24 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - **Ohne eigene Markierungen ist Welle 1 verloren.** Wer nur „Salve anfordern" drückt, bekommt fünf zufällig verteilte Kapseln; die Stellung daraus steht oft außer Reichweite der Route und feuert die ganze Welle nicht. Gemessen: 30 Durchbrüche, Niederlage nach 55 Sekunden. Das ist eine Frage der Bedienführung, nicht des Balancings — das Spiel sollte deutlich machen, dass die Zonen gesetzt werden wollen. Die Browser-Prüfung stützt die Bastion deshalb mit dem Debug-Hebel ab.
 - Das Ergänzen fehlender Landezonen prüft im schlimmsten Fall alle freien Felder (etwa 75 ms in einem sehr engen Labyrinth). Das passiert einmal pro Salve, fällt also nur als kurzer Hänger auf.
 - Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).
-- Ohne Stellungen fällt die Bastion in Welle 2 (12 Krieger plus 24 Schwärmer bei 20 Leben). Das ist bis M2 erwartbar, zum Testen einfach „Neue Partie“.
 - Der Boden-Cache ist auf 12 Megapixel begrenzt (Speichergrenze von Safari). Bei maximalem Zoom auf dem iPad kann der Boden leicht unscharf werden, Objekte und Gegner bleiben scharf.
+- Der Auswahldialog liegt auf breiten Bildschirmen am rechten Rand und kann dort das Debug-Panel überdecken. Nur im Debug-Modus, darum belassen.
 - Headless-Chromium mit Software-Rendering schafft nur etwa 30 bis 60 fps. Mit GPU (Apple M2) stabil 60 fps, auch mit 200 Sprite-Gegnern. Auf dem iPad bestätigt: Belastungstest mit 200 Gegnern läuft mit 60 fps. WebKit (Safari-Engine) wird automatisch getestet. Das ersetzt aber nicht den Test auf dem echten iPad, besonders nicht für Touch-Gesten mit mehreren Fingern: Die werden in WebKit als synthetische PointerEvents erzeugt, weil Playwright dort keine echten Mehrfinger-Berührungen senden kann.
 - Im Belastungstest liegen die 200 Gegner sehr dicht auf der Route (bewusst, als Worst Case).
-- Die Treffer-Variante ist vorbereitet, im Spiel blitzt aber noch nichts auf, weil es bis M3 keinen Schaden gibt.
 - Hinweis: iPadOS ignoriert `display: fullscreen` im Manifest und nutzt `standalone`.
 
 ## Entscheidungen
+- M4-Plan freigegeben (23.09.2026), mit zwei Entscheidungen dazu:
+  - **Eigene Grafik statt Warten**: Die elf fehlenden Figuren (sechs Rezept-Stellungen, fünf Bosse) sind im Stil der Konzeptskizzen selbst gezeichnet und liegen als Blätter in `reference/konzept/`. Einzelne können später ersetzt werden, ohne dass sich am Spiel etwas ändert.
+  - **Ton wird synthetisiert**, nicht aus Dateien geladen: keine Lizenzfragen, keine Megabytes, offline-fähig, passt zu „kein Build-Schritt, keine Laufzeit-Abhängigkeiten".
+- M4, Umsetzung:
+  - Die Konzept-SVGs sind einmalig zerlegt worden (`tests/tools/split-*.py`, `add-*.py`). Sie bleiben die Grafikquelle; `npm run sprites` erzeugt daraus weiterhin die Module.
+  - Der Rasterschlüssel kommt aus den Teilen einer Ebene, nicht aus Doktrin und Rang. Gleich aussehende Ebenen teilen sich damit automatisch eine Rasterung.
+  - Bewegung wird aus dem Zustand abgelesen, nicht gemeldet: Ein Schuss ist daran zu erkennen, dass der Nachladezähler hochspringt, ein Rüstungswechsel daran, dass das Feld sich geändert hat. Die Simulation musste dafür nichts Neues liefern.
+  - Der Szenenrenderer zeichnet nur noch, was in der Nähe des Bildfensters steht. Das ist die Gegenfinanzierung für die drei Zeichenaufrufe pro Figur.
+  - Comic-Wörter bleiben selten: nur Kapseleinschlag und Orbitalschlag. Bei jeder Mörsergranate wäre der Bildschirm voller Text.
+  - Spielereinstellungen liegen in `src/core/prefs.js` und gehen über die Speicherschicht. `src/data/settings.js` bleibt für Werte, die niemand im Spiel ändert.
+  - Die Partie startet hinter dem Titelbildschirm. Die Karte dahinter ist schon erzeugt, „Feldzug beginnen" spielt genau diese.
 - M3-Plan freigegeben (22.09.2026). Die Zahlen, die der GDD offen lässt, sind hergeleitet und stehen als Daten für M6 bereit:
   - **Boss-Werte** (`src/data/enemies.js`): Leben etwa anderthalb normale Wellen derselben Welle (Brutmutter 1800, Kolossbrecher 3500, Warp-Herold 3000 plus 1500 Schild, Schwarmkönigin 3500, Dämonenprinz 5000, jeweils mal dem Wellenfaktor), Tempo unter dem der Begleitung, Belohnung 50. Durchbruch kostet 5 Leben wie im GDD.
   - **Spezialstellungen** (`src/data/specials.js`): Jede ist etwa so stark wie ihre führende Doktrin einen Rang über dem Mindestrang des Rezepts und gibt den Rest ihres Budgets für das Besondere aus (Ring statt Kegel, drei Ziele, acht Sprünge, Betäubung). Ein Test hält fest, dass keine Spezialstellung schwächer ist als ihre Zutat.
