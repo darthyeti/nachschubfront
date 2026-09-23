@@ -62,8 +62,9 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Punkte nach GDD Abschnitt 12 im Banner bei Sieg und Niederlage.
   - Debug-Panel (`?debug`): Welle anspringen, Requisition und Kommandopunkte geben, Kapselinhalt erzwingen, Unverwundbarkeit, Wellenstatistik mit den drei stärksten Stellungen.
   - Werkzeuge: `npm run playmatch` spielt eine ganze Partie ohne Browser und schreibt eine Zeile pro Welle, `npm run test:battle` spielt eine echte Partie im Browser bei 3x und scheitert an jedem Konsolenfehler.
-  - Leistung (Playwright, Apple M2 mit GPU): Der Belastungstest kämpft jetzt mit. 200 Gegner und 40 feuernde Stellungen mit allen Effekten bleiben bei 60 fps, Rechenzeit 1,3 bis 2,0 ms pro Frame, 0 Rasterungen im Betrieb.
-  - Tests: 222 Unit-Tests (Kampf, Doktrinen, Spezialstellungen, Fähigkeiten, Kommandos, Wirtschaft, Infoanzeige, Wellentabelle), darunter eine ganze Partie über 50 Wellen mit Prüfung der Invarianten und der Wiederholbarkeit.
+  - Leistung (Playwright, Apple M2 mit GPU): Der Belastungstest kämpft jetzt mit. 200 Gegner und 40 feuernde Stellungen mit allen Effekten bleiben bei 60 fps, Rechenzeit 1,3 bis 2,0 ms pro Frame, 0 Rasterungen im Betrieb. WebKit: 17 ms pro Frame, Rechenzeit 2,0 bis 2,6 ms.
+  - Browser: `npm run test:battle` hat 17 Wellen bei 3x am Stück gespielt (Zonen neben der Route, Boss in Welle 10, Orbitalschlag in Welle 15), ohne Durchbruch und ohne Konsolenfehler.
+  - Tests: 222 Unit-Tests (Kampf, Doktrinen, Spezialstellungen, Fähigkeiten, Kommandos, Wirtschaft, Infoanzeige, Wellentabelle), darunter eine ganze Partie über 50 Wellen mit Prüfung der Invarianten und der Wiederholbarkeit. Dazu 23 Eingabeprüfungen im Browser, in Chromium und WebKit, jetzt auch Infoanzeige per langem Drücken, Punkte im Banner und Trümmer abreißen.
 
 ## Offen
 - Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
