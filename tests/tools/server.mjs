@@ -7,6 +7,19 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
+/**
+ * Leaves the title screen and starts the match on the map behind it.
+ * Every browser script needs this before it can touch the HUD.
+ * @param {import('playwright').Page} page
+ */
+export async function startMatch(page) {
+  await page.waitForSelector('body[data-ready]');
+  const start = page.getByRole('button', { name: 'Feldzug beginnen' });
+  await start.waitFor({ state: 'visible' });
+  await start.click();
+  await page.waitForSelector('.menu[data-menu="main"]', { state: 'hidden' });
+}
+
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',

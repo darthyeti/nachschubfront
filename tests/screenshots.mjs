@@ -6,7 +6,7 @@
 import * as playwright from 'playwright';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ROOT, startServer, watchProblems, browserName, launchBrowser } from './tools/server.mjs';
+import { ROOT, startServer, watchProblems, browserName, launchBrowser, startMatch } from './tools/server.mjs';
 
 const OUT = join(ROOT, 'tests', 'output');
 
@@ -45,6 +45,10 @@ try {
     await page.goto(base + query, { waitUntil: 'networkidle' });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForSelector('body[data-ready]');
+    // The title screen is part of the game: shoot it, then play on.
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: join(OUT, engine === 'chromium' ? `${vp.name}-menu.png` : `${vp.name}-menu-${engine}.png`) });
+    await startMatch(page);
     // Let a few frames run so the loop and HUD have settled.
     await page.waitForTimeout(700);
 

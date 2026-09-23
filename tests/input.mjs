@@ -9,7 +9,7 @@ import * as playwright from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ROOT, startServer, watchProblems, browserName, launchBrowser } from './tools/server.mjs';
+import { ROOT, startServer, watchProblems, browserName, launchBrowser, startMatch } from './tools/server.mjs';
 
 const OUT = join(ROOT, 'tests', 'output');
 const SEED = 'BASTION';
@@ -43,7 +43,7 @@ async function openGame(options) {
   const page = await context.newPage();
   watchProblems(page, options.hasTouch ? 'tablet' : 'desktop', problems);
   await page.goto(`${server.url}?seed=${SEED}&debug`, { waitUntil: 'networkidle' });
-  await page.waitForSelector('body[data-ready]');
+  await startMatch(page);
   await frames(page, 5);
   return { context, page };
 }
@@ -329,24 +329,54 @@ try {
       await page.waitForFunction(() => window.__nachschub.state().waveStats.killed > 0, null, { timeout: 30000 });
     });
 
-    await check('defeat shows a banner and "Neue Partie" starts a fresh match', async () => {
+    await check('defeat ends on the result screen, which starts a fresh match', async () => {
       // Two towers hold the wave off for a long time, so the defeat is forced.
       await page.evaluate(() => window.__nachschub.debug.setLives(1));
       await page.waitForFunction(() => window.__nachschub.state().phase === 'defeat', null, { timeout: 120000 });
-      const banner = await page.locator('.hud-banner').textContent();
-      assert.match(banner, /Bastion ist gefallen/);
-      // The banner carries the score of the lost match (GDD section 12).
-      assert.match(await page.locator('.hud-banner-detail').textContent(), /Punkte/);
-      assert.ok(await page.getByRole('button', { name: 'Salve anfordern' }).isHidden());
-      await page.getByRole('button', { name: 'Neue Partie' }).tap();
+      const end = page.locator('.menu[data-menu="end"]');
+      await end.waitFor({ state: 'visible' });
+      assert.match(await end.locator('.menu-title').textContent(), /Bastion ist gefallen/);
+      // The result carries the score of the lost match (GDD section 12).
+      assert.match(await end.locator('.menu-score').textContent(), /Punkte/);
+      // Every screen pauses the match.
+      assert.equal((await game(page)).speed, 0);
+      await end.getByRole('button', { name: 'Neue Partie' }).tap();
       await frames(page);
       const s = await game(page);
       assert.equal(s.phase, 'planning');
       assert.equal(s.wave, 0);
       assert.equal(s.lives, 20);
+      assert.ok(s.speed > 0, 'and the new match is running');
       assert.ok(!page.url().includes(`seed=${SEED}`), 'new match gets a new seed');
       assert.equal(await page.locator('.hud-banner').textContent(), '');
-      assert.equal(await page.locator('.hud-banner-detail').textContent(), '', 'and the score with it');
+    });
+
+    await check('escape opens the pause screen and resumes from it', async () => {
+      const pause = page.locator('.menu[data-menu="pause"]');
+      await page.keyboard.press('Escape');
+      await pause.waitFor({ state: 'visible' });
+      assert.equal((await game(page)).speed, 0, 'the match stops while the screen is up');
+      await pause.getByRole('button', { name: 'Weiter' }).tap();
+      await pause.waitFor({ state: 'hidden' });
+      assert.ok((await game(page)).speed > 0, 'and runs again afterwards');
+    });
+
+    await check('the settings keep what the player picks', async () => {
+      await page.keyboard.press('Escape');
+      await page.locator('.menu[data-menu="pause"]').waitFor({ state: 'visible' });
+      await page.getByRole('button', { name: 'Einstellungen' }).tap();
+      const settings = page.locator('.menu[data-menu="settings"]');
+      await settings.waitFor({ state: 'visible' });
+      await settings.getByRole('button', { name: 'Reduziert' }).tap();
+      assert.equal(
+        await page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:prefs')).motion),
+        'reduced',
+      );
+      // Back to full, so the rest of the run is unaffected.
+      await settings.getByRole('button', { name: 'Voll' }).tap();
+      await settings.getByRole('button', { name: 'Zurück' }).tap();
+      await page.locator('.menu[data-menu="pause"]').getByRole('button', { name: 'Weiter' }).tap();
+      await page.locator('.menu[data-menu="pause"]').waitFor({ state: 'hidden' });
     });
 
     await check('demolish mode clears a heap of rubble for requisition', async () => {

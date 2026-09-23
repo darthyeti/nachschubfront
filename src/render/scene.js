@@ -22,6 +22,8 @@ import { createAtmosphere } from './atmosphere.js';
 import { drawTowerSprite } from './towerSprites.js';
 import { drawZoneMarker, drawPod, drawPodTarget, drawPodHologram, drawPodHighlight } from './pods.js';
 import { previewRoute } from '../sim/zones.js';
+import { towerAt, towerStats } from '../sim/towers.js';
+import { DOCTRINE_COLORS } from '../data/doctrines.js';
 
 const KIND_OBSTACLE = 0;
 const KIND_RIFT = 1;
@@ -161,6 +163,23 @@ export function createSceneRenderer(sprites) {
 
     // Scorch marks, auras and flame cones lie on the ground, under the units.
     ui.effects?.drawGround(ctx, state, t, ui.reducedMotion);
+
+    // What the player is looking at shows how far it reaches.
+    if (ui.inspect) {
+      const tower = towerAt(state, ui.inspect);
+      if (tower) {
+        const stats = towerStats(tower);
+        ui.effects?.drawRange(ctx, tower.x + 0.5, tower.y + 0.5, stats.range, DOCTRINE_COLORS[stats.doctrine]);
+      }
+    }
+    // During the selection, the pod in focus shows the reach it would have.
+    if (state.phase === 'selection') {
+      const pod = state.pods[ui.podSelected];
+      if (pod) {
+        const stats = towerStats({ doctrine: pod.doctrine, rank: pod.rank });
+        ui.effects?.drawRange(ctx, pod.x + 0.5, pod.y + 0.5, stats.range, DOCTRINE_COLORS[pod.doctrine]);
+      }
+    }
 
     if (ui.hoverCell) drawCellMarker(ctx, ui.hoverCell, 'rgba(242,193,78,.12)', 'rgba(242,193,78,.8)', 2);
     // While a command is aimed, the cell under the pointer shows its reach.

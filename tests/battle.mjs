@@ -8,7 +8,7 @@ import * as playwright from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ROOT, startServer, watchProblems, browserName, launchBrowser } from './tools/server.mjs';
+import { ROOT, startServer, watchProblems, browserName, launchBrowser, startMatch } from './tools/server.mjs';
 
 const OUT = join(ROOT, 'tests', 'output');
 const SEED = 'BASTION';
@@ -41,7 +41,7 @@ watchProblems(page, 'battle', problems);
 
 try {
   await page.goto(`${server.url}?seed=${SEED}&debug`, { waitUntil: 'networkidle' });
-  await page.waitForSelector('body[data-ready]');
+  await startMatch(page);
   await page.getByRole('button', { name: `${SPEED}x` }).tap();
 
   /** Marks up to five zones next to the route, starting in its middle. */

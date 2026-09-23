@@ -720,6 +720,29 @@ export function createEffects() {
     drawAiming(ctx, cell, radius) {
       drawTargetRing(ctx, cell.x + 0.5, cell.y + 0.5, radius, C.gold, 0.8);
     },
+
+    /**
+     * How far an emplacement reaches. Shown for whatever the player is looking
+     * at, so a tower that cannot touch the route is obvious at a glance.
+     */
+    drawRange(ctx, x, y, radius, colour) {
+      const [sx, sy] = project(x, y);
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.scale(1, 0.5);
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 32, 0, Math.PI * 2);
+      ctx.fillStyle = `${colour}14`;
+      ctx.fill();
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.75;
+      ctx.setLineDash([10, 7]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    },
     drawAbove,
     /**
      * Offset in CSS pixels for the whole picture. Nothing shakes with

@@ -12,7 +12,7 @@ import * as playwright from 'playwright';
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
-import { ROOT, startServer, watchProblems, browserName, launchBrowser } from './tools/server.mjs';
+import { ROOT, startServer, watchProblems, browserName, launchBrowser, startMatch } from './tools/server.mjs';
 
 const OUT = join(ROOT, 'tests', 'output');
 const SAMPLE_FRAMES = 240;
@@ -55,7 +55,7 @@ try {
     const page = await context.newPage();
     watchProblems(page, label, problems);
     await page.goto(`${server.url}?seed=BASTION&debug`, { waitUntil: 'networkidle' });
-    await page.waitForSelector('body[data-ready]');
+    await startMatch(page);
     const renderer = await page.evaluate(() => {
       const gl = document.createElement('canvas').getContext('webgl');
       const info = gl?.getExtension('WEBGL_debug_renderer_info');

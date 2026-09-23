@@ -25,11 +25,54 @@ export const STRINGS = {
     speed: (n) => `${n}x`,
     speedGroup: 'Spielgeschwindigkeit',
     codex: 'Rezepte',
+    menu: 'Menü',
     obstacleMode: 'Hindernis-Modus',
     artSprites: 'Grafik: Sprites',
     artPlaceholder: 'Grafik: Platzhalter',
     stress: 'Belastungstest',
     stressOn: 'Belastungstest läuft',
+  },
+
+  menu: {
+    subtitle: 'Halte den Riss. Baue das Labyrinth. Fünfzig Wellen.',
+    start: 'Feldzug beginnen',
+    seedLabel: 'Seed',
+    seedHint: 'Leer lassen für eine zufällige Karte.',
+    seedRandom: 'Würfeln',
+    settings: 'Einstellungen',
+    back: 'Zurück',
+    resume: 'Weiter',
+    pauseTitle: 'Pause',
+    toMenu: 'Hauptmenü',
+    newGame: 'Neue Partie',
+    howTo:
+      'Landezonen antippen, Salve anfordern, aus den fünf Kapseln eine Stellung wählen. ' +
+      'Die Gegner laufen immer den kürzesten freien Weg — mit Trümmern und Stellungen wird er länger.',
+    hint: 'Leertaste pausiert · Escape öffnet das Menü · R zeigt die Rezepte',
+  },
+
+  settings: {
+    title: 'Einstellungen',
+    volumes: 'Lautstärke',
+    master: 'Gesamt',
+    sfx: 'Effekte',
+    music: 'Musik',
+    motion: 'Bewegung',
+    motionAuto: 'Wie das System',
+    motionFull: 'Voll',
+    motionReduced: 'Reduziert',
+    motionHint: 'Reduziert bedeutet: kein Wackeln, gedämpfte Blitze, ruhige Asche.',
+    percent: (v) => `${Math.round(v * 100)} %`,
+    storageWarning: 'Einstellungen können in diesem Browser nicht gespeichert werden.',
+  },
+
+  endScreen: {
+    victory: 'Die Front hält',
+    victoryDetail: 'Alle fünfzig Wellen abgewehrt.',
+    defeat: 'Die Bastion ist gefallen',
+    defeatDetail: (wave) => `Gefallen in Welle ${wave}.`,
+    again: 'Neue Partie',
+    sameSeed: 'Gleicher Seed',
   },
 
   codex: {

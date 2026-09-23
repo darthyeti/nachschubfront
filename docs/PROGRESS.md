@@ -107,6 +107,15 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Behobener Fehler aus M2/M3: Partikel bekamen eine zufällige Lebensdauer, aber die feste als Bezugsgröße. Wer länger lebte als vorgesehen, wuchs über seine eigene Größe hinaus und bekam einen negativen Radius; Canvas hat das als Fehler gemeldet. Jetzt ist beides derselbe Wert.
   - Leistung (Apple M2 mit GPU): 200 Gegner und 40 Stellungen, Start- und Maximalzoom, Desktop und Tablet: alles 60 fps, 1,9 bis 3,0 ms Rechenzeit, 0 Rasterungen. Die Auffälligkeit aus Schritt 1 (p95 33 ms bei Tablet/Maximalzoom) ist weg; sie kam von der ausgelasteten Maschine, nicht vom Spiel.
 
+- M4 Schritt 6 von 8: HUD und Menüs (23.09.2026):
+  - Vier Bildschirme im Spielstil (`src/ui/menu.js`): Hauptmenü mit Titel, Seed-Feld und Würfeln-Knopf, Pausenmenü, Einstellungen und Ende-Bildschirm mit der Wertung aus GDD 12. Alle liegen über dem laufenden Bild, alle pausieren die Partie, alle haben 44-px-Trefferflächen und Safe-Area-Abstände.
+  - Die Partie startet jetzt hinter dem Titelbildschirm: Die Karte ist schon erzeugt und zu sehen, „Feldzug beginnen" spielt genau diese Karte, ein geänderter Seed erzeugt eine neue.
+  - Escape arbeitet sich von innen nach außen: erst das Zielen abbrechen, dann das Nachschlagewerk schließen, dann das Menü öffnen. Dazu ein Knopf „Menü" in der Leiste.
+  - Spielereinstellungen (`src/core/prefs.js`): drei Lautstärken (für Schritt 7 vorbereitet) und die Bewegung (Wie das System / Voll / Reduziert). Gespeichert wird über die Speicherschicht; ein Browser ohne Speicher zeigt einen Hinweis und spielt trotzdem.
+  - Reichweitenkreis: Was der Spieler ansieht (Infoanzeige) und die gewählte Kapsel in der Auswahl zeigen, wie weit sie reichen. Damit ist eine Stellung ohne Ziel sofort zu erkennen (bekanntes Problem aus M3).
+  - Der Auswahldialog rückt auf breiten Bildschirmen an den rechten Rand und stapelt die Kapselkarten. Die Vorderkante der Karte bleibt frei, jede Kapsel ist antippbar (bekanntes Problem aus M2).
+  - Tests: 25 Eingabeprüfungen im Browser (neu: Ende-Bildschirm statt Banner, Pausenmenü mit Escape, Einstellungen werden gespeichert), 229 Unit-Tests. Die Browser-Werkzeuge verlassen den Titelbildschirm jetzt über denselben Knopf wie ein Spieler (`startMatch` in `tests/tools/server.mjs`), die Screenshots halten ihn zusätzlich fest.
+
 ## Offen
 - Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
 - Balancing wird **nicht** mit den automatischen Werkzeugen beurteilt (Entscheidung vom 23.09.2026): Wo die Stellungen stehen, entscheidet im Spiel immer der Spieler, und daran hängt das Ergebnis mehr als an jedem Tabellenwert. `npm run playmatch` und `npm run test:battle` setzen die Zonen nach einer festen Regel und sind darum Regressionsprüfungen („läuft eine ganze Partie fehlerfrei durch"), keine Balancing-Messung. Ihre Wellenzahlen sagen nichts über die Schwierigkeit für einen Menschen.
@@ -116,8 +125,6 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 
 ## Bekannte Probleme
 - **Ohne eigene Markierungen ist Welle 1 verloren.** Wer nur „Salve anfordern" drückt, bekommt fünf zufällig verteilte Kapseln; die Stellung daraus steht oft außer Reichweite der Route und feuert die ganze Welle nicht. Gemessen: 30 Durchbrüche, Niederlage nach 55 Sekunden. Das ist eine Frage der Bedienführung, nicht des Balancings — das Spiel sollte deutlich machen, dass die Zonen gesetzt werden wollen. Die Browser-Prüfung stützt die Bastion deshalb mit dem Debug-Hebel ab.
-- Eine Stellung, die keine Route erreicht, gibt keinerlei Rückmeldung. Erst die Infoanzeige verrät über „Schaden diese Welle: 0", dass sie nichts tut. Ein sichtbarer Reichweitenkreis bei Auswahl und Infoanzeige wäre der naheliegende Platz dafür (Vorschlag für M4).
-- Der Auswahldialog liegt über dem unteren Rand der Karte (620 × 141 px auf dem Tablet). Eine Kapsel, die genau dahinter liegt, lässt sich nicht antippen, über die Karten im Dialog aber trotzdem wählen.
 - Das Ergänzen fehlender Landezonen prüft im schlimmsten Fall alle freien Felder (etwa 75 ms in einem sehr engen Labyrinth). Das passiert einmal pro Salve, fällt also nur als kurzer Hänger auf.
 - Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).
 - Ohne Stellungen fällt die Bastion in Welle 2 (12 Krieger plus 24 Schwärmer bei 20 Leben). Das ist bis M2 erwartbar, zum Testen einfach „Neue Partie“.

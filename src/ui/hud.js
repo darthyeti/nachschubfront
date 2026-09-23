@@ -68,9 +68,10 @@ export function createHud(root, { debug, onAction }) {
   const start = button(T.requestSalvo, 'primary', () => onAction('requestSalvo'));
   const restart = button(T.newGame, 'primary', () => onAction('newGame'));
   const codex = button(T.codex, 'alt', () => onAction('codex'));
+  const menu = button(T.menu, 'alt', () => onAction('menu'));
   const buySupplyButton = button(T.buySupply(0), 'alt', () => onAction('buySupply'));
   const demolishButton = button(T.demolish(0), 'alt', () => onAction('demolishMode'));
-  bar.append(speedGroup, start, restart, buySupplyButton, demolishButton, codex);
+  bar.append(speedGroup, start, restart, buySupplyButton, demolishButton, codex, menu);
 
   let obstacleButton = null;
   let artButton = null;

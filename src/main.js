@@ -30,6 +30,9 @@ import { createCodex } from './ui/codex.js';
 import { createCommandBar } from './ui/commands.js';
 import { createInfoPanel } from './ui/info.js';
 import { createDebugPanel } from './ui/debug.js';
+import { createMenus } from './ui/menu.js';
+import { createPrefs, wantsReducedMotion } from './core/prefs.js';
+import { storage } from './storage/index.js';
 import { createLoadingScreen } from './ui/loading.js';
 import { createSpriteCache } from './render/sprites/rasterizer.js';
 import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
@@ -80,6 +83,7 @@ const ui = {
   commandTarget: null,
   /** Cell the info panel describes; set by a long press or the mouse pointer. */
   inspect: null,
+  /** Set from the player's settings and the system preference; see applyMotion(). */
   reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
   /** 'sprites' (concept art) or 'placeholder' (M1 shapes); debug switch. */
   art: params.get('art') === 'placeholder' ? 'placeholder' : 'sprites',
@@ -113,15 +117,6 @@ function showBanner(text, detail = '') {
   ui.banner = { text, detail, life: BANNER_SECONDS };
 }
 
-/** Wave, kills, lives and the score (GDD section 12). */
-function scoreLine() {
-  const t = STRINGS.score;
-  return (
-    `${t.wave} ${state.wave} · ${state.kills} ${t.kills} · ` +
-    `${state.lives} ${t.lives} · ${score(state)} ${t.total}`
-  );
-}
-
 function applyObstacle(cell) {
   if (!cell) return;
   const result = toggleObstacle(state, cell);
@@ -130,8 +125,8 @@ function applyObstacle(cell) {
   else if (t[result.reason]) flash(cell, false, t[result.reason]);
 }
 
-function newGame() {
-  state = createGameState(randomSeed());
+function newGame(seed = null) {
+  state = createGameState(normalizeSeed(seed) ?? randomSeed());
   state.supplyLevel = startSupply;
   bounds = mapBounds(state.map.size);
   stepper.reset();
@@ -249,10 +244,13 @@ function onAction(action) {
     if (ui.demolishMode) ui.obstacleMode = false;
   } else if (action === 'codex') {
     codex.toggle();
-  } else if (action === 'closeCodex') {
-    // Escape also drops whatever command is being aimed.
+  } else if (action === 'menu') {
+    menus.togglePause();
+  } else if (action === 'escape') {
+    // Escape works from the inside out: aiming, then the codex, then the menu.
     if (ui.commandTarget) ui.commandTarget = null;
-    codex.setOpen(false);
+    else if (codex.open) codex.setOpen(false);
+    else menus.togglePause();
   } else if (action === 'supplyLevel') {
     // Debug only until requisition arrives in M3, so merges and recipes are testable.
     if (debug) state.supplyLevel = (state.supplyLevel % MAX_SUPPLY_LEVEL) + 1;
@@ -286,7 +284,10 @@ const infoPanel = createInfoPanel(document.getElementById('hud'), {
     ui.inspect = null;
   },
 });
-const selectionPanel = createSelectionPanel(hud.bottom, {
+// The selection panel places itself: over the bar on a narrow screen, at the
+// side on a wide one. Inside the bottom column it could not reach the edge,
+// because a transformed ancestor is what `position: fixed` measures against.
+const selectionPanel = createSelectionPanel(document.getElementById('hud'), {
   onSelect: (index) => {
     ui.podSelected = index;
   },
@@ -328,6 +329,42 @@ attachPointerInput(canvas, {
   },
 });
 
+// ---------- Settings and the screens around the game ----------
+
+const prefs = createPrefs(storage);
+const systemMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+function applyMotion() {
+  ui.reducedMotion = wantsReducedMotion(prefs.values, systemMotion.matches);
+}
+prefs.onChange(applyMotion);
+systemMotion.addEventListener('change', applyMotion);
+prefs.load().then(applyMotion);
+
+/** Speed to go back to once every screen is closed again. */
+let speedBeforeMenu = 1;
+
+const menus = createMenus(document.body, {
+  prefs,
+  canStore: storage.persistent,
+  onToggle(open) {
+    if (open) {
+      if (state.speed > 0) speedBeforeMenu = state.speed;
+      setSpeed(state, 0);
+    }
+  },
+  onResume() {
+    setSpeed(state, speedBeforeMenu);
+  },
+  onStart(seed) {
+    // The title screen shows the seed of the map already generated behind it, so
+    // starting with that seed just plays it instead of rolling a new one.
+    if (!seed || seed !== state.seed) newGame(seed);
+    lastSpeed = speedBeforeMenu > 0 ? speedBeforeMenu : 1;
+    setSpeed(state, lastSpeed);
+  },
+});
+
 const keyboard = attachKeyboard({ onAction });
 
 // ---------- Events from the simulation ----------
@@ -336,10 +373,27 @@ function drainEvents() {
   for (const ev of state.events) {
     if (ev.type === 'phase' && ev.phase === 'salvo') ui.podSelected = 0;
     else if (ev.type === 'waveCleared') showBanner(STRINGS.banners.waveCleared(ev.wave, ev.leaked));
-    else if (ev.type === 'phase' && ev.phase === 'defeat') showBanner(STRINGS.banners.defeat(state.wave), scoreLine());
-    else if (ev.type === 'phase' && ev.phase === 'victory') showBanner(STRINGS.banners.victory, scoreLine());
+    else if (ev.type === 'phase' && (ev.phase === 'defeat' || ev.phase === 'victory')) {
+      showEndScreen(ev.phase === 'victory');
+    }
   }
   state.events.length = 0;
+}
+
+/** The result of a finished match, with the score from GDD section 12. */
+function showEndScreen(victory) {
+  const t = STRINGS.score;
+  menus.showEnd({
+    victory,
+    wave: state.wave,
+    seed: state.seed,
+    lines: [
+      [t.wave, state.wave],
+      [t.kills, state.kills],
+      [t.lives, state.lives],
+      [t.total, score(state)],
+    ],
+  });
 }
 
 // ---------- Frame loop ----------
@@ -457,6 +511,11 @@ if (debug) {
     }),
   };
 }
+
+// The match waits behind the title screen until the player starts it.
+setSpeed(state, 0);
+menus.setSeed(state.seed);
+menus.show('main');
 
 // Rasterize the enemy sprites for the start zoom before the first wave can begin.
 const loading = createLoadingScreen(document.body);
