@@ -1,9 +1,9 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M4c Neue Kapselform ist umgesetzt und wartet auf die Abnahme (die Kapsel im Spiel auf dem iPad, besonders der Aufbruch bei 1x). Die Vorarbeit dazu: `docs/ART-kapsel.md` ist als Abschnitt "Nachschubkapsel" in `docs/ART.md` eingearbeitet, `docs/ART.md` ist wieder die einzige Quelle für die Grafik.
+M4c Neue Kapselform ist umgesetzt und wartet auf die Abnahme (die Kapsel im Spiel auf dem iPad, besonders der Aufbruch bei 1x). Die Vorarbeit dazu: Die Ergänzung zur Kapsel steht als Abschnitt "Nachschubkapsel" in `docs/ART.md`, die Einzeldatei ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik.
 
-M4b Designanpassungen aus Spieltest 1 ist umgesetzt und wartet auf die Abnahme (besonders der Abbruchmodus und der Nachschub-Knopf auf dem iPad). Die Vorarbeit dazu: `docs/GDD-update-v2.md` ist in `docs/GDD.md` eingearbeitet (Stand jetzt "Grundlagen v2"), das GDD ist wieder die einzige Quelle.
+M4b Designanpassungen aus Spieltest 1 ist umgesetzt und wartet auf die Abnahme (besonders der Abbruchmodus und der Nachschub-Knopf auf dem iPad). Die Vorarbeit dazu: Das Update v2 ist in `docs/GDD.md` eingearbeitet (Stand jetzt "Grundlagen v2"), die Einzeldatei ist danach gelöscht worden. Das GDD ist wieder die einzige Quelle.
 
 M4 Präsentation ist umgesetzt und wartet auf die Abnahme auf dem iPad (Ton und Mehrfinger-Gesten lassen sich nur dort wirklich beurteilen). M3 wartet ebenfalls auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
 
