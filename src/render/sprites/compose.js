@@ -10,6 +10,7 @@ import {
   ALL_ENEMY_SYMBOLS,
   ENEMY_EXTRA_SCALE,
   DOCTRINE_SYMBOLS,
+  SPECIAL_SYMBOLS,
   ENEMY_LIMBS,
   OWN_SANDBAGS,
   SHARED_SANDBAGS,
@@ -237,6 +238,25 @@ export function towerSpriteSet(doctrine, rank) {
     rank,
   };
 }
+
+/**
+ * A recipe emplacement. It has no rank, so it carries no chevrons; the gold
+ * edging marks it as the top of the tree.
+ */
+export function specialSpriteSet(id) {
+  const symbol = SPECIAL_SYMBOLS[id];
+  if (!symbol) throw new Error(`Unknown special tower: ${id}`);
+  const hasGun = Boolean(TOWER_SPRITES.symbols[`${symbol}-gun`]);
+  return {
+    back: towerPart(['base', `${symbol}-back`], goldEdgeMarkup()),
+    gun: hasGun ? towerPart([`${symbol}-gun`]) : null,
+    front: null,
+    weapon: TOWER_WEAPONS[id] ?? null,
+    rank: 0,
+  };
+}
+
+export const SPECIALS = Object.keys(SPECIAL_SYMBOLS);
 
 export const ENEMY_TYPES = Object.keys(ALL_ENEMY_SYMBOLS);
 export const DOCTRINES = Object.keys(DOCTRINE_SYMBOLS);

@@ -24,7 +24,18 @@ Verbindliche Gestaltungsregeln für alle Figuren. Die Konzeptskizzen liegen als 
 
 ### Spezialstellungen
 
-Die sechs Rezept-Stellungen (GDD Abschnitt 8) haben noch keine Konzeptgrafik. Bis dahin (M4) zeichnet das Spiel sie als Sprite der erstgenannten Zutat im Legendenrang, dazu ein goldener Bodenring und ein Halo in der Leitfarbe. Sie brauchen jeweils eine eigene Silhouette, die sich auf der kleinsten Zoomstufe von den sechs Grundformen unterscheidet.
+Die sechs Rezept-Stellungen (GDD Abschnitt 8) haben seit M4 eine eigene Silhouette. Sie stehen auf demselben Sockel, tragen die Goldkante (sie sind die Spitze der Entwicklung, haben aber keinen Rang und darum keine Winkel) und stehen im Spiel in einem goldenen Bodenring. Die Leitfarbe bleibt die der erstgenannten Zutat.
+
+| Spezialstellung | Grundform | Bewegliches Teil |
+|---|---|---|
+| Reinigungsschrein | Weite Feuerschale auf gestuftem Podest, Düsenkranz am Rand | — |
+| Sturmbatterie | Drei gefächerte Läufe auf einer Drehtrommel | Läufe drehen zum Ziel |
+| Glutkessel | Gedrungener Kessel auf drei Beinen, Bügel darüber | — |
+| Belagerungsmörser | Riesenrohr auf einer Räderlafette | Rohr neigt sich zum Ziel |
+| Gewitterturm | Gitterpylon mit Stabkrone | — |
+| Seelenfeuer-Obelisk | Verjüngender Monolith mit Schädelnische und Warp-Splittern | — |
+
+Gezeichnet werden sie von `tests/tools/add-specials.py`; die Blätter liegen wie die handgezeichneten in `reference/konzept/stellungen/`.
 
 ### Ränge
 
@@ -69,15 +80,15 @@ Sonderfähigkeiten sind sichtbar: Brut im Säuresack des Zerplatzers (#8fbf3a), 
 
 ### Bosse
 
-Die fünf Bosse (GDD Abschnitt 9) haben noch keine Konzeptgrafik. Bis M4 leiht sich jeder von ihnen die Figur eines verwandten Gegners und wird deutlich größer gezeichnet (Faktor in `src/data/enemies.js`), dazu ein größerer Lebensbalken.
+Die fünf Bosse (GDD Abschnitt 9) haben seit M4 eine eigene Figur (`tests/tools/add-bosses.py`). Der Faktor in `src/data/enemies.js` bezieht sich jetzt auf diese eigene Zeichnung und ist so gewählt, dass jeder Boss so groß bleibt wie vorher mit der geliehenen Figur. Das Feld `sprite` sagt weiter, mit wem der Boss verwandt ist; davon hängt die Größe seines Bodenschattens ab.
 
-| Boss | Geliehene Figur | Größe | Eigene Silhouette braucht |
+| Boss | Verwandt mit | Größe | Silhouette |
 |---|---|---|---|
-| Brutmutter | Zerplatzer | 2,2x | Aufgeblähter Brutleib, Beinkranz |
-| Kolossbrecher | Brecher | 2,4x | Türmender Plattenpanzer, Rammschild |
-| Warp-Herold | Warp-Seher | 2,2x | Mehrere Schildblasen, Warp-Risse |
-| Schwarmkönigin | Aasflieger | 2,4x | Doppelflügel, Legestachel |
-| Dämonenprinz | Krieger | 2,6x | Wechselnde Rüstung sichtbar machen (Fleisch, Panzer, Warp-Schild) |
+| Brutmutter | Zerplatzer | 1,8x | Aufgeblähter grüner Brutleib mit Brutblasen, Kranz aus sechs Beinen |
+| Kolossbrecher | Brecher | 1,9x | Türmender Plattenpanzer mit Knochengraten, breiter Rammschild vorn |
+| Warp-Herold | Warp-Seher | 2,0x | Drei gestrichelte Schildblasen, Warp-Risse, Robe und Knochenkrone |
+| Schwarmkönigin | Aasflieger | 1,55x | Zwei Flügelpaare, gegliederter Hinterleib mit Legestachel |
+| Dämonenprinz | Krieger | 2,0x | Hörnerkrone, Schulterpanzer, Umhang, geschwungene Klinge |
 
 Der Dämonenprinz wechselt im Kampf alle vier Sekunden die Rüstungsart. Sichtbar ist das seit M4 an einem Ring auf dem Boden und einem Schild auf seinem Leib, beides in der Farbe der gerade getragenen Rüstung (Fleisch #c23a2a, Panzer #a4502a, Warp-Schild #9a6ae0); beim Wechsel läuft ein Ring nach außen.
 

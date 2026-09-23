@@ -9,7 +9,7 @@ import { iso } from './iso.js';
 import { shadow, ell } from './draw.js';
 import { C } from './palette.js';
 import { drawSprite, drawSpriteTurned, spriteOrigin } from './sprites/rasterizer.js';
-import { towerSpriteSet, DOCTRINES } from './sprites/compose.js';
+import { towerSpriteSet, specialSpriteSet, DOCTRINES, SPECIALS } from './sprites/compose.js';
 import { RANK_COUNT } from './sprites/manifest.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { drawWeaponGlow, drawWeaponSpark, drawRankMarks } from './towerFx.js';
@@ -18,12 +18,12 @@ const sets = new Map();
 /** Render-side movement of each weapon; forgotten with the tower it belongs to. */
 const motion = new WeakMap();
 
-/** Sprite set for a doctrine and rank (cached, cheap to call per frame). */
-export function towerSet(doctrine, rank) {
-  const key = `${doctrine}:${rank}`;
+/** Sprite set of an emplacement: doctrine and rank, or a recipe emplacement. */
+export function towerSet(tower) {
+  const key = tower.special ?? `${tower.doctrine}:${tower.rank}`;
   let set = sets.get(key);
   if (!set) {
-    set = towerSpriteSet(doctrine, rank);
+    set = tower.special ? specialSpriteSet(tower.special) : towerSpriteSet(tower.doctrine, tower.rank);
     sets.set(key, set);
   }
   return set;
@@ -32,18 +32,14 @@ export function towerSet(doctrine, rank) {
 /** Every distinct tower sprite, e.g. for preloading the gallery (layers are shared). */
 export function allTowerDefs() {
   const byKey = new Map();
+  const add = (set) => {
+    for (const def of [set.back, set.gun, set.front]) if (def) byKey.set(def.key, def);
+  };
   for (const doctrine of DOCTRINES) {
-    for (let rank = 1; rank <= RANK_COUNT; rank++) {
-      const set = towerSet(doctrine, rank);
-      for (const def of [set.back, set.gun, set.front]) if (def) byKey.set(def.key, def);
-    }
+    for (let rank = 1; rank <= RANK_COUNT; rank++) add(towerSet({ doctrine, rank }));
   }
+  for (const special of SPECIALS) add(towerSet({ special }));
   return [...byKey.values()];
-}
-
-/** Rank whose sprite a tower uses; special towers borrow the legend artwork. */
-export function spriteRank(tower) {
-  return tower.special ? RANK_COUNT : tower.rank;
 }
 
 /** Shortest way from angle a to angle b, in [-PI, PI]. */
@@ -51,19 +47,9 @@ export function angleDelta(a, b) {
   return ((b - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
 }
 
-/**
- * Placeholder look for special towers until they get their own concept art
- * (M4): a glowing ring and halo in the leading ingredient's guide colour.
- */
-function specialHalo(ctx, sx, sy, color, t) {
-  const pulse = 0.5 + 0.5 * Math.sin(t * 2);
-  ell(ctx, sx, sy, 30, 15, `rgba(242,193,78,.16)`, C.gold, 2.5);
-  ctx.save();
-  ctx.globalAlpha = 0.25 + pulse * 0.15;
-  ell(ctx, sx, sy - 54, 26, 26, color, null);
-  ctx.globalAlpha = 0.5;
-  ell(ctx, sx, sy - 54, 26, 26, null, color, 2);
-  ctx.restore();
+/** A recipe emplacement stands in a golden ring on the ground. */
+function specialRing(ctx, sx, sy) {
+  ell(ctx, sx, sy, 30, 15, 'rgba(242,193,78,.16)', C.gold, 2.5);
 }
 
 /**
@@ -106,12 +92,12 @@ function updateMotion(tower, set, dt, pivotScreen) {
  * @returns {boolean} false if the sprite is not rasterized yet.
  */
 export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, reducedMotion = false) {
-  const set = towerSet(tower.doctrine, spriteRank(tower));
+  const set = towerSet(tower);
   const back = cache.get(set.back, zoom, dpr);
   if (!back) return false;
   const [sx, sy] = iso(tower.x + 0.5, tower.y + 0.5);
   shadow(ctx, sx + 6, sy + 4, 34, 15, 0.28);
-  if (tower.special) specialHalo(ctx, sx, sy, DOCTRINE_COLORS[tower.doctrine], t);
+  if (tower.special) specialRing(ctx, sx, sy);
 
   const weapon = set.weapon;
   const scale = set.back.unitScale;
@@ -128,6 +114,8 @@ export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, red
   const muzzle = weapon?.muzzle
     ? [pivot[0] + Math.cos(facing) * weapon.muzzle * scale, pivot[1] + Math.sin(facing) * weapon.muzzle * scale]
     : pivot;
+  // A recipe emplacement keeps the doctrine of its first ingredient for colour
+  // and glow, but its weapon data is its own.
   const view = { doctrine: tower.doctrine, pivot, muzzle, scale, t, reducedMotion };
   // Banner and halo stand behind the weapon, so the figure covers the pole.
   drawRankMarks(ctx, {

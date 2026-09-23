@@ -91,10 +91,16 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Der Rasterschlüssel enthält jetzt einen Hash der erzeugten Zusatzgrafik statt ihrer Länge, damit zwei verschiedene Ranggrafiken sich nie eine Rasterung teilen können.
   - Tests: 228 Unit-Tests (neu: Rangdetails erscheinen genau ab dem Rang aus ART.md und bleiben, Kiste statt Ring bei Autokanone und Mörser), 23 Eingabeprüfungen.
 
+- M4 Schritt 4 von 8: Spezialstellungen und Bosse (23.09.2026):
+  - Elf neue Figuren im Stil der Konzeptskizzen, gezeichnet von zwei Werkzeugen (`tests/tools/add-specials.py`, `add-bosses.py`) auf einer gemeinsamen kleinen Zeichenbibliothek (`tests/tools/draw.py`: Iso-Kasten, Zylinder, Balken, Palette). Die Werkzeuge lassen sich erneut laufen, sie ersetzen ihre eigenen Symbole. Für jede Figur liegt ein Blatt in `reference/konzept/`.
+  - Sechs Rezept-Stellungen mit eigener Grundform (Tabelle in `docs/ART.md`). Sturmbatterie und Belagerungsmörser haben eine bewegliche Waffe, der Rest wirkt über seine Effekte. Der Platzhalter (Sprite der ersten Zutat mit Halo) ist weg; geblieben ist der goldene Bodenring.
+  - Fünf Bosse mit eigener Figur, jeweils mit dem Merkmal aus ART.md. Beine und Flügel bewegen sich wie bei den normalen Gegnern, der Warp-Herold schwebt als ein Stück.
+  - Die Größenfaktoren in `src/data/enemies.js` beziehen sich jetzt auf die eigene Zeichnung (1,55x bis 2,0x statt 2,2x bis 2,6x). Sie sind so gewählt, dass jeder Boss so groß bleibt wie vorher. Der Faktor ist reiner Grafikwert, die Simulation liest ihn nicht.
+  - Galerie: Rezept-Stellungen in einer eigenen Reihe, Bosse in einer eigenen Reihe mit mehr Abstand.
+  - Tests: 229 Unit-Tests (neu: jede Rezept-Stellung hat eine eigene, größere Silhouette mit Goldkante und ohne Rangwinkel; jeder Boss hat eine eigene Figur und überragt seinen Verwandten um mindestens die Hälfte), 23 Eingabeprüfungen, eine volle Partie ohne Konsolenfehler.
+
 ## Offen
 - Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
-- Spezialstellungen haben keine eigene Grafik. Bis M4 nutzen sie das Sprite der ersten Zutat im Legendenrang mit goldenem Ring und Halo. Eigene Silhouetten stehen in M4 im Umfang.
-- Bosse haben keine eigene Grafik. Bis M4 leihen sie sich die Figur eines verwandten Gegners, deutlich größer gezeichnet (`docs/ART.md`).
 - Balancing wird **nicht** mit den automatischen Werkzeugen beurteilt (Entscheidung vom 23.09.2026): Wo die Stellungen stehen, entscheidet im Spiel immer der Spieler, und daran hängt das Ergebnis mehr als an jedem Tabellenwert. `npm run playmatch` und `npm run test:battle` setzen die Zonen nach einer festen Regel und sind darum Regressionsprüfungen („läuft eine ganze Partie fehlerfrei durch"), keine Balancing-Messung. Ihre Wellenzahlen sagen nichts über die Schwierigkeit für einen Menschen.
 - Beobachtung, die davon unberührt bleibt: Flieger überfliegen das Labyrinth, und nur Autokanone, Laser, Psi und Tesla treffen sie. Wer ohne Luftabwehr baut, verliert an einer Flieger-Welle, egal wie gut das Labyrinth ist. Für M6 zu entscheiden, ob das so gewollt ist oder ob das Spiel darauf hinweist.
 - Requisition staut sich: Ab Nachschubstufe 8 (etwa Welle 20) gibt es nur noch Trümmer abreißen als Ausgabe, am Ende liegen über 4000 ungenutzt herum. Kommandopunkte ebenso (50 KP bei vier Kommandos mit Abklingzeit). Beides ist ein Thema für M6, kein Fehler.

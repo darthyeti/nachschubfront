@@ -52,6 +52,12 @@ export const ENEMIES = {
  * `sprite` is the enemy whose artwork the boss borrows until M4, `scale` how
  * much larger it is drawn.
  */
+/**
+ * The five bosses. `sprite` says which creature a boss is kin to; it sets the
+ * size of its ground shadow. `scale` is the size of its own figure (M4): it was
+ * picked so every boss keeps the presence it had when it still borrowed the
+ * artwork of that creature.
+ */
 export const BOSSES = {
   broodmother: {
     boss: true,
@@ -62,7 +68,7 @@ export const BOSSES = {
     reward: 50,
     flying: false,
     sprite: 'burster',
-    scale: 2.2,
+    scale: 1.8,
     /** Releases swarmers while it walks. */
     spawnTrail: { type: 'swarmer', count: 2, intervalSeconds: 3 },
   },
@@ -75,7 +81,7 @@ export const BOSSES = {
     reward: 50,
     flying: false,
     sprite: 'breaker',
-    scale: 2.4,
+    scale: 1.9,
   },
   warpherald: {
     boss: true,
@@ -89,7 +95,7 @@ export const BOSSES = {
     reward: 50,
     flying: false,
     sprite: 'warpseer',
-    scale: 2.2,
+    scale: 2,
     /** Jumps this many cells forward along the route now and then. */
     warpJump: { cells: 3, intervalSeconds: 6 },
   },
@@ -102,7 +108,7 @@ export const BOSSES = {
     reward: 50,
     flying: true,
     sprite: 'carrionflyer',
-    scale: 2.4,
+    scale: 1.55,
   },
   daemonprince: {
     boss: true,
@@ -113,7 +119,7 @@ export const BOSSES = {
     reward: 50,
     flying: false,
     sprite: 'warrior',
-    scale: 2.6,
+    scale: 2,
     /** Cycles through these armour types, one every `seconds`. */
     armorCycle: { types: ['flesh', 'plate', 'warpshield'], seconds: 4 },
   },

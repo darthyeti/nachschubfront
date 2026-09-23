@@ -9,6 +9,8 @@ import { mapBounds } from '../src/render/iso.js';
 import { createGroundLayer } from '../src/render/ground.js';
 import { createSpriteCache } from '../src/render/sprites/rasterizer.js';
 import { DOCTRINES, ENEMY_TYPES, RASTER_LEVELS } from '../src/render/sprites/compose.js';
+import { RECIPES } from '../src/data/recipes.js';
+import { ALL_ENEMIES } from '../src/data/enemies.js';
 import { iso } from '../src/render/iso.js';
 import { comicText } from '../src/render/draw.js';
 import { allTowerDefs, drawTowerSprite } from '../src/render/towerSprites.js';
@@ -17,7 +19,7 @@ import { attachPointerInput } from '../src/input/pointer.js';
 import { installPageGuards } from '../src/input/guards.js';
 
 const T = STRINGS.gallery;
-const SIZE = 16;
+const SIZE = 20;
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha: false });
 document.title = `${T.title} · ${STRINGS.gameTitle}`;
@@ -28,11 +30,35 @@ const towers = [];
 DOCTRINES.forEach((doctrine, d) => {
   for (let rank = 1; rank <= 5; rank++) towers.push({ x: 2 + d * 2, y: rank * 2 - 1, doctrine, rank, flash: 0 });
 });
+// Recipe emplacements in their own row, each with the doctrine of its first ingredient.
+RECIPES.forEach((recipe, i) => {
+  towers.push({ x: 1 + i * 2.4, y: 11, doctrine: recipe.ingredients[0], special: recipe.id, rank: null, flash: 0 });
+});
+
 // Enemies: two rows, walking left-down (-x... facing left) and right (+x).
 const enemies = [];
-ENEMY_TYPES.forEach((type, i) => {
-  enemies.push({ id: i + 1, type, flying: type === 'carrionflyer', x: 1.5 + i * 2, y: 12.5, dx: 0, dy: 1, d: 9, flash: 0 });
-  enemies.push({ id: i + 20, type, flying: type === 'carrionflyer', x: 1.5 + i * 2, y: 14.5, dx: 1, dy: 0, d: 9, flash: 0 });
+const isBoss = (type) => Boolean(ALL_ENEMIES[type].boss);
+const plain = ENEMY_TYPES.filter((type) => !isBoss(type));
+const bosses = ENEMY_TYPES.filter(isBoss);
+plain.forEach((type, i) => {
+  const x = 1.5 + i * 2.2;
+  enemies.push({ id: i + 1, type, flying: ALL_ENEMIES[type].flying, x, y: 12.5, dx: 0, dy: 1, d: 9, flash: 0 });
+  enemies.push({ id: i + 20, type, flying: ALL_ENEMIES[type].flying, x, y: 14.5, dx: 1, dy: 0, d: 9, flash: 0 });
+});
+// Bosses need room: their own row, facing left.
+bosses.forEach((type, i) => {
+  enemies.push({
+    id: i + 40,
+    type,
+    flying: ALL_ENEMIES[type].flying,
+    armor: ALL_ENEMIES[type].armor,
+    x: 2 + i * 3.4,
+    y: 17.5,
+    dx: 0,
+    dy: 1,
+    d: 9,
+    flash: 0,
+  });
 });
 
 const camera = createCamera();
@@ -129,10 +155,11 @@ function frame(now) {
   if (labels) {
     for (const o of towers) {
       const [x, y] = iso(o.x + 0.5, o.y + 1.1);
-      comicText(ctx, `${STRINGS.doctrines[o.doctrine]} ${o.rank}`, x, y, 13, '#e8dcc0');
+      const label = o.special ? STRINGS.recipes[o.special].name : `${STRINGS.doctrines[o.doctrine]} ${o.rank}`;
+      comicText(ctx, label, x, y, 13, '#e8dcc0');
     }
     for (const o of enemies) {
-      if (o.dy !== 1) continue; // label the back row only, once per type
+      if (o.dy !== 1) continue; // label the row facing left only, once per type
       const [x, y] = iso(o.x, o.y + 0.9);
       comicText(ctx, STRINGS.enemies[o.type], x, y, 13, '#e8dcc0');
     }

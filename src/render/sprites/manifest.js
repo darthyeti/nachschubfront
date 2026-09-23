@@ -25,13 +25,14 @@ export const ENEMY_SYMBOLS = {
   healer: 'e-heal',
 };
 
-/**
- * Bosses have no concept art yet (ART.md): until M4 each one borrows the symbol
- * of a related enemy and is drawn larger. Both values come from data/enemies.js.
- */
-export const BOSS_SYMBOLS = Object.fromEntries(
-  Object.entries(BOSSES).map(([id, boss]) => [id, ENEMY_SYMBOLS[boss.sprite]]),
-);
+/** Since M4 every boss has a figure of its own (docs/ART.md). */
+export const BOSS_SYMBOLS = {
+  broodmother: 'e-brood',
+  colossusbreaker: 'e-colossus',
+  warpherald: 'e-herald',
+  swarmqueen: 'e-queen',
+  daemonprince: 'e-prince',
+};
 
 /** Extra size factor on top of SPRITE_SCALE.enemy; 1 for normal enemies. */
 export const ENEMY_EXTRA_SCALE = Object.fromEntries(
@@ -41,7 +42,7 @@ export const ENEMY_EXTRA_SCALE = Object.fromEntries(
 /** Every drawable enemy symbol, normal types first. */
 export const ALL_ENEMY_SYMBOLS = { ...ENEMY_SYMBOLS, ...BOSS_SYMBOLS };
 
-/** Ground shadow per enemy (radius in world pixels) and hover height for flyers. */
+/** Ground shadow per enemy (radius in world pixels). */
 const BASE_SHADOW = {
   swarmer: 13,
   warrior: 15,
@@ -76,6 +77,22 @@ export const ENEMY_LIMBS = {
   'e-burst': { kind: 'legs', back: [5.3, -16.7], front: [-0.7, -16], swing: 0.19, speed: 10 },
   'e-heal': { kind: 'legs', back: [2, -44], front: [4, -42], swing: 0.14, speed: 8 },
   'e-flyer': { kind: 'wings', back: [0, -78], front: [0, -78], speed: 9 },
+  // Bosses carry their weight: slower steps, smaller swing. The warp herald
+  // hovers and has no limb groups at all.
+  'e-brood': { kind: 'legs', back: [6, -32], front: [4.7, -27.3], swing: 0.13, speed: 6 },
+  'e-colossus': { kind: 'legs', back: [-2, -30], front: [6, -26], swing: 0.1, speed: 5 },
+  'e-prince': { kind: 'legs', back: [-1, -48], front: [3, -44], swing: 0.14, speed: 6 },
+  'e-queen': { kind: 'wings', back: [0, -80], front: [0, -80], speed: 7 },
+};
+
+/** Recipe emplacements (GDD section 8); each one has its own silhouette since M4. */
+export const SPECIAL_SYMBOLS = {
+  purgeShrine: 't-purge',
+  stormBattery: 't-storm',
+  emberCauldron: 't-ember',
+  siegeMortar: 't-siege',
+  thunderTower: 't-thunder',
+  soulfireObelisk: 't-obelisk',
 };
 
 export const DOCTRINE_SYMBOLS = {
@@ -133,6 +150,14 @@ export const TOWER_WEAPONS = {
   mortar: { pivot: [4, -6], rest: -1.7819, muzzle: 57.3, track: 0.22, turn: 5, recoil: 7 },
   psi: { pivot: [0, -100], float: true },
   tesla: { pivot: [0, -100], static: true },
+  // Recipe emplacements: the battery swings its three barrels, the siege mortar
+  // only leans its tube, the rest stand still and work through their effects.
+  stormBattery: { pivot: [-4, -30], rest: Math.PI, muzzle: 50, track: 1, turn: 12, recoil: 3 },
+  siegeMortar: { pivot: [2, -12], rest: -1.9182, muzzle: 76.5, track: 0.18, turn: 4, recoil: 9 },
+  purgeShrine: { pivot: [0, -46], static: true },
+  emberCauldron: { pivot: [0, -35], static: true },
+  thunderTower: { pivot: [0, -104], static: true },
+  soulfireObelisk: { pivot: [0, -104], static: true },
 };
 
 export const RANK_COUNT = MAX_RANK;

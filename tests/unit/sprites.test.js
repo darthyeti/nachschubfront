@@ -7,6 +7,8 @@ import {
   towerSpriteSet,
   plateMarkup,
   goldEdgeMarkup,
+  specialSpriteSet,
+  SPECIALS,
   RANK_DETAIL,
   enemySprite,
   chevronMarkup,
@@ -18,6 +20,7 @@ import { TOWER_WEAPONS } from '../../src/render/sprites/manifest.js';
 import { ENEMY_SPRITES } from '../../src/render/sprites/enemies.js';
 import { TOWER_SPRITES } from '../../src/render/sprites/towers.js';
 import { ENEMIES, BOSSES, ALL_ENEMIES } from '../../src/data/enemies.js';
+import { RECIPE_IDS } from '../../src/data/recipes.js';
 
 test('every enemy type in the game data has a sprite', () => {
   assert.deepEqual([...ENEMY_TYPES].sort(), Object.keys(ALL_ENEMIES).sort());
@@ -48,15 +51,14 @@ test('imported libraries contain all concept symbols', () => {
 
 test('enemies stand on the ground: sprite bottom is at SVG y = 0 (flyers hover above)', () => {
   const PAD = 5; // stroke padding added by the importer
+  /** These two hover on their tentacles instead of standing (concept art). */
+  const HOVERING = new Set(['warpseer', 'warpherald']);
   for (const type of ENEMY_TYPES) {
     const [, y, , h] = enemySprite(type).bbox;
     const bottom = y + h - PAD;
-    // Bosses share the artwork of the enemy they borrow it from.
-    const source = ALL_ENEMIES[type].sprite ?? type;
     if (ALL_ENEMIES[type].flying) assert.ok(bottom < -10, `${type} bottom ${bottom}`);
-    // The warp seer floats a little above the ground on its tentacles (concept art).
-    else if (source === 'warpseer') assert.ok(bottom < 0 && bottom > -15, `${type} bottom ${bottom}`);
-    else if (source === 'healer') assert.ok(bottom > 0, 'healer aura reaches below the feet');
+    else if (HOVERING.has(type)) assert.ok(bottom < 0 && bottom > -30, `${type} bottom ${bottom}`);
+    else if (type === 'healer') assert.ok(bottom > 0, 'healer aura reaches below the feet');
     else assert.ok(Math.abs(bottom) <= 1, `${type} bottom ${bottom}`);
   }
 });
@@ -173,6 +175,26 @@ test('rank details appear at the rank ART.md sets, and stay', () => {
   }
 });
 
+test('every recipe emplacement has a silhouette of its own', () => {
+  assert.deepEqual([...SPECIALS].sort(), RECIPE_IDS.slice().sort());
+  const symbols = new Set();
+  for (const id of SPECIALS) {
+    const set = specialSpriteSet(id);
+    const svg = set.back.svg(1);
+    assert.ok(svg.includes(goldEdgeMarkup()), `${id}: gold edging`);
+    assert.ok(!svg.includes(chevronMarkup(1)), `${id}: no rank chevrons`);
+    assert.equal(set.rank, 0);
+    // The whole figure, weapon included, stands taller than the bare base.
+    const boxes = [set.back.bbox, ...(set.gun ? [set.gun.bbox] : [])];
+    const top = Math.min(...boxes.map((b) => b[1]));
+    const bottom = Math.max(...boxes.map((b) => b[1] + b[3]));
+    assert.ok(bottom - top > TOWER_SPRITES.symbols.base.bbox[3], `${id}: bigger than the base`);
+    assert.ok(top < -40, `${id}: reaches up`);
+    symbols.add(set.back.key);
+  }
+  assert.equal(symbols.size, SPECIALS.length, 'no two share a sprite');
+});
+
 test('layers that look the same at several ranks share one raster', () => {
   // Only the back layer changes with the rank (chevrons, sandbags).
   assert.equal(towerSpriteSet('flame', 3).gun.key, towerSpriteSet('flame', 5).gun.key);
@@ -194,13 +216,14 @@ test('svg pixel size follows the requested scale', () => {
   assert.ok(svg.includes(`width="${Math.ceil(w * 3)}"`) && svg.includes(`height="${Math.ceil(h * 3)}"`));
 });
 
-test('bosses borrow the artwork of a normal enemy and are drawn larger', () => {
-  const plain = enemySprite('breaker');
+test('every boss has a figure of its own and towers over its kin', () => {
+  const height = (def) => def.bbox[3] * def.unitScale;
+  const symbols = new Set(Object.keys(ENEMIES).map((type) => enemySprite(type).svg(1)));
   for (const [id, boss] of Object.entries(BOSSES)) {
     const s = enemySprite(id);
-    assert.deepEqual(s.bbox, enemySprite(boss.sprite).bbox, id);
-    assert.ok(s.unitScale > enemySprite(boss.sprite).unitScale, id);
-    assert.notEqual(s.key, enemySprite(boss.sprite).key, `${id}: own raster entry`);
-    assert.ok(s.unitScale > plain.unitScale, id);
+    const kin = enemySprite(boss.sprite);
+    assert.notDeepEqual(s.bbox, kin.bbox, `${id}: own artwork, not borrowed`);
+    assert.ok(!symbols.has(s.svg(1)), `${id}: own symbol`);
+    assert.ok(height(s) > height(kin) * 1.5, `${id}: ${height(s)} vs ${height(kin)}`);
   }
 });
