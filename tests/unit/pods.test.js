@@ -9,7 +9,7 @@ import { isBlocked } from '../../src/sim/grid.js';
 import { DOCTRINE_IDS } from '../../src/data/doctrines.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
 import { SUPPLY_LEVELS, MAX_SUPPLY_LEVEL, supplyWeights } from '../../src/data/supply.js';
-import { PODS } from '../../src/data/pods.js';
+import { PODS, salvoSize, salvoMinRank, MAX_SALVO_SIZE, salvoSeconds } from '../../src/data/pods.js';
 import { mapFromAscii, planningState } from './helpers.js';
 
 const OPEN = [
@@ -25,13 +25,54 @@ const OPEN = [
   '..........',
 ];
 
+/** A full wave-1 salvo, so the fixture matches what the game hands out. */
 const ZONES = [
   { x: 2, y: 5 },
   { x: 4, y: 6 },
   { x: 6, y: 5 },
   { x: 3, y: 2 },
   { x: 7, y: 7 },
+  { x: 5, y: 3 },
 ];
+
+test('salvo size follows the wave (GDD section 3)', () => {
+  for (const wave of [1, 2, 15]) assert.equal(salvoSize(wave), 6, `wave ${wave}`);
+  for (const wave of [16, 25, 35]) assert.equal(salvoSize(wave), 5, `wave ${wave}`);
+  for (const wave of [36, 50, 99]) assert.equal(salvoSize(wave), 4, `wave ${wave}`);
+  assert.equal(MAX_SALVO_SIZE, 6);
+});
+
+test('recruits stop at wave 36', () => {
+  for (const wave of [1, 15, 16, 35]) assert.equal(salvoMinRank(wave), 1, `wave ${wave}`);
+  for (const wave of [36, 50]) assert.equal(salvoMinRank(wave), 2, `wave ${wave}`);
+});
+
+test('a smaller salvo lands faster', () => {
+  assert.ok(salvoSeconds(4) < salvoSeconds(5));
+  assert.ok(salvoSeconds(5) < salvoSeconds(6));
+  assert.equal(salvoSeconds(), salvoSeconds(MAX_SALVO_SIZE));
+});
+
+test('the minimum rank lifts a recruit but leaves better pods alone', () => {
+  // Supply level 1 only rolls recruits, so wave 36 has to raise every one.
+  const late = planningState(mapFromAscii(OPEN), { seed: 'LATE', wave: 35, zones: ZONES, supplyLevel: 1 });
+  assert.ok(createPods(late).every((p) => p.rank === 2), 'wave 36 has no recruits');
+
+  const early = planningState(mapFromAscii(OPEN), { seed: 'LATE', wave: 34, zones: ZONES, supplyLevel: 1 });
+  assert.ok(createPods(early).every((p) => p.rank === 1), 'wave 35 still has them');
+
+  // The floor never lowers a pod that rolled higher.
+  const rich = planningState(mapFromAscii(OPEN), { seed: 'RICH', wave: 40, zones: ZONES, supplyLevel: MAX_SUPPLY_LEVEL });
+  assert.ok(createPods(rich).every((p) => p.rank >= 2));
+});
+
+test('the minimum rank does not shift the random stream', () => {
+  // Same seed and wave, different supply level: the doctrines are drawn from the
+  // same stream, so only the ranks may differ.
+  const make = (level) =>
+    createPods(planningState(mapFromAscii(OPEN), { seed: 'STREAM', wave: 40, zones: ZONES, supplyLevel: level }));
+  assert.deepEqual(make(1).map((p) => p.doctrine), make(1).map((p) => p.doctrine));
+});
 
 test('supply level 1 only hands out recruits', () => {
   const rng = createRng('RANK');
@@ -85,16 +126,16 @@ test('salvo streams of different waves are independent', () => {
 test('pods land staggered, block their cell and reopen the route check', () => {
   const state = planningState(mapFromAscii(OPEN), { seed: 'LAND', zones: ZONES });
   createPods(state);
-  assert.equal(state.pods.length, PODS.perSalvo);
+  assert.equal(state.pods.length, salvoSize(1));
   assert.ok(!podsLanded(state));
 
   // Just after the first impact only the first pod is down.
   const step = 1 / 60;
   for (let t = 0; t < IMPACT_SECONDS + step; t += step) updatePods(state, step);
   assert.ok(state.pods[0].landed, 'first pod landed');
-  assert.ok(!state.pods[PODS.perSalvo - 1].landed, 'last pod still falling');
+  assert.ok(!state.pods.at(-1).landed, 'last pod still falling');
   assert.ok(isBlocked(state.map.grid, ZONES[0].x, ZONES[0].y), 'landed pod blocks its cell');
-  assert.ok(!isBlocked(state.map.grid, ZONES[4].x, ZONES[4].y), 'falling pod does not');
+  assert.ok(!isBlocked(state.map.grid, ZONES.at(-1).x, ZONES.at(-1).y), 'falling pod does not');
   assert.ok(state.events.some((e) => e.type === 'podImpact' && e.index === 0));
   assert.ok(state.route, 'route recomputed after the impact');
 

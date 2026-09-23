@@ -15,7 +15,7 @@ import { spawnEnemy, updateEnemies } from '../../src/sim/enemies.js';
 import { groundPolyline, flyerPolyline, computeRoute } from '../../src/sim/route.js';
 import { ENEMIES } from '../../src/data/enemies.js';
 import { RULES } from '../../src/data/rules.js';
-import { PODS } from '../../src/data/pods.js';
+import { salvoSize } from '../../src/data/pods.js';
 import { MAX_SUPPLY_LEVEL, supplyCost } from '../../src/data/supply.js';
 import { ECONOMY } from '../../src/data/economy.js';
 import {
@@ -81,7 +81,7 @@ test('a round runs salvo, selection and wave, then spawns enemies', () => {
   const state = createGameState(SEED);
   assert.ok(requestSalvo(state));
   assert.equal(state.phase, 'salvo');
-  assert.equal(state.pods.length, PODS.perSalvo, 'missing zones were filled');
+  assert.equal(state.pods.length, salvoSize(state.wave + 1), 'missing zones were filled');
 
   runUntil(state, (s) => s.phase === 'selection', 30);
   assert.equal(state.towers.length, 0, 'nothing is built before the choice');
@@ -267,7 +267,8 @@ test('every salvo of a match leaves one tower, four heaps of rubble and an open 
     const rubble = state.map.obstacles.filter((o) => o.kind === 'rubble').length;
 
     assert.ok(requestSalvo(state), `round ${round + 1}`);
-    assert.equal(state.pods.length, PODS.perSalvo);
+    assert.equal(state.pods.length, salvoSize(state.wave + 1));
+    const pods = state.pods.length;
     const cells = state.pods.map(({ x, y }) => ({ x, y }));
     runUntil(state, (s) => s.phase === 'selection', 30);
 
@@ -287,8 +288,8 @@ test('every salvo of a match leaves one tower, four heaps of rubble and an open 
     assert.equal(state.towers.length, towers + 1 - consumed, 'exactly one new tower');
     assert.equal(
       state.map.obstacles.filter((o) => o.kind === 'rubble').length,
-      rubble + PODS.perSalvo - 1 + consumed,
-      'four heaps of rubble plus the consumed towers',
+      rubble + pods - 1 + consumed,
+      'every pod but one plus the consumed towers',
     );
     for (const c of cells) assert.ok(isBlocked(state.map.grid, c.x, c.y), `${c.x},${c.y} stays blocked`);
     assert.ok(state.route, `round ${round + 1}: route open after the salvo`);
@@ -310,7 +311,7 @@ test('same seed and the same decisions give the same pods', () => {
       requestSalvo(state);
       seen.push(state.pods.map((p) => `${p.x},${p.y} ${p.doctrine} ${p.rank}`).join(' | '));
       runUntil(state, (s) => s.phase === 'selection', 30);
-      chooseSelection(state, { type: 'keep', anchor: round % PODS.perSalvo });
+      chooseSelection(state, { type: 'keep', anchor: round % state.pods.length });
       runUntil(state, (s) => s.phase === 'planning');
     }
     return seen;
@@ -419,7 +420,7 @@ test('a whole wave with towers plays out the same way twice', () => {
     state.lives = 100000;
     state.supplyLevel = MAX_SUPPLY_LEVEL;
     for (let round = 0; round < 3; round++) {
-      playSalvo(state, { type: 'keep', anchor: round % PODS.perSalvo });
+      playSalvo(state, { type: 'keep', anchor: round % salvoSize(state.wave + 1) });
       runUntil(state, (s) => s.phase === 'planning' || s.phase === 'defeat', 600);
     }
     return JSON.stringify({

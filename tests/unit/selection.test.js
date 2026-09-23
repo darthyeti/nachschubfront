@@ -7,7 +7,6 @@ import { selectionOptions, applySelection, mergeGroups, mergeResultRank, findOpt
 import { addTower } from '../../src/sim/towers.js';
 import { isBlocked } from '../../src/sim/grid.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
-import { PODS } from '../../src/data/pods.js';
 import { mapFromAscii, planningState } from './helpers.js';
 
 const OPEN = [
@@ -64,7 +63,7 @@ function blockedCount(state) {
 test('every pod can simply be kept', () => {
   const state = selectionState(FIVE_DIFFERENT);
   const { keep, merges, recipes } = selectionOptions(state);
-  assert.equal(keep.length, PODS.perSalvo);
+  assert.equal(keep.length, CELLS.length);
   assert.deepEqual(keep[3], { type: 'keep', anchors: [3], doctrine: 'mortar', rank: 3 });
   assert.equal(merges.length, 0, 'nothing identical');
   assert.equal(recipes.length, 0, 'no ingredient reaches veteran');
@@ -81,7 +80,7 @@ test('keeping builds one tower and four heaps of rubble', () => {
     { x: state.towers[0].x, y: state.towers[0].y, doctrine: state.towers[0].doctrine, rank: state.towers[0].rank },
     { x: CELLS[3].x, y: CELLS[3].y, doctrine: 'mortar', rank: 3 },
   );
-  assert.equal(state.map.obstacles.filter((o) => o.kind === 'rubble').length, PODS.perSalvo - 1);
+  assert.equal(state.map.obstacles.filter((o) => o.kind === 'rubble').length, CELLS.length - 1);
   assert.equal(blockedCount(state), before, 'the pods had already blocked their cells');
   for (const cell of CELLS) assert.ok(isBlocked(state.map.grid, cell.x, cell.y), `${cell.x},${cell.y}`);
   assert.equal(state.pods.length, 0);
@@ -114,7 +113,7 @@ test('two identical pods merge one rank up, on the chosen cell', () => {
   assert.equal(state.towers[0].rank, 3);
   assert.equal(state.towers[0].doctrine, 'tesla');
   assert.deepEqual({ x: state.towers[0].x, y: state.towers[0].y }, CELLS[2]);
-  assert.equal(state.map.obstacles.filter((o) => o.kind === 'rubble').length, PODS.perSalvo - 1);
+  assert.equal(state.map.obstacles.filter((o) => o.kind === 'rubble').length, CELLS.length - 1);
 });
 
 test('four identical pods offer both merges and jump two ranks', () => {
@@ -301,7 +300,7 @@ test('after any choice exactly one tower and four heaps of rubble stand', () => 
     assert.equal(state.towers.length, 1, `${choice.type}: one tower`);
     assert.equal(
       state.map.obstacles.filter((o) => o.kind === 'rubble').length,
-      PODS.perSalvo - 1,
+      CELLS.length - 1,
       `${choice.type}: four heaps of rubble`,
     );
     assert.equal(state.pods.length, 0, `${choice.type}: salvo cleared`);

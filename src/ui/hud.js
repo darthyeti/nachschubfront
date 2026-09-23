@@ -2,8 +2,7 @@
 
 import { STRINGS } from '../data/strings.js';
 import { GAME_SPEEDS } from '../data/settings.js';
-import { PODS } from '../data/pods.js';
-import { previewRoute } from '../sim/zones.js';
+import { previewRoute, zoneLimit } from '../sim/zones.js';
 import { canBuySupply, nextSupplyCost, nextRubbleCost } from '../sim/economy.js';
 
 const T = STRINGS.hud;
@@ -141,9 +140,11 @@ export function createHud(root, { debug, onAction }) {
         demolishButton.disabled = !v;
       });
       set('demolishMode', ui.demolishMode, (v) => demolishButton.classList.toggle('on', v));
-      set('zones', state.phase === 'planning' ? state.zones.length : -1, (v) => {
-        zones.hidden = v < 0;
-        if (v >= 0) zones.textContent = T.zones(v, PODS.perSalvo);
+      // The salvo size changes with the wave, so the limit is part of the key.
+      const limit = zoneLimit(state);
+      set('zones', state.phase === 'planning' ? `${state.zones.length}/${limit}` : '', (v) => {
+        zones.hidden = v === '';
+        if (v !== '') zones.textContent = T.zones(...v.split('/'));
       });
       set('speed', state.speed, (v) => {
         for (const b of speedButtons) b.classList.toggle('on', Number(b.dataset.speed) === v);

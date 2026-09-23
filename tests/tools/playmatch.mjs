@@ -7,7 +7,7 @@ import { createGameState } from '../../src/core/state.js';
 import { requestSalvo, chooseSelection } from '../../src/sim/actions.js';
 import { toggleZone } from '../../src/sim/zones.js';
 import { buySupply } from '../../src/sim/economy.js';
-import { PODS } from '../../src/data/pods.js';
+import { zoneLimit } from '../../src/sim/zones.js';
 import { selectionOptions } from '../../src/sim/selection.js';
 import { stepSimulation } from '../../src/sim/step.js';
 import { totalWaves } from '../../src/sim/waves.js';
@@ -58,7 +58,7 @@ function markZones() {
     { x: 0, y: -1 },
   ];
   for (const i of order) {
-    if (state.zones.length >= PODS.perSalvo) return;
+    if (state.zones.length >= zoneLimit(state)) return;
     for (const off of offsets) {
       const cell = { x: route.cells[i].x + off.x, y: route.cells[i].y + off.y };
       if (toggleZone(state, cell).ok) break;

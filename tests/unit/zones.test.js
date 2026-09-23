@@ -10,6 +10,7 @@ import {
   clearZones,
   zonesFull,
   zoneIndexAt,
+  zoneLimit,
   previewRoute,
 } from '../../src/sim/zones.js';
 import { routeExists, computeRoute } from '../../src/sim/route.js';
@@ -46,16 +47,17 @@ const GATE = [
   '....#.....',
 ];
 
-test('marking and removing zones, at most five', () => {
+test('marking and removing zones, at most a full salvo', () => {
   const state = planningState(mapFromAscii(OPEN));
-  for (let i = 0; i < PODS.perSalvo; i++) {
+  const limit = zoneLimit(state);
+  for (let i = 0; i < limit; i++) {
     assert.deepEqual(toggleZone(state, { x: i, y: 6 }), { ok: true, action: 'added' }, `zone ${i}`);
   }
   assert.ok(zonesFull(state));
   assert.deepEqual(toggleZone(state, { x: 7, y: 6 }), { ok: false, reason: 'full' });
 
   assert.deepEqual(toggleZone(state, { x: 2, y: 6 }), { ok: true, action: 'removed' });
-  assert.equal(state.zones.length, PODS.perSalvo - 1);
+  assert.equal(state.zones.length, limit - 1);
   assert.equal(zoneIndexAt(state, { x: 2, y: 6 }), -1);
   assert.deepEqual(toggleZone(state, { x: 7, y: 6 }), { ok: true, action: 'added' });
 
@@ -104,11 +106,12 @@ test('a refused zone leaves the grid untouched', () => {
 test('fillZones completes the salvo and keeps the player marks', () => {
   const state = planningState(mapFromAscii(OPEN));
   toggleZone(state, { x: 2, y: 6 });
+  const limit = zoneLimit(state);
   const added = fillZones(state, createRng('FILL'));
-  assert.equal(added, PODS.perSalvo - 1);
-  assert.equal(state.zones.length, PODS.perSalvo);
+  assert.equal(added, limit - 1);
+  assert.equal(state.zones.length, limit);
   assert.deepEqual(state.zones[0], { x: 2, y: 6 }, 'the marked zone stays first');
-  assert.equal(new Set(state.zones.map((z) => `${z.x},${z.y}`)).size, PODS.perSalvo, 'no duplicates');
+  assert.equal(new Set(state.zones.map((z) => `${z.x},${z.y}`)).size, limit, 'no duplicates');
 });
 
 test('fillZones is deterministic for the same seed and situation', () => {
@@ -134,7 +137,7 @@ test('fillZones spreads the pods apart', () => {
 test('over many seeds a filled salvo always leaves the route open', () => {
   for (let i = 0; i < 40; i++) {
     const state = createGameState(`Z${i}`);
-    assert.equal(fillZones(state, createRng(`pods${i}`)), PODS.perSalvo);
+    assert.equal(fillZones(state, createRng(`pods${i}`)), zoneLimit(state));
     for (const z of state.zones) setBlocked(state.map.grid, z.x, z.y, true);
     assert.ok(routeExists(state.map), `seed Z${i}: route open after the salvo`);
     for (const z of state.zones) setBlocked(state.map.grid, z.x, z.y, false);

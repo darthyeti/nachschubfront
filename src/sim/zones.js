@@ -1,8 +1,10 @@
-// Landing zones (GDD section 3): up to five cells marked during planning.
-// A zone is only a marker; the cell is blocked when the pod lands.
+// Landing zones (GDD section 3): as many cells as the coming salvo has pods,
+// marked during planning. A zone is only a marker; the cell is blocked when the
+// pod lands.
 
-import { PODS } from '../data/pods.js';
+import { PODS, salvoSize } from '../data/pods.js';
 import { checkPlacement, routeWith } from './route.js';
+import { upcomingWave } from './pods.js';
 
 /**
  * Recomputes the route the enemies would take once the marked zones are built
@@ -22,8 +24,13 @@ export function zoneIndexAt(state, cell) {
   return state.zones.findIndex((z) => z.x === cell.x && z.y === cell.y);
 }
 
+/** Zones the coming salvo can use; the size follows the wave (GDD section 3). */
+export function zoneLimit(state) {
+  return salvoSize(upcomingWave(state));
+}
+
 export function zonesFull(state) {
-  return state.zones.length >= PODS.perSalvo;
+  return state.zones.length >= zoneLimit(state);
 }
 
 /**
@@ -73,7 +80,7 @@ function allCells(size) {
 }
 
 /**
- * Fills the salvo up to PODS.perSalvo with random valid zones (GDD section 3).
+ * Fills the salvo up to its wave's size with random valid zones (GDD section 3).
  * Candidates are tried in a seeded shuffle, so the result only depends on the
  * seed and the zones the player marked. Every candidate is checked against all
  * zones together, which keeps the route open after the salvo.
@@ -84,7 +91,7 @@ function allCells(size) {
  * @returns {number} Number of zones added.
  */
 export function fillZones(state, rng) {
-  const missing = PODS.perSalvo - state.zones.length;
+  const missing = zoneLimit(state) - state.zones.length;
   if (missing <= 0) return 0;
   const candidates = rng.shuffle(allCells(state.map.size));
   let added = 0;

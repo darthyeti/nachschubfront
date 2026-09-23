@@ -3,11 +3,19 @@
 import { createRng } from '../core/random.js';
 import { DOCTRINE_IDS } from '../data/doctrines.js';
 import { supplyWeights } from '../data/supply.js';
-import { PODS } from '../data/pods.js';
+import { PODS, salvoMinRank } from '../data/pods.js';
 import { MAX_RANK } from '../data/ranks.js';
 import { setBlocked } from './grid.js';
 import { computeRoute } from './route.js';
 import { takeSupplyBonus } from './commands.js';
+
+/**
+ * The wave the salvo now being planned will have to hold. `state.wave` counts
+ * the waves already fought, so everything about the coming salvo hangs off this.
+ */
+export function upcomingWave(state) {
+  return state.wave + 1;
+}
 
 /**
  * Random stream of the salvo that prepares the next wave. Derived from the seed
@@ -15,7 +23,7 @@ import { takeSupplyBonus } from './commands.js';
  * shift the contents.
  */
 export function salvoRng(state) {
-  return createRng(state.seed).fork('pods').fork(String(state.wave + 1));
+  return createRng(state.seed).fork('pods').fork(String(upcomingWave(state)));
 }
 
 /** Draws a rank from the supply level's percentages (GDD section 7). */
@@ -46,10 +54,14 @@ export function createPods(state) {
   // Priorisierter Nachschub raises every rank of this salvo by one. The draw
   // itself is untouched, so the seed still decides what is in the pods.
   const bonus = takeSupplyBonus(state);
+  // From wave 36 a pod can no longer hold a recruit (GDD section 3). The floor
+  // is applied after the draw, so the random stream stays in step either way.
+  const floor = salvoMinRank(upcomingWave(state));
   const raise = (pod) => {
     // Debug: forced contents replace the draw, which keeps the stream in step.
     const rolled = state.forcedPod ? { ...pod, ...state.forcedPod } : pod;
-    return { ...rolled, rank: Math.min(MAX_RANK, rolled.rank + bonus) };
+    const rank = Math.max(floor, rolled.rank + bonus);
+    return { ...rolled, rank: Math.min(MAX_RANK, rank) };
   };
   state.pods = state.zones.map((zone, i) => ({
     index: i,

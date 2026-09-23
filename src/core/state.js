@@ -48,7 +48,7 @@ export function createGameState(seed) {
     supplyBonus: 0,
     /** Enemies killed in the whole match (score, GDD section 12). */
     kills: 0,
-    /** Landing zones marked during planning, at most PODS.perSalvo. */
+    /** Landing zones marked during planning, at most the salvo size of the coming wave. */
     zones: [],
     /** Route as it will be once the marked zones are built; null without zones. */
     zonePreview: null,
