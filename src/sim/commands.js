@@ -83,7 +83,8 @@ function strike(state, hit) {
     e.flash = 0.12;
     if (e.health <= 0) e.dead = true;
   }
-  state.events.push({ type: 'explosion', x: hit.x, y: hit.y, radius: hit.radius, doctrine: 'mortar' });
+  // `source` lets the render side stage an orbital strike differently from a shell.
+  state.events.push({ type: 'explosion', source: 'orbitalStrike', x: hit.x, y: hit.y, radius: hit.radius, doctrine: 'mortar' });
 }
 
 /**

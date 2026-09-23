@@ -10,7 +10,10 @@ import { iso } from './iso.js';
 import { ell, poly, comicText, shadow } from './draw.js';
 import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
+import { STRINGS } from '../data/strings.js';
+import { PODS } from '../data/pods.js';
 import { towerStats } from '../sim/towers.js';
+import { sinceImpact } from '../sim/pods.js';
 
 /** Upper bounds (CLAUDE.md: particles and decals need a ceiling). */
 const MAX_PARTICLES = 420;
@@ -33,9 +36,36 @@ const REDUCED_FLASH = 0.25;
 
 const SPARK = { fire: '#ffb13b', smoke: '#6b625a', goo: C.toxic, spark: '#ffe07a', warp: C.warpL };
 
+/** Upper bound for shockwave rings and the comic words over them. */
+const MAX_RINGS = 10;
+const MAX_WORDS = 4;
+
+/** Pod staging after the impact (seconds after touchdown), from the style test. */
+const POD = {
+  /** Explosive bolts blow off before the hatches move. */
+  bolts: PODS.openDelaySeconds * 0.6,
+  /** Pressure vents from both sides while the shell cools. */
+  steamFrom: 0.3,
+  steamTo: 2.6,
+};
+
 /** World point to the pixel space the camera transform works in. */
 function project(x, y, z = 0) {
   return iso(x, y, z);
+}
+
+/** The four hatches, in the order they come down (style test). */
+const HATCH_DIRS = [
+  [0.7, 0.7],
+  [-0.7, 0.7],
+  [-0.7, -0.7],
+  [0.7, -0.7],
+];
+
+/** Where the pressure vents sit on the shell, in screen pixels. */
+function ventPoint(pod, side) {
+  const [x, y] = project(pod.x + 0.5, pod.y + 0.5, 40);
+  return { x: x + side * 18, y: y - Math.random() * 30 };
 }
 
 export function createEffects() {
@@ -44,6 +74,14 @@ export function createEffects() {
   const numbers = [];
   /** Short-lived shots: muzzle flashes, beams, chains. */
   const shots = [];
+  /** Expanding shockwave rings on the ground. */
+  const rings = [];
+  /** Comic words over the loudest moments. */
+  const words = [];
+  /** Stasis fields holding their area still. */
+  const fields = [];
+  /** What each pod has already thrown off; forgotten with the pod. */
+  const staged = new WeakMap();
   /** Damage bookkeeping per enemy, for the floating numbers. */
   const tally = new WeakMap();
   /** Camera shake and white flash, both fed by events and decaying on their own. */
@@ -65,6 +103,9 @@ export function createEffects() {
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
       const v = speed * (0.4 + Math.random() * 0.8);
+      // One drawn lifetime, not two: a particle that lived longer than `life`
+      // used to grow past its own size and end up with a negative radius.
+      const span = life * (0.7 + Math.random() * 0.6);
       addParticle({
         kind,
         x: sx,
@@ -74,10 +115,21 @@ export function createEffects() {
         gravity,
         size: size * (0.7 + Math.random() * 0.6),
         grow,
-        life: life * (0.7 + Math.random() * 0.6),
-        max: life,
+        life: span,
+        max: span,
       });
     }
+  }
+
+  function addRing(x, y, { radius = 3, life = 0.5, colour = '#ffe6b4', width = 4 } = {}) {
+    if (rings.length >= MAX_RINGS) rings.shift();
+    rings.push({ x, y, radius, life, max: life, colour, width });
+  }
+
+  function addWord(x, y, text, size = 34) {
+    if (words.length >= MAX_WORDS) words.shift();
+    const [sx, sy] = project(x, y, 90);
+    words.push({ x: sx, y: sy, text, size, life: 0.9, max: 0.9 });
   }
 
   function addDecal(decal) {
@@ -92,7 +144,7 @@ export function createEffects() {
   }
 
   /** Takes one simulation event. Unknown events are ignored on purpose. */
-  function handle(event, reducedMotion) {
+  function handle(event, state, reducedMotion) {
     const colour = DOCTRINE_COLORS[event.doctrine] ?? C.gold;
     if (event.type === 'shot') {
       shots.push({ kind: 'shot', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: FLASH_SECONDS });
@@ -106,6 +158,16 @@ export function createEffects() {
       burst(event.x, event.y, 22, 'smoke', reducedMotion ? 2 : 5, { speed: 26, size: 4, grow: 6, life: 0.7, gravity: -10 });
     } else if (event.type === 'explosion') {
       shots.push({ kind: 'blast', x: event.x, y: event.y, radius: event.radius, colour, life: 0.3 });
+      if (event.source === 'orbitalStrike') {
+        // A lance from orbit: a column of light, a wide ring and a white flash.
+        shots.push({ kind: 'lance', x: event.x, y: event.y, radius: event.radius, life: 0.5 });
+        addRing(event.x, event.y, { radius: event.radius * 2.4, life: 0.7, colour: '#fff3c4', width: 6 });
+        addWord(event.x, event.y, STRINGS.effects.orbitalStrike, 34);
+        jolt(MAX_SHAKE, 0.6);
+        burst(event.x, event.y, 0, 'dust', reducedMotion ? 8 : 22, {
+          speed: 170, size: 7, grow: 22, life: 1.3, gravity: -6,
+        });
+      }
       burst(event.x, event.y, 6, 'fire', reducedMotion ? 6 : 14, { speed: 90, size: 5, grow: 4, life: 0.5 });
       burst(event.x, event.y, 6, 'smoke', reducedMotion ? 3 : 7, { speed: 50, size: 6, grow: 9, life: 1.1, gravity: -20 });
       addDecal({ kind: 'scorch', x: event.x, y: event.y, radius: event.radius, life: 12, max: 12 });
@@ -119,6 +181,27 @@ export function createEffects() {
       jolt(SHAKE.leak);
     } else if (event.type === 'podImpact') {
       jolt(SHAKE.podImpact, FLASH.podImpact);
+      // The pod hits like a shell: dust ring, debris, fire, a crater and a shout.
+      burst(event.x + 0.5, event.y + 0.5, 0, 'dust', reducedMotion ? 10 : 26, {
+        speed: 150, size: 7, grow: 20, life: 1.4, gravity: -6,
+      });
+      burst(event.x + 0.5, event.y + 0.5, 10, 'debris', reducedMotion ? 6 : 16, {
+        speed: 120, size: 3, life: 0.9, gravity: 420,
+      });
+      burst(event.x + 0.5, event.y + 0.5, 6, 'fire', reducedMotion ? 5 : 12, {
+        speed: 70, size: 6, grow: 10, life: 0.35,
+      });
+      addRing(event.x + 0.5, event.y + 0.5, { radius: 4.6, life: 0.6, width: 5 });
+      addDecal({ kind: 'crater', x: event.x + 0.5, y: event.y + 0.5, radius: 0.9, life: 30, max: 30 });
+      // Only the first pod of a salvo shouts; five words at once are noise.
+      if (event.index === 0) addWord(event.x + 0.5, event.y + 0.5, STRINGS.effects.podImpact, 38);
+    } else if (event.type === 'stasis') {
+      fields.push({ x: event.x, y: event.y, radius: event.radius, life: event.seconds, max: event.seconds });
+    } else if (event.type === 'command' && event.id === 'prioritySupply') {
+      // No target on the map: the order goes out from the bastion.
+      const { x, y } = state.map.bastion;
+      burst(x + 0.5, y + 0.5, 30, 'spark', reducedMotion ? 6 : 18, { speed: 90, size: 2.5, life: 0.8, gravity: -120 });
+      addRing(x + 0.5, y + 0.5, { radius: 2.2, life: 0.7, colour: C.gold, width: 4 });
     }
   }
 
@@ -146,9 +229,61 @@ export function createEffects() {
     }
   }
 
+  /**
+   * What a pod throws off after it has landed: explosive bolts, dust when each
+   * hatch slams down, and steam from the cooling shell.
+   */
+  function stagePods(state, dt, reducedMotion) {
+    for (const pod of state.pods) {
+      if (!pod.landed) continue;
+      const since = sinceImpact(pod);
+      let mark = staged.get(pod);
+      if (!mark) {
+        mark = { bolts: false, slams: 0 };
+        staged.set(pod, mark);
+      }
+      if (!mark.bolts && since >= POD.bolts) {
+        mark.bolts = true;
+        jolt(3);
+        burst(pod.x + 0.5, pod.y + 0.5, 50, 'bolt', reducedMotion ? 3 : 7, {
+          speed: 150, size: 3, life: 1, gravity: 520,
+        });
+        burst(pod.x + 0.5, pod.y + 0.5, 50, 'spark', reducedMotion ? 3 : 8, {
+          speed: 180, size: 2, life: 0.3, gravity: 300,
+        });
+      }
+      // One puff of dust per hatch, as it comes down.
+      const open = PODS.openDelaySeconds + PODS.openSeconds;
+      while (mark.slams < 4 && since >= PODS.openDelaySeconds + ((mark.slams + 1) / 4) * PODS.openSeconds) {
+        const [dx, dy] = HATCH_DIRS[mark.slams];
+        mark.slams += 1;
+        jolt(2);
+        burst(pod.x + 0.5 + dx * 0.6, pod.y + 0.5 + dy * 0.6, 0, 'dust', reducedMotion ? 2 : 6, {
+          speed: 60, size: 4, grow: 10, life: 0.7, gravity: -4,
+        });
+      }
+      if (reducedMotion) continue;
+      if (since > open + POD.steamFrom && since < open + POD.steamTo && Math.random() < dt * 14) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        addParticle({
+          kind: 'steam',
+          ...ventPoint(pod, side),
+          vx: side * (70 + Math.random() * 60),
+          vy: -12 - Math.random() * 20,
+          gravity: -14,
+          size: 4,
+          grow: 16,
+          life: 0.9,
+          max: 0.9,
+        });
+      }
+    }
+  }
+
   function update(dt, state, reducedMotion) {
-    for (const event of state.events) handle(event, reducedMotion);
+    for (const event of state.events) handle(event, state, reducedMotion);
     collectDamage(state, dt);
+    stagePods(state, dt, reducedMotion);
 
     // Fast decay: the jolt should be over before the next shot lands.
     shake = Math.max(0, shake * Math.pow(0.02, dt) - dt * 2);
@@ -179,6 +314,12 @@ export function createEffects() {
       if (n.life <= 0) numbers.splice(i, 1);
       else n.y -= 26 * dt;
     }
+    for (const list of [rings, words, fields]) {
+      for (let i = list.length - 1; i >= 0; i--) {
+        list[i].life -= dt;
+        if (list[i].life <= 0) list.splice(i, 1);
+      }
+    }
   }
 
   // ---------- Drawing ----------
@@ -200,11 +341,35 @@ export function createEffects() {
         ctx.fillStyle = g;
         ctx.fillRect(-r, -r, r * 2, r * 2);
         ctx.restore();
+      } else if (d.kind === 'crater') {
+        const r = d.radius * 32;
+        ell(ctx, x, y, r, r * 0.5, '#2a211b', C.ink, 2);
+        ctx.beginPath();
+        ctx.ellipse(x, y, r, r * 0.5, 0, 0.25, Math.PI - 0.25);
+        ctx.strokeStyle = '#7d6852';
+        ctx.lineWidth = 2;
+        ctx.stroke();
       } else {
         ell(ctx, x, y, d.radius * 26, d.radius * 13, C.toxicD, 'rgba(26,20,16,.6)', 1);
       }
     }
     ctx.globalAlpha = 1;
+
+    // Shockwaves run out over the ground.
+    for (const ring of rings) {
+      const u = 1 - ring.life / ring.max;
+      const [x, y] = project(ring.x, ring.y);
+      ctx.globalAlpha = (1 - u) * 0.9;
+      ctx.strokeStyle = ring.colour;
+      ctx.lineWidth = ring.width * (1 - u * 0.6);
+      ctx.beginPath();
+      ctx.ellipse(x, y, (0.3 + u) * ring.radius * 32, (0.3 + u) * ring.radius * 16, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // Stasis: a lattice of ice over everything inside the field.
+    for (const field of fields) drawStasis(ctx, field, t, reducedMotion);
 
     // Orbital strikes counting down, and the banners standing this wave.
     for (const hit of state.pendingStrikes) {
@@ -215,6 +380,7 @@ export function createEffects() {
     }
     for (const banner of state.banners) {
       drawTargetRing(ctx, banner.x, banner.y, banner.radius, C.gold, 0.5, 1);
+      drawHolyBanner(ctx, banner, t, reducedMotion);
     }
 
     for (const tower of state.towers) {
@@ -224,6 +390,74 @@ export function createEffects() {
       if (stats.behaviour === 'aura' || stats.behaviour === 'psi') drawAura(ctx, tower, stats, t, reducedMotion);
       else if (stats.behaviour === 'cone' || stats.behaviour === 'flame') drawCone(ctx, tower, t, reducedMotion);
     }
+  }
+
+  /** The holy banner standing in the middle of its field for the rest of the wave. */
+  function drawHolyBanner(ctx, banner, t, reducedMotion) {
+    const [x, y] = project(banner.x, banner.y);
+    const top = y - 78;
+    ctx.strokeStyle = C.ink;
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, top);
+    ctx.stroke();
+    ctx.strokeStyle = C.steelL;
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+    const wave = reducedMotion ? 0 : Math.sin(t * 2.5) * 5;
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.quadraticCurveTo(x - 18, top - wave, x - 34, top + wave * 0.6);
+    ctx.lineTo(x - 34, top + 32 + wave * 0.6);
+    ctx.quadraticCurveTo(x - 18, top + 26 - wave, x, top + 24);
+    ctx.closePath();
+    ctx.fillStyle = C.gold;
+    ctx.fill();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = C.ink;
+    ctx.stroke();
+    // A skull on the cloth, like the banners on the ruins.
+    ell(ctx, x - 17, top + 12, 5, 5.5, C.bone, C.ink, 1.4);
+    ell(ctx, x - 19, top + 11, 1.4, 1.4, C.ink, null);
+    ell(ctx, x - 15, top + 11, 1.4, 1.4, C.ink, null);
+    ell(ctx, x, top, 3, 3, C.gold, C.ink, 1.5);
+  }
+
+  /** A stasis field: a cold disc with a crystal lattice, fading as it runs out. */
+  function drawStasis(ctx, field, t, reducedMotion) {
+    const [x, y] = project(field.x, field.y);
+    const r = field.radius * 32;
+    const fade = Math.min(1, field.life / 0.6);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, 0.5);
+    ctx.globalAlpha = fade * 0.55;
+    const g = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
+    g.addColorStop(0, 'rgba(190,235,255,.5)');
+    g.addColorStop(1, 'rgba(120,190,230,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = fade * 0.9;
+    ctx.strokeStyle = '#bff2ff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    // Six shards standing in the ring, turning very slowly.
+    ctx.rotate(reducedMotion ? 0 : t * 0.4);
+    ctx.strokeStyle = 'rgba(223,246,255,.85)';
+    ctx.lineWidth = 2.5;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * r * 0.25, Math.sin(a) * r * 0.25);
+      ctx.lineTo(Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   /** Flat ring on the ground: aiming, orbital strikes, banners. */
@@ -315,11 +549,12 @@ export function createEffects() {
       else if (s.kind === 'beam') drawBeam(ctx, s, a);
       else if (s.kind === 'chain') drawChain(ctx, s, a, reducedMotion);
       else if (s.kind === 'blast') drawBlast(ctx, s);
+      else if (s.kind === 'lance') drawLance(ctx, s);
     }
 
     for (const p of particles) {
       const u = p.life / p.max;
-      const r = p.size + (1 - u) * p.grow;
+      const r = Math.max(0.5, p.size + (1 - u) * p.grow);
       if (p.kind === 'fire') {
         const col = u > 0.72 ? '#fff3b0' : u > 0.45 ? '#ffb13b' : u > 0.22 ? '#e2531f' : '#5a3a2e';
         ctx.globalAlpha = u > 0.22 ? 1 : u * 3.5;
@@ -338,6 +573,24 @@ export function createEffects() {
       } else if (p.kind === 'warp') {
         ctx.globalAlpha = u;
         ell(ctx, p.x, p.y, r, r, SPARK.warp, null);
+      } else if (p.kind === 'dust') {
+        ctx.globalAlpha = u * 0.7;
+        ell(ctx, p.x, p.y, r, r * 0.7, '#9b8568', 'rgba(26,20,16,.35)', 1.2);
+      } else if (p.kind === 'steam') {
+        ctx.globalAlpha = u * 0.8;
+        ell(ctx, p.x, p.y, r, r, '#e9e4da', 'rgba(26,20,16,.3)', 1.2);
+      } else if (p.kind === 'debris') {
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = C.ink;
+        ctx.fillRect(p.x - r / 2 - 1, p.y - r / 2 - 1, r + 2, r + 2);
+        ctx.fillStyle = '#6a5a48';
+        ctx.fillRect(p.x - r / 2, p.y - r / 2, r, r);
+      } else if (p.kind === 'bolt') {
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = C.ink;
+        ctx.fillRect(p.x - 2.5, p.y - 2.5, 5, 5);
+        ctx.fillStyle = C.steelL;
+        ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
       } else {
         ctx.globalAlpha = 1;
         ell(ctx, p.x, p.y, r, r, SPARK.goo, C.ink, 1.2);
@@ -349,6 +602,13 @@ export function createEffects() {
       const a = Math.min(1, (n.life / n.max) * 2.2);
       ctx.globalAlpha = a;
       comicText(ctx, String(n.amount), n.x, n.y, 17, n.colour);
+      ctx.globalAlpha = 1;
+    }
+
+    for (const w of words) {
+      const u = 1 - w.life / w.max;
+      ctx.globalAlpha = Math.min(1, w.life * 4);
+      comicText(ctx, w.text, w.x, w.y - u * 26, Math.round(w.size * (0.7 + u * 0.4)), '#ffd23f');
       ctx.globalAlpha = 1;
     }
   }
@@ -417,6 +677,25 @@ export function createEffects() {
     ctx.globalAlpha = 1;
   }
 
+  /** The column of light an orbital strike comes down in. */
+  function drawLance(ctx, s) {
+    const u = 1 - s.life / 0.5;
+    const [x, y] = project(s.x, s.y);
+    const width = s.radius * 26 * (1 - u * 0.7);
+    const g = ctx.createLinearGradient(x, y - 700, x, y);
+    g.addColorStop(0, 'rgba(255,240,200,0)');
+    g.addColorStop(0.5, `rgba(255,240,200,${0.5 * (1 - u)})`);
+    g.addColorStop(1, `rgba(255,255,240,${0.85 * (1 - u)})`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x - width, y);
+    ctx.lineTo(x + width, y);
+    ctx.lineTo(x + width * 0.35, y - 700);
+    ctx.lineTo(x - width * 0.35, y - 700);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   function drawBlast(ctx, s) {
     const [x, y] = project(s.x, s.y, 4);
     const u = 1 - s.life / 0.3;
@@ -466,6 +745,9 @@ export function createEffects() {
       decals.length = 0;
       numbers.length = 0;
       shots.length = 0;
+      rings.length = 0;
+      words.length = 0;
+      fields.length = 0;
       shake = 0;
       flash = 0;
     },

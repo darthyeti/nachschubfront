@@ -99,6 +99,14 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
   - Galerie: Rezept-Stellungen in einer eigenen Reihe, Bosse in einer eigenen Reihe mit mehr Abstand.
   - Tests: 229 Unit-Tests (neu: jede Rezept-Stellung hat eine eigene, größere Silhouette mit Goldkante und ohne Rangwinkel; jeder Boss hat eine eigene Figur und überragt seinen Verwandten um mindestens die Hälfte), 23 Eingabeprüfungen, eine volle Partie ohne Konsolenfehler.
 
+- M4 Schritt 5 von 8: Kapselsequenz und Kommandos (23.09.2026):
+  - Die Kapsel schlägt jetzt vollständig ein: Druckwelle, Staubwolke, Trümmer, Feuer, Krater und ein Comic-Wort. Danach fliegen die Sprengbolzen ab, jede Luke wirft beim Aufschlagen Staub auf, und die heiße Hülle lässt zu beiden Seiten Dampf ab.
+  - Comic-Wörter bleiben selten, damit sie laut bleiben: nur die erste Kapsel einer Salve ruft „KRACH!", und der Orbitalschlag ruft „EINSCHLAG!". Normale Explosionen bleiben stumm.
+  - Kommandos haben eine eigene Inszenierung: Der Orbitalschlag kommt als Lichtsäule mit weiter Druckwelle und hellem Blitz herunter, das Stasisfeld liegt als kalte Scheibe mit langsam drehendem Kristallgitter über seinem Bereich, das Heilige Banner steht als Fahne mit Totenschädel in seinem goldenen Ring, und der Priorisierte Nachschub geht als Funkenring von der Bastion aus.
+  - Neue Partikelarten (Staub, Trümmer, Dampf, Bolzen) und Druckwellenringe, alles mit Obergrenzen.
+  - Behobener Fehler aus M2/M3: Partikel bekamen eine zufällige Lebensdauer, aber die feste als Bezugsgröße. Wer länger lebte als vorgesehen, wuchs über seine eigene Größe hinaus und bekam einen negativen Radius; Canvas hat das als Fehler gemeldet. Jetzt ist beides derselbe Wert.
+  - Leistung (Apple M2 mit GPU): 200 Gegner und 40 Stellungen, Start- und Maximalzoom, Desktop und Tablet: alles 60 fps, 1,9 bis 3,0 ms Rechenzeit, 0 Rasterungen. Die Auffälligkeit aus Schritt 1 (p95 33 ms bei Tablet/Maximalzoom) ist weg; sie kam von der ausgelasteten Maschine, nicht vom Spiel.
+
 ## Offen
 - Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
 - Balancing wird **nicht** mit den automatischen Werkzeugen beurteilt (Entscheidung vom 23.09.2026): Wo die Stellungen stehen, entscheidet im Spiel immer der Spieler, und daran hängt das Ergebnis mehr als an jedem Tabellenwert. `npm run playmatch` und `npm run test:battle` setzen die Zonen nach einer festen Regel und sind darum Regressionsprüfungen („läuft eine ganze Partie fehlerfrei durch"), keine Balancing-Messung. Ihre Wellenzahlen sagen nichts über die Schwierigkeit für einen Menschen.
@@ -107,7 +115,6 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M5 → M6
 - Die Spezialstellungen, die Boss-Werte und die Kegel-, Strahl- und Sprungweiten der Doktrinen stehen nicht im GDD. Die eingetragenen Zahlen sind hergeleitet (siehe Entscheidungen) und gehören in M6 auf den Prüfstand.
 
 ## Bekannte Probleme
-- Die Leistungsmessung `npm run test:perf` meldet auf diesem Rechner derzeit für Tablet bei Maximalzoom p95 33 ms statt 17 ms. Mit zurückgenommenen M4-Änderungen (git stash) misst sie denselben Wert, es ist also keine Folge des Diorama-Schritts, sondern die Maschine oder das Headless-Chromium. Vor der M4-Abnahme neu zu messen, im Zweifel auf dem iPad.
 - **Ohne eigene Markierungen ist Welle 1 verloren.** Wer nur „Salve anfordern" drückt, bekommt fünf zufällig verteilte Kapseln; die Stellung daraus steht oft außer Reichweite der Route und feuert die ganze Welle nicht. Gemessen: 30 Durchbrüche, Niederlage nach 55 Sekunden. Das ist eine Frage der Bedienführung, nicht des Balancings — das Spiel sollte deutlich machen, dass die Zonen gesetzt werden wollen. Die Browser-Prüfung stützt die Bastion deshalb mit dem Debug-Hebel ab.
 - Eine Stellung, die keine Route erreicht, gibt keinerlei Rückmeldung. Erst die Infoanzeige verrät über „Schaden diese Welle: 0", dass sie nichts tut. Ein sichtbarer Reichweitenkreis bei Auswahl und Infoanzeige wäre der naheliegende Platz dafür (Vorschlag für M4).
 - Der Auswahldialog liegt über dem unteren Rand der Karte (620 × 141 px auf dem Tablet). Eine Kapsel, die genau dahinter liegt, lässt sich nicht antippen, über die Karten im Dialog aber trotzdem wählen.

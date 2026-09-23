@@ -226,6 +226,12 @@ export const STRINGS = {
     built: (name) => `${name} errichtet`,
   },
 
+  /** Comic words over the loudest moments; kept rare so they stay loud. */
+  effects: {
+    podImpact: 'KRACH!',
+    orbitalStrike: 'EINSCHLAG!',
+  },
+
   gallery: {
     title: 'Sprite-Galerie',
     intro:
