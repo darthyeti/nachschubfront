@@ -12,3 +12,5 @@ tests/output/
 # are read from, so the root copies stay out of the repository.
 /ART-kapsel.md
 /UPDATE.md
+/ART-update-v2.md
+/M4d-feinschliff-sprint2.md

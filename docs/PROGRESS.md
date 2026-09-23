@@ -1,13 +1,15 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
+M4d Feinschliff-Sprint 2 ist eingespielt und wartet auf die Freigabe des Plans. Die Vorarbeit ist erledigt: Die Ergänzung zum Grafikleitfaden steht in `docs/ART.md` (gemeinsamer Bunker für Flamme und Autokanone, kleinerer Laser, Rangabzeichen, neuer geöffneter Kapselzustand, Spezialstellungen als Fahrzeuge, dazu der neue Abschnitt "Verhalten in der Planungsphase"), die Einzeldatei `ART-update-v2.md` ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik. Neue Konzeptblätter liegen in `reference/konzept/spezialstellungen/` und `reference/konzept/ui/`, überarbeitet wurden `stellungen/autokanone.svg`, `flamme.svg`, `laser.svg` und `kapsel/kapsel-geoeffnet.svg`.
+
 M4c Neue Kapselform ist umgesetzt und wartet auf die Abnahme (die Kapsel im Spiel auf dem iPad, besonders der Aufbruch bei 1x). Die Vorarbeit dazu: Die Ergänzung zur Kapsel steht als Abschnitt "Nachschubkapsel" in `docs/ART.md`, die Einzeldatei ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik.
 
 M4b Designanpassungen aus Spieltest 1 ist umgesetzt und wartet auf die Abnahme (besonders der Abbruchmodus und der Nachschub-Knopf auf dem iPad). Die Vorarbeit dazu: Das Update v2 ist in `docs/GDD.md` eingearbeitet (Stand jetzt "Grundlagen v2"), die Einzeldatei ist danach gelöscht worden. Das GDD ist wieder die einzige Quelle.
 
 M4 Präsentation ist umgesetzt und wartet auf die Abnahme auf dem iPad (Ton und Mehrfinger-Gesten lassen sich nur dort wirklich beurteilen). M3 wartet ebenfalls auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
 
-Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → **M4c** → M5 → M6
+Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → M4c → **M4d** → M5 → M6
 
 ## Erledigt
 - Game-Design-Grundlagen (docs/GDD.md)
@@ -166,6 +168,7 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → **M4c** → M5 → M6
 - Die Spezialstellungen, die Boss-Werte und die Kegel-, Strahl- und Sprungweiten der Doktrinen stehen nicht im GDD. Die eingetragenen Zahlen sind hergeleitet (siehe Entscheidungen) und gehören in M6 auf den Prüfstand.
 
 ## Bekannte Probleme
+- **Die neuen Konzeptblätter sind nicht zerlegt und sprengen die Sprite-Pipeline.** `autokanone.svg`, `flamme.svg` und `laser.svg` aus Update 4 sind frische Exporte ohne die M4-Zerlegung: Ihnen fehlen `t-ac-back/-gun/-front`, `t-flame-*`, `t-laser-*`, `crate`, `crate-l`, und ihr `t-flame` weicht von dem der übrigen Blätter im selben Ordner ab. `npm run sprites` bricht deshalb mit "symbol #t-flame differs from another file" ab. Dasselbe gilt für `kapsel-geoeffnet.svg`, dem `pod-core`, `pod-shell` und die vier `pod-petal-*` fehlen. Das Zerlegen mit `tests/tools/split-*.py` gehört damit in den Umfang von M4d.
 - **Bestwerte und Seeds aus der Zeit vor M4b sind nicht mehr vergleichbar.** Zwei Signalfeuer statt vier, eine andere Salvengröße und entschärfte erste Wellen ergeben aus demselben Seed eine andere Partie. Beim Speichern der Bestwerte (M5) muss eine Regelversion mitgeschrieben werden, damit alte und neue Partien getrennt bleiben.
 - **Ohne eigene Markierungen ist Welle 1 verloren.** Wer nur „Salve anfordern" drückt, bekommt fünf zufällig verteilte Kapseln; die Stellung daraus steht oft außer Reichweite der Route und feuert die ganze Welle nicht. Gemessen: 30 Durchbrüche, Niederlage nach 55 Sekunden. Das ist eine Frage der Bedienführung, nicht des Balancings — das Spiel sollte deutlich machen, dass die Zonen gesetzt werden wollen. Die Browser-Prüfung stützt die Bastion deshalb mit dem Debug-Hebel ab.
 - Das Ergänzen fehlender Landezonen prüft im schlimmsten Fall alle freien Felder (etwa 75 ms in einem sehr engen Labyrinth). Das passiert einmal pro Salve, fällt also nur als kurzer Hänger auf.

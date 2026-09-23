@@ -15,27 +15,34 @@ Verbindliche Gestaltungsregeln für alle Figuren. Die Konzeptskizzen liegen als 
 
 | Doktrin | Grundform | Leitfarbe |
 |---|---|---|
-| Flamme | Gedrungener Bunker, rote Tanks, Düse nach vorn | #ff8a2a |
-| Autokanone | Drehkanone mit drei Läufen, Sandsackring, Munitionskasten | #f0e2b8 |
-| Laser | Schlanker Mast, schwenkbare Strahlkanone mit Energiezellen | #ff4a4a |
+| Flamme | Gemeinsamer Bunker, Flammenstoß aus den Scharten | #ff8a2a |
+| Autokanone | Gemeinsamer Bunker, Mündungsblitz an den Scharten | #f0e2b8 |
+| Laser | Schlanker Mast, schwenkbare Strahlkanone mit Energiezellen, seit M4d etwa 30 Prozent kleiner | #ff4a4a |
 | Mörser | Flache Grube, steiles Rohr, Granatkiste | #d8ae5f |
 | Psi | Gotischer Schrein, schwebender Kristall mit Ringen | #b784ff |
 | Tesla | Kupferspule mit Kugel, Blitze | #5fd4ff |
 
+**Gemeinsamer Bunker.** Flamme und Autokanone teilen sich seit M4d dieselbe Bunkerform: gedrungen, breiter als hoch, mit drei sichtbaren Schießscharten in der Front. Kein Lauf ragt mehr aus der Stellung heraus. Unterschieden werden die beiden ausschließlich über die Akzentfarbe und den Effekt an der Scharte — Autokanone ein kurzer Mündungsblitz an allen drei Scharten, Flamme ein kurzer Flammenstoß. Der Entwurf kostet die Autokanone ihre Drehkanone und den Munitionskasten; beides gehört nicht mehr zur Grundform.
+
 ### Spezialstellungen
 
-Die sechs Rezept-Stellungen (GDD Abschnitt 8) haben seit M4 eine eigene Silhouette. Sie stehen auf demselben Sockel, tragen die Goldkante (sie sind die Spitze der Entwicklung, haben aber keinen Rang und darum keine Winkel) und stehen im Spiel in einem goldenen Bodenring. Die Leitfarbe bleibt die der erstgenannten Zutat.
+Die sechs Rezept-Stellungen (GDD Abschnitt 8) sind seit M4d stationäre **Fahrzeuge**, keine Türme. Sie stehen auf zwei Fahrgestellen, beide mit sichtbaren Ketten (kein Rad-Look), und tragen darauf einen thematischen Aufsatz:
 
-| Spezialstellung | Grundform | Bewegliches Teil |
-|---|---|---|
-| Reinigungsschrein | Weite Feuerschale auf gestuftem Podest, Düsenkranz am Rand | — |
-| Sturmbatterie | Drei gefächerte Läufe auf einer Drehtrommel | Läufe drehen zum Ziel |
-| Glutkessel | Gedrungener Kessel auf drei Beinen, Bügel darüber | — |
-| Belagerungsmörser | Riesenrohr auf einer Räderlafette | Rohr neigt sich zum Ziel |
-| Gewitterturm | Gitterpylon mit Stabkrone | — |
-| Seelenfeuer-Obelisk | Verjüngender Monolith mit Schädelnische und Warp-Splittern | — |
+- **Kampfpanzer-Fahrgestell**: kompakt, niedrig, Turm mit kurzem, schmalem Rohr, das nach vorn feuert, nicht nach oben.
+- **Artillerie-Fahrgestell**: offen, mit erhöhtem Rohr für indirekten Fernkampf.
 
-Gezeichnet werden sie von `tests/tools/add-specials.py`; die Blätter liegen wie die handgezeichneten in `reference/konzept/stellungen/`.
+Wie bisher stehen sie auf demselben Sockel, tragen die Goldkante (sie sind die Spitze der Entwicklung, haben aber keinen Rang und darum keine Winkel) und stehen im Spiel in einem goldenen Bodenring. Die Leitfarbe bleibt die der erstgenannten Zutat.
+
+| Spezialstellung | Fahrgestell | Gezeichnet | Aufsatz |
+|---|---|---|---|
+| Sturmbatterie | Kampfpanzer | ja | Offener Vierlings-Flakturm. Im Feuer vier gleichzeitige Mündungsblitze und umherfliegende Patronenhülsen |
+| Seelenfeuer-Obelisk | keines | ja | Kein Fahrzeug, sondern ein Runenobelisk, deutlich höher als jede andere Stellung, mit schwebendem Psi-Auge, Blitzen und Flammen am Fuß. Bewusst das auffälligste Bauwerk und die einzige Held-Stufe |
+| Reinigungsschrein | Artillerie | nein | Flammendüse statt Rohrspitze, schwebender Psi-Splitter darüber |
+| Glutkessel | Kampfpanzer | nein | Turmaufsatz aus Flammendüse und Tesla-Spule, brennender Ring um die Wanne |
+| Belagerungsmörser | Artillerie | nein | Überlanges, dickeres Rohr mit aufgesetztem Laser-Zielgerät |
+| Gewitterturm | Artillerie | nein | Rohr ersetzt durch eine hohe Tesla-Spule mit Psi-Ring darüber |
+
+Fertig gezeichnet sind Sturmbatterie und Seelenfeuer-Obelisk, dazu die beiden nackten Fahrgestelle; die Blätter liegen in `reference/konzept/spezialstellungen/`. Die übrigen vier behalten vorerst die Platzhaltergrafik aus M4 (`tests/tools/add-specials.py`, Blätter in `reference/konzept/stellungen/`) und folgen später nach demselben Baukasten: Fahrgestell aus der Tabelle plus Aufsatz.
 
 ### Ränge
 
@@ -50,6 +57,12 @@ Jeder Rang ergänzt ein sichtbares Detail, kumulativ:
 | Legende | Goldkanten, Halo | 5 (gold) | Goldkante am Sockelrand als SVG, Halo im Code |
 
 Die Winkel sitzen auf der linken Vorderseite des Sockels. Abweichung: Die Goldkante der Legende läuft am Sockel entlang, nicht an der Figur — ein Umriss pro Doktrin wäre für jede Waffe eine eigene Zeichnung.
+
+#### Rangabzeichen im Auswahldialog
+
+Neben jeder Kapseloption steht eine sechseckige Plakette in der Leitfarbe der Doktrin, bei Legende in Gold statt in der Doktrinfarbe. Sterne zeigen den Rang: Rekrut ohne Stern, Veteran einer, Elite zwei, Held drei, Legende vier.
+
+Dateien: `reference/konzept/ui/rangabzeichen-{rekrut,veteran,elite,held,legende}.svg`.
 
 ## Gegner: insektoide Brut
 
@@ -94,7 +107,7 @@ Der Dämonenprinz wechselt im Kampf alle vier Sekunden die Rüstungsart. Sichtba
 
 ## Nachschubkapsel
 
-Ersetzt die frühere Kapselform (schlanker Zylinder mit Kegelspitze, wirkte wie eine Rakete). Konzept: `reference/konzept/kapsel/kapsel-geschlossen.svg` (Variante `pod-b`) und `kapsel-geoeffnet.svg` (`pod-open`). Die Blätter zeigen daneben zwei verworfene Entwürfe, `pod-a` und `pod-c`; verbindlich sind `pod-b` und `pod-open`.
+Ersetzt die frühere Kapselform (schlanker Zylinder mit Kegelspitze, wirkte wie eine Rakete). Konzept: `reference/konzept/kapsel/kapsel-geschlossen.svg` (Variante `pod-b`) und `kapsel-geoeffnet.svg` (`open-b`). Die Blätter zeigen daneben verworfene Entwürfe (`pod-a`, `pod-c`, `open-a`, `open-c`); verbindlich sind `pod-b` und `open-b`.
 
 ### Geschlossen
 
@@ -108,8 +121,9 @@ Ersetzt die frühere Kapselform (schlanker Zylinder mit Kegelspitze, wirkte wie 
 
 ### Geöffnet
 
-- Die vier Segmente liegen flach nach außen, Ecken abgeschrägt, mit Scharnierbolzen in der Mitte jedes Segments.
-- Der Innenrahmen bleibt als kleiner facettierter Kern stehen und leuchtet in der Farbe der Doktrin, darüber die Lichtsäule zum Hologramm.
+- **Das Dach bleibt stehen.** Nur der untere Teil der vier Segmente klappt nach außen; das Dach mit den Bremsdüsen bleibt oben auf dem stehenden Kern. Die Kapsel wirkt dadurch wie eine dauerhafte Station und nicht wie Trümmer. Das ersetzt die erste Fassung aus M4c, bei der zu wenig von der Kapsel übrig blieb.
+- Die vier abgeklappten Segmentteile liegen flach nach außen, Ecken abgeschrägt, mit Scharnierbolzen in der Mitte jedes Segments.
+- Der stehende Kern trägt weiter das rote Band unter dem Dach und leuchtet in der Farbe der Doktrin, darüber die Lichtsäule zum Hologramm.
 - Geöffnet greift die Kapsel sichtbar auf die Nachbarfelder über. Die geöffnete Darstellung deshalb etwa 15 Prozent kleiner zeichnen als die Skizze, damit benachbarte Stellungen nicht verdeckt werden.
 - Die Kapsel darf im geschlossenen Zustand auch auf der kleinsten Zoomstufe nicht mit einer Stellung zu verwechseln sein: Stellungen stehen auf dem Rautensockel, die Kapsel auf ihrem eigenen runden Hitzeschild.
 
@@ -119,7 +133,15 @@ Kern-Leuchten, Lichtsäule und Hologramm tragen die Leitfarbe der Doktrin und bl
 
 ### Ablauf
 
-Die Sequenz bleibt wie in M4 umgesetzt: Zielmarkierung, Absturz, Bremstriebwerke, Einschlag, Dampf, Sprengbolzen, Öffnen, Hologramm. Geändert wird nur die Form.
+Die Sequenz bleibt wie in M4 umgesetzt: Zielmarkierung, Absturz, Bremstriebwerke, Einschlag, Dampf, Sprengbolzen, Öffnen, Hologramm. Geändert wird nur die Form. Der geschlossene Zustand ist von M4c unverändert.
+
+## Verhalten in der Planungsphase
+
+Zwei Regeln, die keine Grafik sind, sondern Renderlogik.
+
+**Rezept-Vorschau.** Sobald eine ausgewählte Kapsel ein Rezept ergeben würde, bekommen alle dafür verbrauchten bestehenden Stellungen eine pulsierende goldene Umrandung. Alles andere auf der Karte — Gelände, Trümmer, unbeteiligte Stellungen — wird um etwa 40 Prozent abgedunkelt und leicht transparent. Damit ist sofort erkennbar, was verloren geht.
+
+**Geräumte Trümmerfelder.** Ein im Abbruchmodus geräumtes Feld behält denselben gestrichelten Goldring wie eine Zielmarkierung, nur schwächer (geringere Deckkraft), bis die Planungsphase endet oder eine Kapsel darauf landet. So findet man das freigeräumte Feld beim Anfordern der nächsten Salve wieder.
 
 ## Technische Umsetzung
 
@@ -134,9 +156,9 @@ Die Sequenz bleibt wie in M4 umgesetzt: Zielmarkierung, Absturz, Bremstriebwerke
 | `-gun` / `-body` | Waffe, dreht sich zum Ziel | Körper |
 | `-front` | Sandsäcke und Kisten vor der Waffe | Beine oder Flügel vor dem Körper |
 
-  Die Kapsel kommt in M4c dazu: geschlossen ein Stück, geöffnet ein Kern und vier einzeln ansteuerbare Segmente, damit sie wie bisher nacheinander aufklappen.
+  Die Kapsel kommt in M4c dazu: geschlossen ein Stück, geöffnet ein Kern (seit M4d mit dem Dach darauf) und vier einzeln ansteuerbare Segmentklappen, damit sie wie bisher nacheinander aufklappen.
 
   Wo die Teile sitzen und wie sie sich bewegen (Drehpunkt, Ruhewinkel, Mündung, Ausschlag), steht in `src/render/sprites/manifest.js`. Der Warp-Seher schwebt und bleibt ein Stück.
-- **Aus den SVGs entfernt und jetzt Code** (`src/render/towerFx.js`): Flammenstrahl, Mündungsbögen, Mörserrauch, das Leuchten von Laser und Tesla, die Blitze der Spule, Aura und Ringe des Psi-Schreins.
-- Abweichung: Die drei Läufe der Autokanone bleiben ein Teil. Ihre Drehung wird über Rückstoß und ein leichtes Wandern quer zur Achse angedeutet, statt jeden Lauf einzeln zu bewegen.
+- **Aus den SVGs entfernt und jetzt Code** (`src/render/towerFx.js`): Flammenstrahl, Mündungsbögen, Mörserrauch, das Leuchten von Laser und Tesla, die Blitze der Spule, Aura und Ringe des Psi-Schreins. Seit M4d dazu die Mündungsblitze und Flammenstöße an den drei Bunkerscharten und die Feuersequenz der Sturmbatterie.
+- Abweichung: Der Bunker von Flamme und Autokanone hat keine zielende Waffe mehr. Beide bleiben ein Stück; gezielt wird nur noch über den Effekt an der Scharte, die zum Ziel zeigt. Das ersetzt die frühere Regelung für die drei Läufe der Autokanone.
 - Treffer-Aufblitzen über eine vorgerenderte helle Variante des Sprites, nicht über Filter pro Frame.
