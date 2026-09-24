@@ -76,9 +76,10 @@ function createOverlay(root, name, label) {
  * @param {() => void} options.onResume
  * @param {(open: boolean) => void} options.onToggle  Called whenever a screen opens or closes.
  * @param {ReturnType<import('../storage/profile.js').createProfileStore>} options.profile
+ * @param {() => void} [options.onApplyUpdate]  Lets the waiting build take over.
  * @param {boolean} options.canStore  False shows a warning in the settings.
  */
-export function createMenus(root, { prefs, profile, onStart, onResume, onToggle, canStore = true }) {
+export function createMenus(root, { prefs, profile, onStart, onResume, onToggle, onApplyUpdate, canStore = true }) {
   /** @type {'main'|'pause'|'settings'|'end'|null} */
   let open = null;
   /** Where "back" leads from the settings. */
@@ -218,6 +219,72 @@ export function createMenus(root, { prefs, profile, onStart, onResume, onToggle,
   );
   end.panel.append(endTitle, endDetail, endScore, endRecord, endActions);
 
+  // ---------- Notices ----------
+  // An update concerns the title screen and the pause screen, so each gets its
+  // own copy at the top of the panel; the install hint belongs to the title only.
+
+  const updateNotices = [main.panel, pause.panel].map((panel) => {
+    const box = el('div', 'menu-notice');
+    box.hidden = true;
+    box.append(el('strong', null, T.updateReady));
+    box.append(button(T.updateApply, 'primary', () => onApplyUpdate?.()));
+    box.append(el('span', 'menu-notice-hint', T.updateHint));
+    panel.prepend(box);
+    return box;
+  });
+
+  const install = el('div', 'menu-notice');
+  install.hidden = true;
+  const installText = el('span', 'menu-notice-hint', T.installIos);
+  let installPrompt = null;
+  const installButton = button(T.install, 'primary', () => {
+    installPrompt?.prompt();
+    installPrompt = null;
+    syncInstall();
+  });
+  install.append(installButton, installText);
+  install.append(
+    button(T.installDismiss, 'alt', () => {
+      prefs.set('installHintDismissed', true);
+      syncInstall();
+    }),
+  );
+  main.panel.prepend(install);
+
+  /** True once the game runs from the home screen; then there is nothing to offer. */
+  function installed() {
+    return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  }
+
+  /**
+   * iPadOS and iOS have no install prompt at all, so the hint has to spell the
+   * two taps out. An iPad reports itself as a Mac, hence the touch check.
+   */
+  function isApple() {
+    const ua = navigator.userAgent;
+    return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  }
+
+  function syncInstall() {
+    const show = !prefs.values.installHintDismissed && !installed() && (installPrompt !== null || isApple());
+    install.hidden = !show;
+    // Chrome can do it in one press; Safari can only be told how.
+    installButton.hidden = installPrompt === null;
+    installText.hidden = installPrompt !== null;
+  }
+
+  window.addEventListener('beforeinstallprompt', (ev) => {
+    ev.preventDefault();
+    installPrompt = ev;
+    syncInstall();
+  });
+  window.addEventListener('appinstalled', () => {
+    installPrompt = null;
+    syncInstall();
+  });
+  prefs.onChange(syncInstall);
+  syncInstall();
+
   const screens = { main, pause, settings, records, end };
 
   function show(name, from) {
@@ -287,6 +354,11 @@ export function createMenus(root, { prefs, profile, onStart, onResume, onToggle,
       endRecord.classList.toggle('is-record', record === 'new');
       show('end');
     },
+    /** Announces a build that is installed and waiting (core/updates.js). */
+    showUpdate() {
+      for (const box of updateNotices) box.hidden = false;
+    },
+
     /** Fills the seed field, e.g. with the seed of the running match. */
     setSeed(seed) {
       seedInput.value = seed ?? '';

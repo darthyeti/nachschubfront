@@ -1011,6 +1011,45 @@ button[hidden] {
   font-weight: 700;
 }
 
+/* A notice at the top of a menu panel: an update waiting, or the offer to put
+   the game on the home screen. */
+.menu-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.4);
+  font-size: 16px;
+}
+
+.menu-notice[hidden] {
+  display: none;
+}
+
+.menu-notice strong {
+  color: var(--btn);
+}
+
+.menu-notice button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.menu-notice-hint {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.menu-notice-hint[hidden] {
+  display: none;
+}
+
 /* Records screen: the table stays readable on a tablet, so the seed keeps its
    own line with the date under it instead of a wide extra column. */
 .menu[data-menu='records'] .menu-panel {

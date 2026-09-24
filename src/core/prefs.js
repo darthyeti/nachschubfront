@@ -15,6 +15,8 @@ export const PREF_DEFAULTS = {
   music: 0.5,
   /** 'auto' follows prefers-reduced-motion, 'full' and 'reduced' override it. */
   motion: 'auto',
+  /** The player waved the "add to home screen" hint away on this device. */
+  installHintDismissed: false,
 };
 
 const VOLUMES = ['master', 'sfx', 'music'];
@@ -29,6 +31,7 @@ export function sanitizePrefs(raw) {
     if (typeof value === 'number' && Number.isFinite(value)) out[key] = Math.min(1, Math.max(0, value));
   }
   if (MOTIONS.includes(raw.motion)) out.motion = raw.motion;
+  if (typeof raw.installHintDismissed === 'boolean') out.installHintDismissed = raw.installHintDismissed;
   return out;
 }
 

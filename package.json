@@ -11,11 +11,13 @@
     "test:input": "node tests/input.mjs",
     "test:perf": "node tests/perf.mjs",
     "test:battle": "node tests/battle.mjs",
-    "test:webkit": "node tests/input.mjs --browser webkit && node tests/screenshots.mjs --browser webkit --query \"seed=BASTION&debug\" && node tests/perf.mjs --browser webkit",
+    "test:offline": "node tests/offline.mjs",
+    "test:webkit": "node tests/input.mjs --browser webkit && node tests/offline.mjs --browser webkit && node tests/screenshots.mjs --browser webkit --query \"seed=BASTION&debug\" && node tests/perf.mjs --browser webkit",
     "icons": "node tests/tools/make-icons.mjs",
     "sprites": "node tests/tools/import-sprites.mjs",
     "waves": "node tests/tools/make-waves.mjs",
-    "playmatch": "node tests/tools/playmatch.mjs"
+    "playmatch": "node tests/tools/playmatch.mjs",
+    "precache": "node tests/tools/make-precache.mjs"
   },
   "devDependencies": {
     "playwright": "^1.63.0"

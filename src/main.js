@@ -41,6 +41,7 @@ import { POD_SPRITE_DEFS, keepClearedCells } from './render/pods.js';
 import { startStress, stopStress, setLives, setWave, grant, forcePod, toggleInvulnerable } from './sim/debug.js';
 import { score, scoreEntry } from './sim/score.js';
 import { createProfileStore, bestForSeed } from './storage/profile.js';
+import { registerServiceWorker } from './core/updates.js';
 
 const FLASH_SECONDS = 0.9;
 const STRESS_ENEMIES = 200;
@@ -409,10 +410,15 @@ document.addEventListener('visibilitychange', () => audio.setMuted(document.hidd
 /** Speed to go back to once every screen is closed again. */
 let speedBeforeMenu = 1;
 
+// Offline support and the update notice. The worker never takes over on its
+// own; the player presses "Neu laden" in the menu when it suits them.
+const updates = registerServiceWorker(() => menus.showUpdate());
+
 const menus = createMenus(document.body, {
   prefs,
   profile,
   canStore: storage.persistent,
+  onApplyUpdate: () => updates.apply(),
   onToggle(open) {
     if (open) {
       if (state.speed > 0) speedBeforeMenu = state.speed;

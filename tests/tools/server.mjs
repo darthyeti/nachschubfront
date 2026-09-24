@@ -56,7 +56,19 @@ export async function startServer() {
     }
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  return { url: `http://127.0.0.1:${server.address().port}/`, close: () => server.close() };
+  return {
+    url: `http://127.0.0.1:${server.address().port}/`,
+    close: () => server.close(),
+    /**
+     * Really pulls the plug: drops the open keep-alive sockets as well, so the
+     * next request fails instead of being served over a connection that is
+     * still standing. The offline check needs that to mean anything.
+     */
+    unplug: () => {
+      server.closeAllConnections();
+      server.close();
+    },
+  };
 }
 
 /** Collects console errors, page errors and failed requests of a page. */

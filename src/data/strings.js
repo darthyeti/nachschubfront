@@ -58,6 +58,12 @@ export const STRINGS = {
       'Die Gegner laufen immer den kürzesten freien Weg — mit Trümmern und Stellungen wird er länger.',
     hint: 'Leertaste pausiert · Escape öffnet das Menü · R zeigt die Rezepte',
     records: 'Bestenliste',
+    updateReady: 'Neue Version bereit',
+    updateApply: 'Neu laden',
+    updateHint: 'Die laufende Partie geht dabei verloren.',
+    install: 'Auf den Home-Bildschirm',
+    installIos: 'Teilen-Knopf antippen, dann „Zum Home-Bildschirm“ — so läuft das Spiel offline und im Vollbild.',
+    installDismiss: 'Nicht mehr zeigen',
   },
 
   records: {
