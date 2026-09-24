@@ -4,6 +4,7 @@
 
 import { PODS, salvoSize } from '../data/pods.js';
 import { checkPlacement, routeWith } from './route.js';
+import { isRubble } from './rubble.js';
 import { upcomingWave } from './pods.js';
 
 /**
@@ -87,6 +88,10 @@ function allCells(size) {
  *
  * Spread-out cells are preferred; if space runs short, the distance rule is
  * dropped before the salvo is left incomplete.
+ *
+ * Free cells come before heaps of rubble. A zone on rubble is allowed since v3,
+ * but building there costs the demolition, and the game must not run up a bill
+ * the player never asked for — so rubble is only used when nothing else fits.
  * @param {ReturnType<import('../core/random.js').createRng>} rng
  * @returns {number} Number of zones added.
  */
@@ -95,11 +100,18 @@ export function fillZones(state, rng) {
   if (missing <= 0) return 0;
   const candidates = rng.shuffle(allCells(state.map.size));
   let added = 0;
-  for (const spread of [true, false]) {
+  // Three rounds, each looser than the one before: spread and free, close and
+  // free, then anything that is allowed at all.
+  for (const [spread, freeOnly] of [
+    [true, true],
+    [false, true],
+    [false, false],
+  ]) {
     for (const cell of candidates) {
       if (zonesFull(state)) break;
       if (zoneIndexAt(state, cell) >= 0) continue;
       if (spread && state.zones.some((z) => manhattan(z, cell) < PODS.minRandomDistance)) continue;
+      if (freeOnly && isRubble(state.map, cell)) continue;
       if (!checkPlacement(state.map, [...state.zones, cell]).ok) continue;
       state.zones.push({ x: cell.x, y: cell.y });
       added++;

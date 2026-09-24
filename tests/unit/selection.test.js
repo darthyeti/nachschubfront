@@ -3,9 +3,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { selectionOptions, applySelection, mergeGroups, mergeResultRank, findOption } from '../../src/sim/selection.js';
+import {
+  selectionOptions,
+  applySelection,
+  mergeGroups,
+  mergeResultRank,
+  findOption,
+  anchorCost,
+  canAffordAnchor,
+} from '../../src/sim/selection.js';
+import { addRubble, isRubble } from '../../src/sim/rubble.js';
+import { nextRubbleCost } from '../../src/sim/economy.js';
 import { addTower } from '../../src/sim/towers.js';
 import { isBlocked } from '../../src/sim/grid.js';
+import { checkPlacement } from '../../src/sim/route.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
 import { mapFromAscii, planningState } from './helpers.js';
 import { actionsFor } from '../../src/ui/selection.js';
@@ -335,4 +346,111 @@ test('after any choice exactly one tower and four heaps of rubble stand', () => 
     );
     assert.equal(state.pods.length, 0, `${choice.type}: salvo cleared`);
   }
+});
+
+// ---------- Landing zones on rubble (GDD section 3, v3) ----------
+
+/** A selection state whose pod `index` came down on an existing heap of rubble. */
+function stateWithRubbleUnder(index, requisition = 1000) {
+  const state = selectionState([
+    ['flame', 1],
+    ['laser', 1],
+    ['mortar', 1],
+    ['psi', 1],
+    ['tesla', 1],
+  ]);
+  state.requisition = requisition;
+  // The cell is blocked either way; what changes is that a heap stands there.
+  addRubble(state, CELLS[index]);
+  return state;
+}
+
+test('a pod on a free cell costs nothing extra', () => {
+  const state = stateWithRubbleUnder(0);
+  assert.equal(anchorCost(state, 1), 0);
+  assert.equal(canAffordAnchor(state, 1), true);
+  const before = state.requisition;
+  assert.ok(applySelection(state, { type: 'keep', anchor: 1 }).ok);
+  assert.equal(state.requisition, before, 'nothing was billed');
+  assert.equal(state.demolished, 0);
+});
+
+test('building on rubble clears the heap and bills the demolition once', () => {
+  const state = stateWithRubbleUnder(0);
+  const price = nextRubbleCost(state);
+  assert.equal(anchorCost(state, 0), price);
+
+  const before = state.requisition;
+  const result = applySelection(state, { type: 'keep', anchor: 0 });
+  assert.ok(result.ok);
+  assert.equal(result.cost, price);
+  assert.equal(state.requisition, before - price, 'paid exactly once');
+  assert.equal(state.demolished, 1, 'and the next demolition is dearer');
+  assert.equal(isRubble(state.map, CELLS[0]), false, 'the heap is gone');
+  assert.equal(state.towers.length, 1);
+  assert.equal(state.towers[0].x, CELLS[0].x);
+  assert.equal(state.towers[0].y, CELLS[0].y);
+  assert.ok(isBlocked(state.map.grid, CELLS[0].x, CELLS[0].y), 'the cell stays blocked, now by the tower');
+});
+
+test('choosing another pod leaves the heap and costs nothing', () => {
+  const state = stateWithRubbleUnder(0);
+  const before = state.requisition;
+  assert.ok(applySelection(state, { type: 'keep', anchor: 2 }).ok);
+  assert.equal(state.requisition, before, 'the untouched heap is free');
+  assert.equal(state.demolished, 0);
+  assert.equal(isRubble(state.map, CELLS[0]), true, 'it is still rubble');
+  // And it is one heap, not two: the unused pod did not stack a second one.
+  const heaps = state.map.obstacles.filter(
+    (o) => o.kind === 'rubble' && o.cells.some((c) => c.x === CELLS[0].x && c.y === CELLS[0].y),
+  );
+  assert.equal(heaps.length, 1);
+});
+
+test('without the money for the demolition that pod cannot be chosen', () => {
+  const state = stateWithRubbleUnder(0, 0);
+  assert.equal(canAffordAnchor(state, 0), false);
+  const result = applySelection(state, { type: 'keep', anchor: 0 });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'funds');
+  assert.equal(state.towers.length, 0, 'nothing was built');
+  assert.equal(state.requisition, 0, 'and nothing went into the red');
+  assert.equal(isRubble(state.map, CELLS[0]), true);
+
+  // The rest of the salvo is untouched by that.
+  assert.equal(canAffordAnchor(state, 1), true);
+  assert.ok(applySelection(state, { type: 'keep', anchor: 1 }).ok);
+});
+
+test('a merge or a recipe on rubble is billed for its anchor, not per pod', () => {
+  const state = selectionState([
+    ['flame', 1],
+    ['flame', 1],
+    ['flame', 1],
+    ['flame', 1],
+    ['psi', 1],
+  ]);
+  state.requisition = 1000;
+  // Two of the four merged pods stand on rubble; only the anchor is built on.
+  addRubble(state, CELLS[0]);
+  addRubble(state, CELLS[1]);
+  const price = nextRubbleCost(state);
+  const before = state.requisition;
+
+  const result = applySelection(state, { type: 'merge', size: 4, anchor: 0 });
+  assert.ok(result.ok);
+  assert.equal(result.cost, price, 'one demolition, not two');
+  assert.equal(state.requisition, before - price);
+  assert.equal(state.demolished, 1);
+  assert.equal(isRubble(state.map, CELLS[0]), false, 'the anchor was cleared');
+  assert.equal(isRubble(state.map, CELLS[1]), true, 'the other heap stayed');
+});
+
+test('a zone may be marked on rubble, and the route never changes for it', () => {
+  const state = selectionState([['flame', 1]]);
+  addRubble(state, { x: 5, y: 5 });
+  // Rubble blocks the cell already, so marking it can never close the route.
+  const check = checkPlacement(state.map, [{ x: 5, y: 5 }]);
+  assert.equal(check.ok, true);
+  assert.ok(isBlocked(state.map.grid, 5, 5), 'and it is still blocked afterwards');
 });

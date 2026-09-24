@@ -355,6 +355,9 @@ export const STRINGS = {
     consumes: (n) => (n === 1 ? 'verbraucht 1 Stellung' : `verbraucht ${n} Stellungen`),
     tower: (doctrine, rank) => `${doctrine} ${rank}`,
     built: (name) => `${name} errichtet`,
+    /** A capsule that came down on rubble: building there clears the heap. */
+    onRubble: (cost) => `Trümmer · Abriss ${cost} R`,
+    noFunds: (cost) => `Für den Abriss fehlen ${cost} R.`,
   },
 
   /** Comic words over the loudest moments; kept rare so they stay loud. */

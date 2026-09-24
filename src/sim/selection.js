@@ -9,7 +9,8 @@ import { MAX_RANK } from '../data/ranks.js';
 import { RECIPES, recipeById } from '../data/recipes.js';
 import { computeRoute } from './route.js';
 import { addTower, removeTower, towerById } from './towers.js';
-import { addRubble } from './rubble.js';
+import { addRubble, clearRubble, isRubble } from './rubble.js';
+import { nextRubbleCost } from './economy.js';
 import { clearZones } from './zones.js';
 
 /** Pods of the salvo grouped by doctrine and rank, in pod order. */
@@ -113,6 +114,22 @@ export function selectionOptions(state) {
   return { keep, merges, recipes };
 }
 
+/**
+ * What building on that pod's cell costs on top of nothing: a landing zone may
+ * lie on rubble, and the heap is torn down and paid for only if this is the pod
+ * the player builds (GDD section 3). Zero for a free cell.
+ */
+export function anchorCost(state, anchorIndex) {
+  const pod = state.pods[anchorIndex];
+  if (!pod || !isRubble(state.map, pod)) return 0;
+  return nextRubbleCost(state);
+}
+
+/** True if the player can pay for building on that pod's cell. */
+export function canAffordAnchor(state, anchorIndex) {
+  return state.requisition >= anchorCost(state, anchorIndex);
+}
+
 /** Looks up the option a choice refers to, or null if the choice is not offered. */
 export function findOption(state, choice) {
   const options = selectionOptions(state);
@@ -132,14 +149,24 @@ export function findOption(state, choice) {
  * Applies a choice: one tower is built on the anchor pod's cell, every other pod
  * of the salvo and every consumed tower become rubble.
  * @param {{type: 'keep'|'merge'|'recipe', anchor: number, size?: number, recipeId?: string}} choice
- * @returns {{ok: true, tower: object} | {ok: false, reason: 'phase' | 'invalid'}}
+ * @returns {{ok: true, tower: object, cost: number} | {ok: false, reason: 'phase' | 'invalid' | 'funds'}}
  */
 export function applySelection(state, choice) {
   if (state.phase !== 'selection') return { ok: false, reason: 'phase' };
   const option = findOption(state, choice);
   if (!option) return { ok: false, reason: 'invalid' };
+  // Refused rather than paid into the red: the other pods of the salvo stay
+  // open, and one of them stands on a free cell.
+  if (!canAffordAnchor(state, choice.anchor)) return { ok: false, reason: 'funds' };
 
   const anchorPod = state.pods[choice.anchor];
+  // The heap under the chosen pod is cleared and billed here, and only here.
+  const cost = anchorCost(state, choice.anchor);
+  if (cost > 0) {
+    clearRubble(state, anchorPod);
+    state.requisition -= cost;
+    state.demolished += 1;
+  }
   let tower;
   if (option.type === 'recipe') {
     const recipe = recipeById(option.recipeId);
@@ -166,7 +193,9 @@ export function applySelection(state, choice) {
   }
 
   for (const pod of state.pods) {
-    if (pod.index !== anchorPod.index) addRubble(state, pod);
+    // A pod that came down on rubble and was not chosen leaves the heap where
+    // it was; adding a second one would stack two obstacles on one cell.
+    if (pod.index !== anchorPod.index && !isRubble(state.map, pod)) addRubble(state, pod);
   }
 
   state.pods = [];
@@ -176,6 +205,6 @@ export function applySelection(state, choice) {
   // Counted here rather than in addTower: only a tower the player chose says
   // anything about their taste. The stress test builds without choosing.
   state.builtByDoctrine[tower.doctrine] = (state.builtByDoctrine[tower.doctrine] ?? 0) + 1;
-  state.events.push({ type: 'towerBuilt', tower, choice: option.type });
-  return { ok: true, tower };
+  state.events.push({ type: 'towerBuilt', tower, choice: option.type, cost });
+  return { ok: true, tower, cost };
 }

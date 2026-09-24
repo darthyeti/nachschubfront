@@ -7,6 +7,7 @@ import { supplyCost, MAX_SUPPLY_LEVEL } from '../data/supply.js';
 import { setBlocked } from './grid.js';
 import { computeRoute, routeExists } from './route.js';
 import { towerAt, removeTower } from './towers.js';
+import { rubbleIndexAt } from './rubble.js';
 
 /** Cost of the next supply level, or null at the top. */
 export function nextSupplyCost(state) {
@@ -42,12 +43,6 @@ export function nextRubbleCost(state) {
 /** Cost of tearing down one of your own positions: three times that. */
 export function nextTowerCost(state) {
   return towerCost(state.demolished);
-}
-
-function rubbleIndexAt(map, cell) {
-  return map.obstacles.findIndex(
-    (o) => o.kind === 'rubble' && o.cells.some((c) => c.x === cell.x && c.y === cell.y),
-  );
 }
 
 /**

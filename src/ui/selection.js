@@ -4,7 +4,7 @@
 import { STRINGS } from '../data/strings.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { RECIPES } from '../data/recipes.js';
-import { selectionOptions } from '../sim/selection.js';
+import { selectionOptions, anchorCost, canAffordAnchor } from '../sim/selection.js';
 import { rankMarks } from './badges.js';
 
 const T = STRINGS.selection;
@@ -93,6 +93,13 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview }) {
       rankRow.append(el('span', null, STRINGS.ranks[pod.rank]));
       rankRow.insertAdjacentHTML('beforeend', rankMarks(pod.rank, pod.doctrine));
       card.append(head, rankRow);
+      // A zone may sit on rubble since v3. The heap is only torn down and paid
+      // for if this is the capsule that gets built (GDD section 3).
+      const cost = anchorCost(state, pod.index);
+      if (cost > 0) {
+        card.append(el('span', 'selection-cost', T.onRubble(cost)));
+        card.classList.toggle('unaffordable', state.requisition < cost);
+      }
       if (badge) card.append(el('span', 'selection-badge', badge));
       card.addEventListener('click', () => {
         onSelect(pod.index);
@@ -103,13 +110,18 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview }) {
     return options;
   }
 
-  function renderActions(options, selected) {
+  function renderActions(state, options, selected) {
     // The buttons are about to be replaced; whatever they were previewing goes.
     onPreview?.([]);
     actions.replaceChildren();
+    // Standing on rubble the player cannot clear makes every action on this
+    // capsule impossible; the others stay open.
+    const cost = anchorCost(state, selected);
+    const affordable = canAffordAnchor(state, selected);
     for (const action of actionsFor(options, selected)) {
       const button = el('button', 'primary');
       button.type = 'button';
+      button.disabled = !affordable;
       button.append(el('span', null, action.label));
       if (action.note) button.append(el('span', 'selection-note', action.note));
       button.addEventListener('click', () => {
@@ -130,6 +142,7 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview }) {
       }
       actions.append(button);
     }
+    if (!affordable) actions.append(el('p', 'selection-warning', T.noFunds(cost - state.requisition)));
   }
 
   return {
@@ -143,10 +156,12 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview }) {
       }
 
       const selected = ui.podSelected ?? 0;
-      const next = `${state.wave}:${state.pods.map((p) => `${p.doctrine}${p.rank}`).join()}:${selected}:${state.towers.length}`;
+      // Requisition is part of the key: whether a capsule on rubble can be
+      // afforded decides what the panel shows.
+      const next = `${state.wave}:${state.pods.map((p) => `${p.doctrine}${p.rank}`).join()}:${selected}:${state.towers.length}:${state.requisition}`;
       if (next === key) return;
       key = next;
-      renderActions(renderCards(state, selected), selected);
+      renderActions(state, renderCards(state, selected), selected);
     },
   };
 }

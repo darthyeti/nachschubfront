@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createGameState } from '../../src/core/state.js';
 import { canTransition, setPhase } from '../../src/core/phases.js';
 import { stepSimulation } from '../../src/sim/step.js';
+import { isRubble } from '../../src/sim/rubble.js';
 import {
   requestSalvo,
   chooseSelection,
@@ -272,6 +273,9 @@ test('every salvo of a match leaves one tower, four heaps of rubble and an open 
     assert.equal(state.pods.length, salvoSize(state.wave + 1));
     const pods = state.pods.length;
     const cells = state.pods.map(({ x, y }) => ({ x, y }));
+    // A zone may sit on rubble since v3. Such a cell grows no new heap when the
+    // pod is dropped, and loses the one it had when the pod is the one built.
+    const onRubble = cells.filter((c) => isRubble(state.map, c)).length;
     runUntil(state, (s) => s.phase === 'selection', 30);
 
     // Prefer the richest option the salvo offers.
@@ -290,8 +294,8 @@ test('every salvo of a match leaves one tower, four heaps of rubble and an open 
     assert.equal(state.towers.length, towers + 1 - consumed, 'exactly one new tower');
     assert.equal(
       state.map.obstacles.filter((o) => o.kind === 'rubble').length,
-      rubble + pods - 1 + consumed,
-      'every pod but one plus the consumed towers',
+      rubble + pods - 1 - onRubble + consumed,
+      'every pod but one, minus the cells that were rubble already, plus the consumed towers',
     );
     for (const c of cells) assert.ok(isBlocked(state.map.grid, c.x, c.y), `${c.x},${c.y} stays blocked`);
     assert.ok(state.route, `round ${round + 1}: route open after the salvo`);

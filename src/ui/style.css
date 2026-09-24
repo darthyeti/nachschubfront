@@ -462,6 +462,31 @@ button[hidden] {
   box-shadow: 1px 1px 0 var(--ink);
 }
 
+/* A capsule that came down on rubble names the demolition it would pay for. */
+.selection-cost {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b5a3e;
+  margin-top: 2px;
+}
+
+.selection-card.unaffordable .selection-cost {
+  color: var(--accent);
+}
+
+.selection-card.unaffordable {
+  opacity: 0.75;
+}
+
+.selection-warning {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+}
+
 .selection-badge {
   position: absolute;
   top: 50%;

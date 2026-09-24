@@ -14,6 +14,7 @@ import { useCommand, canUseCommand } from './sim/commands.js';
 import { commandById } from './data/commands.js';
 import { podAt } from './sim/pods.js';
 import { checkPlacement } from './sim/route.js';
+import { isRubble } from './sim/rubble.js';
 import { totalWaves } from './sim/waves.js';
 import { createCanvasView } from './render/canvas.js';
 import { createCamera, fitCamera, clampCamera, panBy, zoomAt, screenToCell, worldToScreen } from './render/camera.js';
@@ -574,6 +575,7 @@ if (debug) {
     camera: () => ({ ...camera }),
     cellAt: (x, y) => cellAt(x, y),
     canPlace: (x, y) => checkPlacement(state.map, [{ x, y }]).ok,
+    isRubble: (x, y) => isRubble(state.map, { x, y }),
     screenOfCell: (cx, cy) => worldToScreen(camera, view, ...iso(cx + 0.5, cy + 0.5)),
     state: () => ({
       phase: state.phase,

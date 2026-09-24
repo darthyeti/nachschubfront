@@ -634,6 +634,74 @@ try {
     await context.close();
   }
 
+  // ---------- Capsules on rubble ----------
+  console.log('capsules on rubble (tablet, touch)');
+  {
+    const { context, page } = await openGame({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+    const touch = await touchDriver(context, page);
+    const tapCell = async (cell) => {
+      const [x, y] = await screenOf(page, cell);
+      await touch('touchStart', [[x, y]]);
+      await touch('touchEnd', []);
+      await frames(page, 2);
+    };
+    /** A free cell near the middle of the route, turned into rubble by the debug mode. */
+    const makeRubble = async () => {
+      const cell = await blockableRouteCell(page);
+      await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
+      await tapCell(cell);
+      await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
+      const rubble = await page.evaluate(([x, y]) => window.__nachschub.isRubble(x, y), [cell.x, cell.y]);
+      assert.ok(rubble, `no rubble on ${cell.x},${cell.y}`);
+      return cell;
+    };
+    let rubbleCell = null;
+
+    await check('a landing zone may be marked on a heap of rubble', async () => {
+      const cell = await makeRubble();
+      const routeBefore = (await game(page)).route;
+      await tapCell(cell);
+      const state = await game(page);
+      assert.ok(
+        state.zones.some((z) => z.x === cell.x && z.y === cell.y),
+        'the zone was accepted',
+      );
+      assert.equal(state.route, routeBefore, 'the route cannot change: the cell was blocked already');
+      rubbleCell = cell;
+    });
+
+    await check('the card names the demolition, and building pays it once', async () => {
+      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
+      await page.getByRole('button', { name: 'Salve anfordern' }).click();
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 60000 });
+
+      const cell = rubbleCell;
+      const index = (await game(page)).pods.findIndex((p) => p.x === cell.x && p.y === cell.y);
+      assert.ok(index >= 0, 'a pod came down on the rubble');
+      const card = page.locator('.selection-card').nth(index);
+      assert.match(await card.textContent(), /Trümmer · Abriss \d+ R/);
+
+      await card.tap();
+      const before = (await game(page)).requisition;
+      await page.getByRole('button', { name: 'Behalten' }).click();
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'wave', null, { timeout: 10000 });
+      const after = await game(page);
+      assert.ok(after.requisition < before, 'the demolition was billed');
+      assert.equal(after.demolished, 1);
+      assert.ok(
+        after.towers.some((t) => t.x === cell.x && t.y === cell.y),
+        'the emplacement stands where the rubble was',
+      );
+    });
+
+    await context.close();
+  }
+
   // ---------- Records, export and import ----------
   // Tablet with touch: export and import have to be usable with a finger, and
   // the paste box is the fallback for exactly that device.

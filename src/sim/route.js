@@ -3,6 +3,7 @@
 
 import { findPath } from './pathfinding.js';
 import { inBounds, isBlocked, setBlocked } from './grid.js';
+import { isRubble } from './rubble.js';
 
 /** Rift, beacons in order, bastion. */
 export function waypoints(map) {
@@ -30,15 +31,27 @@ export function computeRoute(map) {
 }
 
 /**
+ * Blocks the given cells, runs `fn`, and puts every cell back the way it was.
+ * A landing zone may sit on rubble, which is blocked already — restoring by
+ * clearing would free a cell that has to stay shut.
+ */
+function withBlocked(map, cells, fn) {
+  const before = cells.map(({ x, y }) => isBlocked(map.grid, x, y));
+  for (const { x, y } of cells) setBlocked(map.grid, x, y, true);
+  try {
+    return fn();
+  } finally {
+    cells.forEach(({ x, y }, i) => setBlocked(map.grid, x, y, before[i]));
+  }
+}
+
+/**
  * Route as it would be if `cells` were obstacles, without changing the map.
  * Used for the planning preview: marked landing zones are not blocked yet.
  */
 export function routeWith(map, cells) {
   if (cells.length === 0) return computeRoute(map);
-  for (const { x, y } of cells) setBlocked(map.grid, x, y, true);
-  const route = computeRoute(map);
-  for (const { x, y } of cells) setBlocked(map.grid, x, y, false);
-  return route;
+  return withBlocked(map, cells, () => computeRoute(map));
 }
 
 /** True if every leg of the chain has a path. */
@@ -51,19 +64,24 @@ export function routeExists(map) {
 }
 
 /**
- * Checks whether the given cells may become obstacles.
+ * Checks whether the given cells may take a landing zone.
+ *
+ * A heap of rubble is allowed: since v3 a capsule may come down on one, and the
+ * cell is torn down and paid for only if that capsule is the one built
+ * (GDD section 3). Everything else that blocks — terrain, an emplacement — is
+ * refused, and so are protected cells.
+ *
  * @returns {{ok: true} | {ok: false, reason: 'outside' | 'protected' | 'occupied' | 'blocks'}}
  */
 export function checkPlacement(map, cells) {
   for (const { x, y } of cells) {
     if (!inBounds(map.grid, x, y)) return { ok: false, reason: 'outside' };
     if (map.protected[y * map.size + x]) return { ok: false, reason: 'protected' };
-    if (isBlocked(map.grid, x, y)) return { ok: false, reason: 'occupied' };
+    if (isBlocked(map.grid, x, y) && !isRubble(map, { x, y })) return { ok: false, reason: 'occupied' };
   }
-  for (const { x, y } of cells) setBlocked(map.grid, x, y, true);
-  const open = routeExists(map);
-  for (const { x, y } of cells) setBlocked(map.grid, x, y, false);
-  return open ? { ok: true } : { ok: false, reason: 'blocks' };
+  // Rubble is already blocked, so it changes nothing here; the check is about
+  // the cells that are still free.
+  return withBlocked(map, cells, () => routeExists(map)) ? { ok: true } : { ok: false, reason: 'blocks' };
 }
 
 /**
