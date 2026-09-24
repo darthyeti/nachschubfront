@@ -1,6 +1,6 @@
 # Nachschubfront: Game-Design-Dokument
 
-Stand: Grundlagen v2 (nach Spieltest 1: zwei Signalfeuer, Salvengröße nach Welle, sanfterer Einstieg, Abreißen eigener Stellungen). Alle Zahlen sind Startwerte für das Balancing und liegen später in Datendateien, nicht im Code.
+Stand: Grundlagen v3 (nach Spieltest 2: Koloss als späte Bedrohung, Bollwerk, Landezonen auf Trümmern, Luftschlag und geschärfte Kommandos). Alle Zahlen sind Startwerte für das Balancing und liegen später in Datendateien, nicht im Code.
 
 ## 1. Vision
 
@@ -38,6 +38,12 @@ Eine Partie besteht aus bis zu 50 Wellen. Jede Runde hat vier Phasen:
 
 Kapseln werden ausschließlich in der Planungsphase angefordert. Während einer Welle ändert sich das Labyrinth nicht.
 
+### Landezonen auf Trümmern
+
+Eine Landezone darf auch auf einem Trümmerfeld liegen. Wird die dort gelandete Kapsel in der Auswahlphase tatsächlich gewählt und dort gebaut, wird der reguläre Abrisspreis automatisch von der Requisition abgezogen. Wird stattdessen eine andere Kapsel der Salve gewählt, bleibt das Feld unverändert Trümmer und es entstehen keine Kosten. Die Route ändert sich dadurch nie, das Feld war schon blockiert.
+
+Reicht die Requisition für den Abriss nicht, ist die Wahl dieser Kapsel nicht möglich; die übrigen Kapseln der Salve bleiben wählbar.
+
 ### Salvengröße
 
 Die Anzahl der Kapseln pro Salve hängt von der Welle ab:
@@ -58,6 +64,7 @@ Früh entsteht das Labyrinth schneller und die Karte füllt sich dort, wo noch P
 - Platzierungsregel für die Signalfeuer: je eines in einer anderen Kartenhälfte, Mindestabstand 10 Felder zueinander und je 8 Felder zu Riss und Bastion. Ziel ist ein kurzer, offener Grundweg, den der Spieler selbst verlängern muss.
 - Zufällig: 12 bis 20 Ruinen, Krater und Mauerreste als vorhandene Hindernisse. Der Generator stellt sicher, dass der Weg über beide Signalfeuer möglich ist.
 - Geschützte Felder: Riss, Signalfeuer, Bastion und jeweils ihr direktes Umfeld (1 Feld) dürfen nicht bebaut werden.
+- Bauwerke auf der Karte: Stellungen, Trümmer und **Bollwerke** (Abschnitt 10). Alle drei blockieren ihr Feld.
 
 ## 5. Wegfindung
 
@@ -162,6 +169,26 @@ Tempo in Feldern pro Sekunde.
 | 40 | Schwarmkönigin | Fliegend, von Aasfliegern begleitet |
 | 50 | Dämonenprinz | Wechselt alle paar Sekunden die Rüstungsart |
 
+### Späte Bedrohung: der Koloss
+
+Zusätzlich zur regulären Welle erscheint ab einer späten Welle ein **Koloss**: eine extrem zähe, gepanzerte Kriegsmaschine, deutlich robuster als ein normaler Boss. Eigenständiges Design, keine Anlehnung an geschützte Fahrzeugvorlagen.
+
+Name im Spiel: **Koloss**. Nicht „Titan" — das ist im Grimdark-Sci-Fi-Genre ein feststehender, markenrechtlich belegter Begriff für genau diese Art Kriegsmaschine.
+
+**Auftritt:** Welle 35 und 45 (Startwerte, als Datenwerte einstellbar). Das Update v3 nannte „ab Welle 30, alle 10 Wellen"; weil 30, 40 und 50 bereits Bosswellen sind, ist der Auftritt um fünf Wellen versetzt, damit Koloss und Boss einander nicht die Wirkung nehmen und der Spieler seine Kommandos gezielt für einen von beiden aufsparen kann (Entscheidung vom 24.09.2026). Der Abstand von 10 Wellen bleibt.
+
+**Ankündigung in drei Stufen:**
+
+1. **Zwei Wellen vor Ankunft:** allgemeine Warnung („Ein Koloss nähert sich, Ankunft in 2 Wellen"), noch kein Ziel.
+2. **Eine Welle vor Ankunft:** Zielvorhersage — die Stelle mit der geringsten Feuerkraft in Reichweite auf dem kürzesten Weg zur Bastion, als Zielmarkierung wie bei Kapseln. Verstärkt der Spieler diese Stelle (neue Stellung, Bollwerk), rückt die Vorhersage sofort auf die nächstschwächste Stelle.
+3. **Die Welle des Auftritts:** Das Ziel ist fest. Der Koloss erscheint und bewegt sich direkt darauf zu.
+
+**Durchbruch:** Ist die Zielstelle nicht ausreichend verstärkt, reißt der Koloss eine gerade Schneise von etwa 5 Feldern (Startwert) in seiner Fahrtrichtung durch das Labyrinth. Getroffene Trümmerfelder werden zerstört, getroffene **Bollwerke widerstehen** und stoppen die Schneise an dieser Stelle. Der Durchbruch selbst kostet keine Leben. Danach reiht sich der Koloss in die neu berechnete Wegfindung ein und bewegt sich mit eigenem, langsamem Tempo weiter, weiterhin bekämpfbar durch Stellungen und Kommandos.
+
+**Erreicht der Koloss die Bastion**, kostet das 15 Leben statt der 5 eines normalen Bosses (Startwert, im Balancing zu justieren).
+
+**Stärke:** Der Koloss ist so ausgelegt, dass unverstärkte Stellungen ihn in der Regel nicht rechtzeitig stoppen. Der gezielte Einsatz von Spezialkommandos, besonders des Luftschlags, ist meist nötig, um Durchbruch oder das Erreichen der Bastion zu verhindern. Jeder Schadensdeckel gegen Bosse (Orbitalschlag, Luftschlag) gilt gegen den Koloss genauso; kein Kommando darf ihn in einem Einsatz töten können.
+
 ### Wellenaufbau
 
 - Fünferzyklus: Horde, Panzer, Flieger, Warp, gemischt. Jede zehnte Welle ersetzt den Zyklus durch einen Boss mit Begleitung.
@@ -179,10 +206,16 @@ Weil der Grundweg mit zwei Signalfeuern kürzer ist, sind die ersten Wellen ents
 ## 10. Wirtschaft
 
 - **Requisition** gibt es pro Abschuss (Belohnung laut Tabelle) und als Wellenbonus (10 plus Wellennummer).
-- Ausgaben: Nachschubstufe erhöhen (Abschnitt 7) und Abreißen.
+- Ausgaben: Nachschubstufe erhöhen (Abschnitt 7), Abreißen und Bollwerke bauen.
 - Abreißen gilt für Trümmer **und** eigene Stellungen, damit späte Karten umgebaut werden können. Trümmer kosten 15, jedes weitere Abreißen in derselben Partie 5 mehr. Eine Stellung kostet das Dreifache des aktuellen Trümmerpreises und gibt nichts zurück.
 - Abgerissen wird nur in der Planungsphase. Der Weg muss danach offen bleiben, sonst wird abgelehnt.
 - **Kommandopunkte** sind eine eigene Währung: 3 pro besiegtem Boss, 1 pro Welle ohne Durchbruch.
+
+### Bollwerk
+
+Ein **Bollwerk** entsteht aus einem Trümmerfeld. Es greift nicht an und blockiert die Route wie Trümmer, übersteht aber im Gegensatz zu ihnen den Rammstoß eines Koloss-Durchbruchs. Damit ist es zugleich eine Senke für überschüssige Requisition im späten Spiel.
+
+Der Preis liegt über dem regulären Abrisspreis, weil ein Bollwerk zusätzlich zum Räumen auch einen Neubau darstellt. Gebaut wird nur in der Planungsphase. Der Weg bleibt unverändert, das Feld war schon blockiert.
 
 ## 11. Spezialkommandos
 
@@ -190,14 +223,15 @@ Einsatz jederzeit während einer Welle, außer wo anders angegeben. Sie setzen k
 
 | Kommando | Kosten | Ab Welle | Abklingzeit | Wirkung |
 |---|---|---|---|---|
-| Orbitalschlag | 4 KP | 15 | 3 Wellen | Ziel markieren, 2 s Vorwarnung, dann massiver Flächenschaden (Radius 2). Gegen Bosse höchstens 25 % ihrer maximalen Lebenspunkte |
-| Stasisfeld | 2 KP | 20 | 2 Wellen | Friert Gegner im Radius 1,5 für 5 s ein, Bosse für 2 s |
-| Priorisierter Nachschub | 3 KP | 25 | 3 Wellen | Nur in der Planung: nächste Salve erhält garantiert einen Rang mehr |
+| Orbitalschlag | 4 KP | 15 | 3 Wellen | Ziel markieren, 2 s Vorwarnung, dann massiver Flächenschaden (Radius 3). Gegen Bosse und den Koloss höchstens 25 % ihrer maximalen Lebenspunkte |
+| Stasisfeld | 2 KP | 20 | 2 Wellen | Friert Gegner im Radius 2,5 für 5 s ein, Bosse und den Koloss für 2 s |
+| Priorisierter Nachschub | 3 KP | 25 | 3 Wellen | Nur in der Planung: nächste Salve erhält garantiert einen Rang mehr, ab Nachschubstufe 6 zwei Ränge |
 | Heiliges Banner | 2 KP | 30 | 2 Wellen | Stellungen im Radius 2,5 verursachen eine Welle lang 50 % mehr Schaden |
+| Luftschlag | 4 KP | 30 | 4 Wellen | Linienziel: Start- und Endpunkt markieren. Nach kurzer Vorwarnung fliegt ein Geschwader die Linie ab und verursacht Flächenschaden entlang des ganzen Streifens, mit Bonus gegen die Rüstungsart Panzer. Gegen Bosse und den Koloss höchstens 30 % ihrer maximalen Lebenspunkte |
 
 ## 12. Sieg, Niederlage, Wertung
 
-- Die Bastion hat 20 Leben. Normale Gegner kosten beim Durchbruch 1, Bosse 5. Bei 0 ist die Partie verloren.
+- Die Bastion hat 20 Leben. Normale Gegner kosten beim Durchbruch 1, Bosse 5, der Koloss 15. Bei 0 ist die Partie verloren.
 - Nach Welle 50 ist die Partie gewonnen, optional geht es im Endlosmodus weiter.
 - Punkte: erreichte Welle x 1000 plus Abschüsse plus verbleibende Leben x 200. Gespeichert werden Bestwerte pro Seed und insgesamt.
 
@@ -223,4 +257,5 @@ Regeln: Nichts darf ausschließlich über Hover erreichbar sein. Trefferflächen
 - Online-Bestenliste für Freunde: später, über die vorbereitete Speicherschicht.
 - Weitere Rezepte, Karten, Endlosmodus-Details.
 - Sprites für Gegner (Blender mit Toon-Shader) falls die Code-Grafik nicht reicht.
+- **Unbegrenzte Nachschubstufe (vorgemerkt, noch nicht umsetzen).** Aus der Auswertung von Spieltest 2 stammt die Idee, die Nachschubstufe über Stufe 8 hinaus weiterführbar zu machen: jede weitere Stufe eine leicht höhere Legende-Chance bei stark steigendem Preis, damit auch ganz späte Requisitionsüberschüsse gebunden werden. Mit Till nicht final abgestimmt und deshalb nicht Teil von v3. Separat aufgreifen, falls Bollwerk und teurere Kommandos allein nicht reichen.
 - **Aufwertung statt Bau (vorgemerkt, noch nicht umsetzen).** Ab etwa Welle 30 könnte eine vierte Option in der Auswahlphase erscheinen: Eine Kapsel wird nicht gebaut, sondern auf eine bestehende Stellung derselben Doktrin gelegt und hebt sie um einen Rang. Das verlagert die späte Partie vom Bauen zum Veredeln, ohne weitere Felder zu belegen. Entscheidung erst nach dem nächsten Spieltest.

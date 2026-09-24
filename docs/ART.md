@@ -2,6 +2,8 @@
 
 Verbindliche Gestaltungsregeln für alle Figuren. Die Konzeptskizzen liegen als SVG in `reference/konzept/` und sind die Grafikquelle für das Spiel.
 
+Stand: v3 (Koloss, Bollwerk, Ränge als Striche, kleinere und langsamere Kapsel).
+
 ## Grundregeln
 
 - **Silhouette vor Detail.** Jede Figur muss als reiner Schatten eindeutig erkennbar sein, auch auf der kleinsten Zoomstufe.
@@ -64,11 +66,9 @@ Die Winkel sitzen auf der linken Vorderseite des Sockels. Abweichung: Die Goldka
 
 #### Rangabzeichen im Auswahldialog
 
-Neben jeder Kapseloption steht eine sechseckige Plakette in der Leitfarbe der Doktrin, bei Legende in Gold statt in der Doktrinfarbe. Sterne zeigen den Rang: Rekrut ohne Stern, Veteran einer, Elite zwei, Held drei, Legende vier. Die Plakette hat immer vier Sternplätze; die nicht erreichten bleiben dunkel, sodass man die Stufe auch ohne Vergleich ablesen kann.
+Eine Reihe kurzer waagerechter Striche in der Leitfarbe der Doktrin, direkt neben dem Rangnamen. Rekrut keinen Strich, Veteran einen, Elite zwei, Held drei, Legende vier — die vier der Legende in Gold statt in der Doktrinfarbe. Kein Rahmen, keine leeren Plätze: Die Striche stehen frei neben dem Text.
 
-Dateien: `reference/konzept/ui/rangabzeichen-{rekrut,veteran,elite,held,legende}.svg`. Die Sternreihe der Blätter stand ursprünglich links neben der Mitte und ragte bei Legende über das Sechseck hinaus; `tests/tools/fit-badges.py` hat sie einmalig verkleinert und mittig gesetzt (freigegeben am 24.09.2026).
-
-Abweichung von "SVG ist nur Quelle, Canvas die Ausgabe": Das Abzeichen wird als eingebettetes SVG in den Auswahldialog gestellt, nicht als Sprite auf den Canvas gezeichnet. Der Dialog ist ohnehin DOM, das Abzeichen wird nicht pro Bild neu erzeugt, und als SVG bleibt es bei jeder Anzeigeskalierung scharf. Die Regel meint das Zeichnen pro Bild (freigegeben am 24.09.2026).
+Das ersetzt die sechseckige Plakette mit vier Sternplätzen aus v2 (Update v3). Die Blätter unter `reference/konzept/ui/rangabzeichen-*.svg` und das einmalige Werkzeug `tests/tools/fit-badges.py` sind damit hinfällig; die Striche entstehen im Code, weil sie zu einfach für eine Zeichnung sind.
 
 ## Gegner: insektoide Brut
 
@@ -133,6 +133,11 @@ Ersetzt die frühere Kapselform (schlanker Zylinder mit Kegelspitze, wirkte wie 
 - Geöffnet greift die Kapsel sichtbar auf die Nachbarfelder über. Die geöffnete Darstellung deshalb etwa 15 Prozent kleiner zeichnen als die Skizze, damit benachbarte Stellungen nicht verdeckt werden.
 - Die Kapsel darf im geschlossenen Zustand auch auf der kleinsten Zoomstufe nicht mit einer Stellung zu verwechseln sein: Stellungen stehen auf dem Rautensockel, die Kapsel auf ihrem eigenen runden Hitzeschild.
 
+### Größe und Falldauer (v3)
+
+- **Etwa 20 Prozent kleiner** als bisher, geschlossen wie geöffnet. Bei bis zu sechs Kapseln pro Salve überlappten benachbarte Landezonen einander und verdeckten sich gegenseitig.
+- **Der Fall dauert länger**, gut das Doppelte, damit die Salve geordneter wirkt und einzelne Einschläge auseinanderzuhalten sind. Bremstriebwerke, Einschlag, Öffnen und Hologramm ziehen proportional mit und werden nicht gestaucht. Die Staffelung zwischen zwei Kapseln steigt nur leicht, damit eine Salve nicht doppelt so lange dauert wie vorher (Entscheidung vom 24.09.2026).
+
 ### Farbe im Kern und Leuchten
 
 Kern-Leuchten, Lichtsäule und Hologramm tragen die Leitfarbe der Doktrin und bleiben deshalb Code, nicht Sprite. Die Sprites selbst sind farbneutral.
@@ -141,11 +146,31 @@ Kern-Leuchten, Lichtsäule und Hologramm tragen die Leitfarbe der Doktrin und bl
 
 Die Sequenz bleibt wie in M4 umgesetzt: Zielmarkierung, Absturz, Bremstriebwerke, Einschlag, Dampf, Sprengbolzen, Öffnen, Hologramm. Geändert wird nur die Form. Der geschlossene Zustand ist von M4c unverändert.
 
+## Koloss
+
+Die späte Bedrohung aus GDD Abschnitt 9. Eine monströse Kriegsmaschine, kein Insekt: Der Koloss ist das einzige Gegenstück auf dem Feld, das gebaut und nicht gezüchtet wirkt.
+
+- **Eigenständiges Design.** Keine Anlehnung an geschützte Fahrzeugvorlagen aus dem Genre.
+- **Silhouette:** breit, kantig, auf Kettenlaufwerk oder schweren Stampfbeinen, deutlich höher und vor allem deutlich **breiter** als jeder Boss. Wo ein Boss eine große Kreatur ist, ist der Koloss eine fahrende Festung — schon als Schattenriss nicht zu verwechseln.
+- **Rüstung Panzer**, also die Plattenfarbe der Brecher, aber mit Rost, Nieten und aufgesetzten Schilden statt Chitin.
+- **Ramme vorn**: Das Teil, mit dem er die Schneise schlägt, muss sichtbar sein, damit der Durchbruch nicht aus dem Nichts kommt.
+- Bewegliche Teile im Code wie bei den Bossen: mahlendes Laufwerk, schwenkender Kopf oder Turm, Rauch aus den Auspuffrohren.
+
+## Bollwerk
+
+Der Bauwerktyp aus GDD Abschnitt 10, gebaut aus einem Trümmerfeld.
+
+- Muss von Trümmern **auf einen Blick** zu unterscheiden sein, sonst weiß der Spieler nicht, welches Feld dem Koloss standhält: aufgeschichtete Blöcke mit klarer, gerader Oberkante statt der unregelmäßigen Trümmerhaufen, dazu Stahlträger oder Klammern an den Ecken.
+- Keine Leitfarbe, kein Rang: Es gehört keiner Doktrin und greift nicht an. Farbe aus der Geländepalette, nur die Metallteile heller.
+- Etwas höher als ein Trümmerhaufen, aber niedriger als der Sockel einer Stellung, damit es die Karte nicht zustellt.
+
 ## Verhalten in der Planungsphase
 
 Zwei Regeln, die keine Grafik sind, sondern Renderlogik.
 
 **Rezept-Vorschau.** Sobald eine ausgewählte Kapsel ein Rezept ergeben würde, bekommen alle dafür verbrauchten bestehenden Stellungen eine pulsierende goldene Umrandung. Alles andere auf der Karte — Gelände, Trümmer, unbeteiligte Stellungen — wird um etwa 40 Prozent abgedunkelt und leicht transparent. Damit ist sofort erkennbar, was verloren geht.
+
+**Goldener Bodenring der Rezept-Stellungen.** Der Ring liegt auf Bodenhöhe, wie der Schatten unter einer Figur, und gehört deshalb in den Bodendurchgang — gezeichnet, bevor die tiefensortierten Objekte an der Reihe sind. Er darf unter keinem Zoom und keiner Kameraposition über einem Bauwerk liegen. Bis v3 wurde er zusammen mit seiner eigenen Stellung gezeichnet und legte sich dabei über die Sockelkante der beiden Nachbarn dahinter, weil die Ellipse an den Diagonalen über den Bodenrhombus ihrer Zelle hinausragt.
 
 **Geräumte Trümmerfelder.** Ein im Abbruchmodus geräumtes Feld behält denselben gestrichelten Goldring wie eine Zielmarkierung, nur schwächer (geringere Deckkraft), bis die Planungsphase endet oder eine Kapsel darauf landet. So findet man das freigeräumte Feld beim Anfordern der nächsten Salve wieder.
 
