@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createGameState } from '../../src/core/state.js';
 import { canTransition, setPhase } from '../../src/core/phases.js';
 import { stepSimulation } from '../../src/sim/step.js';
-import { isRubble } from '../../src/sim/rubble.js';
+import { isRubble, isBulwark } from '../../src/sim/rubble.js';
 import {
   requestSalvo,
   chooseSelection,
@@ -13,7 +13,7 @@ import {
 } from '../../src/sim/actions.js';
 import { buildSpawns, totalWaves } from '../../src/sim/waves.js';
 import { spawnEnemy, updateEnemies } from '../../src/sim/enemies.js';
-import { groundPolyline, flyerPolyline, computeRoute } from '../../src/sim/route.js';
+import { groundPolyline, flyerPolyline, computeRoute, checkPlacement } from '../../src/sim/route.js';
 import { ENEMIES } from '../../src/data/enemies.js';
 import { RULES, RULESET_VERSION } from '../../src/data/rules.js';
 import { salvoSize } from '../../src/data/pods.js';
@@ -23,7 +23,10 @@ import {
   buySupply,
   canBuySupply,
   demolish,
+  buildBulwark,
+  canBuildBulwark,
   nextRubbleCost,
+  nextBulwarkCost,
   nextTowerCost,
   nextSupplyCost,
   settleWave,
@@ -522,4 +525,72 @@ test('a full match of fifty waves runs through without a hitch', () => {
   assert.ok(state.kills > 500, `only ${state.kills} kills`);
   assert.ok(state.requisition > 0);
   assert.ok(score(state) > 50000);
+});
+
+// ---------- Bulwark (GDD section 10, v3) ----------
+
+/** A planning state whose salvo has left heaps of rubble behind. */
+function stateWithRubble(requisition = 1000) {
+  const state = createGameState('MATCH');
+  state.lives = 100000;
+  state.requisition = requisition;
+  playSalvo(state);
+  runUntil(state, (s) => s.phase === 'planning', 600);
+  const rubble = state.map.obstacles.filter((o) => o.kind === 'rubble');
+  assert.ok(rubble.length >= 2, 'the salvo left rubble behind');
+  return { state, cells: rubble.map((o) => o.cells[0]) };
+}
+
+test('a bulwark is built from rubble and costs more than clearing it', () => {
+  const { state, cells } = stateWithRubble();
+  const price = nextBulwarkCost(state);
+  assert.ok(price > nextRubbleCost(state), 'above the demolition price (GDD section 10)');
+
+  const before = state.requisition;
+  const route = computeRoute(state.map).length;
+  assert.ok(buildBulwark(state, cells[0]).ok);
+  assert.equal(state.requisition, before - price);
+  assert.equal(isBulwark(state.map, cells[0]), true);
+  assert.equal(isRubble(state.map, cells[0]), false, 'the heap became the bulwark, it did not join it');
+  assert.ok(isBlocked(state.map.grid, cells[0].x, cells[0].y), 'the cell stays blocked');
+  assert.equal(computeRoute(state.map).length, route, 'the route cannot change: the cell was blocked already');
+  assert.ok(nextBulwarkCost(state) > price, 'and the next one is dearer');
+});
+
+test('only rubble can become a bulwark, and only with the money for it', () => {
+  const { state, cells } = stateWithRubble(0);
+  assert.equal(canBuildBulwark(state, cells[0]).reason, 'funds');
+  assert.equal(buildBulwark(state, cells[0]).ok, false);
+  assert.equal(isRubble(state.map, cells[0]), true, 'nothing happened');
+
+  state.requisition = 1000;
+  const free = { x: state.map.rift.x, y: state.map.rift.y };
+  assert.equal(canBuildBulwark(state, free).reason, 'target', 'terrain is not the player s to build on');
+  assert.equal(canBuildBulwark(state, null).reason, 'target');
+  assert.ok(buildBulwark(state, cells[0]).ok);
+  assert.equal(canBuildBulwark(state, cells[0]).reason, 'target', 'a bulwark is not rubble any more');
+
+  // And not during a wave.
+  const running = createGameState('MATCH');
+  running.phase = 'wave';
+  running.requisition = 1000;
+  assert.equal(canBuildBulwark(running, { x: 0, y: 0 }).reason, 'phase');
+});
+
+test('a bulwark can be torn down again, at the plain rubble price', () => {
+  const { state, cells } = stateWithRubble();
+  assert.ok(buildBulwark(state, cells[0]).ok);
+  const price = nextRubbleCost(state);
+  const before = state.requisition;
+  assert.ok(demolish(state, cells[0]).ok);
+  assert.equal(state.requisition, before - price);
+  assert.equal(isBulwark(state.map, cells[0]), false);
+  assert.ok(!isBlocked(state.map.grid, cells[0].x, cells[0].y), 'the cell is free again');
+});
+
+test('a capsule may not land on a bulwark', () => {
+  const { state, cells } = stateWithRubble();
+  assert.equal(checkPlacement(state.map, [cells[0]]).ok, true, 'rubble takes a landing zone');
+  assert.ok(buildBulwark(state, cells[0]).ok);
+  assert.equal(checkPlacement(state.map, [cells[0]]).reason, 'occupied', 'the bulwark does not');
 });

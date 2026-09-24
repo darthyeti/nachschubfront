@@ -2,12 +2,12 @@
 // clearing waves, command points from bosses and from waves without a single
 // breakthrough.
 
-import { ECONOMY, waveBonus, rubbleCost, towerCost } from '../data/economy.js';
+import { ECONOMY, waveBonus, rubbleCost, towerCost, bulwarkCost } from '../data/economy.js';
 import { supplyCost, MAX_SUPPLY_LEVEL } from '../data/supply.js';
 import { setBlocked } from './grid.js';
 import { computeRoute, routeExists } from './route.js';
 import { towerAt, removeTower } from './towers.js';
-import { rubbleIndexAt } from './rubble.js';
+import { rubbleIndexAt, bulwarkIndexAt, isRubble, raiseBulwark } from './rubble.js';
 
 /** Cost of the next supply level, or null at the top. */
 export function nextSupplyCost(state) {
@@ -48,15 +48,22 @@ export function nextTowerCost(state) {
 /**
  * What the demolish mode would clear on that cell, if anything. Pre-placed
  * ruins, craters and walls are part of the terrain and stay.
- * @returns {{kind: 'rubble', index: number, cost: number}
+ *
+ * A bulwark clears at the plain rubble price, not at the emplacement price: the
+ * player already paid extra to raise it, and a late maze has to stay editable.
+ * Derived, the GDD says nothing about it — a candidate for M6.
+ *
+ * @returns {{kind: 'rubble' | 'bulwark', index: number, cost: number}
  *   | {kind: 'tower', tower: object, cost: number} | null}
  */
 export function demolishTarget(state, cell) {
   if (!cell) return null;
   const tower = towerAt(state, cell);
   if (tower) return { kind: 'tower', tower, cost: nextTowerCost(state) };
-  const index = rubbleIndexAt(state.map, cell);
-  return index >= 0 ? { kind: 'rubble', index, cost: nextRubbleCost(state) } : null;
+  const rubble = rubbleIndexAt(state.map, cell);
+  if (rubble >= 0) return { kind: 'rubble', index: rubble, cost: nextRubbleCost(state) };
+  const bulwark = bulwarkIndexAt(state.map, cell);
+  return bulwark >= 0 ? { kind: 'bulwark', index: bulwark, cost: nextRubbleCost(state) } : null;
 }
 
 /** Price of clearing that cell, or null if there is nothing to clear. */
@@ -101,6 +108,41 @@ export function demolish(state, cell) {
   state.route = computeRoute(state.map);
   state.mapVersion += 1;
   state.events.push({ type: 'demolish', x: cell.x, y: cell.y, cost: check.cost, kind: target.kind });
+  return check;
+}
+
+/** Cost of the next bulwark; it rises with every demolition, its own included. */
+export function nextBulwarkCost(state) {
+  return bulwarkCost(state.demolished);
+}
+
+/**
+ * Whether a bulwark can be raised on that cell. Only heaps of rubble qualify:
+ * terrain is not the player's to build on, and a free cell has nothing to build
+ * out of.
+ * @returns {{ok: true, cost: number} | {ok: false, reason: 'phase' | 'target' | 'funds'}}
+ */
+export function canBuildBulwark(state, cell) {
+  if (state.phase !== 'planning' || state.stress) return { ok: false, reason: 'phase' };
+  if (!cell || !isRubble(state.map, cell)) return { ok: false, reason: 'target' };
+  const cost = nextBulwarkCost(state);
+  if (state.requisition < cost) return { ok: false, reason: 'funds' };
+  return { ok: true, cost };
+}
+
+/**
+ * Raises a bulwark on a heap of rubble (GDD section 10). The cell was blocked
+ * and stays blocked, so there is no route to recompute — only the drawing and
+ * the purse change.
+ */
+export function buildBulwark(state, cell) {
+  const check = canBuildBulwark(state, cell);
+  if (!check.ok) return check;
+  raiseBulwark(state, cell);
+  state.requisition -= check.cost;
+  state.demolished += 1;
+  state.mapVersion += 1;
+  state.events.push({ type: 'bulwark', x: cell.x, y: cell.y, cost: check.cost });
   return check;
 }
 

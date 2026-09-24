@@ -18,6 +18,13 @@ export const ECONOMY = {
   rubbleCostStep: 5,
   /** A position of your own costs this many times the current rubble price. */
   towerCostFactor: 3,
+  /**
+   * A bulwark costs this many times the current rubble price (GDD section 10:
+   * above the demolition, because it clears the cell *and* builds on it).
+   * Derived, not given: clearing is 1x and tearing down your own emplacement is
+   * 3x, so a bulwark sits between them at 2x. A candidate for M6.
+   */
+  bulwarkCostFactor: 2,
 
   /** Command points for a defeated boss. */
   pointsPerBoss: 3,
@@ -45,4 +52,14 @@ export function rubbleCost(demolished) {
  */
 export function towerCost(demolished) {
   return rubbleCost(demolished) * ECONOMY.towerCostFactor;
+}
+
+/**
+ * Cost of turning a heap of rubble into a bulwark (GDD section 10). It counts
+ * as a demolition as well, so every bulwark makes the next one — and the next
+ * demolition — dearer. That is deliberate: the bulwark is meant to be a sink
+ * for late requisition, and a sink with a flat price is not one.
+ */
+export function bulwarkCost(demolished) {
+  return rubbleCost(demolished) * ECONOMY.bulwarkCostFactor;
 }

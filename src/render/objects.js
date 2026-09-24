@@ -78,12 +78,48 @@ function drawRubble(ctx, x, y, variant) {
   }
 }
 
+/**
+ * Bulwark (docs/ART.md): stacked blocks with a straight top edge and steel
+ * brackets at the corners. It has to be told from a heap of rubble at a glance,
+ * because only the bulwark stops a Koloss — hence the flat crown against the
+ * rubble's scattered lumps. No guide colour, no rank: it belongs to no doctrine.
+ */
+const BULWARK_TOP = 22;
+
+function drawBulwark(ctx, x, y) {
+  const [sx, sy] = iso(x + 0.5, y + 0.5);
+  shadow(ctx, sx + 4, sy + 3, 32, 13, 0.3);
+  // Two courses of blocks, the upper one set back, so the silhouette reads as
+  // built rather than dumped.
+  box(ctx, x + 0.08, y + 0.08, 0.84, 0.84, 13, 0, [C.concL, C.conc, C.concD]);
+  box(ctx, x + 0.16, y + 0.16, 0.68, 0.68, BULWARK_TOP - 13, 13, STONE);
+
+  // Joint lines on the top face, so the crown does not read as one flat slab.
+  const seam = 'rgba(0,0,0,.35)';
+  ctx.strokeStyle = seam;
+  ctx.lineWidth = 1.6;
+  for (const f of [0.38, 0.62]) {
+    const a = iso(x + 0.16, y + 0.16 + 0.68 * f, BULWARK_TOP);
+    const b = iso(x + 0.84, y + 0.16 + 0.68 * f, BULWARK_TOP);
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+  }
+
+  // Steel brackets on the two corners that face the camera.
+  const STEEL = ['#8d8a84', '#6a6660', '#49453f'];
+  box(ctx, x + 0.06, y + 0.42, 0.1, 0.16, BULWARK_TOP + 3, 0, STEEL, 1.6);
+  box(ctx, x + 0.42, y + 0.84, 0.16, 0.1, BULWARK_TOP + 3, 0, STEEL, 1.6);
+}
+
 /** Draws one cell of an obstacle; multi-cell walls are depth-sorted per cell. */
 export function drawObstacleCell(ctx, obstacle, index) {
   const { x, y } = obstacle.cells[index];
   if (obstacle.kind === 'ruin') drawRuin(ctx, x, y, obstacle.variant);
   else if (obstacle.kind === 'crater') drawCrater(ctx, x, y, obstacle.variant);
   else if (obstacle.kind === 'rubble') drawRubble(ctx, x, y, obstacle.variant);
+  else if (obstacle.kind === 'bulwark') drawBulwark(ctx, x, y);
   else {
     const horizontal = obstacle.cells.length > 1 && obstacle.cells[1].y === obstacle.cells[0].y;
     drawWallCell(ctx, x, y, obstacle.variant, index, horizontal);

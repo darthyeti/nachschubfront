@@ -702,6 +702,85 @@ try {
     await context.close();
   }
 
+  // ---------- Bulwark ----------
+  console.log('bulwark (tablet, touch)');
+  {
+    const { context, page } = await openGame({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+    const touch = await touchDriver(context, page);
+    const tapCell = async (cell) => {
+      const [x, y] = await screenOf(page, cell);
+      await touch('touchStart', [[x, y]]);
+      await touch('touchEnd', []);
+      await frames(page, 2);
+    };
+    const bulwarkButton = page.getByRole('button', { name: /^Bollwerk/ });
+    const isBulwark = (cell) =>
+      page.evaluate(([x, y]) => !window.__nachschub.isRubble(x, y) && window.__nachschub.state().bulwarks > 0, [
+        cell.x,
+        cell.y,
+      ]);
+
+    await check('a bulwark needs two taps on a tablet, and costs more than clearing', async () => {
+      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
+      // A heap of rubble to build on, placed with the debug obstacle mode.
+      const cell = await blockableRouteCell(page);
+      await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
+      await tapCell(cell);
+      await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
+
+      const demolishLabel = await page.getByRole('button', { name: /^Abreißen/ }).textContent();
+      const bulwarkLabel = await bulwarkButton.textContent();
+      const price = Number(bulwarkLabel.match(/(\d+)/)[1]);
+      assert.ok(price > Number(demolishLabel.match(/(\d+)/)[1]), `${bulwarkLabel} vs ${demolishLabel}`);
+
+      await bulwarkButton.tap();
+      const routeBefore = (await game(page)).route;
+      const before = (await game(page)).requisition;
+
+      // First tap only asks.
+      await tapCell(cell);
+      assert.equal((await game(page)).bulwarks, 0, 'nothing was built yet');
+      assert.equal((await game(page)).requisition, before, 'and nothing was paid');
+      assert.ok((await page.evaluate(() => window.__nachschub.ui())).bulwarkArmed, 'the cell is armed');
+
+      // Second tap builds.
+      await tapCell(cell);
+      const after = await game(page);
+      assert.equal(after.bulwarks, 1, 'the bulwark stands');
+      assert.equal(after.requisition, before - price, 'paid exactly the price on the button');
+      assert.equal(after.route, routeBefore, 'the route cannot change: the cell was blocked already');
+      assert.equal(await isBulwark(cell), true, 'the heap is gone, the bulwark is there');
+      await page.screenshot({ path: join(OUT, 'bulwark-tablet.png') });
+    });
+
+    await check('the bulwark mode can be left, and only rubble takes one', async () => {
+      // Still in the mode; a cell that is not rubble is refused, not built on.
+      const free = (await game(page)).routeCells.find((c) => c.x !== undefined);
+      await tapCell(free);
+      assert.equal((await game(page)).bulwarks, 1, 'nothing new was built');
+
+      await page.keyboard.press('Escape');
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).bulwarkMode, false);
+      assert.ok(await page.locator('.menu[data-menu="pause"]').isHidden(), 'the menu stays shut');
+    });
+
+    await check('the demolish mode and the bulwark mode never run at once', async () => {
+      await bulwarkButton.tap();
+      await page.getByRole('button', { name: /^Abreißen/ }).tap();
+      const ui = await page.evaluate(() => window.__nachschub.ui());
+      assert.equal(ui.demolishMode, true);
+      assert.equal(ui.bulwarkMode, false);
+      await page.keyboard.press('Escape');
+    });
+
+    await context.close();
+  }
+
   // ---------- Records, export and import ----------
   // Tablet with touch: export and import have to be usable with a finger, and
   // the paste box is the fallback for exactly that device.

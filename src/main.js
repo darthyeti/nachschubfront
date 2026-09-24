@@ -9,7 +9,7 @@ import { randomSeed, normalizeSeed } from './core/seed.js';
 import { stepSimulation } from './sim/step.js';
 import { requestSalvo, canRequestSalvo, chooseSelection, setSpeed, toggleObstacle } from './sim/actions.js';
 import { toggleZone } from './sim/zones.js';
-import { buySupply, demolish, canDemolish } from './sim/economy.js';
+import { buySupply, demolish, canDemolish, buildBulwark, canBuildBulwark, nextBulwarkCost } from './sim/economy.js';
 import { useCommand, canUseCommand } from './sim/commands.js';
 import { commandById } from './data/commands.js';
 import { podAt } from './sim/pods.js';
@@ -86,6 +86,10 @@ const ui = {
   demolishMode: false,
   /** Touch only: the cell whose demolition is waiting for a confirming tap. */
   demolishArmed: null,
+  /** Taps turn heaps of rubble into bulwarks instead of marking zones. */
+  bulwarkMode: false,
+  /** Touch only: the cell whose bulwark is waiting for a confirming tap. */
+  bulwarkArmed: null,
   /** Id of the command being aimed; the next tap on the map fires it. */
   commandTarget: null,
   /** Cell the info panel describes; set by a long press or the mouse pointer. */
@@ -158,6 +162,17 @@ function leaveDemolishMode() {
   ui.demolishArmed = null;
 }
 
+/** The same for the bulwark mode; leaving is never blocked either. */
+function leaveBulwarkMode() {
+  ui.bulwarkMode = false;
+  ui.bulwarkArmed = null;
+}
+
+/** True while one of the map-editing modes has the taps. */
+function inBuildMode() {
+  return ui.demolishMode || ui.bulwarkMode;
+}
+
 /** Marks or clears a landing zone and shows why a cell was refused. */
 function applyZone(cell) {
   if (!cell) return;
@@ -202,6 +217,35 @@ function applyDemolish(cell, pointerType = 'mouse') {
     // again when the next salvo is called (docs/ART.md).
     ui.clearedCells.push({ x: cell.x, y: cell.y });
   } else if (t[result.reason]) flash(cell, false, t[result.reason]);
+}
+
+/**
+ * Raises a bulwark on a heap of rubble (GDD section 10). Same two-tap rule as
+ * the demolition on touch: the first tap asks, the second one builds.
+ */
+function applyBulwark(cell, pointerType = 'mouse') {
+  const t = STRINGS.placement;
+  if (!cell) {
+    ui.bulwarkArmed = null;
+    return;
+  }
+  const armed = ui.bulwarkArmed;
+  const isArmed = armed && armed.x === cell.x && armed.y === cell.y;
+  if (pointerType !== 'mouse' && !isArmed) {
+    const check = canBuildBulwark(state, cell);
+    if (!check.ok) {
+      ui.bulwarkArmed = null;
+      flash(cell, false, check.reason === 'target' ? t.bulwarkTarget : (t[check.reason] ?? t.bulwarkTarget));
+      return;
+    }
+    ui.bulwarkArmed = { x: cell.x, y: cell.y };
+    showBanner(STRINGS.hud.bulwarkConfirm(check.cost));
+    return;
+  }
+  ui.bulwarkArmed = null;
+  const result = buildBulwark(state, cell);
+  if (result.ok) flash(cell, true, t.bulwarkBuilt);
+  else flash(cell, false, result.reason === 'target' ? t.bulwarkTarget : (t[result.reason] ?? t.bulwarkTarget));
 }
 
 /** Fires the command being aimed at the tapped cell. */
@@ -262,6 +306,7 @@ function onCellTap(cell, pointerType) {
   if (ui.commandTarget) applyCommand(cell);
   else if (ui.obstacleMode) applyObstacle(cell);
   else if (ui.demolishMode && state.phase === 'planning') applyDemolish(cell, pointerType);
+  else if (ui.bulwarkMode && state.phase === 'planning') applyBulwark(cell, pointerType);
   else if (state.phase === 'planning') applyZone(cell);
   else if (state.phase === 'selection') applyPodTap(cell);
 }
@@ -301,7 +346,18 @@ function onAction(action) {
       ui.demolishMode = true;
       ui.demolishArmed = null;
       ui.obstacleMode = false;
+      leaveBulwarkMode();
     }
+  } else if (action === 'bulwarkMode') {
+    if (ui.bulwarkMode) leaveBulwarkMode();
+    else {
+      ui.bulwarkMode = true;
+      ui.bulwarkArmed = null;
+      ui.obstacleMode = false;
+      leaveDemolishMode();
+    }
+  } else if (action === 'bulwarkHint') {
+    showBanner(STRINGS.hud.bulwark(nextBulwarkCost(state)), STRINGS.hud.bulwarkHint);
   } else if (action === 'codex') {
     codex.toggle();
   } else if (action === 'menu') {
@@ -311,6 +367,7 @@ function onAction(action) {
     // then the menu.
     if (ui.commandTarget) ui.commandTarget = null;
     else if (ui.demolishMode) leaveDemolishMode();
+    else if (ui.bulwarkMode) leaveBulwarkMode();
     else if (codex.open) codex.setOpen(false);
     else menus.togglePause();
   } else if (action === 'supplyLevel') {
@@ -458,7 +515,10 @@ const keyboard = attachKeyboard({ onAction });
 
 function drainEvents() {
   for (const ev of state.events) {
-    if (ev.type === 'phase' && ev.phase !== 'planning' && ui.demolishMode) leaveDemolishMode();
+    if (ev.type === 'phase' && ev.phase !== 'planning' && inBuildMode()) {
+      leaveDemolishMode();
+      leaveBulwarkMode();
+    }
     if (ev.type === 'phase' && ev.phase === 'salvo') ui.podSelected = 0;
     else if (ev.type === 'waveCleared') showBanner(STRINGS.banners.waveCleared(ev.wave, ev.leaked));
     else if (ev.type === 'phase' && (ev.phase === 'defeat' || ev.phase === 'victory')) {
@@ -576,12 +636,15 @@ if (debug) {
     cellAt: (x, y) => cellAt(x, y),
     canPlace: (x, y) => checkPlacement(state.map, [{ x, y }]).ok,
     isRubble: (x, y) => isRubble(state.map, { x, y }),
+    rubbleCells: () =>
+      state.map.obstacles.filter((o) => o.kind === 'rubble').map((o) => ({ x: o.cells[0].x, y: o.cells[0].y })),
     screenOfCell: (cx, cy) => worldToScreen(camera, view, ...iso(cx + 0.5, cy + 0.5)),
     state: () => ({
       phase: state.phase,
       wave: state.wave,
       lives: state.lives,
       obstacles: state.map.obstacles.length,
+      bulwarks: state.map.obstacles.filter((o) => o.kind === 'bulwark').length,
       route: state.route?.length ?? null,
       hover: ui.hoverCell,
       enemies: state.enemies.length,
@@ -614,6 +677,8 @@ if (debug) {
       obstacleMode: ui.obstacleMode,
       demolishMode: ui.demolishMode,
       demolishArmed: ui.demolishArmed,
+      bulwarkMode: ui.bulwarkMode,
+      bulwarkArmed: ui.bulwarkArmed,
       commandTarget: ui.commandTarget,
       podSelected: ui.podSelected,
     }),

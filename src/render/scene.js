@@ -30,7 +30,7 @@ import {
 } from './pods.js';
 import { previewRoute } from '../sim/zones.js';
 import { towerAt, towerStats } from '../sim/towers.js';
-import { demolishTarget } from '../sim/economy.js';
+import { demolishTarget, nextBulwarkCost } from '../sim/economy.js';
 import { PLANNING_PHASES } from '../core/phases.js';
 import { towerById } from '../sim/towers.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
@@ -155,7 +155,7 @@ function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
  */
 function drawDemolishOverlay(ctx, state, armed, t, reducedMotion) {
   const cells = [
-    ...state.map.obstacles.filter((o) => o.kind === 'rubble').map((o) => o.cells[0]),
+    ...state.map.obstacles.filter((o) => o.kind === 'rubble' || o.kind === 'bulwark').map((o) => o.cells[0]),
     ...state.towers.map(({ x, y }) => ({ x, y })),
   ];
   const pulse = reducedMotion ? 1 : 0.75 + 0.25 * Math.sin(t * 6);
@@ -175,6 +175,33 @@ function drawDemolishOverlay(ctx, state, armed, t, reducedMotion) {
       isArmed ? 4 : 2.5,
     );
     marked.push({ cell, cost: target.cost, kind: target.kind, affordable, armed: isArmed });
+  }
+  return marked;
+}
+
+/**
+ * Every heap of rubble the bulwark mode could build on, with the one price the
+ * mode has. Same marks as the demolish overlay, because the two modes are never
+ * open at the same time and the button says which one is.
+ */
+function drawBulwarkOverlay(ctx, state, armed, t, reducedMotion) {
+  const cost = nextBulwarkCost(state);
+  const affordable = state.requisition >= cost;
+  const pulse = reducedMotion ? 1 : 0.75 + 0.25 * Math.sin(t * 6);
+  const marked = [];
+  for (const obstacle of state.map.obstacles) {
+    if (obstacle.kind !== 'rubble') continue;
+    const cell = obstacle.cells[0];
+    const isArmed = Boolean(armed && armed.x === cell.x && armed.y === cell.y);
+    const alpha = (affordable ? 1 : 0.35) * (isArmed ? pulse : 1);
+    drawCellMarker(
+      ctx,
+      cell,
+      `rgba(156,207,74,${(isArmed ? 0.34 : 0.16) * alpha})`,
+      `rgba(156,207,74,${(isArmed ? 1 : 0.8) * alpha})`,
+      isArmed ? 4 : 2.5,
+    );
+    marked.push({ cell, cost, kind: 'bulwark', affordable, armed: isArmed });
   }
   return marked;
 }
@@ -240,6 +267,8 @@ export function createSceneRenderer(sprites) {
     if (state.phase === 'planning') {
       if (ui.demolishMode) {
         demolishable = drawDemolishOverlay(ctx, state, ui.demolishArmed, t, ui.reducedMotion);
+      } else if (ui.bulwarkMode) {
+        demolishable = drawBulwarkOverlay(ctx, state, ui.bulwarkArmed, t, ui.reducedMotion);
       } else {
         state.zones.forEach((zone, i) => drawZoneMarker(ctx, zone, i, t, ui.reducedMotion));
       }

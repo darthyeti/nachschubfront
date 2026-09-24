@@ -6,7 +6,7 @@ import { GAME_SPEEDS } from '../data/settings.js';
 import { RANK_COLORS } from '../data/ranks.js';
 import { supplyWeights, MAX_SUPPLY_LEVEL } from '../data/supply.js';
 import { previewRoute, zoneLimit } from '../sim/zones.js';
-import { canBuySupply, nextSupplyCost, nextRubbleCost } from '../sim/economy.js';
+import { canBuySupply, nextSupplyCost, nextRubbleCost, nextBulwarkCost } from '../sim/economy.js';
 
 const T = STRINGS.hud;
 
@@ -123,7 +123,11 @@ export function createHud(root, { debug, onAction }) {
   buySupplyButton.append(supplyLabel, supplyChances);
   explain(buySupplyButton, T.supplyHint, () => onAction('supplyHint'));
   const demolishButton = button(T.demolish(0), 'alt', () => onAction('demolishMode'));
-  bar.append(speedGroup, start, restart, buySupplyButton, demolishButton, codex, menu);
+  // Sits beside the demolish button because the two are the same gesture on the
+  // same cells: one clears a heap, the other builds it up (GDD section 10).
+  const bulwarkButton = button(T.bulwark(0), 'alt', () => onAction('bulwarkMode'));
+  explain(bulwarkButton, T.bulwarkHint, () => onAction('bulwarkHint'));
+  bar.append(speedGroup, start, restart, buySupplyButton, demolishButton, bulwarkButton, codex, menu);
 
   let obstacleButton = null;
   let artButton = null;
@@ -216,6 +220,16 @@ export function createHud(root, { debug, onAction }) {
         demolishButton.disabled = !v;
       });
       set('demolishMode', ui.demolishMode, (v) => demolishButton.classList.toggle('on', v));
+
+      const bulwarkPrice = nextBulwarkCost(state);
+      set('bulwarkCost', bulwarkPrice, (v) => (bulwarkButton.textContent = T.bulwark(v)));
+      // Same rule as the demolish button: the purse guards the way in, never the
+      // way out of the mode.
+      const canEnterBulwark = state.phase === 'planning' && state.requisition >= bulwarkPrice;
+      set('canBulwark', canEnterBulwark || ui.bulwarkMode, (v) => {
+        bulwarkButton.disabled = !v;
+      });
+      set('bulwarkMode', ui.bulwarkMode, (v) => bulwarkButton.classList.toggle('on', v));
       // The salvo size changes with the wave, so the limit is part of the key.
       const limit = zoneLimit(state);
       set('zones', state.phase === 'planning' ? `${state.zones.length}/${limit}` : '', (v) => {

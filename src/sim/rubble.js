@@ -1,4 +1,8 @@
 // Rubble: the obstacle left by unused pods and by towers consumed for a recipe.
+//
+// And the bulwark (GDD section 10), which is built from a heap of rubble. It
+// blocks its cell exactly like rubble; the one difference is that a Koloss
+// cannot ram through it.
 
 import { setBlocked } from './grid.js';
 
@@ -36,5 +40,30 @@ export function addRubble(state, { x, y }) {
   const obstacle = { kind: 'rubble', cells: [{ x, y }], variant: rubbleVariant(x, y) };
   state.map.obstacles.push(obstacle);
   setBlocked(state.map.grid, x, y, true);
+  return obstacle;
+}
+
+/** Index of the bulwark on a cell, or -1. */
+export function bulwarkIndexAt(map, cell) {
+  return map.obstacles.findIndex(
+    (o) => o.kind === 'bulwark' && o.cells.some((c) => c.x === cell.x && c.y === cell.y),
+  );
+}
+
+/** True if that cell carries a bulwark. */
+export function isBulwark(map, cell) {
+  return bulwarkIndexAt(map, cell) >= 0;
+}
+
+/**
+ * Turns the heap of rubble on a cell into a bulwark. The cell stays blocked
+ * throughout, so the route never changes. Returns the obstacle, or null if
+ * there was no rubble there.
+ */
+export function raiseBulwark(state, cell) {
+  const index = rubbleIndexAt(state.map, cell);
+  if (index < 0) return null;
+  const obstacle = state.map.obstacles[index];
+  obstacle.kind = 'bulwark';
   return obstacle;
 }
