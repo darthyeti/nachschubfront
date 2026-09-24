@@ -21,6 +21,7 @@ import { TOWER_WEAPONS, POD_PETALS, POD_PETAL_ORDER, POD_OPEN_SCALE, SPRITE_SCAL
 import { ENEMY_SPRITES } from '../../src/render/sprites/enemies.js';
 import { TOWER_SPRITES } from '../../src/render/sprites/towers.js';
 import { POD_SPRITES } from '../../src/render/sprites/pods.js';
+import { BADGE_SPRITES } from '../../src/render/sprites/badges.js';
 import { petalOpen, isOpening, shellFade, POD_SPRITE_DEFS } from '../../src/render/pods.js';
 import { PODS } from '../../src/data/pods.js';
 import { ENEMIES, BOSSES, ALL_ENEMIES } from '../../src/data/enemies.js';
@@ -221,23 +222,23 @@ test('tower layers: sandbag ring from veteran on, except doctrines with their ow
   assert.throws(() => towerLayers('bogus', 1));
 });
 
-test('the shared bunker has no weapon, but three embrasures to fire from', () => {
+test('the shared bunker has no weapon, but three ports to fire from', () => {
   for (const doctrine of ['flame', 'autocannon']) {
     const set = towerSpriteSet(doctrine, 1);
     assert.equal(set.gun, null, `${doctrine} is one piece`);
     const weapon = TOWER_WEAPONS[doctrine];
     assert.equal(weapon.rest, undefined, `${doctrine} has no pose to aim from`);
-    assert.equal(weapon.embrasures.length, 3, doctrine);
+    assert.equal(weapon.ports.length, 3, doctrine);
     // The slits sit across the front of the bunker, inside its own bounds.
     const [x, y, w, h] = set.back.bbox;
-    for (const [ex, ey] of weapon.embrasures) {
+    for (const [ex, ey] of weapon.ports) {
       assert.ok(ex >= x && ex <= x + w && ey >= y && ey <= y + h, `${doctrine}: embrasure ${ex},${ey}`);
     }
-    const xs = weapon.embrasures.map((e) => e[0]);
+    const xs = weapon.ports.map((e) => e[0]);
     assert.equal(new Set(xs).size, 3, `${doctrine}: three separate slits`);
   }
   // Both bunkers are the same building; only colour and effect differ.
-  assert.deepEqual(TOWER_WEAPONS.flame.embrasures, TOWER_WEAPONS.autocannon.embrasures);
+  assert.deepEqual(TOWER_WEAPONS.flame.ports, TOWER_WEAPONS.autocannon.ports);
   assert.deepEqual(towerSpriteSet('flame', 1).back.bbox, towerSpriteSet('autocannon', 1).back.bbox);
 });
 
@@ -324,6 +325,44 @@ test('every recipe emplacement has a silhouette of its own', () => {
     symbols.add(set.back.key);
   }
   assert.equal(symbols.size, SPECIALS.length, 'no two share a sprite');
+});
+
+test('the two finished recipe vehicles replaced their placeholders', () => {
+  // M4d: the battery and the obelisk come from reference/konzept/spezialstellungen/,
+  // and the M4 placeholders they replace are out of the library for good.
+  assert.ok(!TOWER_SPRITES.defs.includes('id="v-sturmbatterie"'), 'the battery lives on in its parts');
+  assert.ok(!TOWER_SPRITES.defs.includes('id="v-obelisk"'), 'the obelisk lives on in its parts');
+  assert.ok(!TOWER_SPRITES.symbols['t-storm-gun'], 'the quad flak does not turn');
+  for (const id of ['v-tank2', 'v-artillery2']) {
+    assert.ok(!TOWER_SPRITES.symbols[id], `${id} is reference for the four still to come`);
+  }
+
+  const battery = specialSpriteSet('stormBattery');
+  assert.equal(battery.gun, null, 'the battery is one piece');
+  assert.equal(battery.weapon.ports.length, 4, 'four barrel mouths');
+  assert.ok(battery.weapon.casings, 'and cases flying out of them');
+  for (const [px, py] of battery.weapon.ports) {
+    const [x, y, w, h] = battery.back.bbox;
+    assert.ok(px >= x && px <= x + w && py >= y && py <= y + h, `mouth ${px},${py} sits on the figure`);
+  }
+
+  // The obelisk towers over everything else and its eye hovers instead of aiming.
+  const obelisk = specialSpriteSet('soulfireObelisk');
+  assert.ok(obelisk.weapon.float, 'the psi eye hovers');
+  const top = Math.min(obelisk.back.bbox[1], obelisk.gun.bbox[1]);
+  const others = SPECIALS.filter((id) => id !== 'soulfireObelisk').map((id) => specialSpriteSet(id).back.bbox[1]);
+  assert.ok(top < Math.min(...others) - 50, `obelisk reaches ${top}, the next is ${Math.min(...others)}`);
+  // It has to fit under the renderer's margin for artwork above the ground point.
+  assert.ok(-top * SPRITE_SCALE.tower < 260, `obelisk is ${-top * SPRITE_SCALE.tower} world pixels tall`);
+});
+
+test('every rank has a badge for the selection panel', () => {
+  for (let rank = 0; rank < 5; rank++) {
+    const entry = BADGE_SPRITES.symbols[`badge-${rank}`];
+    assert.ok(entry, `badge-${rank}`);
+    assert.ok(entry.bbox[2] > 0 && entry.bbox[3] > 0, `badge-${rank} has bounds`);
+  }
+  assert.equal(Object.keys(BADGE_SPRITES.symbols).length, 5, 'five badges, nothing else');
 });
 
 test('layers that look the same at several ranks share one raster', () => {

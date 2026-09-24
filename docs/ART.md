@@ -44,6 +44,10 @@ Wie bisher stehen sie auf demselben Sockel, tragen die Goldkante (sie sind die S
 
 Fertig gezeichnet sind Sturmbatterie und Seelenfeuer-Obelisk, dazu die beiden nackten Fahrgestelle; die Blätter liegen in `reference/konzept/spezialstellungen/`. Die übrigen vier behalten vorerst die Platzhaltergrafik aus M4 (`tests/tools/add-specials.py`, Blätter in `reference/konzept/stellungen/`) und folgen später nach demselben Baukasten: Fahrgestell aus der Tabelle plus Aufsatz.
 
+**Sockel.** Die Skizzen zeigen die Fahrzeuge frei auf dem Boden, mit eigenem Schlagschatten. Im Spiel stehen sie wie jede andere Stellung auf dem gemeinsamen Sockel — er grenzt eigene Bauwerke von Trümmern ab, und der goldene Rand kennzeichnet die Rezept-Stellung. Jede Figur wird dafür um die Höhe ihres eigenen Schlagschattens angehoben, damit Ketten oder Fuß auf der Sockeloberfläche aufsetzen. Der eigene Schlagschatten fällt weg, beim Obelisken auch sein eigener breiter Sockel.
+
+**Was am Obelisken Code ist.** Flammen am Fuß, Blitze von der Spitze zum Auge, das Leuchten und der Ring um das Auge. Das Auge selbst ist ein Sprite und schwebt wie der Psi-Kristall. Bei der Sturmbatterie sind es die vier Mündungsblitze und die Patronenhülsen; der Vierlingsturm dreht sich nicht, er zeigt nach oben.
+
 ### Ränge
 
 Jeder Rang ergänzt ein sichtbares Detail, kumulativ:

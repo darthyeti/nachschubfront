@@ -75,7 +75,7 @@ function updateMotion(tower, set, dt, pivotScreen) {
   if (!weapon) return m;
 
   // A shot is recognised by the reload counter jumping back up; the bunkers
-  // have no barrel to push back, but their embrasures flash on the same beat.
+  // have no barrel to push back, but their ports flash on the same beat.
   if (tower.cooldown > m.cooldown + 1e-6) m.recoil = 1;
   m.cooldown = tower.cooldown;
   m.recoil = Math.max(0, m.recoil - dt * 7);
@@ -128,12 +128,24 @@ export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, red
     : pivot;
   // A recipe emplacement keeps the doctrine of its first ingredient for colour
   // and glow, but its weapon data is its own.
-  // The bunkers fire out of their embrasures instead of a muzzle, leaning
+  // The bunkers fire out of their ports instead of a muzzle, leaning
   // towards the target because nothing about them turns (docs/ART.md).
-  const embrasures = weapon?.embrasures
-    ? weapon.embrasures.map(([ex, ey]) => [ox + ex * scale, oy + ey * scale])
+  const ports = weapon?.ports
+    ? weapon.ports.map(([ex, ey]) => [ox + ex * scale, oy + ey * scale])
     : null;
-  const view = { doctrine: tower.doctrine, pivot, muzzle, embrasures, fire: fireDirection(tower, ox, oy), shot: m.recoil, scale, t, reducedMotion };
+  const view = {
+    doctrine: tower.doctrine,
+    origin: [ox, oy],
+    pivot,
+    muzzle,
+    ports,
+    casings: Boolean(weapon?.casings),
+    fire: fireDirection(tower, ox, oy),
+    shot: m.recoil,
+    scale,
+    t,
+    reducedMotion,
+  };
   // Banner and halo stand behind the weapon, so the figure covers the pole.
   drawRankMarks(ctx, {
     rank: set.rank,

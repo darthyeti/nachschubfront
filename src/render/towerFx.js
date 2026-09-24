@@ -1,7 +1,7 @@
 // What used to be painted into the concept art and is animated in code from M4 on:
 // the pilot light of the flame thrower, the lens of the laser, the aura and rings
 // of the psi shrine, the glow and the arcs of the tesla coil. Since M4d also the
-// muzzle flashes and flame bursts at the bunker's three embrasures.
+// muzzle flashes and flame bursts at the bunker's three ports.
 //
 // These belong to the emplacement itself (they are there without a shot being
 // fired), unlike the muzzle flashes and beams in effects.js.
@@ -13,8 +13,8 @@ import { DOCTRINE_COLORS } from '../data/doctrines.js';
 /** Where the hero's banner stands on the base and how big it is (SVG units). */
 const BANNER = { x: 31, y: -9, height: 46, cloth: 21 };
 
-/** How far the outer two embrasures aim off the firing direction (radians). */
-const EMBRASURE_SPREAD = 0.3;
+/** How far the outer two ports aim off the firing direction (radians). */
+const PORT_SPREAD = 0.3;
 
 /** Arcs around the tesla sphere: idle it crackles, while firing it flares. */
 const ARC_IDLE = 1;
@@ -121,6 +121,7 @@ export function drawWeaponGlow(ctx, tower, view) {
   const colour = DOCTRINE_COLORS[doctrine] ?? C.gold;
   const firing = isFiring(tower);
 
+  if (tower.special === 'soulfireObelisk') drawObelisk(ctx, view);
   if (doctrine === 'psi') {
     const bob = reducedMotion ? 0 : Math.sin(t * 2 + tower.x) * 3 * scale;
     const y = pivot[1] - bob;
@@ -173,16 +174,16 @@ function spark(ctx, x, y, radius, colour) {
 
 /**
  * The shared bunker has no barrel (docs/ART.md, "Gemeinsamer Bunker"): what tells
- * the two doctrines apart is the effect at the three embrasures. Both lean
+ * the two doctrines apart is the effect at the three ports. Both lean
  * towards the target, because nothing about the building turns.
  */
-function drawEmbrasureFire(ctx, tower, view) {
-  const { doctrine, embrasures, fire, shot, scale, t, reducedMotion } = view;
+function drawPortFire(ctx, tower, view) {
+  const { doctrine, ports, fire, shot, casings, scale, t, reducedMotion } = view;
   const flicker = reducedMotion ? 1 : 0.8 + Math.sin(t * 22) * 0.2;
 
   if (doctrine === 'flame') {
     const aim = Math.atan2(fire[1], fire[0]);
-    embrasures.forEach(([x, y], i) => {
+    ports.forEach(([x, y], i) => {
       if (!tower.firing) {
         // Idle: a blue pilot light, in the middle slit only (style test).
         if (i === 1) ell(ctx, x, y, 2.2 * scale, 2.2 * scale, '#6fb7ff', null);
@@ -190,7 +191,7 @@ function drawEmbrasureFire(ctx, tower, view) {
       }
       // Fanned out around the firing direction: three tongues along the same
       // line would overlap into one smear across the front.
-      const angle = aim + (i - 1) * EMBRASURE_SPREAD;
+      const angle = aim + (i - 1) * PORT_SPREAD;
       const out = [Math.cos(angle), Math.sin(angle)];
       const wobble = reducedMotion ? 1 : 0.75 + Math.sin(t * 19 + i * 2.1) * 0.25;
       const length = 12 * scale * wobble;
@@ -199,11 +200,72 @@ function drawEmbrasureFire(ctx, tower, view) {
     });
     return;
   }
-  // Autocannon: all three slits flash on the same beat as the shot.
+  // Autocannon: every port flashes on the same beat as the shot.
   if (shot <= 0.05) return;
-  for (const [x, y] of embrasures) {
+  for (const [x, y] of ports) {
     spark(ctx, x, y, 7 * scale * shot * flicker, '#f0e2b8');
     spark(ctx, x, y, 3 * scale * shot, '#fff3d0');
+  }
+  if (casings) drawCasings(ctx, view);
+}
+
+/**
+ * Spent cases tumbling out of a rapid-firing gun (style test). They live off the
+ * shot's own decay instead of a particle system: the drum fire is over in a
+ * fraction of a second, and nothing has to be kept between frames.
+ */
+function drawCasings(ctx, { ports, shot, scale }) {
+  const age = 1 - shot;
+  ctx.fillStyle = '#e8c872';
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 0.8;
+  ports.forEach(([x, y], i) => {
+    for (let n = 0; n < 2; n++) {
+      // Fixed offsets per port and case, so the spray never jitters on a still frame.
+      const out = (1.4 + i * 0.35 + n * 0.8) * scale * 26 * age;
+      const rise = (1 - (age * 2 - 1) ** 2) * 14 * scale;
+      const cx = x + out;
+      const cy = y - rise + age * 10 * scale;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(age * (6 + i) + n);
+      ctx.beginPath();
+      ctx.rect(-1.4 * scale, -0.9 * scale, 2.8 * scale, 1.8 * scale);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  });
+}
+
+/**
+ * The soulfire obelisk (docs/ART.md): flames at its foot and lightning from the
+ * tip up to the psi eye that hovers above it. Both were drawn into the concept
+ * sheet and are code now, like every other effect.
+ */
+function drawObelisk(ctx, view) {
+  const { origin, pivot, scale, t, reducedMotion } = view;
+  const [ox, oy] = origin;
+  const at = (x, y) => [ox + x * scale, oy + y * scale];
+
+  // Two braziers on the corners of the block.
+  for (const side of [-1, 1]) {
+    const [fx, fy] = at(side * 27, -8);
+    const flicker = reducedMotion ? 1 : 0.8 + Math.sin(t * 9 + side) * 0.2;
+    tongue(ctx, fx, fy, [0, -1], 26 * scale * flicker, 7 * scale, '#ff8a2a');
+    tongue(ctx, fx, fy, [0, -1], 15 * scale * flicker, 4 * scale, '#ffd23f');
+  }
+
+  // Lightning from the tip to the eye, which hovers well above it.
+  const [tx, ty] = at(0, -171);
+  const reach = Math.hypot(pivot[0] - tx, pivot[1] - ty);
+  const count = reducedMotion ? 1 : 2;
+  const jitter = reducedMotion ? 0 : 7 * scale;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  for (let i = 0; i < count; i++) {
+    const angle = -Math.PI / 2 + Math.sin(t * 2.3 + i * 2.7) * 0.35;
+    arc(ctx, tx, ty, angle, reach, '#8fd8ff', jitter);
   }
 }
 
@@ -213,8 +275,8 @@ export function drawWeaponSpark(ctx, tower, view) {
   const colour = DOCTRINE_COLORS[doctrine] ?? C.gold;
   const firing = isFiring(tower);
 
-  if (view.embrasures) {
-    drawEmbrasureFire(ctx, tower, view);
+  if (view.ports) {
+    drawPortFire(ctx, tower, view);
   } else if (doctrine === 'flame') {
     // Blue pilot light when idle, a yellow tongue while burning (style test).
     const flicker = reducedMotion ? 1 : 0.85 + Math.sin(t * 20) * 0.15;

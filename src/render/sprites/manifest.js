@@ -172,6 +172,12 @@ export const PLATE_SPOT = {
 export const BUNKER_EMBRASURES = [[-11, -12.5], [0, -12.5], [11, -12.5]];
 
 /**
+ * The four barrel mouths of the storm battery's quad flak, in the same frame.
+ * It stands still and fires out of all four at once (docs/ART.md).
+ */
+const BATTERY_MOUTHS = [[-15.1, -60], [-3.7, -63], [7.7, -63], [19.1, -60]];
+
+/**
  * The moving part of each emplacement (M4: the weapon comes out of the sprite and is
  * turned in code). All values are SVG units in the symbol's own frame.
  *
@@ -184,27 +190,30 @@ export const BUNKER_EMBRASURES = [[-11, -12.5], [0, -12.5], [11, -12.5]];
  * - `spin`    sideways wobble of a barrel cluster while firing.
  * - `float`   the part hovers instead of aiming (the psi crystal).
  * - `static`  nothing moves; the entry only marks where the glow sits (tesla sphere).
- * - `embrasures`  firing slits the effect comes out of instead of a muzzle (the bunkers).
+ * - `ports`   openings the effect comes out of instead of one muzzle: the
+ *             bunker's three embrasures, the storm battery's four barrel mouths.
  */
 export const TOWER_WEAPONS = {
   // The two bunkers have nothing that aims (M4d). Their pivot is the middle
   // embrasure, which is where the idle pilot light of the flame sits.
-  flame: { pivot: [0, -12.5], embrasures: BUNKER_EMBRASURES },
-  autocannon: { pivot: [0, -12.5], embrasures: BUNKER_EMBRASURES },
+  flame: { pivot: [0, -12.5], ports: BUNKER_EMBRASURES },
+  autocannon: { pivot: [0, -12.5], ports: BUNKER_EMBRASURES },
   // The laser kept its design and its pose; update 4 only scaled the figure
   // down by 0.68 and lifted it by 16 units, so pivot and muzzle follow.
   laser: { pivot: [0, -92.2], rest: 2.78, muzzle: 32.7, track: 1, turn: 8, recoil: 1.7 },
   mortar: { pivot: [4, -6], rest: -1.7819, muzzle: 57.3, track: 0.22, turn: 5, recoil: 7 },
   psi: { pivot: [0, -100], float: true },
   tesla: { pivot: [0, -100], static: true },
-  // Recipe emplacements: the battery swings its three barrels, the siege mortar
-  // only leans its tube, the rest stand still and work through their effects.
-  stormBattery: { pivot: [-4, -30], rest: Math.PI, muzzle: 50, track: 1, turn: 12, recoil: 3 },
+  // Recipe emplacements: the siege mortar leans its tube, the storm battery's
+  // quad flak points upwards and flashes out of all four mouths, the rest stand
+  // still and work through their effects.
+  stormBattery: { pivot: [2, -40], ports: BATTERY_MOUTHS, casings: true },
   siegeMortar: { pivot: [2, -12], rest: -1.9182, muzzle: 76.5, track: 0.18, turn: 4, recoil: 9 },
   purgeShrine: { pivot: [0, -46], static: true },
   emberCauldron: { pivot: [0, -35], static: true },
   thunderTower: { pivot: [0, -104], static: true },
-  soulfireObelisk: { pivot: [0, -104], static: true },
+  // The psi eye hovers over the obelisk instead of aiming, like the psi crystal.
+  soulfireObelisk: { pivot: [0, -214], float: true },
 };
 
 export const RANK_COUNT = MAX_RANK;
