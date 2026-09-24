@@ -2,6 +2,12 @@
 // requests salvo after salvo at 3x and screenshots the thick of the fighting.
 // Fails on any console error, so a long match is checked end to end.
 //
+// The bastion is made invulnerable first. This asks whether a long match runs
+// through without faults, not whether it can be won: the check places its zones
+// by a fixed rule and takes whatever the panel offers last, which leaves one
+// emplacement per salvo, and since M4b that does not hold wave 1. Balancing is
+// judged by playing, never here (decision 23.09.2026, docs/PROGRESS.md).
+//
 // Usage: npm run test:battle [-- --waves 12] [--browser webkit] [--speed 3]
 
 import * as playwright from 'playwright';
@@ -42,6 +48,7 @@ watchProblems(page, 'battle', problems);
 try {
   await page.goto(`${server.url}?seed=${SEED}&debug`, { waitUntil: 'networkidle' });
   await startMatch(page);
+  await page.getByRole('button', { name: 'Unverwundbar' }).tap();
   await page.getByRole('button', { name: `${SPEED}x` }).tap();
 
   /** Marks up to five zones next to the route, starting in its middle. */
