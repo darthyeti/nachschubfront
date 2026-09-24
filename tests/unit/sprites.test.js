@@ -261,9 +261,22 @@ test('the shared bunker has no weapon, but three ports to fire from', () => {
     const xs = weapon.ports.map((e) => e[0]);
     assert.equal(new Set(xs).size, 3, `${doctrine}: three separate slits`);
   }
-  // Both bunkers are the same building; only colour and effect differ.
+  // Both bunkers are the same building; only colour and effect differ. Compared
+  // on the symbols themselves, not on a whole document: every sprite carries the
+  // full library, so the other bunker's accent would be in there too.
   assert.deepEqual(TOWER_WEAPONS.flame.ports, TOWER_WEAPONS.autocannon.ports);
-  assert.deepEqual(towerSpriteSet('flame', 1).back.bbox, towerSpriteSet('autocannon', 1).back.bbox);
+  const symbol = (id) => {
+    const start = TOWER_SPRITES.defs.indexOf(`id="${id}"`);
+    assert.ok(start > 0, id);
+    const from = TOWER_SPRITES.defs.lastIndexOf('<g', start);
+    const next = TOWER_SPRITES.defs.indexOf('<g xmlns', start);
+    return TOWER_SPRITES.defs.slice(from, next < 0 ? undefined : next);
+  };
+  const bare = (id, accent) => symbol(id).replace(`id="${id}"`, 'id="X"').replaceAll(accent, 'ACCENT');
+  assert.equal(bare('t-flame-back', '#ff8a2a'), bare('t-ac-back', '#f0e2b8'), 'the same building');
+  // And each carries only its own accent, so they cannot be told apart by anything else.
+  assert.ok(!symbol('t-ac-back').includes('#ff8a2a'), 'the autocannon has no orange');
+  assert.ok(!symbol('t-flame-back').includes('#f0e2b8'), 'the flame has no brass');
 });
 
 test('every doctrine with a weapon knows where it turns and where its muzzle is', () => {
