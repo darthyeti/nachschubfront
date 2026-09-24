@@ -16,18 +16,19 @@ export const SPRITE_SCALE = {
 
 /**
  * The supply pod (docs/ART.md, "Nachschubkapsel"). Closed it is one piece; open
- * it is a core and four wall segments, named for the direction they fall in.
+ * it is a core, which since M4d keeps the roof on top, and four wall segments
+ * that fold down around it, named for the direction they fall in.
  *
  * `hinge` is the midpoint of the edge a segment shares with the core, in SVG
- * units (printed by tests/tools/split-pod.py). A segment grows out of that point
- * while it opens, which is what turns the standing wall into the lying plate.
- * `layer` says whether it is drawn behind or in front of the core.
+ * units (printed by tests/tools/split-pod-open.py). A segment grows out of that
+ * point while it opens, which is what turns the standing wall into the lying
+ * plate. `layer` says whether it is drawn behind or in front of the core.
  */
 export const POD_PETALS = [
-  { id: 'pod-petal-bl', hinge: [-13.4, -6], layer: 'back' },
-  { id: 'pod-petal-br', hinge: [13.4, -6], layer: 'back' },
-  { id: 'pod-petal-fr', hinge: [13.4, 6], layer: 'front' },
-  { id: 'pod-petal-fl', hinge: [-13.4, 6], layer: 'front' },
+  { id: 'pod-petal-bl', hinge: [-12.5, -5.6], layer: 'back' },
+  { id: 'pod-petal-br', hinge: [12.5, -5.6], layer: 'back' },
+  { id: 'pod-petal-fr', hinge: [12.5, 5.6], layer: 'front' },
+  { id: 'pod-petal-fl', hinge: [-12.5, 5.6], layer: 'front' },
 ];
 
 /**
@@ -136,29 +137,39 @@ export const DOCTRINE_SYMBOLS = {
 };
 
 /**
- * These doctrines already carry a sandbag ring in their base form, so the veteran
- * ring is skipped for them (decision M1b; a dedicated veteran detail follows later).
+ * The mortar already carries a sandbag ring in its base form, so the veteran
+ * ring is skipped for it (decision M1b). The autocannon was in this set until
+ * M4d took its own ring away with the shared bunker.
  */
-export const OWN_SANDBAGS = new Set(['autocannon', 'mortar']);
+export const OWN_SANDBAGS = new Set(['mortar']);
 
 /**
- * The autocannon's own ring is not drawn into its group: the concept sheet wraps the
- * shared sandbag symbols around it, so it always gets them, at every rank.
+ * Veteran detail for the doctrine that already has a ring: an ammunition crate.
+ * The mortar's right side is taken by its own crate, so it gets the mirrored
+ * one (decision M1b, settled in M4).
  */
-export const SHARED_SANDBAGS = new Set(['autocannon']);
-
-/**
- * Veteran detail for the two doctrines that already have a ring: an ammunition
- * crate. The mortar's right side is taken by its own crate, so it gets the
- * mirrored one (decision M1b, settled in M4).
- */
-export const VETERAN_CRATE = { autocannon: 'crate', mortar: 'crate-l' };
+export const VETERAN_CRATE = { mortar: 'crate-l' };
 
 /**
  * Where the elite armour plates sit on doctrines whose weapon does not aim
- * (SVG units). Everything else gets them on the barrel, along its axis.
+ * (SVG units), optionally followed by the plate's size and the screen angle it
+ * lies along. The bunkers get theirs flat against the left front face, which in
+ * the isometric view runs down to the right at 1:2. Everything else gets the
+ * plate on the barrel, along its axis.
  */
-export const PLATE_SPOT = { psi: [0, -46], tesla: [0, -52] };
+const ISO_FACE = Math.atan2(0.5, 1);
+export const PLATE_SPOT = {
+  psi: [0, -46],
+  tesla: [0, -52],
+  flame: [-14, -3, 5.5, ISO_FACE],
+  autocannon: [-14, -3, 5.5, ISO_FACE],
+};
+
+/**
+ * The three embrasures of the shared bunker (docs/ART.md, "Gemeinsamer Bunker"),
+ * in SVG units, left to right across its front.
+ */
+export const BUNKER_EMBRASURES = [[-11, -12.5], [0, -12.5], [11, -12.5]];
 
 /**
  * The moving part of each emplacement (M4: the weapon comes out of the sprite and is
@@ -173,11 +184,16 @@ export const PLATE_SPOT = { psi: [0, -46], tesla: [0, -52] };
  * - `spin`    sideways wobble of a barrel cluster while firing.
  * - `float`   the part hovers instead of aiming (the psi crystal).
  * - `static`  nothing moves; the entry only marks where the glow sits (tesla sphere).
+ * - `embrasures`  firing slits the effect comes out of instead of a muzzle (the bunkers).
  */
 export const TOWER_WEAPONS = {
-  flame: { pivot: [-4, -8], rest: 2.8024, muzzle: 36, track: 1, turn: 10 },
-  autocannon: { pivot: [-6, -19], rest: 2.7687, muzzle: 49.4, track: 1, turn: 14, recoil: 4, spin: 1.4 },
-  laser: { pivot: [0, -112], rest: 2.78, muzzle: 48.1, track: 1, turn: 8, recoil: 2.5 },
+  // The two bunkers have nothing that aims (M4d). Their pivot is the middle
+  // embrasure, which is where the idle pilot light of the flame sits.
+  flame: { pivot: [0, -12.5], embrasures: BUNKER_EMBRASURES },
+  autocannon: { pivot: [0, -12.5], embrasures: BUNKER_EMBRASURES },
+  // The laser kept its design and its pose; update 4 only scaled the figure
+  // down by 0.68 and lifted it by 16 units, so pivot and muzzle follow.
+  laser: { pivot: [0, -92.2], rest: 2.78, muzzle: 32.7, track: 1, turn: 8, recoil: 1.7 },
   mortar: { pivot: [4, -6], rest: -1.7819, muzzle: 57.3, track: 0.22, turn: 5, recoil: 7 },
   psi: { pivot: [0, -100], float: true },
   tesla: { pivot: [0, -100], static: true },

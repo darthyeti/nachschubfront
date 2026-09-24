@@ -17,9 +17,10 @@ const SOURCES = [
     dir: 'reference/konzept/kapsel',
     out: 'src/render/sprites/pods.js',
     name: 'POD_SPRITES',
-    // pod-a and pod-c are the designs the sheet discarded (docs/ART.md); pod-b
-    // and pod-open are only wrappers around the parts the game draws.
-    drop: ['pod-a', 'pod-c', 'pod-b', 'pod-open'],
+    // pod-a, pod-c, open-a and open-c are the designs the sheets discarded
+    // (docs/ART.md); pod-b and pod-open are only wrappers around the parts the
+    // game draws.
+    drop: ['pod-a', 'pod-c', 'open-a', 'open-c', 'pod-b', 'pod-open'],
   },
 ];
 

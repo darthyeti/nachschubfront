@@ -51,8 +51,8 @@ Jeder Rang ergänzt ein sichtbares Detail, kumulativ:
 | Rang | Ergänzung | Winkel am Sockel | Umsetzung |
 |---|---|---|---|
 | Rekrut | Grundform | 1 | — |
-| Veteran | Sandsackring | 2 | Symbole `sb-back`/`sb-front`; Autokanone und Mörser haben den Ring schon und bekommen stattdessen eine Munitionskiste (`crate`, `crate-l`) |
-| Elite | Panzerplatten an der Waffe | 3 | erzeugtes SVG quer zum Lauf, auf einem Drittel des Wegs zur Mündung; wo die Waffe nicht zielt (Psi, Tesla) sitzt die Platte am Gehäuse |
+| Veteran | Sandsackring | 2 | Symbole `sb-back`/`sb-front`; der Mörser hat den Ring schon und bekommt stattdessen eine Munitionskiste (`crate-l`). Die Autokanone stand bis M4d auch in dieser Ausnahme; mit dem gemeinsamen Bunker hat sie keinen eigenen Ring mehr und bekommt den geteilten |
+| Elite | Panzerplatten an der Waffe | 3 | erzeugtes SVG quer zum Lauf, auf einem Drittel des Wegs zur Mündung; wo die Waffe nicht zielt (Psi, Tesla, seit M4d beide Bunker) sitzt die Platte am Gehäuse. Am Bunker liegt sie flach an der linken Vorderseite, unterhalb der Scharten, damit sie keine verdeckt |
 | Held | Banner | 4 | im Code gezeichnet, weht in der Leitfarbe mit Goldsaum |
 | Legende | Goldkanten, Halo | 5 (gold) | Goldkante am Sockelrand als SVG, Halo im Code |
 

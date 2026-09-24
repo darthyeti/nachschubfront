@@ -1,6 +1,7 @@
 // What used to be painted into the concept art and is animated in code from M4 on:
 // the pilot light of the flame thrower, the lens of the laser, the aura and rings
-// of the psi shrine, the glow and the arcs of the tesla coil.
+// of the psi shrine, the glow and the arcs of the tesla coil. Since M4d also the
+// muzzle flashes and flame bursts at the bunker's three embrasures.
 //
 // These belong to the emplacement itself (they are there without a shot being
 // fired), unlike the muzzle flashes and beams in effects.js.
@@ -11,6 +12,9 @@ import { DOCTRINE_COLORS } from '../data/doctrines.js';
 
 /** Where the hero's banner stands on the base and how big it is (SVG units). */
 const BANNER = { x: 31, y: -9, height: 46, cloth: 21 };
+
+/** How far the outer two embrasures aim off the firing direction (radians). */
+const EMBRASURE_SPREAD = 0.3;
 
 /** Arcs around the tesla sphere: idle it crackles, while firing it flares. */
 const ARC_IDLE = 1;
@@ -140,13 +144,78 @@ export function drawWeaponGlow(ctx, tower, view) {
   }
 }
 
+/** A flame tongue out of an embrasure: a leaf along the firing direction. */
+function tongue(ctx, x, y, [dx, dy], length, width, fill) {
+  const [px, py] = [-dy * width, dx * width];
+  ctx.beginPath();
+  ctx.moveTo(x + px, y + py);
+  ctx.quadraticCurveTo(x + dx * length * 0.7 + px, y + dy * length * 0.7 + py, x + dx * length, y + dy * length);
+  ctx.quadraticCurveTo(x + dx * length * 0.7 - px, y + dy * length * 0.7 - py, x - px, y - py);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+
+/** A muzzle flash: the four-pointed star of the concept sheets. */
+function spark(ctx, x, y, radius, colour) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const r = i % 2 ? radius * 0.34 : radius;
+    const [px, py] = [x + Math.cos(angle) * r, y + Math.sin(angle) * r];
+    if (i) ctx.lineTo(px, py);
+    else ctx.moveTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = colour;
+  ctx.fill();
+}
+
+/**
+ * The shared bunker has no barrel (docs/ART.md, "Gemeinsamer Bunker"): what tells
+ * the two doctrines apart is the effect at the three embrasures. Both lean
+ * towards the target, because nothing about the building turns.
+ */
+function drawEmbrasureFire(ctx, tower, view) {
+  const { doctrine, embrasures, fire, shot, scale, t, reducedMotion } = view;
+  const flicker = reducedMotion ? 1 : 0.8 + Math.sin(t * 22) * 0.2;
+
+  if (doctrine === 'flame') {
+    const aim = Math.atan2(fire[1], fire[0]);
+    embrasures.forEach(([x, y], i) => {
+      if (!tower.firing) {
+        // Idle: a blue pilot light, in the middle slit only (style test).
+        if (i === 1) ell(ctx, x, y, 2.2 * scale, 2.2 * scale, '#6fb7ff', null);
+        return;
+      }
+      // Fanned out around the firing direction: three tongues along the same
+      // line would overlap into one smear across the front.
+      const angle = aim + (i - 1) * EMBRASURE_SPREAD;
+      const out = [Math.cos(angle), Math.sin(angle)];
+      const wobble = reducedMotion ? 1 : 0.75 + Math.sin(t * 19 + i * 2.1) * 0.25;
+      const length = 12 * scale * wobble;
+      tongue(ctx, x, y, out, length, 3.4 * scale, '#ff8a2a');
+      tongue(ctx, x, y, out, length * 0.55, 2 * scale, '#ffd23f');
+    });
+    return;
+  }
+  // Autocannon: all three slits flash on the same beat as the shot.
+  if (shot <= 0.05) return;
+  for (const [x, y] of embrasures) {
+    spark(ctx, x, y, 7 * scale * shot * flicker, '#f0e2b8');
+    spark(ctx, x, y, 3 * scale * shot, '#fff3d0');
+  }
+}
+
 /** The bright bits in front: pilot light, lens, arcs. */
 export function drawWeaponSpark(ctx, tower, view) {
   const { doctrine, muzzle, pivot, scale, t, reducedMotion } = view;
   const colour = DOCTRINE_COLORS[doctrine] ?? C.gold;
   const firing = isFiring(tower);
 
-  if (doctrine === 'flame') {
+  if (view.embrasures) {
+    drawEmbrasureFire(ctx, tower, view);
+  } else if (doctrine === 'flame') {
     // Blue pilot light when idle, a yellow tongue while burning (style test).
     const flicker = reducedMotion ? 1 : 0.85 + Math.sin(t * 20) * 0.15;
     const r = (tower.firing ? 5 : 2.5) * flicker * scale;

@@ -14,7 +14,6 @@ import {
   SPECIAL_SYMBOLS,
   ENEMY_LIMBS,
   OWN_SANDBAGS,
-  SHARED_SANDBAGS,
   VETERAN_CRATE,
   PLATE_SPOT,
   TOWER_WEAPONS,
@@ -101,8 +100,12 @@ export const RANK_DETAIL = { ring: 2, crate: 2, plates: 3, banner: 4, gold: 5 };
 export function plateMarkup(doctrine) {
   const weapon = TOWER_WEAPONS[doctrine];
   const spot = PLATE_SPOT[doctrine];
+  if (!spot && !(weapon && weapon.rest !== undefined)) {
+    throw new Error(`${doctrine} has no aiming weapon, so its plate needs a PLATE_SPOT`);
+  }
+  const angle = spot?.[3] ?? 0;
   const [cx, cy, ax, ay, size] = spot
-    ? [spot[0], spot[1], 1, 0, 13]
+    ? [spot[0], spot[1], Math.cos(angle), Math.sin(angle), spot[2] ?? 13]
     : [
         weapon.pivot[0] + Math.cos(weapon.rest) * weapon.muzzle * 0.32,
         weapon.pivot[1] + Math.sin(weapon.rest) * weapon.muzzle * 0.32,
@@ -144,8 +147,8 @@ export function towerLayers(doctrine, rank) {
   const body = DOCTRINE_SYMBOLS[doctrine];
   if (!body) throw new Error(`Unknown doctrine: ${doctrine}`);
   if (!(rank >= 1 && rank <= RANK_COUNT)) throw new Error(`Invalid rank: ${rank}`);
-  // Sandbags: from veteran on, or always where the concept art expects them.
-  const ring = SHARED_SANDBAGS.has(doctrine) || (rank >= RANK_DETAIL.ring && !OWN_SANDBAGS.has(doctrine));
+  // Sandbags: from veteran on, unless the concept art brings its own ring.
+  const ring = rank >= RANK_DETAIL.ring && !OWN_SANDBAGS.has(doctrine);
   const has = (id) => Boolean(TOWER_SPRITES.symbols[id]);
   // Veteran: a sandbag ring, or a crate where the ring is already part of the artwork.
   const crate = rank >= RANK_DETAIL.crate ? VETERAN_CRATE[doctrine] : null;

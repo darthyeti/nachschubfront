@@ -42,14 +42,18 @@ test('imported libraries contain all concept symbols', () => {
   for (const id of ['base', 'sb-back', 'sb-front', 't-flame', 't-ac', 't-laser', 't-mortar', 't-psi', 't-tesla']) {
     assert.ok(TOWER_SPRITES.symbols[id], id);
   }
-  // M4: every doctrine is split into a back layer, and all but the tesla into a weapon.
+  // M4: every doctrine is split into a back layer, and those that aim into a weapon.
   for (const id of ['t-flame', 't-ac', 't-laser', 't-mortar', 't-psi', 't-tesla']) {
     assert.ok(TOWER_SPRITES.symbols[`${id}-back`], `${id}-back`);
   }
-  for (const id of ['t-flame', 't-ac', 't-laser', 't-mortar', 't-psi']) {
+  for (const id of ['t-laser', 't-mortar', 't-psi']) {
     assert.ok(TOWER_SPRITES.symbols[`${id}-gun`], `${id}-gun`);
   }
   assert.ok(!TOWER_SPRITES.symbols['t-tesla-gun'], 'the tesla coil has no moving weapon');
+  // M4d: the two bunkers are one piece, with nothing that aims and nothing in front.
+  for (const id of ['t-flame-gun', 't-ac-gun', 't-ac-front']) {
+    assert.ok(!TOWER_SPRITES.symbols[id], `${id} went with the shared bunker`);
+  }
   assert.ok(!ENEMY_SPRITES.defs.includes('id="sil"'), 'unused silhouette filter is dropped');
 
   // M4c: the capsule, closed in one piece and open in core plus four segments.
@@ -189,30 +193,52 @@ test('nextFlip mirrors when moving right on screen, with a dead zone', () => {
 });
 
 test('tower layers: sandbag ring from veteran on, except doctrines with their own', () => {
-  assert.deepEqual(towerLayers('flame', 1), { back: ['base', 't-flame-back'], gun: ['t-flame-gun'], front: null });
+  assert.deepEqual(towerLayers('flame', 1), { back: ['base', 't-flame-back'], gun: null, front: null });
   assert.deepEqual(towerLayers('flame', 2), {
     back: ['base', 'sb-back', 't-flame-back'],
-    gun: ['t-flame-gun'],
+    gun: null,
     front: ['sb-front'],
   });
   assert.deepEqual(towerLayers('tesla', 5), { back: ['base', 'sb-back', 't-tesla-back'], gun: null, front: ['sb-front'] });
-  // The mortar brings its own sandbags inside its group, the autocannon uses the shared ones.
-  // Both get a crate as their veteran detail instead of a second ring.
+  // The mortar brings its own sandbags inside its group and gets a crate as its
+  // veteran detail instead of a second ring.
   assert.deepEqual(towerLayers('mortar', 1), {
     back: ['base', 't-mortar-back'],
     gun: ['t-mortar-gun'],
     front: ['t-mortar-front'],
   });
   assert.deepEqual(towerLayers('mortar', 2).front, ['t-mortar-front', 'crate-l']);
-  assert.deepEqual(towerLayers('autocannon', 1), {
+  // M4d: the autocannon lost its own ring with the shared bunker, so from
+  // veteran on it gets the shared sandbags like everyone else.
+  assert.deepEqual(towerLayers('autocannon', 1), { back: ['base', 't-ac-back'], gun: null, front: null });
+  assert.deepEqual(towerLayers('autocannon', 2), {
     back: ['base', 'sb-back', 't-ac-back'],
-    gun: ['t-ac-gun'],
-    front: ['sb-front', 't-ac-front'],
+    gun: null,
+    front: ['sb-front'],
   });
-  assert.deepEqual(towerLayers('autocannon', 2).front, ['sb-front', 't-ac-front', 'crate']);
   assert.throws(() => towerLayers('flame', 0));
   assert.throws(() => towerLayers('flame', 6));
   assert.throws(() => towerLayers('bogus', 1));
+});
+
+test('the shared bunker has no weapon, but three embrasures to fire from', () => {
+  for (const doctrine of ['flame', 'autocannon']) {
+    const set = towerSpriteSet(doctrine, 1);
+    assert.equal(set.gun, null, `${doctrine} is one piece`);
+    const weapon = TOWER_WEAPONS[doctrine];
+    assert.equal(weapon.rest, undefined, `${doctrine} has no pose to aim from`);
+    assert.equal(weapon.embrasures.length, 3, doctrine);
+    // The slits sit across the front of the bunker, inside its own bounds.
+    const [x, y, w, h] = set.back.bbox;
+    for (const [ex, ey] of weapon.embrasures) {
+      assert.ok(ex >= x && ex <= x + w && ey >= y && ey <= y + h, `${doctrine}: embrasure ${ex},${ey}`);
+    }
+    const xs = weapon.embrasures.map((e) => e[0]);
+    assert.equal(new Set(xs).size, 3, `${doctrine}: three separate slits`);
+  }
+  // Both bunkers are the same building; only colour and effect differ.
+  assert.deepEqual(TOWER_WEAPONS.flame.embrasures, TOWER_WEAPONS.autocannon.embrasures);
+  assert.deepEqual(towerSpriteSet('flame', 1).back.bbox, towerSpriteSet('autocannon', 1).back.bbox);
 });
 
 test('every doctrine with a weapon knows where it turns and where its muzzle is', () => {
@@ -302,16 +328,35 @@ test('every recipe emplacement has a silhouette of its own', () => {
 
 test('layers that look the same at several ranks share one raster', () => {
   // Only the back layer changes with the rank (chevrons, sandbags).
-  assert.equal(towerSpriteSet('flame', 3).gun.key, towerSpriteSet('flame', 5).gun.key);
-  assert.notEqual(towerSpriteSet('flame', 3).back.key, towerSpriteSet('flame', 5).back.key);
-  assert.notEqual(towerSpriteSet('flame', 1).gun.key, towerSpriteSet('laser', 1).gun.key);
+  assert.equal(towerSpriteSet('laser', 3).gun.key, towerSpriteSet('laser', 5).gun.key);
+  assert.notEqual(towerSpriteSet('laser', 3).back.key, towerSpriteSet('laser', 5).back.key);
+  assert.notEqual(towerSpriteSet('mortar', 1).gun.key, towerSpriteSet('laser', 1).gun.key);
 });
 
 test('effects painted into the concept art are gone; code draws them now', () => {
   // Flame jet, muzzle arcs, mortar smoke, laser and tesla glow, lightning.
-  assert.ok(!TOWER_SPRITES.defs.includes('id="ac-core"'), 'the autocannon core is split up');
-  const gun = towerSpriteSet('flame', 1).gun.svg(1);
-  assert.ok(!gun.includes('#ff8a2a'), 'no flame is baked into the nozzle');
+  assert.ok(!TOWER_SPRITES.defs.includes('id="ac-core"'), 'the old autocannon core is gone');
+  for (const id of ['bunker-mg', 'bunker-flame', 'bunker2-mg', 'bunker2-flame', 't-laser-s']) {
+    assert.ok(!TOWER_SPRITES.defs.includes(`id="${id}"`), `${id} lives on in the split parts`);
+  }
+  // M4d: the bursts and flashes drawn into the bunkers are code now. Both keep
+  // an accent line in their doctrine colour, which is a stroke, not a fill.
+  const flame = towerSpriteSet('flame', 1).back.svg(1);
+  assert.ok(!flame.includes('fill="#ff8a2a"'), 'no flame burst is baked into the bunker');
+  assert.ok(flame.includes('stroke="#ff8a2a"'), 'the accent line stays');
+  const ac = towerSpriteSet('autocannon', 1).back.svg(1);
+  assert.ok(!ac.includes('fill="#f0e2b8"'), 'no muzzle flash is baked into the bunker');
+  assert.ok(ac.includes('stroke="#f0e2b8"'), 'the accent line stays');
+});
+
+test('the bunker is squatter than the laser it replaced the tall doctrines with', () => {
+  // docs/ART.md: gedrungen, breiter als hoch. The base is 88 units wide.
+  const [, , w, h] = towerSpriteSet('flame', 1).back.bbox;
+  assert.ok(w > h, `bunker ${w} x ${h} is wider than it is tall`);
+  // The laser shrank by about 30 percent with update 4.
+  const laser = towerSpriteSet('laser', 1);
+  const top = Math.min(laser.back.bbox[1], laser.gun.bbox[1]);
+  assert.ok(top > -120 && top < -80, `laser reaches to ${top}`);
 });
 
 test('svg pixel size follows the requested scale', () => {

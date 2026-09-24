@@ -52,6 +52,14 @@ function specialRing(ctx, sx, sy) {
   ell(ctx, sx, sy, 30, 15, 'rgba(242,193,78,.16)', C.gold, 2.5);
 }
 
+/** Unit vector on screen from the emplacement towards what it shoots at. */
+function fireDirection(tower, ox, oy) {
+  if (!tower.aim) return [0, 1];
+  const [ax, ay] = iso(tower.aim.x, tower.aim.y, 10);
+  const len = Math.hypot(ax - ox, ay - oy) || 1;
+  return [(ax - ox) / len, (ay - oy) / len];
+}
+
 /**
  * Turns the weapon towards the target and works off the recoil.
  * Nothing here is read by the simulation; a shot is recognised by the reload
@@ -64,12 +72,16 @@ function updateMotion(tower, set, dt, pivotScreen) {
     motion.set(tower, m);
   }
   const weapon = set.weapon;
-  // Only weapons with a pose in the artwork can be aimed.
-  if (!weapon || weapon.rest === undefined) return m;
+  if (!weapon) return m;
 
+  // A shot is recognised by the reload counter jumping back up; the bunkers
+  // have no barrel to push back, but their embrasures flash on the same beat.
   if (tower.cooldown > m.cooldown + 1e-6) m.recoil = 1;
   m.cooldown = tower.cooldown;
   m.recoil = Math.max(0, m.recoil - dt * 7);
+
+  // Only weapons with a pose in the artwork can be aimed.
+  if (weapon.rest === undefined) return m;
   if (weapon.spin && (m.recoil > 0 || tower.firing)) m.spin += dt * 26;
 
   if (tower.aim) {
@@ -116,7 +128,12 @@ export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, red
     : pivot;
   // A recipe emplacement keeps the doctrine of its first ingredient for colour
   // and glow, but its weapon data is its own.
-  const view = { doctrine: tower.doctrine, pivot, muzzle, scale, t, reducedMotion };
+  // The bunkers fire out of their embrasures instead of a muzzle, leaning
+  // towards the target because nothing about them turns (docs/ART.md).
+  const embrasures = weapon?.embrasures
+    ? weapon.embrasures.map(([ex, ey]) => [ox + ex * scale, oy + ey * scale])
+    : null;
+  const view = { doctrine: tower.doctrine, pivot, muzzle, embrasures, fire: fireDirection(tower, ox, oy), shot: m.recoil, scale, t, reducedMotion };
   // Banner and halo stand behind the weapon, so the figure covers the pole.
   drawRankMarks(ctx, {
     rank: set.rank,
