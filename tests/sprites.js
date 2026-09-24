@@ -13,7 +13,7 @@ import { RECIPES } from '../src/data/recipes.js';
 import { ALL_ENEMIES } from '../src/data/enemies.js';
 import { iso } from '../src/render/iso.js';
 import { comicText } from '../src/render/draw.js';
-import { allTowerDefs, drawTowerSprite } from '../src/render/towerSprites.js';
+import { allTowerDefs, drawTowerSprite, drawSpecialRing } from '../src/render/towerSprites.js';
 import { ENEMY_SPRITE_DEFS, createEnemySpriteRenderer } from '../src/render/enemySprites.js';
 import { POD_SPRITE_DEFS, createPodRenderer } from '../src/render/pods.js';
 import { PODS } from '../src/data/pods.js';
@@ -157,6 +157,9 @@ function frame(now) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ground.draw(ctx, camera, view, SIZE, 'GALLERY', now);
   applyCamera(ctx, camera, view);
+
+  // Ground pass first, like the game: the ring lies flat, under every figure.
+  for (const o of towers) if (o.special) drawSpecialRing(ctx, o);
 
   const items = [
     ...towers.map((o) => [o.x + o.y + 1, 0, o]),

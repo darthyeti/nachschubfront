@@ -582,6 +582,58 @@ try {
     await context.close();
   }
 
+  // ---------- The two bugs from play test 2 ----------
+  console.log('reported bugs (tablet, touch)');
+  {
+    const { context, page } = await openGame({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+    const demolish = page.getByRole('button', { name: /^Abreißen/ });
+
+    await check('the demolish mode can be left with an empty purse', async () => {
+      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
+      await demolish.tap();
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishMode, true);
+
+      // Spend everything while the mode is open: the button used to grey out and
+      // there was no way back into normal planning.
+      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: -1e6 }));
+      await page.waitForFunction(() => window.__nachschub.state().requisition === 0);
+      assert.ok(!(await demolish.isDisabled()), 'the way out stays reachable');
+      await demolish.tap();
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishMode, false);
+
+      // And it is disabled again as an entrance, because nothing can be paid for.
+      await frames(page, 3);
+      assert.ok(await demolish.isDisabled(), 'entering without funds stays refused');
+    });
+
+    await check('escape leaves the demolish mode before it opens the menu', async () => {
+      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
+      await demolish.tap();
+      await page.keyboard.press('Escape');
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishMode, false);
+      assert.ok(await page.locator('.menu[data-menu="pause"]').isHidden(), 'the menu stays shut');
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('.menu[data-menu="pause"]:not([hidden])');
+      await page.keyboard.press('Escape');
+    });
+
+    await check('starting a salvo drops the demolish mode', async () => {
+      await demolish.tap();
+      await page.getByRole('button', { name: 'Salve anfordern' }).click();
+      await page.waitForFunction(() => window.__nachschub.state().phase !== 'planning', null, { timeout: 60000 });
+      // The phase change and the frame that reads it are two different moments.
+      await frames(page, 3);
+      assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishMode, false);
+    });
+
+    await context.close();
+  }
+
   // ---------- Records, export and import ----------
   // Tablet with touch: export and import have to be usable with a finger, and
   // the paste box is the fallback for exactly that device.

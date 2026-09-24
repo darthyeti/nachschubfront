@@ -208,7 +208,11 @@ export function createHud(root, { debug, onAction }) {
       set('canBuySupply', canBuySupply(state).ok, (v) => (buySupplyButton.disabled = !v));
       const rubbleCost = nextRubbleCost(state);
       set('demolishCost', rubbleCost, (v) => (demolishButton.textContent = T.demolish(v)));
-      set('canDemolish', state.phase === 'planning' && state.requisition >= rubbleCost, (v) => {
+      // Affording a demolition is a condition for *entering* the mode, never for
+      // leaving it: with the button greyed out and no keyboard, an empty purse
+      // used to lock the player inside the mode.
+      const canEnterDemolish = state.phase === 'planning' && state.requisition >= rubbleCost;
+      set('canDemolish', canEnterDemolish || ui.demolishMode, (v) => {
         demolishButton.disabled = !v;
       });
       set('demolishMode', ui.demolishMode, (v) => demolishButton.classList.toggle('on', v));

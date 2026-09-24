@@ -17,7 +17,8 @@
     "sprites": "node tests/tools/import-sprites.mjs",
     "waves": "node tests/tools/make-waves.mjs",
     "playmatch": "node tests/tools/playmatch.mjs",
-    "precache": "node tests/tools/make-precache.mjs"
+    "precache": "node tests/tools/make-precache.mjs",
+    "ringcheck": "node tests/tools/ringcheck.mjs"
   },
   "devDependencies": {
     "playwright": "^1.63.0"

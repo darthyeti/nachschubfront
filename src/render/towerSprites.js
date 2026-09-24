@@ -47,8 +47,16 @@ export function angleDelta(a, b) {
   return ((b - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
 }
 
-/** A recipe emplacement stands in a golden ring on the ground. */
-function specialRing(ctx, sx, sy) {
+/**
+ * A recipe emplacement stands in a golden ring on the ground.
+ *
+ * Drawn by the caller in the ground pass, never together with the emplacement
+ * itself: the ellipse reaches past the diagonals of its own ground diamond, so
+ * inside the depth-sorted loop it landed on the sockets of the two neighbours
+ * already on the canvas (docs/ART.md, "Goldener Bodenring").
+ */
+export function drawSpecialRing(ctx, tower) {
+  const [sx, sy] = iso(tower.x + 0.5, tower.y + 0.5);
   ell(ctx, sx, sy, 30, 15, 'rgba(242,193,78,.16)', C.gold, 2.5);
 }
 
@@ -109,7 +117,6 @@ export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, red
   if (!back) return false;
   const [sx, sy] = iso(tower.x + 0.5, tower.y + 0.5);
   shadow(ctx, sx + 6, sy + 4, 34, 15, 0.28);
-  if (tower.special) specialRing(ctx, sx, sy);
 
   const weapon = set.weapon;
   const scale = set.back.unitScale;

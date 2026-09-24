@@ -19,7 +19,7 @@ import {
 import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
 import { createBackdropLayer } from './backdrop.js';
 import { createAtmosphere } from './atmosphere.js';
-import { drawTowerSprite } from './towerSprites.js';
+import { drawTowerSprite, drawSpecialRing } from './towerSprites.js';
 import {
   createPodRenderer,
   drawZoneMarker,
@@ -253,6 +253,13 @@ export function createSceneRenderer(sprites) {
 
     // Scorch marks, auras and flame cones lie on the ground, under the units.
     ui.effects?.drawGround(ctx, state, t, ui.reducedMotion);
+
+    // The gold ring of a recipe emplacement belongs here and not to the figure:
+    // it lies flat on the ground and must never end up on a neighbour's socket
+    // (docs/ART.md). After the scorch marks, so a burnt cell does not hide it.
+    if (ui.art === 'sprites') {
+      for (const tower of state.towers) if (tower.special) drawSpecialRing(ctx, tower);
+    }
 
     // What the player is looking at shows how far it reaches.
     if (ui.inspect) {

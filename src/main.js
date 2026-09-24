@@ -148,6 +148,15 @@ function newGame(seed = null) {
   history.replaceState(null, '', url);
 }
 
+/**
+ * Leaves the demolish mode and goes back to normal planning. Always possible:
+ * the way out may never depend on requisition, the phase or a keyboard.
+ */
+function leaveDemolishMode() {
+  ui.demolishMode = false;
+  ui.demolishArmed = null;
+}
+
 /** Marks or clears a landing zone and shows why a cell was refused. */
 function applyZone(cell) {
   if (!cell) return;
@@ -286,16 +295,21 @@ function onAction(action) {
       .join(' · ');
     showBanner(STRINGS.hud.supplyHint, chances);
   } else if (action === 'demolishMode') {
-    ui.demolishMode = !ui.demolishMode;
-    ui.demolishArmed = null;
-    if (ui.demolishMode) ui.obstacleMode = false;
+    if (ui.demolishMode) leaveDemolishMode();
+    else {
+      ui.demolishMode = true;
+      ui.demolishArmed = null;
+      ui.obstacleMode = false;
+    }
   } else if (action === 'codex') {
     codex.toggle();
   } else if (action === 'menu') {
     menus.togglePause();
   } else if (action === 'escape') {
-    // Escape works from the inside out: aiming, then the codex, then the menu.
+    // Escape works from the inside out: aiming, the demolish mode, the codex,
+    // then the menu.
     if (ui.commandTarget) ui.commandTarget = null;
+    else if (ui.demolishMode) leaveDemolishMode();
     else if (codex.open) codex.setOpen(false);
     else menus.togglePause();
   } else if (action === 'supplyLevel') {
@@ -443,6 +457,7 @@ const keyboard = attachKeyboard({ onAction });
 
 function drainEvents() {
   for (const ev of state.events) {
+    if (ev.type === 'phase' && ev.phase !== 'planning' && ui.demolishMode) leaveDemolishMode();
     if (ev.type === 'phase' && ev.phase === 'salvo') ui.podSelected = 0;
     else if (ev.type === 'waveCleared') showBanner(STRINGS.banners.waveCleared(ev.wave, ev.leaked));
     else if (ev.type === 'phase' && (ev.phase === 'defeat' || ev.phase === 'victory')) {

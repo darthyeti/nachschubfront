@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Bodenring-Probe</title>
+<style>
+  html, body { margin: 0; background: #110c0a; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+// Harness for the gold ground ring (docs/ART.md, "Goldener Bodenring").
+// Run it with `npm run ringcheck`; ?zoom= picks the zoom level.
+// Draws special emplacements on neighbouring cells, in the same depth order the
+// game uses, so the ring of one lands on the socket of the one behind it.
+import { createSpriteCache } from '../src/render/sprites/rasterizer.js';
+import { allTowerDefs, drawTowerSprite, drawSpecialRing } from '../src/render/towerSprites.js';
+import { iso } from '../src/render/iso.js';
+import { SPECIALS } from '../src/data/specials.js';
+
+const canvas = document.getElementById('c');
+const dpr = Math.min(2, devicePixelRatio || 1);
+const W = 900, H = 520;
+canvas.width = W * dpr;
+canvas.height = H * dpr;
+canvas.style.width = `${W}px`;
+canvas.style.height = `${H}px`;
+const ctx = canvas.getContext('2d');
+
+const cache = createSpriteCache();
+const zoom = Number(new URLSearchParams(location.search).get('zoom') ?? 1.6);
+
+// Three clusters of four touching cells each, so every neighbour pairing occurs.
+const ids = Object.keys(SPECIALS);
+const towers = [];
+let n = 0;
+for (const [cx, cy] of [[0, 0], [4, 0], [0, 4]]) {
+  for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+    towers.push({ x: cx + dx, y: cy + dy, doctrine: 'laser', rank: null, special: ids[n % ids.length] });
+    n += 1;
+  }
+}
+
+await cache.preload(allTowerDefs(), [zoom], dpr);
+
+function frame(now) {
+  const t = now / 1000;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#2a211a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, (W * dpr) / 2, 60 * dpr);
+
+  // Faint cell grid, so it is visible where a ground diamond ends.
+  ctx.strokeStyle = 'rgba(255,255,255,.12)';
+  ctx.lineWidth = 1 / zoom;
+  for (let x = -1; x <= 7; x += 1) {
+    for (let y = -1; y <= 7; y += 1) {
+      const [ax, ay] = iso(x, y);
+      const [bx, by] = iso(x + 1, y);
+      const [cx2, cy2] = iso(x + 1, y + 1);
+      const [dx2, dy2] = iso(x, y + 1);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.lineTo(cx2, cy2);
+      ctx.lineTo(dx2, dy2);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+
+  for (const o of towers) if (o.special) drawSpecialRing(ctx, o);
+  for (const o of [...towers].sort((a, b) => a.x + a.y - (b.x + b.y))) {
+    drawTowerSprite(ctx, cache, o, zoom, dpr, t, 0, true);
+  }
+  document.body.dataset.ready = 'true';
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
