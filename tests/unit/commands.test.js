@@ -15,7 +15,10 @@ import {
   currentWave,
   bannerBonus,
   takeSupplyBonus,
+  supplyRankBonus,
+  clampLine,
 } from '../../src/sim/commands.js';
+import { distanceToSegment2 } from '../../src/sim/targeting.js';
 import { createPods } from '../../src/sim/pods.js';
 import { beginWave } from '../../src/sim/waves.js';
 import { createPolyline } from '../../src/sim/route.js';
@@ -189,4 +192,123 @@ test('during planning a command counts against the wave to come', () => {
   state.commandPoints = 10;
   assert.equal(currentWave(state), 25, 'the salvo prepares wave 25');
   assert.ok(canUseCommand(state, 'prioritySupply').ok, 'so priority supply is in reach');
+});
+
+// ---------- Luftschlag (GDD section 11, v3) ----------
+
+/** Runs the pending strikes until the one just ordered has gone off. */
+function runWarning(state, seconds) {
+  for (let t = 0; t < seconds + SIM_STEP; t += SIM_STEP) updateCommands(state, SIM_STEP);
+}
+
+test('the airstrike needs a line, not a cell', () => {
+  const state = battlefield(30);
+  assert.equal(canUseCommand(state, 'airstrike', { x: 5, y: 10 }).reason, 'outside', 'a single cell is not a line');
+  assert.equal(canUseCommand(state, 'airstrike', null).reason, 'outside');
+  assert.equal(canUseCommand(state, 'airstrike', { from: { x: 2, y: 10 }, to: { x: -1, y: 10 } }).reason, 'outside');
+  assert.ok(canUseCommand(state, 'airstrike', { from: { x: 2, y: 10 }, to: { x: 9, y: 10 } }).ok);
+  assert.equal(canUseCommand(state, 'airstrike', { from: { x: 2, y: 10 }, to: { x: 9, y: 10 } }).ok, true);
+});
+
+test('the airstrike hits along the whole strip and misses what is beside it', () => {
+  const state = battlefield(30);
+  const command = commandById('airstrike');
+  // Three enemies on the line, one well clear of it.
+  // All three within the command's maximum run, which the strike clamps to.
+  const near = [put(state, 'warrior', 2), put(state, 'warrior', 6), put(state, 'warrior', 10)];
+  const far = put(state, 'warrior', 8);
+  far.y += command.halfWidth + 1.5;
+  const health = near.map((e) => e.health);
+
+  assert.ok(useCommand(state, 'airstrike', { from: { x: 1, y: 10 }, to: { x: 15, y: 10 } }).ok);
+  assert.equal(state.enemies.every((e) => e.health === e.maxHealth || e === far), true, 'nothing happens yet');
+  runWarning(state, command.warnSeconds);
+
+  near.forEach((e, i) => assert.ok(e.health < health[i] || e.dead, `enemy ${i} was hit`));
+  assert.equal(far.health, far.maxHealth, 'the one beside the strip is untouched');
+});
+
+test('the airstrike hits plate harder, and can never finish a boss in one go', () => {
+  const command = commandById('airstrike');
+  const state = battlefield(30);
+  const flesh = put(state, 'warrior', 6);
+  const plate = put(state, 'breaker', 8);
+  const boss = put(state, 'colossusbreaker', 10);
+  assert.equal(plate.armor, 'plate');
+  assert.equal(boss.boss, true);
+
+  assert.ok(useCommand(state, 'airstrike', { from: { x: 1, y: 10 }, to: { x: 15, y: 10 } }).ok);
+  runWarning(state, command.warnSeconds);
+
+  const share = (e) => 1 - e.health / e.maxHealth;
+  assert.ok(Math.abs(share(flesh) - command.damageFraction) < 1e-6, `flesh lost ${share(flesh)}`);
+  assert.ok(
+    Math.abs(share(plate) - command.damageFraction * command.plateFactor) < 1e-6,
+    `plate lost ${share(plate)}`,
+  );
+  assert.ok(share(plate) > share(flesh), 'plate is the point of the command');
+  assert.ok(Math.abs(share(boss) - command.bossDamageFraction) < 1e-6, `boss lost ${share(boss)}`);
+  assert.equal(boss.dead, false, 'and it is still standing');
+});
+
+test('a line longer than the command allows is cut short, not refused', () => {
+  const command = commandById('airstrike');
+  const from = { x: 0, y: 0 };
+  const cut = clampLine(from, { x: 100, y: 0 }, command.maxLength);
+  assert.equal(cut.x, command.maxLength);
+  // A short line is left alone, and a line of length zero does not divide by it.
+  assert.deepEqual(clampLine(from, { x: 2, y: 0 }, command.maxLength), { x: 2, y: 0 });
+  assert.deepEqual(clampLine(from, { x: 0, y: 0 }, command.maxLength), { x: 0, y: 0 });
+
+  const state = battlefield(30);
+  const beyond = put(state, 'warrior', command.maxLength + 4);
+  assert.ok(useCommand(state, 'airstrike', { from: { x: 0, y: 10 }, to: { x: 23, y: 10 } }).ok);
+  runWarning(state, command.warnSeconds);
+  assert.equal(beyond.health, beyond.maxHealth, 'past the end of the run nothing is hit');
+});
+
+test('the distance to a segment stops at its ends', () => {
+  // Beside the middle: the perpendicular distance.
+  assert.equal(distanceToSegment2(5, 2, 0, 0, 10, 0), 4);
+  // Past the end: the distance to the end, not to the infinite line.
+  assert.equal(distanceToSegment2(13, 0, 0, 0, 10, 0), 9);
+  assert.equal(distanceToSegment2(-3, 0, 0, 0, 10, 0), 9);
+  // A line drawn onto one cell is a point.
+  assert.equal(distanceToSegment2(3, 4, 1, 1, 1, 1), 4 + 9);
+});
+
+// ---------- The three changes to the existing commands ----------
+
+test('priority supply lifts two ranks from supply level 6 on', () => {
+  const command = commandById('prioritySupply');
+  const state = createGameState('COMMAND');
+  state.phase = 'planning';
+  state.wave = 25;
+  state.commandPoints = 20;
+
+  state.supplyLevel = command.doubleFromSupplyLevel - 1;
+  assert.equal(supplyRankBonus(state, command), command.rankBonus);
+  assert.ok(useCommand(state, 'prioritySupply').ok);
+  assert.equal(takeSupplyBonus(state), command.rankBonus);
+
+  state.commandUses = {};
+  state.supplyLevel = command.doubleFromSupplyLevel;
+  assert.equal(supplyRankBonus(state, command), command.rankBonusHigh);
+  assert.ok(useCommand(state, 'prioritySupply').ok);
+  assert.equal(takeSupplyBonus(state), command.rankBonusHigh);
+});
+
+test('the wider orbital strike and stasis field reach further than in v2', () => {
+  const orbital = commandById('orbitalStrike');
+  const stasis = commandById('stasisField');
+  assert.equal(orbital.radius, 3);
+  assert.equal(stasis.radius, 2.5);
+
+  // An enemy that used to sit outside the old radius of 2 is now inside.
+  const state = battlefield(30);
+  const edge = put(state, 'warrior', 5);
+  edge.y += 2.5;
+  assert.ok(useCommand(state, 'orbitalStrike', { from: undefined, x: 5, y: 10 }).ok);
+  runWarning(state, orbital.warnSeconds);
+  assert.ok(edge.health < edge.maxHealth || edge.dead, 'the wider strike reaches it');
 });

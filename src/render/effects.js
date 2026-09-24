@@ -29,9 +29,9 @@ const NUMBER_INTERVAL = 0.32;
 
 /** Screen shake in CSS pixels; a pod impact is the loudest thing on the field. */
 const MAX_SHAKE = 16;
-const SHAKE = { explosion: 2.5, podImpact: 13, bossKill: 6, leak: 4 };
+const SHAKE = { explosion: 2.5, podImpact: 13, bossKill: 6, leak: 4, airstrike: 7 };
 /** White flash over the picture, 0 to 1. Damped with prefers-reduced-motion. */
-const FLASH = { podImpact: 0.45, bossKill: 0.2 };
+const FLASH = { podImpact: 0.45, bossKill: 0.2, airstrike: 0.28 };
 const REDUCED_FLASH = 0.25;
 
 const SPARK = { fire: '#ffb13b', smoke: '#6b625a', goo: C.toxic, spark: '#ffe07a', warp: C.warpL };
@@ -197,6 +197,23 @@ export function createEffects() {
       if (event.index === 0) addWord(event.x + 0.5, event.y + 0.5, STRINGS.effects.podImpact, 38);
     } else if (event.type === 'stasis') {
       fields.push({ x: event.x, y: event.y, radius: event.radius, life: event.seconds, max: event.seconds });
+    } else if (event.type === 'airstrike') {
+      // A run of blasts along the line instead of one crater: the squadron flies
+      // the strip, it does not drop everything on one spot.
+      const dx = event.to.x - event.from.x;
+      const dy = event.to.y - event.from.y;
+      const steps = Math.max(2, Math.round(Math.hypot(dx, dy)));
+      for (let i = 0; i <= steps; i++) {
+        const u = i / steps;
+        const x = event.from.x + dx * u;
+        const y = event.from.y + dy * u;
+        burst(x, y, 6, 'fire', reducedMotion ? 3 : 8, { speed: 80, size: 6, grow: 11, life: 0.35 });
+        burst(x, y, 0, 'dust', reducedMotion ? 4 : 10, { speed: 110, size: 6, grow: 15, life: 1, gravity: -6 });
+        addRing(x, y, { radius: event.halfWidth * 1.6, life: 0.45, width: 4 });
+        addDecal({ kind: 'scorch', x, y, radius: event.halfWidth * 0.8, life: 14, max: 14 });
+      }
+      jolt(SHAKE.airstrike, FLASH.airstrike);
+      addWord((event.from.x + event.to.x) / 2, (event.from.y + event.to.y) / 2, STRINGS.effects.airstrike, 34);
     } else if (event.type === 'command' && event.id === 'prioritySupply') {
       // No target on the map: the order goes out from the bastion.
       const { x, y } = state.map.bastion;
@@ -719,6 +736,51 @@ export function createEffects() {
     /** Radius ring under the pointer while a command is being aimed. */
     drawAiming(ctx, cell, radius) {
       drawTargetRing(ctx, cell.x + 0.5, cell.y + 0.5, radius, C.gold, 0.8);
+    },
+
+    /**
+     * The strip an airstrike would cover: the run from the start the player set
+     * to the cell under the pointer, drawn on the ground. Before the start is
+     * set, only the ring under the pointer shows.
+     */
+    drawLineAiming(ctx, from, to, halfWidth, t) {
+      const a = project(from.x + 0.5, from.y + 0.5);
+      const b = project(to.x + 0.5, to.y + 0.5);
+      // The strip is a corridor on the ground, so its edges are offset in world
+      // space and projected, not offset on screen: a screen offset would be the
+      // wrong width depending on the direction.
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = (-dy / len) * halfWidth;
+      const ny = (dx / len) * halfWidth;
+      const corners = [
+        project(from.x + 0.5 + nx, from.y + 0.5 + ny),
+        project(to.x + 0.5 + nx, to.y + 0.5 + ny),
+        project(to.x + 0.5 - nx, to.y + 0.5 - ny),
+        project(from.x + 0.5 - nx, from.y + 0.5 - ny),
+      ];
+      ctx.beginPath();
+      ctx.moveTo(corners[0][0], corners[0][1]);
+      for (let i = 1; i < corners.length; i++) ctx.lineTo(corners[i][0], corners[i][1]);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(242,193,78,.14)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(242,193,78,.85)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([9, 7]);
+      ctx.lineDashOffset = -t * 18;
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // The run itself, so the direction of the attack is unmistakable.
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.strokeStyle = 'rgba(255,210,63,.9)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      drawTargetRing(ctx, from.x + 0.5, from.y + 0.5, 0.5, C.gold, 0.7);
     },
 
     /**

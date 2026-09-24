@@ -171,15 +171,18 @@ test('economy values grow the way the GDD describes', () => {
 });
 
 test('special commands unlock in order and have costs, cooldowns and texts', () => {
-  assert.equal(COMMANDS.length, 4);
+  assert.equal(COMMANDS.length, 5);
   assert.equal(new Set(COMMAND_IDS).size, COMMANDS.length, 'ids are unique');
   for (const c of COMMANDS) {
     assert.ok(c.cost > 0, c.id);
     assert.ok(c.fromWave > 0, c.id);
     assert.ok(c.cooldownWaves > 0, c.id);
     assert.ok(c.phase === 'wave' || c.phase === 'planning', `${c.id}: ${c.phase}`);
-    assert.ok(c.target === 'cell' || c.target === 'none', `${c.id}: ${c.target}`);
+    assert.ok(['cell', 'none', 'line'].includes(c.target), `${c.id}: ${c.target}`);
     if (c.target === 'cell') assert.ok(c.radius > 0, c.id);
+    if (c.target === 'line') {
+      assert.ok(c.halfWidth > 0 && c.maxLength > c.halfWidth, c.id);
+    }
     assert.equal(typeof STRINGS.commands[c.id]?.name, 'string', c.id);
     assert.equal(typeof STRINGS.commands[c.id]?.effect, 'string', c.id);
     assert.equal(commandById(c.id), c);
@@ -189,6 +192,14 @@ test('special commands unlock in order and have costs, cooldowns and texts', () 
   const waves = COMMANDS.map((c) => c.fromWave);
   assert.deepEqual(waves, [...waves].sort((a, b) => a - b), 'listed in unlock order');
   assert.ok(COMMANDS.find((c) => c.id === 'orbitalStrike').bossDamageFraction <= 0.25);
+  // v3 raised both radii; the GDD names the new numbers.
+  assert.equal(commandById('orbitalStrike').radius, 3);
+  assert.equal(commandById('stasisField').radius, 2.5);
+  // No command may take a boss out in one use (GDD section 9).
+  for (const c of COMMANDS) {
+    if (c.bossDamageFraction !== undefined) assert.ok(c.bossDamageFraction < 1, c.id);
+  }
+  assert.ok(commandById('airstrike').bossDamageFraction <= 0.3);
 });
 
 test('bosses have their own values, artwork and a name', () => {

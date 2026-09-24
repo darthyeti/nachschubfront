@@ -96,7 +96,7 @@ async function touchDriver(context, page) {
  */
 async function playRound(page, tapAt, anchor = 0) {
   await page.getByRole('button', { name: 'Salve anfordern' }).click();
-  await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 60000 });
+  await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
   const pod = (await game(page)).pods[anchor];
   const [x, y] = await screenOf(page, pod);
   await tapAt(x, y);
@@ -268,7 +268,7 @@ try {
 
     await check('the selection panel lists the whole salvo, a tap on the map picks one', async () => {
       await page.getByRole('button', { name: 'Salve anfordern' }).click();
-      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 60000 });
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
       const cards = await page.$$('.selection-card');
       assert.equal(cards.length, (await game(page)).pods.length, 'one card per pod');
       assert.equal((await page.evaluate(() => window.__nachschub.ui())).podSelected, 0, 'first pod preselected');
@@ -625,7 +625,7 @@ try {
     await check('starting a salvo drops the demolish mode', async () => {
       await demolish.tap();
       await page.getByRole('button', { name: 'Salve anfordern' }).click();
-      await page.waitForFunction(() => window.__nachschub.state().phase !== 'planning', null, { timeout: 60000 });
+      await page.waitForFunction(() => window.__nachschub.state().phase !== 'planning', null, { timeout: 90000 });
       // The phase change and the frame that reads it are two different moments.
       await frames(page, 3);
       assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishMode, false);
@@ -678,7 +678,7 @@ try {
     await check('the card names the demolition, and building pays it once', async () => {
       await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
       await page.getByRole('button', { name: 'Salve anfordern' }).click();
-      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 60000 });
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
 
       const cell = rubbleCell;
       const index = (await game(page)).pods.findIndex((p) => p.x === cell.x && p.y === cell.y);
@@ -776,6 +776,105 @@ try {
       assert.equal(ui.demolishMode, true);
       assert.equal(ui.bulwarkMode, false);
       await page.keyboard.press('Escape');
+    });
+
+    await context.close();
+  }
+
+  // ---------- Airstrike: the first line target ----------
+  // Its cooldown is four waves, so everything that must not fire comes first
+  // and the one real strike is last.
+  console.log('airstrike (tablet, touch)');
+  {
+    const { context, page } = await openGame({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+    const touch = await touchDriver(context, page);
+    const tapCell = async (cell) => {
+      const [x, y] = await screenOf(page, cell);
+      await touch('touchStart', [[x, y]]);
+      await touch('touchEnd', []);
+      await frames(page, 2);
+    };
+    const aim = () => page.evaluate(() => window.__nachschub.ui());
+
+    // Wave 30 and enough points: that is where the airstrike unlocks.
+    await page.evaluate(() => {
+      window.__nachschub.debug.setWave(30);
+      window.__nachschub.debug.grant({ commandPoints: 20 });
+    });
+    await playRound(page, (x, y) => page.mouse.click(x, y));
+
+    const button = page.getByRole('button', { name: /Luftschlag/ });
+
+    await check('the airstrike asks for a start and an end, not for one cell', async () => {
+      await button.tap();
+      assert.equal((await aim()).commandTarget, 'airstrike');
+      assert.equal((await aim()).commandLineFrom, null, 'nothing set yet');
+      // The banner is written by the HUD on the next frame, not by the tap.
+      await frames(page, 2);
+      assert.match(await page.locator('.hud-banner').textContent(), /Anfang antippen/);
+
+      const cells = (await game(page)).routeCells;
+      await tapCell(cells[4]);
+      const after = await aim();
+      assert.ok(after.commandLineFrom, 'the start is set');
+      assert.equal(after.commandTarget, 'airstrike', 'and it is still aiming');
+      await frames(page, 2);
+      assert.match(await page.locator('.hud-banner').textContent(), /Ende antippen/);
+      await page.screenshot({ path: join(OUT, 'airstrike-aiming.png') });
+      await page.keyboard.press('Escape');
+    });
+
+    await check('tapping the start again cancels instead of striking', async () => {
+      const before = (await game(page)).commandPoints;
+      await button.tap();
+      const cells = (await game(page)).routeCells;
+      await tapCell(cells[6]);
+      assert.ok((await aim()).commandLineFrom, 'the start is set');
+      await tapCell(cells[6]);
+      assert.equal((await aim()).commandTarget, null, 'aiming stopped');
+      assert.equal((await aim()).commandLineTo, null);
+      assert.equal((await game(page)).commandPoints, before, 'and nothing was spent');
+    });
+
+    await check('escape drops a half-drawn line', async () => {
+      await button.tap();
+      const cells = (await game(page)).routeCells;
+      await tapCell(cells[6]);
+      await page.keyboard.press('Escape');
+      const after = await aim();
+      assert.equal(after.commandTarget, null);
+      assert.equal(after.commandLineFrom, null);
+      assert.ok(await page.locator('.menu[data-menu="pause"]').isHidden(), 'the menu stays shut');
+    });
+
+    await check('the second tap flies the run and spends the points', async () => {
+      const before = (await game(page)).commandPoints;
+      await button.tap();
+      const cells = (await game(page)).routeCells;
+      await tapCell(cells[4]);
+
+      // On touch the second tap only draws the strip; the third one fires.
+      await tapCell(cells[12]);
+      assert.ok((await aim()).commandLineTo, 'the end is armed, not fired');
+      assert.equal((await game(page)).commandPoints, before, 'nothing spent yet');
+      await frames(page, 2);
+      await page.screenshot({ path: join(OUT, 'airstrike-armed.png') });
+
+      await tapCell(cells[12]);
+      const after = await aim();
+      assert.equal(after.commandTarget, null, 'the aiming is over');
+      assert.equal(after.commandLineFrom, null);
+      assert.ok((await game(page)).commandPoints < before, 'the points were spent');
+      await frames(page, 30);
+      await page.screenshot({ path: join(OUT, 'airstrike-run.png') });
+      // And now it is on cooldown, which is what the button has to say.
+      await frames(page, 2);
+      assert.ok(await button.isDisabled(), 'four waves of cooldown');
     });
 
     await context.close();

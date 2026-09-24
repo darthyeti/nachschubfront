@@ -92,6 +92,10 @@ const ui = {
   bulwarkArmed: null,
   /** Id of the command being aimed; the next tap on the map fires it. */
   commandTarget: null,
+  /** Line commands: the start the player has already set, or null. */
+  commandLineFrom: null,
+  /** Touch only: the end waiting for its confirming tap (GDD section 13). */
+  commandLineTo: null,
   /** Cell the info panel describes; set by a long press or the mouse pointer. */
   inspect: null,
   /** Set from the player's settings and the system preference; see applyMotion(). */
@@ -248,10 +252,56 @@ function applyBulwark(cell, pointerType = 'mouse') {
   else flash(cell, false, result.reason === 'target' ? t.bulwarkTarget : (t[result.reason] ?? t.bulwarkTarget));
 }
 
-/** Fires the command being aimed at the tapped cell. */
-function applyCommand(cell) {
-  const id = ui.commandTarget;
+/** Cancels whatever is being aimed. */
+function cancelAiming() {
   ui.commandTarget = null;
+  ui.commandLineFrom = null;
+  ui.commandLineTo = null;
+}
+
+/**
+ * Fires the command being aimed at the tapped cell.
+ *
+ * A line command wants a start and an end (GDD section 11). With a mouse the
+ * strip follows the pointer, so the second click can fire straight away. A
+ * finger has no hover and would otherwise commit four command points to a strip
+ * it never saw, so on touch the second tap only draws it and a third one fires
+ * — the same arm-then-confirm rule the demolition uses (GDD section 13).
+ * Tapping the start again cancels, so a misplaced tap costs nothing.
+ */
+function applyCommand(cell, pointerType = 'mouse') {
+  const id = ui.commandTarget;
+  if (commandById(id).target === 'line') {
+    if (!cell) return cancelAiming();
+    const from = ui.commandLineFrom;
+    if (!from) {
+      ui.commandLineFrom = { x: cell.x, y: cell.y };
+      showBanner(STRINGS.commandBar.lineEndHint(STRINGS.commands[id].name));
+      return;
+    }
+    if (from.x === cell.x && from.y === cell.y) {
+      cancelAiming();
+      showBanner(STRINGS.commandBar.cancelled);
+      return;
+    }
+    const armed = ui.commandLineTo;
+    const isArmed = armed && armed.x === cell.x && armed.y === cell.y;
+    if (pointerType !== 'mouse' && !isArmed) {
+      ui.commandLineTo = { x: cell.x, y: cell.y };
+      showBanner(STRINGS.commandBar.lineConfirm);
+      return;
+    }
+    cancelAiming();
+    const result = useCommand(state, id, { from, to: cell });
+    if (result.ok) {
+      flash(cell, true, STRINGS.commands[id].name);
+      showBanner(STRINGS.commandBar.used(STRINGS.commands[id].name));
+    } else if (STRINGS.placement[result.reason]) {
+      flash(cell, false, STRINGS.placement[result.reason]);
+    }
+    return;
+  }
+  cancelAiming();
   if (!cell) return;
   const result = useCommand(state, id, cell);
   const name = STRINGS.commands[id].name;
@@ -266,21 +316,31 @@ function applyCommand(cell) {
 /** A command from the bar: aim it, or fire it straight away if it has no target. */
 function pickCommand(id) {
   if (ui.commandTarget === id) {
-    ui.commandTarget = null;
+    cancelAiming();
     return;
   }
-  const check = canUseCommand(state, id, { x: 0, y: 0 });
+  const command = commandById(id);
+  // A probe target, only to separate "cannot yet" from "needs a target".
+  const probe = command.target === 'line' ? { from: { x: 0, y: 0 }, to: { x: 1, y: 0 } } : { x: 0, y: 0 };
+  const check = canUseCommand(state, id, probe);
   if (!check.ok && check.reason !== 'outside') {
     if (STRINGS.placement[check.reason]) showBanner(STRINGS.placement[check.reason]);
     return;
   }
-  if (commandById(id).target === 'none') {
+  if (command.target === 'none') {
     const result = useCommand(state, id);
     if (result.ok) showBanner(STRINGS.commandBar.used(STRINGS.commands[id].name));
     return;
   }
   ui.commandTarget = id;
-  showBanner(STRINGS.commandBar.aimHint(STRINGS.commands[id].name));
+  ui.commandLineFrom = null;
+  ui.commandLineTo = null;
+  const t = STRINGS.commandBar;
+  showBanner(
+    command.target === 'line'
+      ? t.lineStartHint(STRINGS.commands[id].name)
+      : t.aimHint(STRINGS.commands[id].name),
+  );
 }
 
 /** During the selection a tap on a pod picks it; the panel then offers the actions. */
@@ -303,7 +363,7 @@ function applyChoice(choice) {
 }
 
 function onCellTap(cell, pointerType) {
-  if (ui.commandTarget) applyCommand(cell);
+  if (ui.commandTarget) applyCommand(cell, pointerType);
   else if (ui.obstacleMode) applyObstacle(cell);
   else if (ui.demolishMode && state.phase === 'planning') applyDemolish(cell, pointerType);
   else if (ui.bulwarkMode && state.phase === 'planning') applyBulwark(cell, pointerType);
@@ -365,7 +425,7 @@ function onAction(action) {
   } else if (action === 'escape') {
     // Escape works from the inside out: aiming, the demolish mode, the codex,
     // then the menu.
-    if (ui.commandTarget) ui.commandTarget = null;
+    if (ui.commandTarget) cancelAiming();
     else if (ui.demolishMode) leaveDemolishMode();
     else if (ui.bulwarkMode) leaveBulwarkMode();
     else if (codex.open) codex.setOpen(false);
@@ -597,7 +657,10 @@ function frame(now) {
   ui.podHighlights = state.phase === 'selection' ? state.pods.map((p) => p.index) : [];
   if (state.phase !== 'selection') ui.recipePreview = [];
   ui.clearedCells = keepClearedCells(state.phase, state.pods, ui.clearedCells);
-  ui.commandRadius = ui.commandTarget ? commandById(ui.commandTarget).radius : 0;
+  const aimed = ui.commandTarget ? commandById(ui.commandTarget) : null;
+  ui.commandRadius = aimed?.radius ?? 0;
+  // The strip the airstrike would cover, for the preview under the pointer.
+  ui.commandLine = aimed?.target === 'line' ? { halfWidth: aimed.halfWidth, maxLength: aimed.maxLength } : null;
 
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);
   hud.update(state, ui, { totalWaves: totalWaves(), canStart: canRequestSalvo(state) });
@@ -680,6 +743,8 @@ if (debug) {
       bulwarkMode: ui.bulwarkMode,
       bulwarkArmed: ui.bulwarkArmed,
       commandTarget: ui.commandTarget,
+      commandLineFrom: ui.commandLineFrom,
+      commandLineTo: ui.commandLineTo,
       podSelected: ui.podSelected,
     }),
   };

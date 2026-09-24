@@ -72,6 +72,32 @@ export function targetsInRange(state, tower, stats, radius = stats.range, sorted
 }
 
 /** Every enemy inside a radius around a world point, whatever its armour. */
+/**
+ * Squared distance from a point to the segment a-b. Used for the airstrike's
+ * strip: everything within half a width of the line is under it.
+ */
+export function distanceToSegment2(px, py, ax, ay, bx, by) {
+  const vx = bx - ax;
+  const vy = by - ay;
+  const len2 = vx * vx + vy * vy;
+  // A line the player drew onto a single cell is a point, not a segment.
+  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / len2));
+  const dx = px - (ax + vx * t);
+  const dy = py - (ay + vy * t);
+  return dx * dx + dy * dy;
+}
+
+/** Everything within `halfWidth` of the segment a-b, flyers included. */
+export function enemiesAlong(state, a, b, halfWidth) {
+  const found = [];
+  const limit = halfWidth * halfWidth;
+  for (const e of state.enemies) {
+    if (e.dead) continue;
+    if (distanceToSegment2(e.x, e.y, a.x, a.y, b.x, b.y) <= limit) found.push(e);
+  }
+  return found;
+}
+
 export function enemiesAround(state, point, radius, { air = true, ground = true } = {}) {
   const found = [];
   const r2 = radius * radius;

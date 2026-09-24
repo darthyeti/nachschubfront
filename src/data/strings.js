@@ -292,6 +292,9 @@ export const STRINGS = {
     fromWave: (wave) => `ab Welle ${wave}`,
     cooldown: (waves) => (waves === 1 ? 'noch 1 Welle' : `noch ${waves} Wellen`),
     aimHint: (name) => `${name}: Ziel antippen`,
+    lineStartHint: (name) => `${name}: Anfang antippen`,
+    lineEndHint: (name) => `${name}: Ende antippen`,
+    lineConfirm: 'Luftschlag? Nochmal tippen',
     cancelled: 'Abgebrochen',
     used: (name) => `${name} eingesetzt`,
   },
@@ -299,8 +302,12 @@ export const STRINGS = {
   commands: {
     orbitalStrike: { name: 'Orbitalschlag', effect: 'Ziel markieren, nach 2 s schwerer Flächenschaden' },
     stasisField: { name: 'Stasisfeld', effect: 'Friert Gegner im Umkreis ein' },
-    prioritySupply: { name: 'Priorisierter Nachschub', effect: 'Nächste Salve: ein Rang mehr' },
+    prioritySupply: {
+      name: 'Priorisierter Nachschub',
+      effect: 'Nächste Salve: ein Rang mehr, ab Nachschubstufe 6 zwei',
+    },
     holyBanner: { name: 'Heiliges Banner', effect: 'Stellungen im Umkreis schlagen härter zu' },
+    airstrike: { name: 'Luftschlag', effect: 'Linie ziehen, Geschwader fliegt sie ab · stark gegen Panzer' },
   },
 
   phases: {
@@ -370,6 +377,7 @@ export const STRINGS = {
   effects: {
     podImpact: 'KRACH!',
     orbitalStrike: 'EINSCHLAG!',
+    airstrike: 'ANFLUG!',
   },
 
   gallery: {

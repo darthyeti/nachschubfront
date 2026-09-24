@@ -3,7 +3,7 @@
 
 import { COMMANDS, commandById } from '../data/commands.js';
 import { MAX_RANK } from '../data/ranks.js';
-import { enemiesAround } from './targeting.js';
+import { enemiesAround, enemiesAlong } from './targeting.js';
 import { damageEnemy } from './damage.js';
 import { applyStun } from './effects.js';
 import { inBounds } from './grid.js';
@@ -58,7 +58,23 @@ export function canUseCommand(state, id, cell = null) {
   if (command.target === 'cell' && (!cell || !inBounds(state.map.grid, cell.x, cell.y))) {
     return { ok: false, reason: 'outside' };
   }
+  if (command.target === 'line') {
+    const line = cell;
+    const ends = [line?.from, line?.to];
+    if (!line || ends.some((p) => !p || !inBounds(state.map.grid, p.x, p.y))) {
+      return { ok: false, reason: 'outside' };
+    }
+  }
   return { ok: true };
+}
+
+/**
+ * Ranks the Priorisierter Nachschub lifts the next salvo by: one, and two from
+ * the supply level in the table on (v3). A late salvo is short and every pod in
+ * it matters, so the command has to grow with it.
+ */
+export function supplyRankBonus(state, command = commandById('prioritySupply')) {
+  return state.supplyLevel >= command.doubleFromSupplyLevel ? command.rankBonusHigh : command.rankBonus;
 }
 
 /** Freezes everything around a point; bosses shake it off sooner. */
@@ -88,14 +104,59 @@ function strike(state, hit) {
 }
 
 /**
- * Uses a command. Targeted commands take the cell the player aimed at.
+ * Resolves an airstrike once its warning has run out. Like the orbital strike
+ * it works on a share of maximum health and goes around the damage matrix; the
+ * one armour that matters is plate, which the squadron is loaded for.
+ */
+function airstrike(state, hit) {
+  for (const e of enemiesAlong(state, hit.from, hit.to, hit.halfWidth)) {
+    // A boss or a Koloss takes the capped share and nothing more: no command may
+    // kill one in a single use (GDD section 9).
+    const share = e.boss
+      ? hit.bossDamageFraction
+      : Math.min(1, hit.damageFraction * (e.armor === 'plate' ? hit.plateFactor : 1));
+    e.shield = 0;
+    e.health -= e.maxHealth * share;
+    e.flash = 0.12;
+    if (e.health <= 0) e.dead = true;
+  }
+  state.events.push({
+    type: 'airstrike',
+    from: { ...hit.from },
+    to: { ...hit.to },
+    halfWidth: hit.halfWidth,
+  });
+}
+
+/**
+ * Clamps a line to the command's longest allowed run, keeping its direction.
+ * A player dragging across half the map gets the first `maxLength` cells of it
+ * rather than a refusal.
+ */
+export function clampLine(from, to, maxLength) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy);
+  if (len <= maxLength || len === 0) return { x: to.x, y: to.y };
+  return { x: from.x + (dx / len) * maxLength, y: from.y + (dy / len) * maxLength };
+}
+
+/**
+ * Uses a command. Targeted commands take the cell the player aimed at; the
+ * airstrike takes `{ from, to }` in cell coordinates instead.
  * @returns {{ok: true} | {ok: false, reason: string}}
  */
 export function useCommand(state, id, cell = null) {
   const check = canUseCommand(state, id, cell);
   if (!check.ok) return check;
   const command = commandById(id);
-  const point = cell ? { x: cell.x + 0.5, y: cell.y + 0.5 } : null;
+  // A line target carries { from, to }; a cell target is one point.
+  const point =
+    command.target === 'line'
+      ? { x: cell.from.x + 0.5, y: cell.from.y + 0.5 }
+      : cell
+        ? { x: cell.x + 0.5, y: cell.y + 0.5 }
+        : null;
 
   if (id === 'orbitalStrike') {
     state.pendingStrikes.push({
@@ -110,9 +171,23 @@ export function useCommand(state, id, cell = null) {
   } else if (id === 'stasisField') {
     stasis(state, command, point);
   } else if (id === 'prioritySupply') {
-    state.supplyBonus += command.rankBonus;
+    state.supplyBonus += supplyRankBonus(state, command);
   } else if (id === 'holyBanner') {
     state.banners.push({ x: point.x, y: point.y, radius: command.radius, bonus: command.damageBonus });
+  } else if (id === 'airstrike') {
+    const from = { x: cell.from.x + 0.5, y: cell.from.y + 0.5 };
+    const to = clampLine(from, { x: cell.to.x + 0.5, y: cell.to.y + 0.5 }, command.maxLength);
+    state.pendingStrikes.push({
+      kind: 'airstrike',
+      from,
+      to,
+      halfWidth: command.halfWidth,
+      damageFraction: command.damageFraction,
+      plateFactor: command.plateFactor,
+      bossDamageFraction: command.bossDamageFraction,
+      t: 0,
+      warnSeconds: command.warnSeconds,
+    });
   }
 
   state.commandPoints -= command.cost;
@@ -128,7 +203,8 @@ export function updateCommands(state, dt) {
     const hit = state.pendingStrikes[read];
     hit.t += dt;
     if (hit.t >= hit.warnSeconds) {
-      strike(state, hit);
+      if (hit.kind === 'airstrike') airstrike(state, hit);
+      else strike(state, hit);
       continue;
     }
     state.pendingStrikes[write++] = hit;

@@ -312,6 +312,17 @@ export function createSceneRenderer(sprites) {
     if (ui.commandTarget && ui.hoverCell && ui.commandRadius) {
       ui.effects?.drawAiming(ctx, ui.hoverCell, ui.commandRadius);
     }
+    // A line command shows its strip once the start is set.
+    if (ui.commandLine) {
+      // On touch the armed end holds the strip still until it is confirmed; with
+      // a mouse it follows the pointer.
+      const end = ui.commandLineTo ?? ui.hoverCell;
+      if (ui.commandLineFrom && end) {
+        ui.effects?.drawLineAiming(ctx, ui.commandLineFrom, end, ui.commandLine.halfWidth, t);
+      } else if (ui.hoverCell) {
+        ui.effects?.drawAiming(ctx, ui.hoverCell, ui.commandLine.halfWidth);
+      }
+    }
     for (const f of ui.flashes) {
       const a = Math.max(0, f.life / f.max);
       const col = f.ok ? `rgba(156,207,74,${a})` : `rgba(255,58,42,${a})`;
