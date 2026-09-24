@@ -57,6 +57,77 @@ export const STRINGS = {
       'Landezonen antippen, Salve anfordern, aus den Kapseln eine Stellung wählen. ' +
       'Die Gegner laufen immer den kürzesten freien Weg — mit Trümmern und Stellungen wird er länger.',
     hint: 'Leertaste pausiert · Escape öffnet das Menü · R zeigt die Rezepte',
+    records: 'Bestenliste',
+  },
+
+  records: {
+    title: 'Bestenliste',
+    intro: 'Die besten Läufe auf diesem Gerät. Ein Tipp auf einen Seed übernimmt ihn ins Hauptmenü.',
+    empty: 'Noch keine beendete Partie. Die erste Wertung landet hier.',
+    /** Table head. */
+    rank: '#',
+    seed: 'Seed',
+    wave: 'Welle',
+    score: 'Punkte',
+    runs: 'Läufe',
+    victoryMark: '★',
+    victoryTitle: 'Alle fünfzig Wellen abgewehrt',
+    seedTitle: (seed) => `Seed ${seed} ins Hauptmenü übernehmen`,
+    taken: (seed) => `Seed ${seed} übernommen.`,
+    olderRules: (n) => `Dazu ${n} ältere Läufe aus einer früheren Regelversion.`,
+
+    stats: 'Statistik',
+    matches: 'Partien',
+    victories: 'Siege',
+    kills: 'Abschüsse',
+    bestWave: 'Weiteste Welle',
+    playtime: 'Spielzeit',
+    favourite: 'Liebste Doktrin',
+    none: '—',
+    duration: (seconds) => {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      if (h > 0) return `${h} h ${m} min`;
+      // A first, short match should not read as "0 min".
+      return m > 0 ? `${m} min` : `${Math.round(seconds)} s`;
+    },
+
+    transfer: 'Übertragen',
+    export: 'Exportieren',
+    exportHint: 'Speichert eine JSON-Datei mit Bestwerten und Statistik. Einstellungen bleiben am Gerät.',
+    copy: 'Kopieren',
+    copied: 'In die Zwischenablage kopiert.',
+    copyFailed: 'Kopieren hat nicht geklappt. Bitte die Datei exportieren.',
+    import: 'Importieren',
+    importFile: 'Datei wählen',
+    importPaste: 'Oder den Inhalt einer Exportdatei hier einfügen:',
+    importPastePlaceholder: 'JSON einfügen',
+    importCheck: 'Prüfen',
+    reset: 'Alles löschen',
+    resetConfirm: 'Bestwerte und Statistik wirklich löschen? Das lässt sich nicht rückgängig machen.',
+    resetDone: 'Bestwerte und Statistik sind gelöscht.',
+    cancel: 'Abbrechen',
+
+    replaceTitle: 'Profil ersetzen',
+    replaceIntro: 'Der Import ersetzt den Stand auf diesem Gerät. Zusammengeführt wird nicht.',
+    replaceHere: 'Auf diesem Gerät',
+    replaceFile: 'In der Datei',
+    replaceSummary: ({ runs, seeds, bestWave, bestScore }) =>
+      `${runs} Partien · ${seeds} Seeds · weiteste Welle ${bestWave} · ${bestScore} Punkte`,
+    replaceConfirm: 'Ersetzen',
+    replaceDone: 'Profil ersetzt.',
+
+    errors: {
+      parse: 'Das ist keine lesbare JSON-Datei.',
+      magic: 'Diese Datei stammt nicht aus Nachschubfront.',
+      future: 'Die Datei kommt aus einer neueren Version des Spiels.',
+      empty: 'In der Datei steht keine beendete Partie.',
+      read: 'Die Datei konnte nicht gelesen werden.',
+    },
+    storageWarning: 'Bestwerte können in diesem Browser nicht gespeichert werden.',
+    lockedWarning:
+      'Auf diesem Gerät liegt ein Profil aus einer neueren Version. Es bleibt unangetastet, ' +
+      'neue Ergebnisse werden nicht gespeichert.',
   },
 
   settings: {

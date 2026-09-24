@@ -7,10 +7,12 @@
 import { STRINGS } from '../data/strings.js';
 import { normalizeSeed, randomSeed } from '../core/seed.js';
 import { PREF_DEFAULTS } from '../core/prefs.js';
+import { createRecordsScreen } from './records.js';
 
 const T = STRINGS.menu;
 const TS = STRINGS.settings;
 const TE = STRINGS.endScreen;
+const TR = STRINGS.records;
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -73,13 +75,16 @@ function createOverlay(root, name, label) {
  * @param {(seed: string|null) => void} options.onStart  New match; null means a random seed.
  * @param {() => void} options.onResume
  * @param {(open: boolean) => void} options.onToggle  Called whenever a screen opens or closes.
+ * @param {ReturnType<import('../storage/profile.js').createProfileStore>} options.profile
  * @param {boolean} options.canStore  False shows a warning in the settings.
  */
-export function createMenus(root, { prefs, onStart, onResume, onToggle, canStore = true }) {
+export function createMenus(root, { prefs, profile, onStart, onResume, onToggle, canStore = true }) {
   /** @type {'main'|'pause'|'settings'|'end'|null} */
   let open = null;
   /** Where "back" leads from the settings. */
   let settingsReturn = 'main';
+  /** The same for the records screen, which the end screen also opens. */
+  let recordsReturn = 'main';
 
   // ---------- Main menu ----------
   const main = createOverlay(root, 'main', STRINGS.gameTitle);
@@ -105,6 +110,7 @@ export function createMenus(root, { prefs, onStart, onResume, onToggle, canStore
       close();
       onStart(typed);
     }),
+    button(T.records, 'alt', () => show('records', 'main')),
     button(T.settings, 'alt', () => show('settings', 'main')),
   );
   main.panel.append(mainActions);
@@ -175,6 +181,20 @@ export function createMenus(root, { prefs, onStart, onResume, onToggle, canStore
   prefs.onChange(syncSettings);
   syncSettings(prefs.values);
 
+  // ---------- Records ----------
+  // Its own module: the table, the statistics and the transfer are enough code
+  // to crowd this file out.
+  const records = createOverlay(root, 'records', TR.title);
+  const recordsScreen = createRecordsScreen(records.panel, {
+    profile,
+    canStore,
+    onSeed(seed) {
+      seedInput.value = seed;
+      show('main');
+    },
+    onBack: () => show(recordsReturn),
+  });
+
   // ---------- End screen ----------
   const end = createOverlay(root, 'end', TE.victory);
   const endTitle = el('h2', 'menu-title');
@@ -193,14 +213,19 @@ export function createMenus(root, { prefs, onStart, onResume, onToggle, canStore
       close();
       onStart(endSeed);
     }),
+    button(TE.records, 'alt', () => show('records', 'end')),
     button(T.toMenu, 'alt', () => show('main')),
   );
   end.panel.append(endTitle, endDetail, endScore, endRecord, endActions);
 
-  const screens = { main, pause, settings, end };
+  const screens = { main, pause, settings, records, end };
 
   function show(name, from) {
-    if (from) settingsReturn = from;
+    if (from) {
+      if (name === 'records') recordsReturn = from;
+      else settingsReturn = from;
+    }
+    if (name === 'records') recordsScreen.refresh();
     for (const [key, screen] of Object.entries(screens)) screen.overlay.hidden = key !== name;
     const wasOpen = open !== null;
     open = name;
@@ -226,6 +251,8 @@ export function createMenus(root, { prefs, onStart, onResume, onToggle, canStore
         onResume();
       } else if (name === 'settings') {
         show(settingsReturn);
+      } else if (name === 'records') {
+        show(recordsReturn);
       }
     });
   }

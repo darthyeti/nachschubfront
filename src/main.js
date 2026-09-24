@@ -411,6 +411,7 @@ let speedBeforeMenu = 1;
 
 const menus = createMenus(document.body, {
   prefs,
+  profile,
   canStore: storage.persistent,
   onToggle(open) {
     if (open) {

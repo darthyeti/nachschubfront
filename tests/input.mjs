@@ -582,6 +582,179 @@ try {
     await context.close();
   }
 
+  // ---------- Records, export and import ----------
+  // Tablet with touch: export and import have to be usable with a finger, and
+  // the paste box is the fallback for exactly that device.
+  console.log('records, export and import (tablet, touch)');
+  {
+    const { context, page } = await openGame({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+    // The records screen hangs off the main menu and the end screen, so the way
+    // in from a running match is pause, main menu, list.
+    const openRecords = async () => {
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('.menu[data-menu="pause"]:not([hidden])');
+      await page.getByRole('button', { name: 'Hauptmenü' }).tap();
+      await page.waitForSelector('.menu[data-menu="main"]:not([hidden])');
+      await page.getByRole('button', { name: 'Bestenliste' }).tap();
+      await page.waitForSelector('.menu[data-menu="records"]:not([hidden])');
+    };
+    const rows = () => page.$$eval('.records-table tbody tr', (list) => list.map((r) => r.textContent));
+    const statOf = (label) =>
+      page.evaluate((want) => {
+        const dl = document.querySelector('.menu[data-menu="records"] .menu-score');
+        const terms = [...dl.querySelectorAll('dt')];
+        const i = terms.findIndex((t) => t.textContent === want);
+        return i === -1 ? null : dl.querySelectorAll('dd')[i].textContent;
+      }, label);
+
+    await check('an empty profile says so instead of showing a table', async () => {
+      await openRecords();
+      assert.ok(await page.locator('.records-table').isHidden(), 'no table without a single match');
+      assert.equal(await statOf('Partien'), '0');
+      assert.equal(await statOf('Liebste Doktrin'), '—');
+      assert.ok(await page.getByRole('button', { name: 'Exportieren' }).isDisabled(), 'nothing to export yet');
+      await page.getByRole('button', { name: 'Zurück' }).tap();
+      await page.waitForSelector('.menu[data-menu="main"]:not([hidden])');
+      await page.getByRole('button', { name: 'Feldzug beginnen' }).tap();
+      await page.waitForSelector('.menu[data-menu="main"]', { state: 'hidden' });
+    });
+
+    await check('a lost match lands in the list, in the statistics and in storage', async () => {
+      await playRound(page, (x, y) => page.mouse.click(x, y));
+      // Losing on purpose: defeat is only checked while a wave runs.
+      await page.evaluate(() => window.__nachschub.debug.setLives(0));
+      await page.waitForSelector('.menu[data-menu="end"]:not([hidden])');
+      assert.match(await page.locator('.menu-record').textContent(), /Neuer Bestwert/);
+
+      const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:profile')));
+      assert.equal(stored.stats.matches, 1, 'the match is on disk, not only on screen');
+      assert.equal(stored.stats.victories, 0);
+      assert.ok(stored.best['2']?.length === 1, 'filed under the current ruleset version');
+      assert.equal(stored.best['2'][0].seed, SEED);
+
+      await page.getByRole('button', { name: 'Bestenliste' }).tap();
+      await page.waitForSelector('.menu[data-menu="records"]:not([hidden])');
+      const list = await rows();
+      assert.equal(list.length, 1);
+      assert.ok(list[0].includes(SEED), `row was ${list[0]}`);
+      assert.equal(await statOf('Partien'), '1');
+      assert.notEqual(await statOf('Liebste Doktrin'), '—', 'the tower built during the round counts');
+      await page.screenshot({ path: join(OUT, 'records-list.png') });
+    });
+
+    await check('a tap on a seed carries it to the main menu', async () => {
+      await page.locator('.records-seed').first().tap();
+      await page.waitForSelector('.menu[data-menu="main"]:not([hidden])');
+      assert.equal(await page.inputValue('.menu-seed-input'), SEED);
+    });
+
+    await check('every control on the records screen is at least 44 px tall', async () => {
+      await page.getByRole('button', { name: 'Bestenliste' }).first().tap();
+      await page.waitForSelector('.menu[data-menu="records"]:not([hidden])');
+      const small = await page.$$eval('.menu[data-menu="records"] button, .menu[data-menu="records"] textarea', (nodes) =>
+        nodes
+          .filter((n) => n.offsetParent !== null)
+          .map((n) => [n.textContent.trim() || n.tagName, n.getBoundingClientRect()])
+          .filter(([, r]) => r.height < 44)
+          .map(([name, r]) => `${name}: ${Math.round(r.height)} px`),
+      );
+      assert.deepEqual(small, [], 'targets below 44 px');
+    });
+
+    await check('a foreign or broken file is refused with a reason and changes nothing', async () => {
+      const before = await page.evaluate(() => localStorage.getItem('nachschubfront:profile'));
+      for (const [text, expected] of [
+        ['{kaputt', 'keine lesbare JSON'],
+        ['{"magic":"anderes-spiel"}', 'nicht aus Nachschubfront'],
+        ['{"magic":"nachschubfront.profile","version":99}', 'neueren Version'],
+      ]) {
+        await page.fill('.records-paste', text);
+        await page.getByRole('button', { name: 'Prüfen' }).tap();
+        const status = await page.locator('.records-status').textContent();
+        assert.ok(status.includes(expected), `"${text}" said "${status}"`);
+        assert.equal(await page.getAttribute('.records-status', 'data-kind'), 'error');
+        assert.ok(await page.locator('.records-confirm').isHidden(), 'nothing is offered for replacement');
+      }
+      assert.equal(await page.evaluate(() => localStorage.getItem('nachschubfront:profile')), before);
+    });
+
+    await check('a good file asks before it replaces, and only then replaces', async () => {
+      const file = JSON.stringify({
+        magic: 'nachschubfront.profile',
+        version: 1,
+        best: { 2: [{ seed: 'IMPORT', wave: 44, kills: 900, lives: 3, score: 45500, victory: false, date: 1, runs: 2 }] },
+        stats: { matches: 7, victories: 1, kills: 900, bestWave: 44, seconds: 3700, doctrines: { tesla: 12 } },
+      });
+      await page.fill('.records-paste', file);
+      await page.getByRole('button', { name: 'Prüfen' }).tap();
+      await page.waitForSelector('.records-confirm:not([hidden])');
+      const compare = await page.locator('.records-confirm .menu-score').textContent();
+      assert.ok(compare.includes('Auf diesem Gerät'), 'both sides are shown before the swap');
+      assert.ok(compare.includes('7 Partien'), `compare said "${compare}"`);
+
+      // Cancelling leaves everything as it was.
+      await page.getByRole('button', { name: 'Abbrechen' }).tap();
+      assert.equal(await statOf('Partien'), '1');
+
+      await page.getByRole('button', { name: 'Prüfen' }).tap();
+      await page.waitForSelector('.records-confirm:not([hidden])');
+      await page.getByRole('button', { name: 'Ersetzen', exact: true }).tap();
+      assert.equal(await statOf('Partien'), '7');
+      assert.equal(await statOf('Weiteste Welle'), '44');
+      assert.equal(await statOf('Spielzeit'), '1 h 1 min');
+      assert.equal(await statOf('Liebste Doktrin'), 'Tesla');
+      const list = await rows();
+      assert.equal(list.length, 1, 'the old record is gone, not merged');
+      assert.ok(list[0].includes('IMPORT'));
+      const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:profile')));
+      assert.equal(stored.stats.matches, 7, 'the replacement reached storage');
+    });
+
+    await check('export hands out a JSON file that the import takes back', async () => {
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.getByRole('button', { name: 'Exportieren' }).tap(),
+      ]);
+      assert.match(download.suggestedFilename(), /^nachschubfront-profil-\d{4}-\d{2}-\d{2}\.json$/);
+      const stream = await download.createReadStream();
+      const text = await new Promise((resolve, reject) => {
+        let out = '';
+        stream.on('data', (chunk) => (out += chunk));
+        stream.on('end', () => resolve(out));
+        stream.on('error', reject);
+      });
+      const parsed = JSON.parse(text);
+      assert.equal(parsed.magic, 'nachschubfront.profile');
+      assert.equal(parsed.stats.matches, 7);
+      assert.ok(!('prefs' in parsed) && !('master' in parsed), 'the settings stay on the device');
+
+      // Straight back in: the same file has to be accepted.
+      await page.fill('.records-paste', text);
+      await page.getByRole('button', { name: 'Prüfen' }).tap();
+      await page.waitForSelector('.records-confirm:not([hidden])');
+      await page.getByRole('button', { name: 'Abbrechen' }).tap();
+    });
+
+    await check('clearing asks first and then empties the record', async () => {
+      await page.getByRole('button', { name: 'Alles löschen' }).tap();
+      await page.waitForSelector('.records-confirm:not([hidden])');
+      assert.equal(await statOf('Partien'), '7', 'still there while the question stands');
+      await page.locator('.records-confirm').getByRole('button', { name: 'Alles löschen' }).tap();
+      assert.equal(await statOf('Partien'), '0');
+      assert.ok(await page.locator('.records-table').isHidden());
+      const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:profile')));
+      assert.deepEqual(stored.best, {});
+    });
+
+    await page.screenshot({ path: join(OUT, 'records-tablet.png') });
+    await context.close();
+  }
+
   // ---------- Sprite gallery ----------
   console.log('sprite gallery (tablet)');
   {

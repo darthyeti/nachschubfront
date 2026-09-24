@@ -1011,6 +1011,154 @@ button[hidden] {
   font-weight: 700;
 }
 
+/* Records screen: the table stays readable on a tablet, so the seed keeps its
+   own line with the date under it instead of a wide extra column. */
+.menu[data-menu='records'] .menu-panel {
+  width: min(620px, 100%);
+}
+
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.records-table[hidden] {
+  display: none;
+}
+
+.records-table th {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 0 6px 6px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.records-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  vertical-align: top;
+}
+
+.records-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.records-table .seed {
+  text-align: left;
+  width: 99%;
+}
+
+.records-table tr:first-child td {
+  font-weight: 700;
+  color: var(--btn);
+}
+
+/* The seed is a button, but it should read as a line in the table. */
+.records-seed {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  /* 44px of target without 44px of ink: the row grows, the text does not. */
+  min-height: 44px;
+}
+
+.records-victory {
+  margin-left: 6px;
+  color: var(--btn);
+}
+
+.records-date {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.records-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.records-actions button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.records-actions button[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.records-paste-label {
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+.records-paste {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  resize: vertical;
+}
+
+.records-confirm {
+  margin-top: 16px;
+  padding: 12px 14px 16px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.records-confirm[hidden] {
+  display: none;
+}
+
+.records-confirm .menu-section {
+  margin-top: 0;
+}
+
+.records-confirm .menu-score {
+  font-size: 15px;
+}
+
+.records-status {
+  margin: 12px 0 0;
+  min-height: 1.2em;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.records-status[data-kind='error'] {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* On a short screen the title screen has to stay scrollable and compact. */
 @media (max-height: 600px) {
   .menu-title {
