@@ -66,6 +66,7 @@ export function planningState(map, extra = {}) {
     pods: [],
     towers: [],
     nextTowerId: 1,
+    builtByDoctrine: {},
     enemies: [],
     nextEnemyId: 1,
     projectiles: [],

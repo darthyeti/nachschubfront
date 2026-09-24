@@ -996,6 +996,21 @@ button[hidden] {
   font-variant-numeric: tabular-nums;
 }
 
+.menu-record {
+  margin: 10px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.menu-record:empty {
+  display: none;
+}
+
+.menu-record.is-record {
+  color: var(--btn);
+  font-weight: 700;
+}
+
 /* On a short screen the title screen has to stay scrollable and compact. */
 @media (max-height: 600px) {
   .menu-title {

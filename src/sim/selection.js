@@ -173,6 +173,9 @@ export function applySelection(state, choice) {
   clearZones(state);
   state.route = computeRoute(state.map);
   state.mapVersion += 1;
+  // Counted here rather than in addTower: only a tower the player chose says
+  // anything about their taste. The stress test builds without choosing.
+  state.builtByDoctrine[tower.doctrine] = (state.builtByDoctrine[tower.doctrine] ?? 0) + 1;
   state.events.push({ type: 'towerBuilt', tower, choice: option.type });
   return { ok: true, tower };
 }

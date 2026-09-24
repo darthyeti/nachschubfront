@@ -39,7 +39,8 @@ import { createSpriteCache } from './render/sprites/rasterizer.js';
 import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
 import { POD_SPRITE_DEFS, keepClearedCells } from './render/pods.js';
 import { startStress, stopStress, setLives, setWave, grant, forcePod, toggleInvulnerable } from './sim/debug.js';
-import { score } from './sim/score.js';
+import { score, scoreEntry } from './sim/score.js';
+import { createProfileStore, bestForSeed } from './storage/profile.js';
 
 const FLASH_SECONDS = 0.9;
 const STRESS_ENEMIES = 200;
@@ -380,6 +381,10 @@ attachPointerInput(canvas, {
 // ---------- Settings and the screens around the game ----------
 
 const prefs = createPrefs(storage);
+// Best runs and statistics. A separate document from the settings on purpose:
+// an imported profile must not change how loud this device plays.
+const profile = createProfileStore(storage);
+profile.load();
 const systemMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 function applyMotion() {
@@ -443,6 +448,16 @@ function drainEvents() {
 /** The result of a finished match, with the score from GDD section 12. */
 function showEndScreen(victory) {
   const t = STRINGS.score;
+  // The old record has to be read before the new one goes in, otherwise the run
+  // that just ended is its own previous best.
+  const previous = bestForSeed(profile.values, state.seed);
+  const total = score(state);
+  profile.record({
+    ...scoreEntry(state),
+    victory,
+    seconds: Math.round(state.time),
+    doctrines: state.builtByDoctrine,
+  });
   menus.showEnd({
     victory,
     wave: state.wave,
@@ -451,8 +466,10 @@ function showEndScreen(victory) {
       [t.wave, state.wave],
       [t.kills, state.kills],
       [t.lives, state.lives],
-      [t.total, score(state)],
+      [t.total, total],
     ],
+    record: previous === null || total > previous.score ? 'new' : null,
+    previousBest: previous?.score ?? null,
   });
 }
 

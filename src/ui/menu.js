@@ -180,6 +180,8 @@ export function createMenus(root, { prefs, onStart, onResume, onToggle, canStore
   const endTitle = el('h2', 'menu-title');
   const endDetail = el('p', 'menu-subtitle');
   const endScore = el('dl', 'menu-score');
+  // One line under the score: either the new record or the one still standing.
+  const endRecord = el('p', 'menu-record');
   const endActions = el('div', 'menu-actions');
   let endSeed = null;
   endActions.append(
@@ -193,7 +195,7 @@ export function createMenus(root, { prefs, onStart, onResume, onToggle, canStore
     }),
     button(T.toMenu, 'alt', () => show('main')),
   );
-  end.panel.append(endTitle, endDetail, endScore, endActions);
+  end.panel.append(endTitle, endDetail, endScore, endRecord, endActions);
 
   const screens = { main, pause, settings, end };
 
@@ -244,7 +246,7 @@ export function createMenus(root, { prefs, onStart, onResume, onToggle, canStore
       }
     },
     /** Shows the result of a finished match. */
-    showEnd({ victory, wave, seed, lines }) {
+    showEnd({ victory, wave, seed, lines, record = null, previousBest = null }) {
       endSeed = seed;
       endTitle.textContent = victory ? TE.victory : TE.defeat;
       endDetail.textContent = victory ? TE.victoryDetail : TE.defeatDetail(wave);
@@ -253,6 +255,9 @@ export function createMenus(root, { prefs, onStart, onResume, onToggle, canStore
       for (const [label, value] of lines) {
         endScore.append(el('dt', null, label), el('dd', null, String(value)));
       }
+      endRecord.textContent =
+        record === 'new' ? TE.newRecord : previousBest !== null ? TE.previousBest(previousBest) : '';
+      endRecord.classList.toggle('is-record', record === 'new');
       show('end');
     },
     /** Fills the seed field, e.g. with the seed of the running match. */

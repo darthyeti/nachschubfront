@@ -81,6 +81,9 @@ export const STRINGS = {
     defeatDetail: (wave) => `Gefallen in Welle ${wave}.`,
     again: 'Neue Partie',
     sameSeed: 'Gleicher Seed',
+    records: 'Bestenliste',
+    newRecord: 'Neuer Bestwert für diesen Seed',
+    previousBest: (score) => `Bisher bester Lauf auf diesem Seed: ${score} Punkte`,
   },
 
   codex: {
