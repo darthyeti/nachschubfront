@@ -4,6 +4,8 @@ export const STRINGS = {
   gameTitle: 'Nachschubfront',
   documentTitle: 'Nachschubfront',
   canvasLabel: 'Spielfeld von Nachschubfront',
+  /** Corner label; the number itself comes from data/version.js. */
+  version: (v) => `v${v}`,
 
   hud: {
     wave: 'Welle',

@@ -1,6 +1,7 @@
 // DOM HUD above the canvas. Updates only touch the DOM when a value changed.
 
 import { STRINGS } from '../data/strings.js';
+import { APP_VERSION } from '../data/version.js';
 import { GAME_SPEEDS } from '../data/settings.js';
 import { RANK_COLORS } from '../data/ranks.js';
 import { supplyWeights, MAX_SUPPLY_LEVEL } from '../data/supply.js';
@@ -154,7 +155,11 @@ export function createHud(root, { debug, onAction }) {
   const bottom = el('div', 'hud-bottom');
   bottom.append(bar);
 
-  root.append(top, info, bottom, banner);
+  // Version in the bottom left corner: quiet, but always readable, so a bug
+  // report can say which build it happened on.
+  const version = el('div', 'hud-version', STRINGS.version(APP_VERSION));
+
+  root.append(top, info, bottom, banner, version);
   if (debugEl) root.append(debugEl);
 
   const cache = new Map();

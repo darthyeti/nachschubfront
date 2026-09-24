@@ -285,6 +285,22 @@ button[hidden] {
   }
 }
 
+/* Version in the bottom left corner. Quiet enough to ignore, legible enough to
+   read off for a bug report. Never takes input; the bottom column is centred and
+   at most 920px wide, so the two do not meet. */
+.hud-version {
+  position: absolute;
+  left: calc(10px + var(--safe-left));
+  bottom: calc(6px + var(--safe-bottom));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  opacity: 0.55;
+  text-shadow: 1px 1px 0 var(--ink);
+}
+
 .hud-debug {
   position: absolute;
   right: calc(16px + var(--safe-right));

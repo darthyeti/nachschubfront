@@ -15,6 +15,7 @@ import { ARMOR_TYPES, DAMAGE_MATRIX, damageFactor } from '../../src/data/combat.
 import { ECONOMY, waveBonus, rubbleCost } from '../../src/data/economy.js';
 import { COMMANDS, COMMAND_IDS, commandById } from '../../src/data/commands.js';
 import { STRINGS } from '../../src/data/strings.js';
+import { APP_VERSION } from '../../src/data/version.js';
 import { DOCTRINE_SYMBOLS, RANK_COUNT } from '../../src/render/sprites/manifest.js';
 
 test('six doctrines with colour, range, damage and targets', () => {
@@ -311,4 +312,9 @@ test('a special tower beats the doctrine it is built from', () => {
       * RANKS[recipe.minRank - 1].damage;
     assert.ok(damagePerSecond(def) >= plainDps, `${recipe.id}: ${damagePerSecond(def)} vs ${plainDps}`);
   }
+});
+
+test('the version is one plain number triple, and the corner label shows it', () => {
+  assert.match(APP_VERSION, /^\d+\.\d+\.\d+$/);
+  assert.equal(STRINGS.version(APP_VERSION), `v${APP_VERSION}`);
 });
