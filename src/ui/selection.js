@@ -36,6 +36,8 @@ export function actionsFor(options, anchor) {
     actions.push({
       label: T.recipe(recipeName(option.recipeId)),
       note: option.towerIds.length > 0 ? T.consumes(option.towerIds.length) : '',
+      // What touching this button previews on the map (docs/ART.md).
+      towerIds: option.towerIds,
       choice: { type: 'recipe', recipeId: option.recipeId, anchor },
     });
   }
@@ -51,9 +53,12 @@ export function badgeFor(options, index) {
 
 /**
  * @param {HTMLElement} root
- * @param {{onSelect: (index: number) => void, onChoose: (choice: object) => void}} callbacks
+ * @param {object} callbacks
+ * @param {(index: number) => void} callbacks.onSelect
+ * @param {(choice: object) => void} callbacks.onChoose
+ * @param {(towerIds: number[]) => void} callbacks.onPreview  Emplacements a recipe would eat.
  */
-export function createSelectionPanel(root, { onSelect, onChoose }) {
+export function createSelectionPanel(root, { onSelect, onChoose, onPreview }) {
   const panel = el('div', 'selection interactive');
   panel.hidden = true;
   panel.setAttribute('role', 'group');
@@ -98,6 +103,8 @@ export function createSelectionPanel(root, { onSelect, onChoose }) {
   }
 
   function renderActions(options, selected) {
+    // The buttons are about to be replaced; whatever they were previewing goes.
+    onPreview?.([]);
     actions.replaceChildren();
     for (const action of actionsFor(options, selected)) {
       const button = el('button', 'primary');
@@ -108,6 +115,18 @@ export function createSelectionPanel(root, { onSelect, onChoose }) {
         button.blur();
         onChoose(action.choice);
       });
+      // The preview follows the button under the finger or the pointer, and
+      // only that one (decision M4d). On a tablet it shows while the button is
+      // held down, which is also the moment before it is let go and taken.
+      if (action.towerIds?.length) {
+        const show = () => onPreview?.(action.towerIds);
+        const hide = () => onPreview?.([]);
+        button.addEventListener('pointerenter', show);
+        button.addEventListener('pointerdown', show);
+        for (const type of ['pointerleave', 'pointerup', 'pointercancel']) {
+          button.addEventListener(type, hide);
+        }
+      }
       actions.append(button);
     }
   }
@@ -121,6 +140,7 @@ export function createSelectionPanel(root, { onSelect, onChoose }) {
         key = '';
         return;
       }
+
       const selected = ui.podSelected ?? 0;
       const next = `${state.wave}:${state.pods.map((p) => `${p.doctrine}${p.rank}`).join()}:${selected}:${state.towers.length}`;
       if (next === key) return;

@@ -98,6 +98,8 @@ const ui = {
   /** Pod indices highlighted during the selection, and the pod the player picked. */
   podHighlights: [],
   podSelected: 0,
+  /** Emplacements the recipe under the finger would eat (docs/ART.md). */
+  recipePreview: [],
 };
 
 const view = createCanvasView(canvas, (v) => {
@@ -329,6 +331,9 @@ const selectionPanel = createSelectionPanel(document.getElementById('hud'), {
     ui.podSelected = index;
   },
   onChoose: applyChoice,
+  onPreview: (towerIds) => {
+    ui.recipePreview = towerIds;
+  },
 });
 
 attachPointerInput(canvas, {
@@ -484,6 +489,7 @@ function frame(now) {
   }
 
   ui.podHighlights = state.phase === 'selection' ? state.pods.map((p) => p.index) : [];
+  if (state.phase !== 'selection') ui.recipePreview = [];
   ui.commandRadius = ui.commandTarget ? commandById(ui.commandTarget).radius : 0;
 
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);

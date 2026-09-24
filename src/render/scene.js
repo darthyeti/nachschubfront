@@ -24,6 +24,7 @@ import { createPodRenderer, drawZoneMarker, drawPodTarget, drawPodHologram, draw
 import { previewRoute } from '../sim/zones.js';
 import { towerAt, towerStats } from '../sim/towers.js';
 import { demolishTarget } from '../sim/economy.js';
+import { towerById } from '../sim/towers.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 
 const KIND_OBSTACLE = 0;
@@ -79,6 +80,30 @@ function createVignette() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(canvas, 0, 0);
   };
+}
+
+/**
+ * Recipe preview (docs/ART.md): while the player holds a recipe, the map goes
+ * dark and only the emplacements the recipe would eat keep their colour, each
+ * in a pulsing gold ring. Drawn after the depth-sorted pass, so the veil covers
+ * everything already on the canvas and the doomed ones are put back on top.
+ *
+ * The emplacements are redrawn with dt 0: their weapons have already been moved
+ * on this frame, and moving them twice would work off the recoil too fast.
+ */
+function drawRecipePreview(ctx, state, ui, cam, view, t, sprites) {
+  const doomed = ui.recipePreview.map((id) => towerById(state, id)).filter(Boolean);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = 'rgba(17,12,10,.45)';
+  ctx.fillRect(0, 0, view.width * view.dpr, view.height * view.dpr);
+  applyCamera(ctx, cam, view);
+  const pulse = ui.reducedMotion ? 0.8 : 0.6 + Math.sin(t * 5) * 0.3;
+  for (const tower of doomed) {
+    drawCellMarker(ctx, tower, `rgba(242,193,78,${pulse * 0.3})`, `rgba(242,193,78,${pulse})`, 3);
+    if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, tower, cam.zoom, view.dpr, t, 0, ui.reducedMotion)) {
+      drawTowerPlaceholder(ctx, tower);
+    }
+  }
 }
 
 /** Dashed, slowly marching route line with ink underlay. */
@@ -291,6 +316,9 @@ export function createSceneRenderer(sprites) {
         drawEnemyBar(ctx, o, ENEMY_TOP[o.type] ?? 20);
       }
     }
+
+    // What a recipe would swallow, once everything else is on the canvas.
+    if (ui.recipePreview?.length) drawRecipePreview(ctx, state, ui, shaken, view, t, sprites);
 
     // Rings go on top of the opened hatches, otherwise the pod hides them.
     if (state.phase === 'selection') {

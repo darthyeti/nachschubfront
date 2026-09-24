@@ -8,6 +8,7 @@ import { addTower } from '../../src/sim/towers.js';
 import { isBlocked } from '../../src/sim/grid.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
 import { mapFromAscii, planningState } from './helpers.js';
+import { actionsFor } from '../../src/ui/selection.js';
 
 const OPEN = [
   '..........',
@@ -196,6 +197,35 @@ test('a recipe uses pods and standing towers and needs one pod of this salvo', (
     'the consumed tower left rubble',
   );
   assert.ok(isBlocked(state.map.grid, 8, 2));
+});
+
+test('only the recipe actions carry what the preview would darken the map for', () => {
+  // Same salvo as above: the purge shrine eats one standing psi tower.
+  const state = selectionState(
+    [
+      ['flame', 2],
+      ['mortar', 2],
+      ['laser', 1],
+      ['tesla', 1],
+      ['autocannon', 1],
+    ],
+    [
+      ['psi', 3, 1, 7],
+      ['psi', 2, 8, 2],
+    ],
+  );
+  const options = selectionOptions(state);
+  const cheaper = state.towers.find((t) => t.rank === 2);
+  const actions = actionsFor(options, 0);
+
+  const recipe = actions.find((a) => a.choice.type === 'recipe');
+  assert.ok(recipe, 'the recipe is offered on this pod');
+  assert.deepEqual(recipe.towerIds, [cheaper.id], 'and names the tower it would eat');
+  // Keeping or merging costs no standing emplacement, so there is nothing to show.
+  for (const action of actions) {
+    if (action.choice.type === 'recipe') continue;
+    assert.equal(action.towerIds, undefined, `${action.choice.type} previews nothing`);
+  }
 });
 
 test('a recipe entirely from standing towers is not offered', () => {
