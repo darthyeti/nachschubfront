@@ -10,6 +10,7 @@ import { DOCTRINE_IDS } from '../../src/data/doctrines.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
 import { SUPPLY_LEVELS, MAX_SUPPLY_LEVEL, supplyWeights } from '../../src/data/supply.js';
 import { PODS, salvoSize, salvoMinRank, MAX_SALVO_SIZE, salvoSeconds } from '../../src/data/pods.js';
+import { hologramLift } from '../../src/render/pods.js';
 import { mapFromAscii, planningState } from './helpers.js';
 
 const OPEN = [
@@ -143,4 +144,27 @@ test('pods land staggered, block their cell and reopen the route check', () => {
   assert.ok(podsLanded(state));
   assert.ok(salvoDone(state));
   for (const zone of ZONES) assert.ok(isBlocked(state.map.grid, zone.x, zone.y), `${zone.x},${zone.y} blocked`);
+});
+
+test('two capsules on touching cells hang their holograms at different heights', () => {
+  // The labels are wider than a cell, so neighbours writing at the same height
+  // ran into one another (docs/ART.md, v3).
+  const neighbours = [
+    [1, 0],
+    [0, 1],
+    [1, 1],
+    [-1, 1],
+  ];
+  for (let x = 0; x < 24; x++) {
+    for (let y = 0; y < 24; y++) {
+      for (const [dx, dy] of neighbours) {
+        assert.notEqual(hologramLift(x, y), hologramLift(x + dx, y + dy), `(${x},${y}) and (${x + dx},${y + dy})`);
+      }
+    }
+  }
+  // Four levels, and the same cell always gives the same one.
+  assert.equal(hologramLift(3, 7), hologramLift(3, 7));
+  const levels = new Set();
+  for (let x = 0; x < 4; x++) for (let y = 0; y < 4; y++) levels.add(hologramLift(x, y));
+  assert.deepEqual([...levels].sort(), [0, 1, 2, 3]);
 });

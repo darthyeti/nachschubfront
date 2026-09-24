@@ -237,6 +237,25 @@ export function createPodRenderer(cache) {
   return drawPod;
 }
 
+/**
+ * The hologram shrank with the capsule in v3 (docs/ART.md). Same fifth, so the
+ * plate keeps its relation to the capsule underneath it.
+ */
+const HOLO_SCALE = 0.8;
+
+/** How high the plate floats above its capsule before the stagger. */
+const HOLO_BASE = 150 * HOLO_SCALE;
+
+/**
+ * Extra height, so two capsules on touching cells do not write their labels
+ * into one another. Derived from the cell, not from the salvo, so it is the
+ * same every time and needs no state: the step is 2 across and 3 down, which
+ * puts all four neighbours of a cell on different levels.
+ */
+export function hologramLift(x, y) {
+  return (((x * 2 + y * 3) % 4) + 4) % 4;
+}
+
 /** Hologram above an opened pod: doctrine colour, rank chevrons and label. */
 export function drawPodHologram(ctx, pod, t) {
   if (!pod.landed) return;
@@ -244,34 +263,35 @@ export function drawPodHologram(ctx, pod, t) {
   const alpha = clamp01((since - PODS.hologramDelaySeconds) / PODS.hologramSeconds);
   if (alpha <= 0) return;
   const [sx, sy] = iso(pod.x + 0.5, pod.y + 0.5);
-  const y = sy - 150 + Math.sin(t * 2.2 + pod.x) * 4;
+  const s = HOLO_SCALE;
+  const y = sy - HOLO_BASE - hologramLift(pod.x, pod.y) * 18 + Math.sin(t * 2.2 + pod.x) * 4;
   const color = DOCTRINE_COLORS[pod.doctrine];
 
   ctx.globalAlpha = alpha * 0.18;
-  poly(ctx, [[sx - 16, sy - 20], [sx + 16, sy - 20], [sx + 30, y], [sx - 30, y]], color, null);
+  poly(ctx, [[sx - 16 * s, sy - 20], [sx + 16 * s, sy - 20], [sx + 30 * s, y], [sx - 30 * s, y]], color, null);
   ctx.globalAlpha = alpha * 0.3;
-  ell(ctx, sx, y, 30, 30, color, null);
+  ell(ctx, sx, y, 30 * s, 30 * s, color, null);
   ctx.globalAlpha = alpha;
 
   const hex = [];
   for (let i = 0; i < 6; i++) {
     const a = Math.PI / 6 + (i * Math.PI) / 3;
-    hex.push([sx + Math.cos(a) * 18, y + Math.sin(a) * 18]);
+    hex.push([sx + Math.cos(a) * 18 * s, y + Math.sin(a) * 18 * s]);
   }
-  poly(ctx, hex, 'rgba(26,20,16,.88)', C.ink, 6);
-  poly(ctx, hex, null, color, 2.5);
+  poly(ctx, hex, 'rgba(26,20,16,.88)', C.ink, 6 * s);
+  poly(ctx, hex, null, color, 2.5 * s);
 
   ctx.strokeStyle = color;
-  ctx.lineWidth = 2.2;
+  ctx.lineWidth = 2.2 * s;
   for (let i = 0; i < pod.rank; i++) {
-    const yy = y + 8 - i * 4.4;
+    const yy = y + (8 - i * 4.4) * s;
     ctx.beginPath();
-    ctx.moveTo(sx - 8, yy - 3);
+    ctx.moveTo(sx - 8 * s, yy - 3 * s);
     ctx.lineTo(sx, yy);
-    ctx.lineTo(sx + 8, yy - 3);
+    ctx.lineTo(sx + 8 * s, yy - 3 * s);
     ctx.stroke();
   }
-  comicText(ctx, `${STRINGS.doctrines[pod.doctrine]} ${STRINGS.ranks[pod.rank]}`, sx, y + 40, 17, C.bone);
+  comicText(ctx, `${STRINGS.doctrines[pod.doctrine]} ${STRINGS.ranks[pod.rank]}`, sx, y + 40 * s, 17 * s, C.bone);
   ctx.globalAlpha = 1;
 }
 

@@ -137,6 +137,7 @@ Ersetzt die frühere Kapselform (schlanker Zylinder mit Kegelspitze, wirkte wie 
 
 - **Etwa 20 Prozent kleiner** als bisher, geschlossen wie geöffnet. Bei bis zu sechs Kapseln pro Salve überlappten benachbarte Landezonen einander und verdeckten sich gegenseitig.
 - **Der Fall dauert länger**, gut das Doppelte, damit die Salve geordneter wirkt und einzelne Einschläge auseinanderzuhalten sind. Bremstriebwerke, Einschlag, Öffnen und Hologramm ziehen proportional mit und werden nicht gestaucht. Die Staffelung zwischen zwei Kapseln steigt nur leicht, damit eine Salve nicht doppelt so lange dauert wie vorher (Entscheidung vom 24.09.2026).
+- **Das Hologramm schrumpft um denselben Fünftel** und schwebt auf vier verschiedenen Höhen: Die Höhe ergibt sich aus dem Feld (zwei Schritte nach rechts, drei nach unten, modulo vier), sodass alle vier Nachbarn eines Feldes auf verschiedenen Ebenen stehen. Sonst schreiben Kapseln auf benachbarten Feldern ihre Beschriftung übereinander — die Zeile ist breiter als eine Zelle, die kleinere Kapsel allein löst das nicht (Entscheidung vom 24.09.2026).
 
 ### Farbe im Kern und Leuchten
 
