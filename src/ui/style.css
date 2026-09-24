@@ -419,9 +419,27 @@ button[hidden] {
 }
 
 .selection-rank {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 14px;
   font-weight: 500;
   color: #4a3f2e;
+}
+
+/* The rank badge (docs/ART.md): inline SVG, so it stays sharp at any scale. */
+.selection-rank-badge {
+  display: block;
+  flex: 0 0 auto;
+  /* Four star slots in a 48-unit plaque: below this the stars stop counting. */
+  width: 28px;
+  height: 28px;
+}
+
+.selection-rank-badge svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .selection-badge {

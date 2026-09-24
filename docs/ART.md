@@ -64,9 +64,11 @@ Die Winkel sitzen auf der linken Vorderseite des Sockels. Abweichung: Die Goldka
 
 #### Rangabzeichen im Auswahldialog
 
-Neben jeder Kapseloption steht eine sechseckige Plakette in der Leitfarbe der Doktrin, bei Legende in Gold statt in der Doktrinfarbe. Sterne zeigen den Rang: Rekrut ohne Stern, Veteran einer, Elite zwei, Held drei, Legende vier.
+Neben jeder Kapseloption steht eine sechseckige Plakette in der Leitfarbe der Doktrin, bei Legende in Gold statt in der Doktrinfarbe. Sterne zeigen den Rang: Rekrut ohne Stern, Veteran einer, Elite zwei, Held drei, Legende vier. Die Plakette hat immer vier Sternplätze; die nicht erreichten bleiben dunkel, sodass man die Stufe auch ohne Vergleich ablesen kann.
 
-Dateien: `reference/konzept/ui/rangabzeichen-{rekrut,veteran,elite,held,legende}.svg`.
+Dateien: `reference/konzept/ui/rangabzeichen-{rekrut,veteran,elite,held,legende}.svg`. Die Sternreihe der Blätter stand ursprünglich links neben der Mitte und ragte bei Legende über das Sechseck hinaus; `tests/tools/fit-badges.py` hat sie einmalig verkleinert und mittig gesetzt (freigegeben am 24.09.2026).
+
+Abweichung von "SVG ist nur Quelle, Canvas die Ausgabe": Das Abzeichen wird als eingebettetes SVG in den Auswahldialog gestellt, nicht als Sprite auf den Canvas gezeichnet. Der Dialog ist ohnehin DOM, das Abzeichen wird nicht pro Bild neu erzeugt, und als SVG bleibt es bei jeder Anzeigeskalierung scharf. Die Regel meint das Zeichnen pro Bild (freigegeben am 24.09.2026).
 
 ## Gegner: insektoide Brut
 

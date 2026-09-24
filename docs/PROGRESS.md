@@ -1,7 +1,7 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M4d Feinschliff-Sprint 2 ist in Arbeit. Der Plan ist am 23.09.2026 freigegeben, mit drei Entscheidungen: Die Sterne im Legende-Abzeichen dürfen im Blatt enger gesetzt werden, die Rezept-Vorschau zeigt immer den gerade berührten Vorschlag, und die Rangabzeichen kommen als eingebettetes SVG in den Auswahldialog statt als Canvas-Sprite. Die Schritte 1 (Pipeline, Bunker, Laser, Kapselform) und 2 (Fahrzeuge, Obelisk, neue Quellordner) sind erledigt.
+M4d Feinschliff-Sprint 2 ist in Arbeit. Der Plan ist am 23.09.2026 freigegeben, mit drei Entscheidungen: Die Sterne im Legende-Abzeichen dürfen im Blatt enger gesetzt werden, die Rezept-Vorschau zeigt immer den gerade berührten Vorschlag, und die Rangabzeichen kommen als eingebettetes SVG in den Auswahldialog statt als Canvas-Sprite. Die Schritte 1 (Pipeline, Bunker, Laser, Kapselform), 2 (Fahrzeuge, Obelisk, neue Quellordner) und 3 (Rangabzeichen) sind erledigt. Offen sind 4 (Rezept-Vorschau) und 5 (geräumte Felder markieren).
 
 Die Vorarbeit: Die Vorarbeit ist erledigt: Die Ergänzung zum Grafikleitfaden steht in `docs/ART.md` (gemeinsamer Bunker für Flamme und Autokanone, kleinerer Laser, Rangabzeichen, neuer geöffneter Kapselzustand, Spezialstellungen als Fahrzeuge, dazu der neue Abschnitt "Verhalten in der Planungsphase"), die Einzeldatei `ART-update-v2.md` ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik. Neue Konzeptblätter liegen in `reference/konzept/spezialstellungen/` und `reference/konzept/ui/`, überarbeitet wurden `stellungen/autokanone.svg`, `flamme.svg`, `laser.svg` und `kapsel/kapsel-geoeffnet.svg`.
 
@@ -166,6 +166,13 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → M4c → **M4d** → M5 
   - **Obelisk-Effekte im Code** (`src/render/towerFx.js`): Flammen am Fuß, Blitze von der Spitze zum Auge. Das Auge ist ein Sprite und schwebt wie der Psi-Kristall (`float`), sein Leuchten und der Ring kommen aus der vorhandenen Psi-Behandlung, weil seine Leitfarbe Psi ist.
   - **Höhe geprüft** (Frage aus dem Arbeitsauftrag): Der Obelisk misst 240 SVG-Einheiten, also etwa 152 Weltpixel über dem Bodenpunkt. Der Renderer hält 260 Pixel über dem Bodenpunkt frei, das reicht. Die Tiefensortierung nach `x + y` stellt ihn richtig vor alles, was hinter ihm steht; in der Galerie steht er sauber vor Psi 5 und Tesla 5. Ein Objekt davor verdeckt nur seinen Fuß, was richtig ist. **Kein Rendering-Problem.**
   - Geprüft: 254 Unit-Tests, 29 Eingabeprüfungen, 60 fps bei 2,0 ms, keine Konsolenfehler.
+
+- M4d Schritt 3 von 5: Rangabzeichen im Auswahldialog (24.09.2026):
+  - **Blatt korrigiert** (`tests/tools/fit-badges.py`, einmalig, freigegeben): Die Plakette hat vier Sternplätze, von denen der Rang die ersten beleuchtet. Die Reihe stand links neben der Mitte und war breiter als das Sechseck — bei Legende hing der äußere Stern heraus. Sie ist jetzt in einer Transformation verkleinert und mittig gesetzt; gezeichnet wurde nichts neu.
+  - **Als eingebettetes SVG** (`src/ui/badges.js`): Der Auswahldialog ist DOM, das Abzeichen wird nicht pro Bild erzeugt, und als SVG bleibt es bei jeder Anzeigeskalierung scharf. Das ist die freigegebene Abweichung von "SVG ist nur Quelle, Canvas die Ausgabe", die sich auf das Zeichnen pro Bild bezieht. Die Gruppe wird ohne ihre id aus der Bibliothek geschnitten, damit fünf Karten gleichzeitig eine tragen können, und das Ergebnis je Rang und Doktrin gemerkt.
+  - **Farbe**: Das Blatt zeichnet Plakettenrand und leuchtende Sterne in Creme; bis Held wird diese Farbe durch die Leitfarbe der Doktrin ersetzt, bei Legende bleibt das Gold des Blatts stehen.
+  - **Größe 28 px**: Bei 22 px lassen sich die vier Sterne in der 48 Einheiten breiten Plakette nicht mehr zählen. Die Karte ist mindestens 46 px hoch, 28 px passen hinein.
+  - Geprüft: 255 Unit-Tests (darunter Sternzahl je Rang, Farbe je Doktrin, keine doppelten ids), 29 Eingabeprüfungen, Dialog am Desktop und mit Touch-Emulation bei 1180 × 820.
 
 - M4c Neue Kapselform (23.09.2026, Abnahme offen):
   - **Zerlegung** (`tests/tools/split-pod.py`, einmaliger Eingriff wie bei Stellungen und Gegnern): Die geschlossene Kapsel bleibt ein Stück — von vorn zeigt sie drei Facetten einer Hülle, und nichts daran bewegt sich. Die geöffnete zerfällt in `pod-core` und vier Segmente (`pod-petal-bl/br/fr/fl`), benannt nach der Richtung, in die sie fallen. Schlagschatten, Kern-Leuchten und Lichtsäule sind aus der Grafik heraus und im Code, weil sie die Leitfarbe der Doktrin tragen.

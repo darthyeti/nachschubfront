@@ -5,6 +5,7 @@ import { STRINGS } from '../data/strings.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { RECIPES } from '../data/recipes.js';
 import { selectionOptions } from '../sim/selection.js';
+import { badgeMarkup } from './badges.js';
 
 const T = STRINGS.selection;
 
@@ -81,7 +82,11 @@ export function createSelectionPanel(root, { onSelect, onChoose }) {
         el('span', 'selection-num', String(pod.index + 1)),
         el('span', 'selection-name', STRINGS.doctrines[pod.doctrine]),
       );
-      card.append(head, el('span', 'selection-rank', STRINGS.ranks[pod.rank]));
+      const rankRow = el('span', 'selection-rank');
+      const mark = el('span', 'selection-rank-badge');
+      mark.innerHTML = badgeMarkup(pod.rank, pod.doctrine);
+      rankRow.append(mark, el('span', null, STRINGS.ranks[pod.rank]));
+      card.append(head, rankRow);
       if (badge) card.append(el('span', 'selection-badge', badge));
       card.addEventListener('click', () => {
         onSelect(pod.index);

@@ -22,6 +22,9 @@ import { ENEMY_SPRITES } from '../../src/render/sprites/enemies.js';
 import { TOWER_SPRITES } from '../../src/render/sprites/towers.js';
 import { POD_SPRITES } from '../../src/render/sprites/pods.js';
 import { BADGE_SPRITES } from '../../src/render/sprites/badges.js';
+import { badgeMarkup } from '../../src/ui/badges.js';
+import { DOCTRINE_COLORS } from '../../src/data/doctrines.js';
+import { MAX_RANK } from '../../src/data/ranks.js';
 import { petalOpen, isOpening, shellFade, POD_SPRITE_DEFS } from '../../src/render/pods.js';
 import { PODS } from '../../src/data/pods.js';
 import { ENEMIES, BOSSES, ALL_ENEMIES } from '../../src/data/enemies.js';
@@ -363,6 +366,39 @@ test('every rank has a badge for the selection panel', () => {
     assert.ok(entry.bbox[2] > 0 && entry.bbox[3] > 0, `badge-${rank} has bounds`);
   }
   assert.equal(Object.keys(BADGE_SPRITES.symbols).length, 5, 'five badges, nothing else');
+  // M4d corrected the sheet: the star row fits inside the plaque, which is
+  // 48 units wide, and the badge is symmetric around its centre.
+  for (const [id, entry] of Object.entries(BADGE_SPRITES.symbols)) {
+    const [x, , w] = entry.bbox;
+    assert.ok(Math.abs(x + w / 2) < 1, `${id} is centred: ${x} to ${x + w}`);
+  }
+});
+
+test('the rank badge carries the doctrine colour, gold only at legend', () => {
+  const gold = '#f2c14e';
+  for (const doctrine of DOCTRINES) {
+    const colour = DOCTRINE_COLORS[doctrine];
+    for (let rank = 1; rank < MAX_RANK; rank++) {
+      const svg = badgeMarkup(rank, doctrine);
+      assert.ok(svg.includes(colour), `${doctrine} ${rank} is tinted`);
+      assert.ok(!svg.includes('#e8dcc0'), `${doctrine} ${rank} keeps no sheet cream`);
+      // The plaque has four star slots and lights one fewer than the rank:
+      // recruit none, veteran one, elite two, hero three (docs/ART.md). The
+      // plaque's own edge carries the colour too, hence the extra one.
+      const tinted = svg.split(`"${colour}"`).length - 1;
+      assert.equal(tinted, rank, `${doctrine} ${rank}: ${rank - 1} lit stars plus the edge`);
+    }
+    const legend = badgeMarkup(MAX_RANK, doctrine);
+    assert.ok(legend.includes(gold), 'legend is gold');
+    assert.ok(!legend.includes(colour) || colour === gold, 'legend drops the doctrine colour');
+  }
+  // Every badge is a standalone SVG without an id, so five cards can carry one.
+  const svg = badgeMarkup(3, 'laser');
+  assert.match(svg, /^<svg xmlns=/);
+  assert.ok(!svg.includes('id="badge-'), 'no id that could be used twice');
+  assert.throws(() => badgeMarkup(0, 'laser'));
+  assert.throws(() => badgeMarkup(6, 'laser'));
+  assert.throws(() => badgeMarkup(1, 'bogus'));
 });
 
 test('layers that look the same at several ranks share one raster', () => {

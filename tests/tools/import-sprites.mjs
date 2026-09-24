@@ -37,7 +37,7 @@ const SOURCES = [
     dirs: ['reference/konzept/ui'],
     out: 'src/render/sprites/badges.js',
     name: 'BADGE_SPRITES',
-    drop: ['v-tank2', 'v-artillery2', 'v-sturmbatterie', 'v-obelisk'],
+    drop: ['v-tank2', 'v-artillery2', 'v-sturmbatterie', 'v-obelisk', 'haz'],
   },
 ];
 
