@@ -21,8 +21,7 @@ import { TOWER_WEAPONS, POD_PETALS, POD_PETAL_ORDER, POD_OPEN_SCALE, SPRITE_SCAL
 import { ENEMY_SPRITES } from '../../src/render/sprites/enemies.js';
 import { TOWER_SPRITES } from '../../src/render/sprites/towers.js';
 import { POD_SPRITES } from '../../src/render/sprites/pods.js';
-import { BADGE_SPRITES } from '../../src/render/sprites/badges.js';
-import { badgeMarkup } from '../../src/ui/badges.js';
+import { rankMarks, markCount } from '../../src/ui/badges.js';
 import { DOCTRINE_COLORS } from '../../src/data/doctrines.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
 import { petalOpen, isOpening, shellFade, keepClearedCells, POD_SPRITE_DEFS } from '../../src/render/pods.js';
@@ -95,8 +94,9 @@ test('the capsule stands on the ground and fits its cell', () => {
   const set = podSpriteSet();
   const [, y, w, h] = set.shell.bbox;
   assert.ok(Math.abs(y + h - PAD - 6) <= 1, `closed capsule bottom ${y + h - PAD}`);
-  // The heat shield covers about nine tenths of a cell, like an emplacement's base.
-  assert.ok(Math.abs((w - 2 * PAD) * set.shell.unitScale - 64 * 0.9) < 1.5, 'closed width');
+  // Since v3 the heat shield is a fifth narrower than an emplacement's base, so
+  // six capsules on neighbouring cells do not hide one another (docs/ART.md).
+  assert.ok(Math.abs((w - 2 * PAD) * set.shell.unitScale - 64 * 0.9 * 0.8) < 1.5, 'closed width');
 
   // Open it spans more than a cell, which docs/ART.md accepts, but not two.
   const spread = set.petals.map((p) => {
@@ -110,7 +110,10 @@ test('the capsule stands on the ground and fits its cell', () => {
 test('the capsule opens segment by segment, and all of it within openSeconds', () => {
   const pod = (since) => ({ t: since + PODS.warnSeconds + PODS.fallSeconds });
   assert.equal(isOpening(pod(PODS.openDelaySeconds - 0.01)), false, 'shell is still one piece');
-  assert.equal(isOpening(pod(PODS.openDelaySeconds)), true, 'the bolts have blown');
+  // A hair past the delay, not exactly on it: building t by adding and then
+  // subtracting the same two numbers loses the last bit, and the simulation
+  // never lands on the boundary anyway — it counts in steps of 1/60 s.
+  assert.equal(isOpening(pod(PODS.openDelaySeconds + 0.01)), true, 'the bolts have blown');
 
   // Nothing moves before the delay, and the first segment leads.
   for (let order = 0; order < 4; order++) {
@@ -123,9 +126,12 @@ test('the capsule opens segment by segment, and all of it within openSeconds', (
   }
   assert.ok(opened[0] > opened[3], 'they do not all move together');
 
-  // By the end of the opening every segment is flat, and none overshoots.
+  // By the end of the opening every segment is flat, and none overshoots. The
+  // exact end is checked with a tolerance, because the ratio behind it is a
+  // float division that can land a hair under one.
   for (let order = 0; order < 4; order++) {
-    assert.equal(petalOpen(PODS.openDelaySeconds + PODS.openSeconds, order), 1, `segment ${order} is down`);
+    const atEnd = petalOpen(PODS.openDelaySeconds + PODS.openSeconds, order);
+    assert.ok(atEnd > 0.999 && atEnd <= 1, `segment ${order} is down: ${atEnd}`);
     assert.equal(petalOpen(999, order), 1, 'and stays down');
   }
 });
@@ -393,46 +399,27 @@ test('the two finished recipe vehicles replaced their placeholders', () => {
   assert.ok(-top * SPRITE_SCALE.tower < 260, `obelisk is ${-top * SPRITE_SCALE.tower} world pixels tall`);
 });
 
-test('every rank has a badge for the selection panel', () => {
-  for (let rank = 0; rank < 5; rank++) {
-    const entry = BADGE_SPRITES.symbols[`badge-${rank}`];
-    assert.ok(entry, `badge-${rank}`);
-    assert.ok(entry.bbox[2] > 0 && entry.bbox[3] > 0, `badge-${rank} has bounds`);
-  }
-  assert.equal(Object.keys(BADGE_SPRITES.symbols).length, 5, 'five badges, nothing else');
-  // M4d corrected the sheet: the star row fits inside the plaque, which is
-  // 48 units wide, and the badge is symmetric around its centre.
-  for (const [id, entry] of Object.entries(BADGE_SPRITES.symbols)) {
-    const [x, , w] = entry.bbox;
-    assert.ok(Math.abs(x + w / 2) < 1, `${id} is centred: ${x} to ${x + w}`);
-  }
-});
-
-test('the rank badge carries the doctrine colour, gold only at legend', () => {
+test('rank marks: one stroke fewer than the rank, gold only at legend', () => {
   const gold = '#f2c14e';
+  assert.equal(markCount(1), 0, 'a recruit wears nothing');
+  for (let rank = 1; rank <= MAX_RANK; rank++) assert.equal(markCount(rank), rank - 1);
+
   for (const doctrine of DOCTRINES) {
     const colour = DOCTRINE_COLORS[doctrine];
     for (let rank = 1; rank < MAX_RANK; rank++) {
-      const svg = badgeMarkup(rank, doctrine);
-      assert.ok(svg.includes(colour), `${doctrine} ${rank} is tinted`);
-      assert.ok(!svg.includes('#e8dcc0'), `${doctrine} ${rank} keeps no sheet cream`);
-      // The plaque has four star slots and lights one fewer than the rank:
-      // recruit none, veteran one, elite two, hero three (docs/ART.md). The
-      // plaque's own edge carries the colour too, hence the extra one.
-      const tinted = svg.split(`"${colour}"`).length - 1;
-      assert.equal(tinted, rank, `${doctrine} ${rank}: ${rank - 1} lit stars plus the edge`);
+      const markup = rankMarks(rank, doctrine);
+      assert.equal(markup.split('<i>').length - 1, rank - 1, `${doctrine} ${rank}`);
+      assert.ok(markup.includes(`--mark:${colour}`), `${doctrine} ${rank} is tinted`);
     }
-    const legend = badgeMarkup(MAX_RANK, doctrine);
-    assert.ok(legend.includes(gold), 'legend is gold');
-    assert.ok(!legend.includes(colour) || colour === gold, 'legend drops the doctrine colour');
+    const legend = rankMarks(MAX_RANK, doctrine);
+    assert.equal(legend.split('<i>').length - 1, MAX_RANK - 1, 'legend wears four');
+    assert.ok(legend.includes(`--mark:${gold}`), 'legend is gold');
+    if (colour !== gold) assert.ok(!legend.includes(colour), 'legend drops the doctrine colour');
   }
-  // Every badge is a standalone SVG without an id, so five cards can carry one.
-  const svg = badgeMarkup(3, 'laser');
-  assert.match(svg, /^<svg xmlns=/);
-  assert.ok(!svg.includes('id="badge-'), 'no id that could be used twice');
-  assert.throws(() => badgeMarkup(0, 'laser'));
-  assert.throws(() => badgeMarkup(6, 'laser'));
-  assert.throws(() => badgeMarkup(1, 'bogus'));
+
+  assert.throws(() => rankMarks(0, 'laser'));
+  assert.throws(() => rankMarks(MAX_RANK + 1, 'laser'));
+  assert.throws(() => rankMarks(1, 'bogus'));
 });
 
 test('layers that look the same at several ranks share one raster', () => {

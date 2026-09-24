@@ -5,7 +5,7 @@ import { STRINGS } from '../data/strings.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { RECIPES } from '../data/recipes.js';
 import { selectionOptions } from '../sim/selection.js';
-import { badgeMarkup } from './badges.js';
+import { rankMarks } from './badges.js';
 
 const T = STRINGS.selection;
 
@@ -88,9 +88,10 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview }) {
         el('span', 'selection-name', STRINGS.doctrines[pod.doctrine]),
       );
       const rankRow = el('span', 'selection-rank');
-      const mark = el('span', 'selection-rank-badge');
-      mark.innerHTML = badgeMarkup(pod.rank, pod.doctrine);
-      rankRow.append(mark, el('span', null, STRINGS.ranks[pod.rank]));
+      // Name first, strokes beside it: the strokes qualify the word, they do
+      // not replace it (docs/ART.md).
+      rankRow.append(el('span', null, STRINGS.ranks[pod.rank]));
+      rankRow.insertAdjacentHTML('beforeend', rankMarks(pod.rank, pod.doctrine));
       card.append(head, rankRow);
       if (badge) card.append(el('span', 'selection-badge', badge));
       card.addEventListener('click', () => {

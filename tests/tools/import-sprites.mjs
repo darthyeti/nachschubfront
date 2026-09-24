@@ -31,14 +31,6 @@ const SOURCES = [
     // game draws.
     drop: ['pod-a', 'pod-c', 'open-a', 'open-c', 'pod-b', 'pod-open'],
   },
-  {
-    // Rank badges for the selection panel (docs/ART.md). They are drawn in the
-    // DOM at a fixed size, not on the map, so they get a module of their own.
-    dirs: ['reference/konzept/ui'],
-    out: 'src/render/sprites/badges.js',
-    name: 'BADGE_SPRITES',
-    drop: ['v-tank2', 'v-artillery2', 'v-sturmbatterie', 'v-obelisk', 'haz'],
-  },
 ];
 
 /** Extra room around getBBox() (which ignores stroke width), in SVG units. */

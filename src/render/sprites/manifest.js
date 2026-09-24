@@ -10,8 +10,13 @@ export const SPRITE_SCALE = {
   tower: (64 * 0.9) / 88,
   /** Enemies share one scale so their relative sizes from the concept sheet are kept. */
   enemy: 0.42,
-  /** The capsule's heat shield (66 SVG units wide) covers 90 % of a cell. */
-  pod: (64 * 0.9) / 66,
+  /**
+   * The capsule's heat shield (66 SVG units wide). It used to cover 90 % of a
+   * cell like an emplacement's base; since v3 it is a fifth smaller, so up to
+   * six capsules on neighbouring landing zones no longer hide one another
+   * (docs/ART.md, "Größe und Falldauer").
+   */
+  pod: (64 * 0.9 * 0.8) / 66,
 };
 
 /**

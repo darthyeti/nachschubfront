@@ -38,15 +38,23 @@ export const MAX_SALVO_SIZE = Math.max(...SALVO_SIZES.map((row) => row.pods));
 export const PODS = {
   /** Target marker blinks before the pod becomes visible (seconds). */
   warnSeconds: 0.5,
-  /** Fall from the sky to the impact. */
-  fallSeconds: 0.55,
-  /** Delay between two pods of the same salvo. */
-  staggerSeconds: 0.24,
+  /**
+   * Fall from the sky to the impact. Roughly doubled in v3: at 0.55 s the
+   * salvo looked hurried and the impacts ran into one another
+   * (docs/ART.md, "Größe und Falldauer").
+   */
+  fallSeconds: 1.15,
+  /**
+   * Delay between two pods of the same salvo. Raised only a little while the
+   * rest of the sequence grew, so a salvo does not take twice as long as
+   * before (decision of 24.09.2026).
+   */
+  staggerSeconds: 0.3,
   /** After the impact: petals open, then the hologram fades in. */
-  openDelaySeconds: 0.5,
-  openSeconds: 0.35,
-  hologramDelaySeconds: 0.85,
-  hologramSeconds: 0.3,
+  openDelaySeconds: 0.9,
+  openSeconds: 0.65,
+  hologramDelaySeconds: 1.55,
+  hologramSeconds: 0.55,
 
   /**
    * Randomly added zones keep this Manhattan distance to the other zones, so a

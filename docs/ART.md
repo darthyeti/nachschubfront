@@ -68,7 +68,7 @@ Die Winkel sitzen auf der linken Vorderseite des Sockels. Abweichung: Die Goldka
 
 Eine Reihe kurzer waagerechter Striche in der Leitfarbe der Doktrin, direkt neben dem Rangnamen. Rekrut keinen Strich, Veteran einen, Elite zwei, Held drei, Legende vier — die vier der Legende in Gold statt in der Doktrinfarbe. Kein Rahmen, keine leeren Plätze: Die Striche stehen frei neben dem Text.
 
-Das ersetzt die sechseckige Plakette mit vier Sternplätzen aus v2 (Update v3). Die Blätter unter `reference/konzept/ui/rangabzeichen-*.svg` und das einmalige Werkzeug `tests/tools/fit-badges.py` sind damit hinfällig; die Striche entstehen im Code, weil sie zu einfach für eine Zeichnung sind.
+Das ersetzt die sechseckige Plakette mit vier Sternplätzen aus v2 (Update v3). Die Striche entstehen im Code, weil sie zu einfach für eine Zeichnung sind; das erzeugte Modul `src/render/sprites/badges.js` und das einmalige Werkzeug `tests/tools/fit-badges.py` sind damit weg. Die Blätter `reference/konzept/ui/rangabzeichen-*.svg` bleiben als Entwurfsstand liegen, werden aber nicht mehr importiert.
 
 ## Gegner: insektoide Brut
 

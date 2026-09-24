@@ -443,19 +443,23 @@ button[hidden] {
   color: #4a3f2e;
 }
 
-/* The rank badge (docs/ART.md): inline SVG, so it stays sharp at any scale. */
-.selection-rank-badge {
-  display: block;
-  flex: 0 0 auto;
-  /* Four star slots in a 48-unit plaque: below this the stars stop counting. */
-  width: 28px;
-  height: 28px;
+/* Rank marks (docs/ART.md): up to four short strokes in the doctrine's colour,
+   gold at legend. No frame and no empty slots. */
+.selection-rank-marks {
+  display: inline-flex;
+  align-items: center;
+  /* A row of strokes side by side, not a stack of bars (docs/ART.md). */
+  gap: 3px;
+  margin-left: 3px;
 }
 
-.selection-rank-badge svg {
+.selection-rank-marks i {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 11px;
+  height: 3px;
+  background: var(--mark);
+  border-radius: 1px;
+  box-shadow: 1px 1px 0 var(--ink);
 }
 
 .selection-badge {
