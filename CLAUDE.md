@@ -8,6 +8,7 @@ Pflichtlektüre vor jeder Aufgabe:
 - den Arbeitsauftrag des aktuellen Meilensteins in `docs/meilensteine/`
 - `reference/stiltest.html` für Optik, Zeichenfunktionen und Effekte
 - `docs/ART.md` für Stellungen, Gegner und Sprites (Konzeptgrafiken in `reference/konzept/`)
+- `docs/SPEICHER.md` für Speicherformat, Export/Import und den Service Worker
 
 ## Technische Grundregeln
 

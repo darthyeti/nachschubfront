@@ -233,7 +233,7 @@ export function createMenus(root, { prefs, profile, onStart, onResume, onToggle,
     return box;
   });
 
-  const install = el('div', 'menu-notice');
+  const install = el('div', 'menu-notice menu-install');
   install.hidden = true;
   const installText = el('span', 'menu-notice-hint', T.installIos);
   let installPrompt = null;

@@ -755,6 +755,89 @@ try {
     await context.close();
   }
 
+  // ---------- Records with a mouse ----------
+  // The same screen on a desktop: the milestone asks for export and import to
+  // work with a pointer as well as a finger.
+  console.log('records with a mouse (1440 x 900)');
+  {
+    const { context, page } = await openGame({ viewport: { width: 1440, height: 900 } });
+
+    await check('export and import work the same way with a mouse', async () => {
+      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'Hauptmenü' }).click();
+      await page.getByRole('button', { name: 'Bestenliste' }).click();
+      await page.waitForSelector('.menu[data-menu="records"]:not([hidden])');
+
+      const file = JSON.stringify({
+        magic: 'nachschubfront.profile',
+        version: 1,
+        best: { 2: [{ seed: 'MAUS', wave: 9, kills: 12, lives: 4, score: 9812, date: 1, runs: 1 }] },
+        stats: { matches: 2, victories: 0, kills: 12, bestWave: 9, seconds: 90, doctrines: { laser: 1 } },
+      });
+      await page.fill('.records-paste', file);
+      await page.getByRole('button', { name: 'Prüfen' }).click();
+      await page.waitForSelector('.records-confirm:not([hidden])');
+      await page.getByRole('button', { name: 'Ersetzen', exact: true }).click();
+      assert.ok((await page.textContent('.records-table tbody')).includes('MAUS'));
+
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.getByRole('button', { name: 'Exportieren' }).click(),
+      ]);
+      assert.match(download.suggestedFilename(), /\.json$/);
+      await page.screenshot({ path: join(OUT, 'records-desktop.png') });
+    });
+
+    await context.close();
+  }
+
+  // ---------- Install hint on an iPad ----------
+  // Safari has no install prompt, so the title screen has to spell the two taps
+  // out. Faked with the user agent; nothing else about the device matters here.
+  console.log('install hint (iPad user agent)');
+  {
+    const context = await browser.newContext({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+      userAgent:
+        'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    });
+    const page = await context.newPage();
+    watchProblems(page, 'install', problems);
+    await page.goto(`${server.url}?seed=${SEED}`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('body[data-ready]');
+
+    const hint = page.locator('.menu[data-menu="main"] .menu-install');
+
+    await check('the title screen explains how to add the game to the home screen', async () => {
+      await hint.waitFor({ state: 'visible' });
+      const text = await hint.textContent();
+      assert.ok(text.includes('Teilen'), `hint said "${text}"`);
+      assert.ok(text.includes('Home-Bildschirm'));
+      assert.ok(
+        await hint.getByRole('button', { name: 'Auf den Home-Bildschirm' }).isHidden(),
+        'Safari cannot be asked to install, so the button stays away',
+      );
+      await page.screenshot({ path: join(OUT, 'install-hint.png') });
+    });
+
+    await check('waving the hint away keeps it away, across a reload', async () => {
+      await hint.getByRole('button', { name: 'Nicht mehr zeigen' }).tap();
+      assert.ok(await hint.isHidden());
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForSelector('body[data-ready]');
+      await page.waitForTimeout(200);
+      assert.ok(await hint.isHidden(), 'the choice is remembered on this device');
+      const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:prefs')));
+      assert.equal(prefs.installHintDismissed, true);
+      assert.ok(!('best' in prefs), 'settings and record stay two documents');
+    });
+
+    await context.close();
+  }
+
   // ---------- Sprite gallery ----------
   console.log('sprite gallery (tablet)');
   {

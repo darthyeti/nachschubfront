@@ -5,6 +5,7 @@ Grimdark-Tower-Defense mit Labyrinthbau (Vorbild Gem TD) im isometrischen Comics
 - Spielregeln: [docs/GDD.md](docs/GDD.md)
 - Stand: [docs/PROGRESS.md](docs/PROGRESS.md)
 - Stilreferenz: [reference/stiltest.html](reference/stiltest.html)
+- Speicherformat, Export und Offline-Betrieb: [docs/SPEICHER.md](docs/SPEICHER.md)
 
 ## Lokal starten
 
