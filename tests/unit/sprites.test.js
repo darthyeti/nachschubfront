@@ -25,7 +25,7 @@ import { BADGE_SPRITES } from '../../src/render/sprites/badges.js';
 import { badgeMarkup } from '../../src/ui/badges.js';
 import { DOCTRINE_COLORS } from '../../src/data/doctrines.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
-import { petalOpen, isOpening, shellFade, POD_SPRITE_DEFS } from '../../src/render/pods.js';
+import { petalOpen, isOpening, shellFade, keepClearedCells, POD_SPRITE_DEFS } from '../../src/render/pods.js';
 import { PODS } from '../../src/data/pods.js';
 import { ENEMIES, BOSSES, ALL_ENEMIES } from '../../src/data/enemies.js';
 import { RECIPE_IDS } from '../../src/data/recipes.js';
@@ -140,6 +140,27 @@ test('the closed shell fades out while the segments come down', () => {
   // It must not outlast the first segment, which would leave the shell on top of it.
   const gone = PODS.openDelaySeconds + PODS.openSeconds * 0.35;
   assert.ok(shellFade(gone) < 1e-9, `the shell is gone by the time a segment is fully out: ${shellFade(gone)}`);
+});
+
+test('a cleared cell keeps its mark until a capsule takes it or the wave runs', () => {
+  const cells = [{ x: 3, y: 4 }, { x: 8, y: 2 }];
+  const falling = [{ x: 3, y: 4, landed: false }];
+  const landed = [{ x: 3, y: 4, landed: true }];
+
+  // While the map is still being laid out, the marks stay up.
+  for (const phase of ['planning', 'salvo', 'selection']) {
+    assert.deepEqual(keepClearedCells(phase, [], cells), cells, phase);
+    assert.deepEqual(keepClearedCells(phase, falling, cells), cells, `${phase}: still on its way`);
+  }
+  // A capsule on the ground takes that cell's mark, and only that one.
+  assert.deepEqual(keepClearedCells('salvo', landed, cells), [{ x: 8, y: 2 }]);
+  // Once the wave runs, nothing is being planned and every mark goes.
+  for (const phase of ['wave', 'evaluation', 'defeat', 'victory']) {
+    assert.deepEqual(keepClearedCells(phase, [], cells), [], phase);
+  }
+  // Nothing marked, nothing to do; the same array comes back.
+  const empty = [];
+  assert.equal(keepClearedCells('wave', landed, empty), empty);
 });
 
 test('every capsule sprite is preloaded, so the first salvo is never empty', () => {

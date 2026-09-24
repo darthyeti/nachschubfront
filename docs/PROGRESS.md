@@ -1,7 +1,7 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M4d Feinschliff-Sprint 2 ist in Arbeit. Der Plan ist am 23.09.2026 freigegeben, mit drei Entscheidungen: Die Sterne im Legende-Abzeichen dürfen im Blatt enger gesetzt werden, die Rezept-Vorschau zeigt immer den gerade berührten Vorschlag, und die Rangabzeichen kommen als eingebettetes SVG in den Auswahldialog statt als Canvas-Sprite. Die Schritte 1 (Pipeline, Bunker, Laser, Kapselform), 2 (Fahrzeuge, Obelisk, neue Quellordner), 3 (Rangabzeichen) und 4 (Rezept-Vorschau) sind erledigt. Offen ist 5 (geräumte Felder markieren).
+M4d Feinschliff-Sprint 2 ist umgesetzt und wartet auf die Abnahme. Der Plan ist am 23.09.2026 freigegeben, mit drei Entscheidungen: Die Sterne im Legende-Abzeichen dürfen im Blatt enger gesetzt werden, die Rezept-Vorschau zeigt immer den gerade berührten Vorschlag, und die Rangabzeichen kommen als eingebettetes SVG in den Auswahldialog statt als Canvas-Sprite. Alle fünf Schritte sind umgesetzt; M4d wartet auf die Abnahme auf dem iPad.
 
 Die Vorarbeit: Die Vorarbeit ist erledigt: Die Ergänzung zum Grafikleitfaden steht in `docs/ART.md` (gemeinsamer Bunker für Flamme und Autokanone, kleinerer Laser, Rangabzeichen, neuer geöffneter Kapselzustand, Spezialstellungen als Fahrzeuge, dazu der neue Abschnitt "Verhalten in der Planungsphase"), die Einzeldatei `ART-update-v2.md` ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik. Neue Konzeptblätter liegen in `reference/konzept/spezialstellungen/` und `reference/konzept/ui/`, überarbeitet wurden `stellungen/autokanone.svg`, `flamme.svg`, `laser.svg` und `kapsel/kapsel-geoeffnet.svg`.
 
@@ -180,6 +180,11 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → M4c → **M4d** → M5 
   - Die Stellungen werden beim zweiten Mal mit `dt = 0` gezeichnet. Ihre Waffen sind in diesem Bild schon bewegt worden; ein zweiter Durchlauf mit echter Zeit hätte den Rückstoß doppelt so schnell abgebaut.
   - **Kapseln bleiben hell**: Der Schleier liegt unter Hologrammen und Kapselringen. Das ist beabsichtigt — die Salve ist ja das, wozwischen gewählt wird. Falls es auf dem iPad zu unruhig wirkt, wäre das Umhängen eine Zeile.
   - Geprüft: 256 Unit-Tests (darunter: nur Rezept-Aktionen tragen die Vorschau-Liste), 29 Eingabeprüfungen, 60 fps, im Spiel mit einer echten Sturmbatterie über zwei Stellungen ausgelöst.
+
+- M4d Schritt 5 von 5: Geräumte Felder markieren (24.09.2026):
+  - Ein im Abbruchmodus geräumtes Feld bekommt denselben gestrichelten Goldring wie eine Landezone, nur ohne Nummer und mit knapp halber Deckkraft. Er bleibt über das Anfordern der Salve hinaus stehen, bis eine Kapsel auf dem Feld landet oder die Welle losgeht — das ist der Zweck: das freigeräumte Feld beim Setzen der nächsten Zonen wiederfinden.
+  - Die Regel steht als reine Funktion `keepClearedCells` in `src/render/pods.js`, nicht in `main.js`, damit sie geprüft werden kann. `PLANNING_PHASES` ist dabei von `src/render/scene.js` nach `src/core/phases.js` gewandert, wo die Phasen ohnehin beschrieben sind; vorher hätte es die Menge an zwei Stellen gegeben.
+  - Geprüft: 257 Unit-Tests, 29 Eingabeprüfungen, 60 fps. Im Spiel mit Touch: zwei Felder abgerissen, beide Marken stehen noch, als die Kapseln fallen.
 
 - M4c Neue Kapselform (23.09.2026, Abnahme offen):
   - **Zerlegung** (`tests/tools/split-pod.py`, einmaliger Eingriff wie bei Stellungen und Gegnern): Die geschlossene Kapsel bleibt ein Stück — von vorn zeigt sie drei Facetten einer Hülle, und nichts daran bewegt sich. Die geöffnete zerfällt in `pod-core` und vier Segmente (`pod-petal-bl/br/fr/fl`), benannt nach der Richtung, in die sie fallen. Schlagschatten, Kern-Leuchten und Lichtsäule sind aus der Grafik heraus und im Code, weil sie die Leitfarbe der Doktrin tragen.

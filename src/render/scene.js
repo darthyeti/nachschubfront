@@ -20,10 +20,18 @@ import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
 import { createBackdropLayer } from './backdrop.js';
 import { createAtmosphere } from './atmosphere.js';
 import { drawTowerSprite } from './towerSprites.js';
-import { createPodRenderer, drawZoneMarker, drawPodTarget, drawPodHologram, drawPodHighlight } from './pods.js';
+import {
+  createPodRenderer,
+  drawZoneMarker,
+  drawClearedMarker,
+  drawPodTarget,
+  drawPodHologram,
+  drawPodHighlight,
+} from './pods.js';
 import { previewRoute } from '../sim/zones.js';
 import { towerAt, towerStats } from '../sim/towers.js';
 import { demolishTarget } from '../sim/economy.js';
+import { PLANNING_PHASES } from '../core/phases.js';
 import { towerById } from '../sim/towers.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 
@@ -34,9 +42,6 @@ const KIND_BASTION = 3;
 const KIND_TOWER = 4;
 const KIND_POD = 5;
 const KIND_ENEMY = 6;
-
-/** Phases that show the route preview and the planned landing zones. */
-const PLANNING_PHASES = new Set(['planning', 'salvo', 'selection']);
 
 /**
  * Margin around the viewport in world pixels when deciding what to draw. Objects
@@ -238,6 +243,11 @@ export function createSceneRenderer(sprites) {
       } else {
         state.zones.forEach((zone, i) => drawZoneMarker(ctx, zone, i, t, ui.reducedMotion));
       }
+    }
+    // Cells cleared in demolish mode keep a faint ring until a capsule takes
+    // them or the wave starts (docs/ART.md).
+    if (PLANNING_PHASES.has(state.phase)) {
+      for (const cell of ui.clearedCells) drawClearedMarker(ctx, cell, t, ui.reducedMotion);
     }
     for (const pod of state.pods) drawPodTarget(ctx, pod, t);
 

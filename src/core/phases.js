@@ -28,3 +28,9 @@ export function setPhase(state, to) {
 }
 
 export const isOver = (state) => state.phase === 'defeat' || state.phase === 'victory';
+
+/**
+ * The stretch in which the player is still laying out the map: the route
+ * preview, the landing zones and the marks on cleared ground are all up.
+ */
+export const PLANNING_PHASES = new Set(['planning', 'salvo', 'selection']);

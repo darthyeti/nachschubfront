@@ -37,7 +37,7 @@ import { storage } from './storage/index.js';
 import { createLoadingScreen } from './ui/loading.js';
 import { createSpriteCache } from './render/sprites/rasterizer.js';
 import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
-import { POD_SPRITE_DEFS } from './render/pods.js';
+import { POD_SPRITE_DEFS, keepClearedCells } from './render/pods.js';
 import { startStress, stopStress, setLives, setWave, grant, forcePod, toggleInvulnerable } from './sim/debug.js';
 import { score } from './sim/score.js';
 
@@ -100,6 +100,8 @@ const ui = {
   podSelected: 0,
   /** Emplacements the recipe under the finger would eat (docs/ART.md). */
   recipePreview: [],
+  /** Cells just cleared in demolish mode, marked until a capsule takes them. */
+  clearedCells: [],
 };
 
 const view = createCanvasView(canvas, (v) => {
@@ -182,8 +184,12 @@ function applyDemolish(cell, pointerType = 'mouse') {
   }
   ui.demolishArmed = null;
   const result = demolish(state, cell);
-  if (result.ok) flash(cell, true, t.demolished);
-  else if (t[result.reason]) flash(cell, false, t[result.reason]);
+  if (result.ok) {
+    flash(cell, true, t.demolished);
+    // Marked until a capsule lands on it, so the freed ground can be found
+    // again when the next salvo is called (docs/ART.md).
+    ui.clearedCells.push({ x: cell.x, y: cell.y });
+  } else if (t[result.reason]) flash(cell, false, t[result.reason]);
 }
 
 /** Fires the command being aimed at the tapped cell. */
@@ -490,6 +496,7 @@ function frame(now) {
 
   ui.podHighlights = state.phase === 'selection' ? state.pods.map((p) => p.index) : [];
   if (state.phase !== 'selection') ui.recipePreview = [];
+  ui.clearedCells = keepClearedCells(state.phase, state.pods, ui.clearedCells);
   ui.commandRadius = ui.commandTarget ? commandById(ui.commandTarget).radius : 0;
 
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);

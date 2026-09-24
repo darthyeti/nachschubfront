@@ -10,6 +10,7 @@ import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { STRINGS } from '../data/strings.js';
 import { PODS } from '../data/pods.js';
+import { PLANNING_PHASES } from '../core/phases.js';
 import { IMPACT_SECONDS, sinceImpact } from '../sim/pods.js';
 import { podSpriteSet } from './sprites/compose.js';
 import { drawSprite, drawSpriteTurned } from './sprites/rasterizer.js';
@@ -67,6 +68,36 @@ export function drawZoneMarker(ctx, zone, index, t, reducedMotion) {
   ell(ctx, x, y, 26, 13, 'rgba(242,193,78,.15)', C.gold, 2.5);
   ctx.setLineDash([]);
   comicText(ctx, String(index + 1), x, y + 7, 22, C.gold);
+}
+
+/**
+ * Which cleared cells still carry a mark: none once the wave runs, and none a
+ * capsule has come down on (docs/ART.md). Pure, so the rule is testable.
+ * @param {string} phase
+ * @param {{x: number, y: number, landed: boolean}[]} pods
+ * @param {{x: number, y: number}[]} cells
+ */
+export function keepClearedCells(phase, pods, cells) {
+  if (!cells.length) return cells;
+  if (!PLANNING_PHASES.has(phase)) return [];
+  const landed = pods.filter((pod) => pod.landed);
+  if (!landed.length) return cells;
+  return cells.filter((c) => !landed.some((pod) => pod.x === c.x && pod.y === c.y));
+}
+
+/**
+ * A cell the player has just cleared in demolish mode (docs/ART.md): the same
+ * dashed ring as a landing zone, only fainter and without a number, so the
+ * freed ground can be found again when the next salvo is called.
+ */
+export function drawClearedMarker(ctx, cell, t, reducedMotion) {
+  const [x, y] = iso(cell.x + 0.5, cell.y + 0.5);
+  ctx.setLineDash([6, 5]);
+  ctx.lineDashOffset = reducedMotion ? 0 : -t * 12;
+  ctx.globalAlpha = 0.45;
+  ell(ctx, x, y, 26, 13, 'rgba(242,193,78,.08)', C.gold, 2);
+  ctx.globalAlpha = 1;
+  ctx.setLineDash([]);
 }
 
 /** Target marker under a pod that is still on its way. */
