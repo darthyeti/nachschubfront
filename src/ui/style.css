@@ -1256,3 +1256,247 @@ button[hidden] {
     display: none;
   }
 }
+
+/* ---------- Rune discs (docs/ART.md, "Runenscheiben-Knopf") ----------
+   Stone core, gold rim, ten runes in the band, the symbol on top. The three
+   states are driven by data-state; everything else is the same disc. */
+
+.rune {
+  --disc: 58px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  width: var(--disc);
+  min-width: var(--disc);
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  box-shadow: none;
+  color: var(--btn);
+}
+
+.rune:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.rune:disabled {
+  /* Locked and cooling discs say so with the lock and the wedge, so they stay
+     readable instead of being greyed into mush. */
+  opacity: 1;
+  box-shadow: none;
+}
+
+/* A ready disc that is only short of the price: dimmed, but not marked. */
+.rune[data-state='ready']:disabled .rune-disc {
+  opacity: 0.5;
+}
+
+/* .on is the running mode; the plain button rule would paint the square red. */
+.rune.on,
+.rune.on:disabled {
+  background: none;
+  color: var(--btn);
+}
+
+.rune-disc {
+  position: relative;
+  display: block;
+  width: var(--disc);
+  height: var(--disc);
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.55));
+}
+
+.rune-plate {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rune-symbol {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60%;
+  height: 60%;
+  transform: translate(-50%, -50%);
+}
+
+/* The wedge of the wait. It covers `--pie` of the turn, in whole waves. */
+.rune-pie {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  /* Dark enough to read as a wait, light enough to leave the symbol legible. */
+  background: conic-gradient(rgba(10, 8, 6, 0.5) var(--pie, 100%), rgba(0, 0, 0, 0) 0);
+}
+
+.rune-waves {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-title);
+  font-size: 26px;
+  line-height: 1;
+  color: var(--text);
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.rune-lock {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 54%;
+  height: 54%;
+  transform: translate(-50%, -50%);
+}
+
+/* Locked: the whole disc goes dark behind the padlock. */
+.rune[data-state='locked'] .rune-symbol {
+  opacity: 0.35;
+  filter: grayscale(1) brightness(0.6);
+}
+
+.rune[data-state='locked'] .rune-plate {
+  filter: brightness(0.5);
+}
+
+/* The wedge already dims the symbol; taking more off would hide it. */
+
+.rune-badge {
+  position: absolute;
+  right: -4px;
+  top: -3px;
+  min-width: 20px;
+  padding: 0 4px;
+  border: 2px solid var(--ink);
+  border-radius: 11px;
+  background: var(--btn);
+  color: #1a1410;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.rune-note {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--btn);
+  text-shadow: 1px 1px 0 var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.rune[data-state='ready']:disabled .rune-note {
+  color: #d08b6a;
+}
+
+.rune[hidden],
+.rune-note[hidden],
+.rune-waves[hidden],
+.rune-badge[hidden],
+.rune-pie[hidden] {
+  display: none;
+}
+
+/* The mode this disc switches is running: a gold ring around the whole thing. */
+.rune.on .rune-disc {
+  filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0)) drop-shadow(0 0 3px var(--btn));
+}
+
+/* The name, once, when the disc unlocks; then it is bubble-only again. */
+.rune-flash,
+.rune-bubble {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  background: rgba(24, 18, 14, 0.96);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.rune-flash {
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  font-weight: 700;
+  color: var(--btn);
+}
+
+.rune.flashing .rune-flash {
+  opacity: 1;
+  animation: rune-flash 2.6s ease-out forwards;
+}
+
+@keyframes rune-flash {
+  0% { opacity: 0; transform: translate(-50%, 6px); }
+  12% { opacity: 1; transform: translate(-50%, 0); }
+  75% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 0); }
+}
+
+.rune-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: max-content;
+  max-width: 240px;
+  padding: 6px 10px;
+  white-space: normal;
+  text-align: left;
+}
+
+.rune-bubble b {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 17px;
+  color: var(--btn);
+}
+
+.rune[data-side='top'] .rune-bubble {
+  left: 50%;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%);
+}
+
+.rune[data-side='left'] .rune-bubble {
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.rune.explaining .rune-bubble {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rune.flashing .rune-flash {
+    animation: none;
+    opacity: 1;
+  }
+
+  .rune-flash,
+  .rune-bubble {
+    transition: none;
+  }
+
+  .rune:active {
+    transform: none;
+  }
+}

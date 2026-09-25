@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUD-Galerie · Nachschubfront</title>
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="../src/ui/style.css">
+<style>
+  body { overflow: auto; }
+  .gallery { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
+  .gallery h2 { font-family: var(--font-title); font-weight: 400; margin: 0; }
+  .row { display: flex; gap: 26px; align-items: flex-start; flex-wrap: wrap; }
+  .row .rune { position: relative; }
+  .icons { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+  .icons figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 84px; }
+  .icons svg { width: 40px; height: 40px; }
+  .icons figcaption { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="gallery" id="gallery"></div>
+<script type="module" src="ui.js"></script>
+</body>
+</html>

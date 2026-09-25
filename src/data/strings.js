@@ -45,6 +45,12 @@ export const STRINGS = {
     stressOn: 'Belastungstest läuft',
   },
 
+  /** The round icon buttons in the running game (docs/ART.md, "Runenscheiben-Knopf"). */
+  rune: {
+    lockedLabel: (name, wave) => `${name} — ab Welle ${wave}`,
+    cooldownLabel: (name, waves) => `${name} — noch ${waves} Wellen`,
+  },
+
   menu: {
     subtitle: 'Halte den Riss. Baue das Labyrinth. Fünfzig Wellen.',
     start: 'Feldzug beginnen',
