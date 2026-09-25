@@ -384,10 +384,11 @@ try {
       await page.locator('.menu[data-menu="pause"]').waitFor({ state: 'hidden' });
     });
 
-    await check('the supply button names its level, price and the chances it buys', async () => {
-      const supply = page.getByRole('button', { name: /Nachschubstufe/ });
-      const label = await supply.locator('.supply-label').textContent();
+    await check('the supply disc names its level, price and the chances it buys', async () => {
+      const supply = page.getByRole('button', { name: /Nachschub ausbauen/ });
       const level = (await game(page)).supplyLevel;
+      assert.equal(await supply.locator('.rune-badge').textContent(), String(level), 'the level is on the badge');
+      const label = await supply.locator('.rune-bubble').textContent();
       assert.match(label, new RegExp(`Nachschubstufe ${level} auf ${level + 1}`), label);
 
       // One bar per rank, filled to that rank's chance at the level being bought.
@@ -411,9 +412,10 @@ try {
         b.click();
       });
       await frames(page);
-      const banner = await page.locator('.hud-banner').textContent();
-      assert.match(banner, /nur für künftige Kapseln/, banner);
-      assert.match(banner, /Rekrut 80 %/, banner);
+      // The explanation is the disc's own bubble now, not the banner.
+      assert.equal(await supply.evaluate((b) => b.classList.contains('explaining')), true, 'the bubble is open');
+      const bubble = await supply.locator('.rune-bubble').textContent();
+      assert.match(bubble, /nur für künftige Kapseln/, bubble);
       assert.equal((await game(page)).supplyLevel, afterTap.supplyLevel, 'a long press buys nothing');
     });
 
@@ -433,7 +435,7 @@ try {
 
       await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
       await frames(page);
-      const demolish = page.getByRole('button', { name: /Abreißen/ });
+      const demolish = page.getByRole('button', { name: /Trümmer abreißen/ });
       await demolish.tap();
       await frames(page);
       assert.equal((await page.evaluate(() => window.__nachschub.ui())).demolishMode, true);
@@ -592,7 +594,7 @@ try {
       hasTouch: true,
       isMobile: true,
     });
-    const demolish = page.getByRole('button', { name: /^Abreißen/ });
+    const demolish = page.getByRole('button', { name: /^Trümmer abreißen/ });
 
     await check('the demolish mode can be left with an empty purse', async () => {
       await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
@@ -719,7 +721,7 @@ try {
       await touch('touchEnd', []);
       await frames(page, 2);
     };
-    const bulwarkButton = page.getByRole('button', { name: /^Bollwerk/ });
+    const bulwarkButton = page.getByRole('button', { name: /^Bollwerk bauen/ });
     const isBulwark = (cell) =>
       page.evaluate(([x, y]) => !window.__nachschub.isRubble(x, y) && window.__nachschub.state().bulwarks > 0, [
         cell.x,
@@ -734,10 +736,12 @@ try {
       await tapCell(cell);
       await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
 
-      const demolishLabel = await page.getByRole('button', { name: /^Abreißen/ }).textContent();
-      const bulwarkLabel = await bulwarkButton.textContent();
-      const price = Number(bulwarkLabel.match(/(\d+)/)[1]);
-      assert.ok(price > Number(demolishLabel.match(/(\d+)/)[1]), `${bulwarkLabel} vs ${demolishLabel}`);
+      // Both prices stand under their disc.
+      const demolishPrice = Number(
+        await page.getByRole('button', { name: /^Trümmer abreißen/ }).locator('.rune-note').textContent(),
+      );
+      const price = Number(await bulwarkButton.locator('.rune-note').textContent());
+      assert.ok(price > demolishPrice, `${price} vs ${demolishPrice}`);
 
       await bulwarkButton.tap();
       const routeBefore = (await game(page)).route;
@@ -772,7 +776,7 @@ try {
 
     await check('the demolish mode and the bulwark mode never run at once', async () => {
       await bulwarkButton.tap();
-      await page.getByRole('button', { name: /^Abreißen/ }).tap();
+      await page.getByRole('button', { name: /^Trümmer abreißen/ }).tap();
       const ui = await page.evaluate(() => window.__nachschub.ui());
       assert.equal(ui.demolishMode, true);
       assert.equal(ui.bulwarkMode, false);
@@ -927,9 +931,9 @@ try {
       const [bx, by] = await screenOf(page, beside);
       await page.mouse.click(bx, by);
       await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
-      await page.getByRole('button', { name: /^Bollwerk/ }).tap();
+      await page.getByRole('button', { name: /^Bollwerk bauen/ }).tap();
       await page.mouse.click(bx, by);
-      await page.getByRole('button', { name: /^Bollwerk/ }).tap();
+      await page.getByRole('button', { name: /^Bollwerk bauen/ }).tap();
       await frames(page, 3);
 
       const after = await run();

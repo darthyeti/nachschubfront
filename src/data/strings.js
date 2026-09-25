@@ -14,6 +14,8 @@ export const STRINGS = {
     route: (cells) => `Route: ${cells} Felder`,
     routeBlocked: 'Route blockiert',
     requestSalvo: 'Salve anfordern',
+    /** On the round main button there is only room for the word itself. */
+    requestSalvoShort: 'Salve',
     zones: (n, max) => `Zonen ${n}/${max}`,
     supply: (level) => `Nachschub ${level}`,
     requisition: (n) => `Requisition ${n}`,
@@ -24,11 +26,16 @@ export const STRINGS = {
     /** Read out for screen readers and shown on hover or a long press. */
     supplyChancesLabel: 'Rangchancen der nächsten Stufe',
     supplyChance: (rank, percent) => `${rank} ${percent} %`,
+    supplyName: 'Nachschub ausbauen',
     supplyHint:
       'Die Stufe gilt nur für künftige Kapseln, nicht für Stellungen, die schon stehen.',
     demolish: (cost) => `Abreißen · ab ${cost}`,
+    demolishName: 'Trümmer abreißen',
+    demolishHint:
+      'Räumt ein Trümmerfeld und gibt das Feld frei. Jeder weitere Abriss kostet mehr.',
     demolishConfirm: (cost) => `Abreißen? ${cost}`,
     bulwark: (cost) => `Bollwerk · ${cost}`,
+    bulwarkName: 'Bollwerk bauen',
     bulwarkConfirm: (cost) => `Bollwerk bauen? ${cost}`,
     bulwarkHint:
       'Macht aus einem Trümmerfeld ein Bollwerk. Es blockiert wie Trümmer, hält aber dem Rammstoß eines Kolosses stand.',

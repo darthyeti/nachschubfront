@@ -100,10 +100,11 @@ function disc() {
  * @param {string} options.iconName    key in ui/icons.js
  * @param {string} options.label       the disc's name, for the bubble and screen readers
  * @param {string} options.hint        the sentence the bubble explains it with
+ * @param {Node} [options.bubbleExtra] more for the bubble below the sentence, e.g. the rank bars
  * @param {'top'|'left'} [options.side] where the bubble opens; the right-hand rail needs 'left'
  * @param {() => void} options.onClick
  */
-export function createRuneButton({ iconName, label, hint, side = 'top', onClick }) {
+export function createRuneButton({ iconName, label, hint, bubbleExtra, side = 'top', onClick }) {
   const b = el('button', 'rune interactive');
   b.type = 'button';
   b.dataset.side = side;
@@ -120,7 +121,9 @@ export function createRuneButton({ iconName, label, hint, side = 'top', onClick 
   const flash = el('span', 'rune-flash', label);
   const bubble = el('span', 'rune-bubble');
   bubble.setAttribute('role', 'tooltip');
-  bubble.append(el('b', null, label), el('span', null, hint));
+  const bubbleText = el('span', null, hint);
+  bubble.append(el('b', null, label), bubbleText);
+  if (bubbleExtra) bubble.append(bubbleExtra);
   b.append(face, note, flash, bubble);
 
   b.addEventListener('click', () => {
@@ -156,6 +159,11 @@ export function createRuneButton({ iconName, label, hint, side = 'top', onClick 
 
     /** Closes the bubble from outside, when something else takes the screen. */
     hideBubble,
+
+    /** The sentence in the bubble, for a disc whose explanation moves with the match. */
+    setHint(text) {
+      if (bubbleText.textContent !== text) bubbleText.textContent = text;
+    },
 
     /** @param {RuneFace} next */
     update(next) {

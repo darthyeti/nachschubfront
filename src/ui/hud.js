@@ -1,6 +1,9 @@
 // DOM HUD above the canvas. Updates only touch the DOM when a value changed.
 
 import { STRINGS } from '../data/strings.js';
+import { el, button, explain } from './controls.js';
+import { createRuneButton } from './runeButton.js';
+import { icon } from './icons.js';
 import { APP_VERSION } from '../data/version.js';
 import { GAME_SPEEDS } from '../data/settings.js';
 import { RANK_COLORS } from '../data/ranks.js';
@@ -9,58 +12,6 @@ import { previewRoute, zoneLimit } from '../sim/zones.js';
 import { canBuySupply, nextSupplyCost, nextRubbleCost, nextBulwarkCost } from '../sim/economy.js';
 
 const T = STRINGS.hud;
-
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
-function button(label, className, onClick) {
-  const b = el('button', className, label);
-  b.type = 'button';
-  b.classList.add('interactive');
-  b.addEventListener('click', (ev) => {
-    if (b.dataset.heldOpen === '1') {
-      // The long press already answered; swallow the click that follows it.
-      delete b.dataset.heldOpen;
-      return;
-    }
-    onClick(ev);
-    // Give focus back, so Space keeps toggling pause instead of re-pressing this button.
-    // (Not preventDefault on pointerdown: WebKit then drops the click after a touch.)
-    b.blur();
-  });
-  return b;
-}
-
-/** Seconds a finger has to rest on a button before it counts as a long press. */
-const LONG_PRESS_MS = 450;
-
-/**
- * Explains a button on hover and on a long press. `title` alone would leave the
- * text out of reach on a tablet, and nothing may be hover-only (GDD section 13).
- */
-function explain(b, text, show) {
-  b.title = text;
-  let timer = null;
-  const cancel = () => {
-    clearTimeout(timer);
-    timer = null;
-  };
-  b.addEventListener('pointerdown', (ev) => {
-    if (ev.pointerType === 'mouse') return;
-    timer = setTimeout(() => {
-      timer = null;
-      b.dataset.heldOpen = '1';
-      show();
-    }, LONG_PRESS_MS);
-  });
-  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) {
-    b.addEventListener(type, cancel);
-  }
-}
 
 /**
  * @param {HTMLElement} root
@@ -93,46 +44,73 @@ export function createHud(root, { debug, onAction }) {
   points.title = T.commandPointsTitle;
   info.append(koloss, zones, supply, requisition, points, route, seed);
 
-  // Bottom: speed controls and the main action.
+  // Bottom: the rune discs, the main action, the speed group (docs/ART.md,
+  // "Untere Leiste").
   const bar = el('div', 'hud-bar');
   const speedGroup = el('div', 'speed-group');
   speedGroup.setAttribute('role', 'group');
   speedGroup.setAttribute('aria-label', T.speedGroup);
   const speedButtons = GAME_SPEEDS.map((s) => {
-    const b = button(s === 0 ? T.pause : T.speed(s), 'alt', () => onAction(`speed${s}`));
+    const b = button(s === 0 ? T.pause : T.speed(s), 'alt speed', () => onAction(`speed${s}`));
     b.dataset.speed = String(s);
     speedGroup.append(b);
     return b;
   });
-  const start = button(T.requestSalvo, 'primary', () => onAction('requestSalvo'));
+
+  // The main action keeps its size and its word: it is what every round is
+  // about, and the only round button with a label.
+  const start = el('button', 'salvo primary interactive');
+  start.type = 'button';
+  start.setAttribute('aria-label', T.requestSalvo);
+  const startZones = el('span', 'salvo-zones');
+  start.append(icon('salvo', 'salvo-icon'), el('span', 'salvo-label', T.requestSalvoShort), startZones);
+  start.addEventListener('click', () => {
+    onAction('requestSalvo');
+    start.blur();
+  });
   const restart = button(T.newGame, 'primary', () => onAction('newGame'));
-  const codex = button(T.codex, 'alt', () => onAction('codex'));
-  const menu = button(T.menu, 'alt', () => onAction('menu'));
-  // The supply button says what it buys and what that changes (GDD section 13):
-  // the level it moves to, the price, and the rank chances that follow, as bars
-  // in the rank colours. The explanation hangs off `title`, so hovering is never
-  // the only way to it: a long press on a touch device shows the same text.
-  const buySupplyButton = button('', 'alt supply-button', () => onAction('buySupply'));
-  const supplyLabel = el('span', 'supply-label');
+
+  // The supply disc carries the level as a badge and the price under it; what
+  // the next level buys is in its bubble, in the rank colours.
   const supplyChances = el('span', 'supply-chances');
   supplyChances.setAttribute('aria-label', T.supplyChancesLabel);
   const supplyBars = RANK_COLORS.map((color, i) => {
-    const bar = el('span', 'supply-bar');
+    const track = el('span', 'supply-bar');
     const fill = el('span', 'supply-bar-fill');
     fill.style.background = color;
-    bar.append(fill);
-    bar.title = STRINGS.ranks[i + 1];
-    supplyChances.append(bar);
+    track.append(fill);
+    track.title = STRINGS.ranks[i + 1];
+    supplyChances.append(track);
     return fill;
   });
-  buySupplyButton.append(supplyLabel, supplyChances);
-  explain(buySupplyButton, T.supplyHint, () => onAction('supplyHint'));
-  const demolishButton = button(T.demolish(0), 'alt', () => onAction('demolishMode'));
-  // Sits beside the demolish button because the two are the same gesture on the
-  // same cells: one clears a heap, the other builds it up (GDD section 10).
-  const bulwarkButton = button(T.bulwark(0), 'alt', () => onAction('bulwarkMode'));
-  explain(bulwarkButton, T.bulwarkHint, () => onAction('bulwarkHint'));
-  bar.append(speedGroup, start, restart, buySupplyButton, demolishButton, bulwarkButton, codex, menu);
+  const supplyDisc = createRuneButton({
+    iconName: 'supply',
+    label: T.supplyName,
+    hint: T.supplyHint,
+    bubbleExtra: supplyChances,
+    onClick: () => onAction('buySupply'),
+  });
+  const demolishDisc = createRuneButton({
+    iconName: 'demolish',
+    label: T.demolishName,
+    hint: T.demolishHint,
+    onClick: () => onAction('demolishMode'),
+  });
+  // Beside the demolish disc because the two are the same gesture on the same
+  // cells: one clears a heap, the other builds it up (GDD section 10).
+  const bulwarkDisc = createRuneButton({
+    iconName: 'bulwark',
+    label: T.bulwarkName,
+    hint: T.bulwarkHint,
+    onClick: () => onAction('bulwarkMode'),
+  });
+
+  const groundGroup = el('div', 'rune-group');
+  groundGroup.append(supplyDisc.el, demolishDisc.el, bulwarkDisc.el);
+
+  const codex = button(T.codex, 'alt', () => onAction('codex'));
+  const menu = button(T.menu, 'alt', () => onAction('menu'));
+  bar.append(groundGroup, start, restart, speedGroup, codex, menu);
 
   let obstacleButton = null;
   let artButton = null;
@@ -198,33 +176,52 @@ export function createHud(root, { debug, onAction }) {
       set('requisition', state.requisition, (v) => (requisition.textContent = T.requisition(v)));
       set('points', state.commandPoints, (v) => (points.textContent = T.commandPoints(v)));
       const supplyCost = nextSupplyCost(state);
+      const supplyTop = supplyCost === null;
       set('buySupply', `${state.supplyLevel}/${supplyCost}`, () => {
-        const top = supplyCost === null;
-        supplyLabel.textContent = top
-          ? T.supplyMax
-          : T.buySupply(state.supplyLevel, state.supplyLevel + 1, supplyCost);
+        supplyDisc.setHint(
+          supplyTop
+            ? `${T.supplyMax} ${T.supplyHint}`
+            : `${T.buySupply(state.supplyLevel, state.supplyLevel + 1, supplyCost)} — ${T.supplyHint}`,
+        );
         // At the top there is no next level, so the bars show what is in force.
-        const shown = supplyWeights(top ? MAX_SUPPLY_LEVEL : state.supplyLevel + 1);
+        const weights = supplyWeights(supplyTop ? MAX_SUPPLY_LEVEL : state.supplyLevel + 1);
         supplyBars.forEach((fill, i) => {
-          fill.style.height = `${shown[i]}%`;
-          fill.parentElement.title = T.supplyChance(STRINGS.ranks[i + 1], shown[i]);
+          fill.style.height = `${weights[i]}%`;
+          fill.parentElement.title = T.supplyChance(STRINGS.ranks[i + 1], weights[i]);
         });
         supplyChances.setAttribute(
           'aria-label',
-          `${T.supplyChancesLabel}: ${shown.map((p, i) => T.supplyChance(STRINGS.ranks[i + 1], p)).join(', ')}`,
+          `${T.supplyChancesLabel}: ${weights.map((w, i) => T.supplyChance(STRINGS.ranks[i + 1], w)).join(', ')}`,
         );
       });
-      set('canBuySupply', canBuySupply(state).ok, (v) => (buySupplyButton.disabled = !v));
-      const rubbleCost = nextRubbleCost(state);
-      set('demolishCost', rubbleCost, (v) => (demolishButton.textContent = T.demolish(v)));
-      // Affording a demolition is a condition for *entering* the mode, never for
-      // leaving it: with the button greyed out and no keyboard, an empty purse
-      // used to lock the player inside the mode.
-      const canEnterDemolish = state.phase === 'planning' && state.requisition >= rubbleCost;
-      set('canDemolish', canEnterDemolish || ui.demolishMode, (v) => {
-        demolishButton.disabled = !v;
+      supplyDisc.update({
+        state: 'ready',
+        badge: String(state.supplyLevel),
+        note: supplyTop ? null : String(supplyCost),
+        enabled: canBuySupply(state).ok,
       });
-      set('demolishMode', ui.demolishMode, (v) => demolishButton.classList.toggle('on', v));
+
+      // Affording a demolition is a condition for *entering* the mode, never for
+      // leaving it: with the disc greyed out and no keyboard, an empty purse
+      // used to lock the player inside the mode.
+      const rubbleCost = nextRubbleCost(state);
+      const canEnterDemolish = state.phase === 'planning' && state.requisition >= rubbleCost;
+      demolishDisc.update({
+        state: 'ready',
+        note: String(rubbleCost),
+        enabled: canEnterDemolish || ui.demolishMode,
+        on: ui.demolishMode,
+      });
+
+      // Same rule as the demolish disc: the purse guards the way in, never out.
+      const bulwarkPrice = nextBulwarkCost(state);
+      const canEnterBulwark = state.phase === 'planning' && state.requisition >= bulwarkPrice;
+      bulwarkDisc.update({
+        state: 'ready',
+        note: String(bulwarkPrice),
+        enabled: canEnterBulwark || ui.bulwarkMode,
+        on: ui.bulwarkMode,
+      });
 
       const run = state.koloss;
       const away = run ? Math.max(0, run.wave - (state.phase === 'planning' ? state.wave + 1 : state.wave)) : null;
@@ -235,20 +232,17 @@ export function createHud(root, { debug, onAction }) {
         koloss.dataset.stage = run.stage;
       });
 
-      const bulwarkPrice = nextBulwarkCost(state);
-      set('bulwarkCost', bulwarkPrice, (v) => (bulwarkButton.textContent = T.bulwark(v)));
-      // Same rule as the demolish button: the purse guards the way in, never the
-      // way out of the mode.
-      const canEnterBulwark = state.phase === 'planning' && state.requisition >= bulwarkPrice;
-      set('canBulwark', canEnterBulwark || ui.bulwarkMode, (v) => {
-        bulwarkButton.disabled = !v;
-      });
-      set('bulwarkMode', ui.bulwarkMode, (v) => bulwarkButton.classList.toggle('on', v));
-      // The salvo size changes with the wave, so the limit is part of the key.
+      // The zone counter rides on the salvo button now, not in the status bar:
+      // it belongs to the action it counts down to (docs/ART.md, "Untere Leiste").
       const limit = zoneLimit(state);
       set('zones', state.phase === 'planning' ? `${state.zones.length}/${limit}` : '', (v) => {
+        startZones.hidden = v === '';
         zones.hidden = v === '';
-        if (v !== '') zones.textContent = T.zones(...v.split('/'));
+        if (v === '') return;
+        startZones.textContent = v;
+        // The button keeps its plain name; the count speaks for itself.
+        startZones.setAttribute('aria-label', T.zones(...v.split('/')));
+        zones.textContent = T.zones(...v.split('/'));
       });
       set('speed', state.speed, (v) => {
         for (const b of speedButtons) b.classList.toggle('on', Number(b.dataset.speed) === v);
@@ -258,8 +252,7 @@ export function createHud(root, { debug, onAction }) {
       set('over', over, (v) => {
         start.hidden = v;
         restart.hidden = !v;
-        buySupplyButton.hidden = v;
-        demolishButton.hidden = v;
+        groundGroup.hidden = v;
       });
       if (obstacleButton) set('obstacleMode', ui.obstacleMode, (v) => obstacleButton.classList.toggle('on', v));
       if (artButton) set('art', ui.art, (v) => (artButton.textContent = v === 'sprites' ? T.artSprites : T.artPlaceholder));

@@ -2,14 +2,14 @@
 
 import { SIM_STEP, MAX_STEPS_PER_FRAME, MAX_FRAME_TIME, CAMERA } from './data/settings.js';
 import { STRINGS } from './data/strings.js';
-import { MIN_SUPPLY_LEVEL, MAX_SUPPLY_LEVEL, supplyWeights } from './data/supply.js';
+import { MIN_SUPPLY_LEVEL, MAX_SUPPLY_LEVEL } from './data/supply.js';
 import { createFixedStepper } from './core/loop.js';
 import { createGameState } from './core/state.js';
 import { randomSeed, normalizeSeed } from './core/seed.js';
 import { stepSimulation } from './sim/step.js';
 import { requestSalvo, canRequestSalvo, chooseSelection, setSpeed, toggleObstacle } from './sim/actions.js';
 import { toggleZone } from './sim/zones.js';
-import { buySupply, demolish, canDemolish, buildBulwark, canBuildBulwark, nextBulwarkCost } from './sim/economy.js';
+import { buySupply, demolish, canDemolish, buildBulwark, canBuildBulwark } from './sim/economy.js';
 import { useCommand, canUseCommand } from './sim/commands.js';
 import { commandById } from './data/commands.js';
 import { podAt } from './sim/pods.js';
@@ -393,14 +393,6 @@ function onAction(action) {
     if (!result.ok && STRINGS.placement[result.reason] && ui.cursorCell) {
       flash(ui.cursorCell, false, STRINGS.placement[result.reason]);
     }
-  } else if (action === 'supplyHint') {
-    // Hover shows this through the button's title; a long press brings it to the
-    // banner, together with the rank chances the next level would buy.
-    const level = Math.min(MAX_SUPPLY_LEVEL, state.supplyLevel + 1);
-    const chances = supplyWeights(level)
-      .map((percent, i) => STRINGS.hud.supplyChance(STRINGS.ranks[i + 1], percent))
-      .join(' · ');
-    showBanner(STRINGS.hud.supplyHint, chances);
   } else if (action === 'demolishMode') {
     if (ui.demolishMode) leaveDemolishMode();
     else {
@@ -417,8 +409,6 @@ function onAction(action) {
       ui.obstacleMode = false;
       leaveDemolishMode();
     }
-  } else if (action === 'bulwarkHint') {
-    showBanner(STRINGS.hud.bulwark(nextBulwarkCost(state)), STRINGS.hud.bulwarkHint);
   } else if (action === 'codex') {
     codex.toggle();
   } else if (action === 'menu') {
