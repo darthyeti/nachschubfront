@@ -14,20 +14,49 @@ const WORKER = 'sw.js';
  *   reloads the page.
  */
 export function registerServiceWorker(onUpdate = () => {}) {
-  let waiting = null;
+  /** @type {ServiceWorkerRegistration|null} */
+  let registration = null;
+  let announced = false;
   let reloading = false;
+  let listening = false;
 
-  function apply() {
-    if (!waiting) return;
-    // The reload happens on controllerchange, not here: the new worker has to be
-    // in charge before the page asks for files again, or the reload would still
-    // come out of the old cache.
+  /**
+   * The reload happens on controllerchange, not in `apply`: the new worker has
+   * to be in charge before the page asks for files again, or the reload would
+   * still come out of the old cache.
+   */
+  function reloadWhenInCharge() {
+    if (listening) return;
+    listening = true;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (reloading) return;
       reloading = true;
       location.reload();
     });
-    waiting.postMessage({ type: 'skipWaiting' });
+  }
+
+  /**
+   * Tells a worker to stop waiting. One that is still installing cannot act on
+   * that message — it would be dropped and the button would do nothing — so it
+   * is asked again the moment it is installed.
+   */
+  function skipWaiting(worker) {
+    if (!worker) return;
+    if (worker.state === 'installing') {
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed') worker.postMessage({ type: 'skipWaiting' });
+      });
+      return;
+    }
+    worker.postMessage({ type: 'skipWaiting' });
+  }
+
+  function apply() {
+    if (!registration) return;
+    reloadWhenInCharge();
+    // Which worker is the new build changes while it installs, so it is looked
+    // up now rather than kept from the moment the notice went up.
+    skipWaiting(registration.waiting ?? registration.installing);
   }
 
   // file:// has no service workers, and neither has a browser that lacks them.
@@ -35,7 +64,6 @@ export function registerServiceWorker(onUpdate = () => {}) {
   if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return { apply };
 
   window.addEventListener('load', async () => {
-    let registration;
     try {
       registration = await navigator.serviceWorker.register(WORKER);
     } catch {
@@ -45,8 +73,8 @@ export function registerServiceWorker(onUpdate = () => {}) {
 
     const announce = (worker) => {
       // Without a controller this is the first install: nothing to replace.
-      if (!worker || !navigator.serviceWorker.controller) return;
-      waiting = worker;
+      if (!worker || !navigator.serviceWorker.controller || announced) return;
+      announced = true;
       onUpdate(true);
     };
 
