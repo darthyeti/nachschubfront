@@ -8,6 +8,7 @@ import { createGameState } from '../../src/core/state.js';
 import { commandStatus } from '../../src/sim/commands.js';
 import { commandFace } from '../../src/ui/runeButton.js';
 import { COMMANDS, commandById } from '../../src/data/commands.js';
+import { railOrder } from '../../src/ui/commands.js';
 import { ICONS } from '../../src/ui/icons.js';
 
 /** The orbital strike is a wave-phase command, so that is where it is usable. */
@@ -67,4 +68,22 @@ test('every command has a symbol of its own', () => {
     assert.equal(seen.has(ICONS[command.id]), false, `${command.id} reuses another symbol`);
     seen.add(ICONS[command.id]);
   }
+});
+
+test('the rail runs top to bottom in the order the commands unlock', () => {
+  const order = railOrder();
+  assert.equal(order.length, COMMANDS.length, 'every command has a place');
+  for (let i = 1; i < order.length; i++) {
+    assert.ok(
+      order[i].fromWave >= order[i - 1].fromWave,
+      `${order[i].id} (wave ${order[i].fromWave}) sits below ${order[i - 1].id} (wave ${order[i - 1].fromWave})`,
+    );
+  }
+  assert.equal(order[0].id, 'orbitalStrike', 'the first one the player ever gets is on top');
+});
+
+test('commands unlocking in the same wave keep the order of the table', () => {
+  const same = COMMANDS.filter((c) => c.fromWave === 30).map((c) => c.id);
+  const inRail = railOrder().filter((c) => c.fromWave === 30).map((c) => c.id);
+  assert.deepEqual(inRail, same);
 });

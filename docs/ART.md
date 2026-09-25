@@ -49,7 +49,9 @@ Alle sechs Blätter liegen in `reference/konzept/spezialstellungen/`. Die Platzh
 
 **Sockel.** Die Skizzen zeigen die Bauwerke frei auf dem Boden, mit eigenem Schlagschatten. Im Spiel stehen sie wie jede andere Stellung auf dem gemeinsamen Sockel — er grenzt eigene Bauwerke von Trümmern ab, und der goldene Rand kennzeichnet die Rezept-Stellung. Jede Figur wird dafür um die Höhe ihres eigenen Schlagschattens angehoben, damit ihr Fuß auf der Sockeloberfläche aufsetzt. Der eigene Schlagschatten fällt weg, beim Obelisken auch sein eigener breiter Sockel.
 
-**Was Code ist, nicht Sprite.** Am Obelisken die Flammen am Fuß, die Blitze von der Spitze zum Auge, das Leuchten und der Ring um das Auge; das Auge selbst ist ein Sprite und schwebt wie der Psi-Kristall. An der Sturmbatterie die vier Mündungsblitze und die Patronenhülsen. Dazu seit v4: das lodernde Feuer im Glutkessel und die Blitze seiner vier Elektroden, der schwebende Psi-Splitter und die Feuerschale des Reinigungsschreins, der Psi-Ring über der Spule des Gewitterturms samt ihren Umgebungsblitzen, und die Laserlinie des Belagerungsmörsers. Sein Rohr ist wie beim normalen Mörser eine bewegliche Waffe und neigt sich zum Ziel.
+**Was Code ist, nicht Sprite.** Am Obelisken die Flammen am Fuß, die Blitze von der Spitze zum Auge, das Leuchten und der Ring um das Auge; das Auge selbst ist ein Sprite und schwebt wie der Psi-Kristall. An der Sturmbatterie die vier Mündungsblitze und die Patronenhülsen. Dazu seit v4: das Feuer in der Schale des Reinigungsschreins und im Glutkessel samt beider Glut, die Blitze der vier Elektroden des Kessels, die Ringe um den Psi-Splitter des Schreins und um den Psi-Kern des Gewitterturms, dessen Umgebungsblitze, und die Laserlinie des Belagerungsmörsers.
+
+Zwei Teile sind Sprites, die schweben statt zu zielen, wie der Psi-Kristall und das Auge des Obelisken: der Psi-Splitter über dem Reinigungsschrein und der Psi-Kern über der Spule des Gewitterturms. Beweglich zielt nur das Rohr des Belagerungsmörsers; es neigt sich wie das des normalen Mörsers.
 
 ### Ränge
 
@@ -206,7 +208,7 @@ Eigene senkrechte Leiste am rechten Bildschirmrand, ausschließlich Runenscheibe
 
 ### Obere Statusleiste
 
-Durchgehende Metallplatte statt einzelner schwarzer Kästchen, die Werte in kleinen Abschnitten mit Nietentrennern. Von links: Spieltitel, Welle (Standarte, „aktuelle/gesamt"), Bastion-Leben (Turm; die Zahl färbt sich bei kritischem Stand orange und rot). Rechts: Nachschubstufe (Antenne), Requisition (Münze), Kommandopunkte (Blitz-Chevron), Routenlänge (gepunkteter Pfad). Ganz rechts zwei kleine Plattenknöpfe für Rezepte und Menü — sie gehören zur Verwaltung, nicht zur Handlung der Runde, und darum nicht in die untere Leiste.
+Durchgehende Metallplatte statt einzelner schwarzer Kästchen, die Werte in kleinen Abschnitten mit Nietentrennern. Von links: Spieltitel, Welle (Standarte, „aktuelle/gesamt"), Bastion-Leben (Turm; die Zahl färbt sich bei kritischem Stand orange und rot). Rechts: Nachschubstufe (Antenne), Requisition (Münze), Kommandopunkte (Stern — die Ergänzung v4 nennt einen Blitz-Chevron, die Skizze zeichnet einen Stern, und die Skizze gilt), Routenlänge (gepunkteter Pfad). Ganz rechts zwei kleine Plattenknöpfe für Rezepte und Menü — sie gehören zur Verwaltung, nicht zur Handlung der Runde, und darum nicht in die untere Leiste.
 
 Was **nicht** dauerhaft in der Leiste steht: Seed und Phase (beide im Pausenmenü), der Zonenzähler (auf dem Salve-Knopf), Sieg und Niederlage (eigener Bildschirm), die Koloss-Ankündigung (situative Einblendung, solange ein Lauf angekündigt ist).
 

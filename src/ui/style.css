@@ -749,41 +749,35 @@ button[hidden] {
 }
 
 /* Command bar: four wide buttons above the bottom bar (GDD section 11). */
-.commands {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-  background: var(--panel);
-  border: 2px solid var(--ink);
-  box-shadow: 4px 4px 0 var(--ink);
-  border-radius: 4px;
-  padding: 6px;
-  max-width: 100%;
-}
-
-.commands[hidden] {
-  display: none;
-}
-
-.command {
+/* The command rail (docs/ART.md, "Rechte Kommandoleiste"): discs down the right
+   edge, in unlock order. It scrolls once there are more than fit on a tablet in
+   landscape, so a later command can never fall off the screen. */
+.command-rail {
+  position: absolute;
+  right: calc(12px + var(--safe-right));
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 2px;
-  min-height: 44px;
-  padding: 5px 12px;
-  font-size: 15px;
-  line-height: 1.15;
+  gap: 12px;
+  max-height: calc(100% - 210px - var(--safe-top) - var(--safe-bottom));
+  padding: 4px 2px;
+  overflow-y: auto;
+  overflow-x: visible;
+  pointer-events: none;
+  scrollbar-width: thin;
 }
 
-.command-note {
-  font-size: 13px;
-  font-weight: 700;
-  opacity: 0.75;
-  font-variant-numeric: tabular-nums;
+.command-rail > * {
+  pointer-events: auto;
+  flex: 0 0 auto;
 }
+
+.command-rail[hidden] {
+  display: none;
+}
+
 
 /* Info panel: top left under the match stats, never over the bottom controls. */
 .info {

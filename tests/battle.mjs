@@ -89,9 +89,9 @@ try {
     // The bar is refreshed in the frame loop, so give it a moment after a phase
     // change before asking which buttons are live.
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-    if (!(await page.locator('.commands').isVisible())) return 0;
+    if (!(await page.locator('.command-rail').isVisible())) return 0;
     let used = 0;
-    for (const button of await page.$$('.commands button')) {
+    for (const button of await page.$$('.command-rail button')) {
       if (!(await button.isVisible()) || !(await button.isEnabled())) continue;
       await button.click();
       const aiming = await page.evaluate(() => window.__nachschub.ui().commandTarget);

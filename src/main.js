@@ -437,8 +437,9 @@ function onAction(action) {
 }
 
 const codex = createCodex(document.body);
-const hud = createHud(document.getElementById('hud'), { debug, onAction });
-const commandBar = createCommandBar(hud.bottom, { onPick: pickCommand });
+const hudRoot = document.getElementById('hud');
+const hud = createHud(hudRoot, { debug, onAction });
+const commandBar = createCommandBar(hudRoot, { onPick: pickCommand });
 const debugPanel = debug
   ? createDebugPanel(document.getElementById('hud'), {
       onAction: (action, value) => {
