@@ -65,7 +65,10 @@ function addStressTowers(state) {
     const x = i % map.size;
     const y = Math.floor(i / map.size);
     if (map.protected[y * map.size + x] || isBlocked(map.grid, x, y)) continue;
-    const special = placed % 9 === 0 ? RECIPES[placed % RECIPES.length].id : null;
+    // Every ninth emplacement is a recipe one, and the counter walks the list
+    // rather than indexing it by `placed`: that only ever reached two of the
+    // six, so four of them were never under fire in the stress test.
+    const special = placed % 9 === 0 ? RECIPES[Math.floor(placed / 9) % RECIPES.length].id : null;
     const tower = addTower(state, {
       x,
       y,

@@ -7,6 +7,7 @@
 // fired), unlike the muzzle flashes and beams in effects.js.
 
 import { ell } from './draw.js';
+import { iso } from './iso.js';
 import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 
@@ -118,11 +119,16 @@ export function drawRankMarks(ctx, view) {
  */
 export function drawWeaponGlow(ctx, tower, view) {
   const { doctrine, pivot, scale, t, reducedMotion } = view;
-  const colour = DOCTRINE_COLORS[doctrine] ?? C.gold;
   const firing = isFiring(tower);
 
   if (tower.special === 'soulfireObelisk') drawObelisk(ctx, view);
-  if (doctrine === 'psi') {
+  // Normally the doctrine decides the halo, but two recipe buildings hover a psi
+  // part whose colour is not their doctrine's: the shrine's splinter is violet
+  // on a flame building, the thunder tower's core is blue (docs/ART.md).
+  const kind = view.glow?.kind ?? doctrine;
+  const colour = view.glow?.colour ?? DOCTRINE_COLORS[doctrine] ?? C.gold;
+
+  if (kind === 'psi') {
     const bob = reducedMotion ? 0 : Math.sin(t * 2 + tower.x) * 3 * scale;
     const y = pivot[1] - bob;
     glow(ctx, pivot[0], y, 30 * scale, colour, firing ? 0.34 : 0.22);
@@ -140,7 +146,7 @@ export function drawWeaponGlow(ctx, tower, view) {
       ctx.restore();
     }
     ctx.restore();
-  } else if (doctrine === 'tesla') {
+  } else if (kind === 'tesla') {
     glow(ctx, pivot[0], pivot[1], 30 * scale, colour, firing ? 0.38 : 0.25);
   }
 }
@@ -279,9 +285,15 @@ export function drawWeaponSpark(ctx, tower, view) {
     drawPortFire(ctx, tower, view);
   } else if (doctrine === 'flame') {
     // Blue pilot light when idle, a yellow tongue while burning (style test).
+    // The shrine and the cauldron burn in a bowl, not at a nozzle, so the fire
+    // sits on their anchor (docs/ART.md, "Wirkungsanker").
+    const [fx, fy] = view.anchor ?? muzzle;
     const flicker = reducedMotion ? 1 : 0.85 + Math.sin(t * 20) * 0.15;
-    const r = (tower.firing ? 5 : 2.5) * flicker * scale;
-    ell(ctx, muzzle[0], muzzle[1], r, r, tower.firing ? '#ffd23f' : '#6fb7ff', null);
+    const bowl = Boolean(view.anchor);
+    const r = (tower.firing ? 5 : 2.5) * (bowl ? 1.8 : 1) * flicker * scale;
+    if (bowl) glow(ctx, fx, fy, (tower.firing ? 22 : 15) * scale, '#ff8a2a', tower.firing ? 0.5 : 0.3);
+    ell(ctx, fx, fy, r, r, tower.firing || bowl ? '#ffd23f' : '#6fb7ff', null);
+    if (bowl) ell(ctx, fx, fy - r * 0.5, r * 0.55, r * 0.7, '#fff3c4', null);
   } else if (doctrine === 'laser') {
     const pulse = reducedMotion ? 0.8 : 0.6 + Math.sin(t * 6) * 0.2;
     glow(ctx, muzzle[0], muzzle[1], 14 * scale, colour, firing ? 0.55 : 0.3);
@@ -292,13 +304,43 @@ export function drawWeaponSpark(ctx, tower, view) {
   } else if (doctrine === 'tesla') {
     const count = reducedMotion ? 1 : firing ? ARC_FIRING : ARC_IDLE;
     const jitter = reducedMotion ? 0 : 6 * scale;
+    // The idle arcs leave the same point the chain does: the coil, not the psi
+    // core hovering above it (docs/ART.md, "Wirkungsanker").
+    const [cx, cy] = view.anchor ?? pivot;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     for (let i = 0; i < count; i++) {
       // Slow drift plus a jump per arc, so the pattern never stands still.
       const angle = -Math.PI / 2 + Math.sin(t * 3 + i * 2.1 + tower.x) * 1.6;
-      arc(ctx, pivot[0], pivot[1], angle, (16 + i * 6) * scale, '#bff2ff', jitter);
+      arc(ctx, cx, cy, angle, (16 + i * 6) * scale, '#bff2ff', jitter);
     }
-    ell(ctx, pivot[0] - 5 * scale, pivot[1] - 5 * scale, 4.5 * scale, 4.5 * scale, '#dff6ff', null);
+    ell(ctx, cx - 5 * scale, cy - 5 * scale, 4.5 * scale, 4.5 * scale, '#dff6ff', null);
   }
+
+  // The siege mortar's scope draws a thin line to where the shell will go, a
+  // moment before it leaves. Purely a warning; nothing is aimed by it.
+  if (view.sight && tower.aim) drawSight(ctx, tower, view);
+}
+
+/**
+ * The laser sight of the siege mortar: a thin red line from the muzzle to the
+ * target, brightest just before the shot and gone while the tube reloads.
+ */
+function drawSight(ctx, tower, view) {
+  const { muzzle, t, reducedMotion } = view;
+  const [tx, ty] = iso(tower.aim.x + 0.5, tower.aim.y + 0.5, 6);
+  const pulse = reducedMotion ? 0.5 : 0.35 + Math.abs(Math.sin(t * 5)) * 0.35;
+  ctx.save();
+  ctx.globalAlpha = pulse;
+  ctx.strokeStyle = '#ff4a4a';
+  ctx.lineWidth = 1.4;
+  ctx.setLineDash([6, 5]);
+  ctx.beginPath();
+  ctx.moveTo(muzzle[0], muzzle[1]);
+  ctx.lineTo(tx, ty);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = Math.min(1, pulse + 0.3);
+  ell(ctx, tx, ty, 3, 1.6, '#ff4a4a', null);
+  ctx.restore();
 }

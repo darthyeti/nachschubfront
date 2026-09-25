@@ -12,7 +12,8 @@ import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { STRINGS } from '../data/strings.js';
 import { PODS } from '../data/pods.js';
-import { towerStats } from '../sim/towers.js';
+import { towerStats, towerById } from '../sim/towers.js';
+import { towerAnchor, towerSparks } from './towerSprites.js';
 import { sinceImpact } from '../sim/pods.js';
 
 /** Upper bounds (CLAUDE.md: particles and decals need a ceiling). */
@@ -98,8 +99,13 @@ export function createEffects() {
     particles.push(p);
   }
 
-  function burst(x, y, z, kind, count, { speed = 60, size = 3, grow = 0, life = 0.5, gravity = 120 } = {}) {
+  function burst(x, y, z, kind, count, options = {}) {
     const [sx, sy] = project(x, y, z);
+    burstAt(sx, sy, kind, count, options);
+  }
+
+  /** The same, but from a point that is already in screen space (an anchor). */
+  function burstAt(sx, sy, kind, count, { speed = 60, size = 3, grow = 0, life = 0.5, gravity = 120 } = {}) {
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
       const v = speed * (0.4 + Math.random() * 0.8);
@@ -143,6 +149,37 @@ export function createEffects() {
     numbers.push({ x: sx + (Math.random() - 0.5) * 10, y: sy, amount, colour, life: 0.75, max: 0.75 });
   }
 
+  /**
+   * Where a chain of lightning leaves the emplacement. The cauldron has four
+   * electrodes and uses the one nearest the first target; everything else has
+   * the one anchor (docs/ART.md, "Wirkungsanker").
+   */
+  function chainOrigin(state, event) {
+    const tower = towerById(state, event.towerId);
+    if (!tower) return null;
+    const sparks = towerSparks(tower);
+    if (!sparks.length) return towerAnchor(tower);
+    const first = event.points[1];
+    if (!first) return sparks[0];
+    const [tx, ty] = project(first.x, first.y, 12);
+    let best = sparks[0];
+    let bestDist = Infinity;
+    for (const spark of sparks) {
+      const d = (spark[0] - tx) ** 2 + (spark[1] - ty) ** 2;
+      if (d < bestDist) {
+        best = spark;
+        bestDist = d;
+      }
+    }
+    return best;
+  }
+
+  /** The muzzle a shell leaves from, when the emplacement has a tube worth the name. */
+  function launchPoint(state, event) {
+    const tower = towerById(state, event.towerId);
+    return tower?.special === 'siegeMortar' ? towerAnchor(tower) : null;
+  }
+
   /** Takes one simulation event. Unknown events are ignored on purpose. */
   function handle(event, state, reducedMotion) {
     const colour = DOCTRINE_COLORS[event.doctrine] ?? C.gold;
@@ -152,10 +189,23 @@ export function createEffects() {
     } else if (event.type === 'beam') {
       shots.push({ kind: 'beam', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: BEAM_SECONDS });
     } else if (event.type === 'chain') {
-      shots.push({ kind: 'chain', points: event.points, colour, life: BEAM_SECONDS });
+      // The simulation starts the chain in the middle of the cell; the drawing
+      // starts it where the figure says it does — the coil on the mast, or the
+      // electrode of the cauldron nearest the first target (docs/ART.md).
+      shots.push({
+        kind: 'chain',
+        points: event.points,
+        origin: chainOrigin(state, event),
+        colour,
+        life: BEAM_SECONDS,
+      });
     } else if (event.type === 'launch') {
       shots.push({ kind: 'shot', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: FLASH_SECONDS });
-      burst(event.x, event.y, 22, 'smoke', reducedMotion ? 2 : 5, { speed: 26, size: 4, grow: 6, life: 0.7, gravity: -10 });
+      // The siege mortar's tube reaches well past its cell, so its smoke leaves
+      // the muzzle rather than the middle of the emplacement.
+      const from = launchPoint(state, event);
+      if (from) burstAt(from[0], from[1], 'smoke', reducedMotion ? 2 : 5, { speed: 26, size: 4, grow: 6, life: 0.7, gravity: -10 });
+      else burst(event.x, event.y, 22, 'smoke', reducedMotion ? 2 : 5, { speed: 26, size: 4, grow: 6, life: 0.7, gravity: -10 });
     } else if (event.type === 'explosion') {
       shots.push({ kind: 'blast', x: event.x, y: event.y, radius: event.radius, colour, life: 0.3 });
       if (event.source === 'orbitalStrike') {
@@ -421,7 +471,12 @@ export function createEffects() {
       if (!tower.firing || !tower.aim) continue;
       // The behaviour, not the doctrine: a purge shrine is a flame tower with a ring.
       const stats = towerStats(tower);
-      if (stats.behaviour === 'aura' || stats.behaviour === 'psi') drawAura(ctx, tower, stats, t, reducedMotion);
+      if (stats.behaviour === 'aura' || stats.behaviour === 'psi') {
+        drawAura(ctx, tower, stats, t, reducedMotion);
+        // The obelisk's judgement comes out of the eye at its tip, as a thin
+        // beam to what it is passing judgement on (docs/ART.md).
+        if (tower.special === 'soulfireObelisk') drawJudgement(ctx, tower, stats, state, t, reducedMotion);
+      }
       else if (stats.behaviour === 'cone' || stats.behaviour === 'flame') drawCone(ctx, tower, t, reducedMotion);
     }
   }
@@ -535,6 +590,42 @@ export function createEffects() {
     ctx.strokeStyle = `${colour}88`;
     ctx.lineWidth = 3;
     ctx.stroke();
+    ctx.restore();
+  }
+
+  /** How many enemies the obelisk keeps a beam on at once, so it stays readable. */
+  const JUDGED = 4;
+
+  /**
+   * Thin psi beams from the obelisk's floating eye to the enemies inside its
+   * aura. The damage itself is the aura's; this only shows where it is landing.
+   */
+  function drawJudgement(ctx, tower, stats, state, t, reducedMotion) {
+    const [ex, ey] = towerAnchor(tower);
+    const reach = stats.range * stats.range;
+    const targets = [];
+    for (const enemy of state.enemies) {
+      const d = (enemy.x - (tower.x + 0.5)) ** 2 + (enemy.y - (tower.y + 0.5)) ** 2;
+      if (d <= reach) targets.push([d, enemy]);
+    }
+    if (!targets.length) return;
+    targets.sort((a, b) => a[0] - b[0]);
+    const colour = DOCTRINE_COLORS[stats.doctrine] ?? C.warpL;
+    const flicker = reducedMotion ? 0.55 : 0.4 + Math.abs(Math.sin(t * 7)) * 0.3;
+    ctx.save();
+    ctx.lineCap = 'round';
+    for (const [, enemy] of targets.slice(0, JUDGED)) {
+      const [tx, ty] = project(enemy.x, enemy.y, 14);
+      for (const [width, stroke, alpha] of [[5, C.ink, 0.35], [2.4, colour, flicker], [1, '#ffffff', flicker * 0.8]]) {
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+      }
+    }
     ctx.restore();
   }
 
@@ -695,7 +786,10 @@ export function createEffects() {
       ctx.lineWidth = width;
       ctx.beginPath();
       for (let i = 1; i < s.points.length; i++) {
-        const a0 = project(s.points[i - 1].x, s.points[i - 1].y, i === 1 ? 26 : 12);
+        // The first leg starts at the figure's own anchor when it has one.
+        const a0 = i === 1 && s.origin
+          ? s.origin
+          : project(s.points[i - 1].x, s.points[i - 1].y, i === 1 ? 26 : 12);
         const a1 = project(s.points[i].x, s.points[i].y, 12);
         ctx.moveTo(a0[0], a0[1]);
         // A couple of kinks make it read as lightning instead of a wire.

@@ -190,6 +190,13 @@ export const BUNKER_EMBRASURES = [[-11, -12.5], [0, -12.5], [11, -12.5]];
 const BATTERY_MOUTHS = [[-15.1, -60], [-3.7, -63], [7.7, -63], [19.1, -60]];
 
 /**
+ * The tips of the ember cauldron's four tesla electrodes, from which the bolts
+ * that set enemies alight leave (docs/ART.md, "Wirkungsanker"). Lifted onto the
+ * socket like the rest of the figure.
+ */
+const CAULDRON_ELECTRODES = [[11, -76.9], [20.7, -72.7], [20.7, -67.3], [11, -63.1]];
+
+/**
  * The moving part of each emplacement (M4: the weapon comes out of the sprite and is
  * turned in code). All values are SVG units in the symbol's own frame.
  *
@@ -204,6 +211,14 @@ const BATTERY_MOUTHS = [[-15.1, -60], [-3.7, -63], [7.7, -63], [19.1, -60]];
  * - `static`  nothing moves; the entry only marks where the glow sits (tesla sphere).
  * - `ports`   openings the effect comes out of instead of one muzzle: the
  *             bunker's three embrasures, the storm battery's four barrel mouths.
+ * - `anchor`  where the emplacement's effect starts on the figure (docs/ART.md,
+ *             "Wirkungsanker"). The simulation keeps working from the middle of
+ *             the cell; only the drawing starts here. A weapon that aims has no
+ *             anchor of its own: its muzzle is the point, and it moves.
+ * - `sparks`  several such points, when the effect leaves from more than one.
+ * - `glow`    the halo and rings around a hovering part, when the doctrine's own
+ *             would be the wrong colour or missing altogether.
+ * - `sight`   the weapon draws a thin aiming line before it fires.
  */
 export const TOWER_WEAPONS = {
   // The two bunkers have nothing that aims (M4d). Their pivot is the middle
@@ -220,16 +235,31 @@ export const TOWER_WEAPONS = {
   // tube, the storm battery's quad flak points upwards and flashes out of all
   // four mouths, two of them hover a psi part instead of aiming, and the
   // cauldron stands still and works through its aura.
-  stormBattery: { pivot: [2, -40], ports: BATTERY_MOUTHS, casings: true },
+  stormBattery: { pivot: [2, -40], ports: BATTERY_MOUTHS, casings: true, anchor: [2, -61.5] },
   // Lafette and tube from the M5c sheet: the pivot is where the tube sits on
   // the carriage, the muzzle the far end of it, both lifted onto the socket.
-  siegeMortar: { pivot: [0, -26], rest: -2.6522, muzzle: 72.5, track: 0.18, turn: 4, recoil: 9 },
+  siegeMortar: { pivot: [0, -26], rest: -2.6522, muzzle: 72.5, track: 0.18, turn: 4, recoil: 9, sight: true },
   // The psi splinter over the shrine and the psi core over the thunder tower's
   // coil hover, like the psi crystal and the obelisk's eye.
-  purgeShrine: { pivot: [0, -62], float: true },
-  emberCauldron: { pivot: [0, -54], static: true },
-  thunderTower: { pivot: [0, -128], float: true },
-  soulfireObelisk: { pivot: [0, -214], float: true },
+  // The shrine burns in its bowl; the splinter above it is violet, not the
+  // orange of the flame doctrine it inherits.
+  purgeShrine: {
+    pivot: [0, -62],
+    float: true,
+    anchor: [0, -36],
+    glow: { kind: 'psi', colour: '#b784ff' },
+  },
+  // The aura rises out of the cauldron's mouth, the bolts leave the electrodes.
+  emberCauldron: { pivot: [0, -54], static: true, anchor: [0, -54], sparks: CAULDRON_ELECTRODES },
+  // The chain over eight targets starts at the coil on the mast, not at the psi
+  // core hovering above it.
+  thunderTower: {
+    pivot: [0, -128],
+    float: true,
+    anchor: [0, -114],
+    glow: { kind: 'psi', colour: '#5fd4ff' },
+  },
+  soulfireObelisk: { pivot: [0, -214], float: true, anchor: [0, -214] },
 };
 
 export const RANK_COUNT = MAX_RANK;

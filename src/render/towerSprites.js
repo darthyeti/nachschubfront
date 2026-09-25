@@ -29,6 +29,50 @@ export function towerSet(tower) {
   return set;
 }
 
+/**
+ * Where an emplacement's effect starts on screen (docs/ART.md, "Wirkungsanker").
+ * The simulation always works from the middle of the cell; this is only what the
+ * drawing hangs off, so a chain leaves the coil and not a point in mid-air.
+ *
+ * A weapon that aims has no fixed anchor: its muzzle is the point, and it moves,
+ * so the live angle is used. Everything else falls back to the middle of the
+ * cell, which is what the effects used before M5c.
+ *
+ * @returns {number[]} screen point in the same space as iso()
+ */
+export function towerAnchor(tower) {
+  const set = towerSet(tower);
+  const weapon = set.weapon;
+  const [sx, sy] = iso(tower.x + 0.5, tower.y + 0.5);
+  if (!weapon) return [sx, sy];
+  const scale = set.back.unitScale;
+  const [ox, oy] = spriteOrigin(set.back, sx, sy);
+  if (weapon.muzzle !== undefined && weapon.rest !== undefined) {
+    // The tube swings, so the mouth is wherever it points right now.
+    const m = motion.get(tower);
+    const angle = m ? (m.flip ? Math.PI - (weapon.rest + m.angle) : weapon.rest + m.angle) : weapon.rest;
+    const pivot = [ox + weapon.pivot[0] * scale, oy + weapon.pivot[1] * scale];
+    return [pivot[0] + Math.cos(angle) * weapon.muzzle * scale, pivot[1] + Math.sin(angle) * weapon.muzzle * scale];
+  }
+  const anchor = weapon.anchor ?? weapon.pivot;
+  if (!anchor) return [sx, sy];
+  return [ox + anchor[0] * scale, oy + anchor[1] * scale];
+}
+
+/**
+ * The several points an effect can leave from, e.g. the cauldron's four
+ * electrodes. Empty when the emplacement has only the one anchor.
+ */
+export function towerSparks(tower) {
+  const set = towerSet(tower);
+  const sparks = set.weapon?.sparks;
+  if (!sparks) return [];
+  const [sx, sy] = iso(tower.x + 0.5, tower.y + 0.5);
+  const scale = set.back.unitScale;
+  const [ox, oy] = spriteOrigin(set.back, sx, sy);
+  return sparks.map(([ax, ay]) => [ox + ax * scale, oy + ay * scale]);
+}
+
 /** Every distinct tower sprite, e.g. for preloading the gallery (layers are shared). */
 export function allTowerDefs() {
   const byKey = new Map();
@@ -146,6 +190,12 @@ export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, red
     pivot,
     muzzle,
     ports,
+    glow: weapon?.glow ?? null,
+    // Where the effect starts on the figure; the idle sparks use it too, so the
+    // thunder tower crackles at its coil and not around the core above it.
+    anchor: weapon?.anchor ? [ox + weapon.anchor[0] * scale, oy + weapon.anchor[1] * scale] : null,
+    sparks: weapon?.sparks ? weapon.sparks.map(([ax, ay]) => [ox + ax * scale, oy + ay * scale]) : null,
+    sight: Boolean(weapon?.sight),
     casings: Boolean(weapon?.casings),
     fire: fireDirection(tower, ox, oy),
     shot: m.recoil,
