@@ -70,7 +70,11 @@ PLAN = {
         # carriage behind, the front half and the wheels in front.
         'parts': {
             't-siege-back': [(1, 9), (17, 19), 28, 29],
-            't-siege-gun': [(20, 27)],
+            # Every weapon in the library rests pointing left, and the renderer
+            # mirrors the sprite when the target is on the right
+            # (src/render/towerSprites.js). The sheet draws this tube pointing
+            # right, so the part is flipped about the pivot, which is on x = 0.
+            't-siege-gun': [(20, 27), 'mirror'],
             't-siege-front': [(10, 16), (30, 33)],
         },
         'drop': [0],
@@ -130,7 +134,9 @@ def write_sheet(path, defs, wrapper, lift=0):
         # which reaches further down than open ground did.
         def fit(m):
             x, y, w, h = (float(v) for v in m.group(1).split())
-            return f'viewBox="{x:g} {y - lift:g} {w:g} {h + lift + 22:g}"'
+            # Down for the socket the figure now stands on, up because the sheet
+            # was cut to the flames, which the code draws from here on.
+            return f'viewBox="{x:g} {y - lift - 14:g} {w:g} {h + lift + 36:g}"'
 
         text = re.sub(r'viewBox="([^"]+)"', fit, text, count=1)
     path.write_text(text)
@@ -155,9 +161,13 @@ def main():
         children = split_elements(figures[figure][1])
         used = []
         for name, take in plan['parts'].items():
-            elements = pick(children, take)
+            mirror = 'mirror' in take
+            elements = pick(children, [t for t in take if t != 'mirror'])
             used.extend(elements)
-            body = f'<g transform="translate(0,-{plan["lift"]})">{"".join(elements)}</g>'
+            body = ''.join(elements)
+            if mirror:
+                body = f'<g transform="scale(-1,1)">{body}</g>'
+            body = f'<g transform="translate(0,-{plan["lift"]})">{body}</g>'
             new_parts[name] = f'<g id="{name}">{body}</g>'
             report.append(f'{name}: {len(elements)} elements, lifted {plan["lift"]}')
         used.extend(pick(children, plan['drop']))

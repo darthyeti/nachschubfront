@@ -254,10 +254,13 @@ export function specialSpriteSet(id) {
   const symbol = SPECIAL_SYMBOLS[id];
   if (!symbol) throw new Error(`Unknown special tower: ${id}`);
   const hasGun = Boolean(TOWER_SPRITES.symbols[`${symbol}-gun`]);
+  // Since M5c the siege mortar has sandbags and wheels in front of its tube,
+  // so a recipe emplacement can carry a front part like a doctrine does.
+  const hasFront = Boolean(TOWER_SPRITES.symbols[`${symbol}-front`]);
   return {
     back: towerPart(['base', `${symbol}-back`], goldEdgeMarkup()),
     gun: hasGun ? towerPart([`${symbol}-gun`]) : null,
-    front: null,
+    front: hasFront ? towerPart([`${symbol}-front`]) : null,
     weapon: TOWER_WEAPONS[id] ?? null,
     rank: 0,
   };

@@ -216,15 +216,19 @@ export const TOWER_WEAPONS = {
   mortar: { pivot: [4, -6], rest: -1.7819, muzzle: 57.3, track: 0.22, turn: 5, recoil: 7 },
   psi: { pivot: [0, -100], float: true },
   tesla: { pivot: [0, -100], static: true },
-  // Recipe emplacements: the siege mortar leans its tube, the storm battery's
-  // quad flak points upwards and flashes out of all four mouths, the rest stand
-  // still and work through their effects.
+  // Recipe emplacements (all six finished in M5c). The siege mortar leans its
+  // tube, the storm battery's quad flak points upwards and flashes out of all
+  // four mouths, two of them hover a psi part instead of aiming, and the
+  // cauldron stands still and works through its aura.
   stormBattery: { pivot: [2, -40], ports: BATTERY_MOUTHS, casings: true },
-  siegeMortar: { pivot: [2, -12], rest: -1.9182, muzzle: 76.5, track: 0.18, turn: 4, recoil: 9 },
-  purgeShrine: { pivot: [0, -46], static: true },
-  emberCauldron: { pivot: [0, -35], static: true },
-  thunderTower: { pivot: [0, -104], static: true },
-  // The psi eye hovers over the obelisk instead of aiming, like the psi crystal.
+  // Lafette and tube from the M5c sheet: the pivot is where the tube sits on
+  // the carriage, the muzzle the far end of it, both lifted onto the socket.
+  siegeMortar: { pivot: [0, -26], rest: -2.6522, muzzle: 72.5, track: 0.18, turn: 4, recoil: 9 },
+  // The psi splinter over the shrine and the psi core over the thunder tower's
+  // coil hover, like the psi crystal and the obelisk's eye.
+  purgeShrine: { pivot: [0, -62], float: true },
+  emberCauldron: { pivot: [0, -54], static: true },
+  thunderTower: { pivot: [0, -128], float: true },
   soulfireObelisk: { pivot: [0, -214], float: true },
 };
 

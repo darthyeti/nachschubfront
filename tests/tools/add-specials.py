@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Draws the six recipe emplacements (GDD section 8) into the concept library.
 
+Spent since M5c: all six recipe emplacements have finished artwork in
+reference/konzept/spezialstellungen/, and these placeholders have left the
+emplacement library (tests/tools/split-shrines.py). Running this again would
+put them back; it is kept only for the record.
+
 Each one needs a silhouette of its own that cannot be mistaken for the six
 doctrines, even at the smallest zoom (docs/ART.md). They are built from the same
 shapes as the hand-drawn sheets: isometric blocks, ink outlines, three shading
