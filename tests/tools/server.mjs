@@ -14,7 +14,7 @@ export const ROOT = fileURLToPath(new URL('../..', import.meta.url));
  */
 export async function startMatch(page) {
   await page.waitForSelector('body[data-ready]');
-  const start = page.getByRole('button', { name: 'Feldzug beginnen' });
+  const start = page.getByRole('button', { name: 'Neue Partie' });
   await start.waitFor({ state: 'visible' });
   await start.click();
   await page.waitForSelector('.menu[data-menu="main"]', { state: 'hidden' });

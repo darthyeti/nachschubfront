@@ -383,6 +383,7 @@ function onAction(action) {
     requestSalvo(state);
   } else if (action === 'newGame') {
     newGame();
+    matchRunning = true;
   } else if (action === 'toggleArt') {
     ui.art = ui.art === 'sprites' ? 'placeholder' : 'sprites';
   } else if (action === 'stress') {
@@ -534,6 +535,13 @@ document.addEventListener('visibilitychange', () => audio.setMuted(document.hidd
 /** Speed to go back to once every screen is closed again. */
 let speedBeforeMenu = 1;
 
+/**
+ * Whether there is a match to go back to. There is no save in mid-campaign
+ * (docs/SPEICHER.md), so "Fortsetzen" in the main menu means exactly this one
+ * and is greyed out otherwise (decision 25.09.2026).
+ */
+let matchRunning = false;
+
 // Offline support and the update notice. The worker never takes over on its
 // own; the player presses "Neu laden" in the menu when it suits them.
 const updates = registerServiceWorker(() => menus.showUpdate());
@@ -556,8 +564,16 @@ const menus = createMenus(document.body, {
     // The title screen shows the seed of the map already generated behind it, so
     // starting with that seed just plays it instead of rolling a new one.
     if (!seed || seed !== state.seed) newGame(seed);
+    matchRunning = true;
     lastSpeed = speedBeforeMenu > 0 ? speedBeforeMenu : 1;
     setSpeed(state, lastSpeed);
+  },
+  // "Übernehmen" on the seed screen: build that map and leave it standing
+  // behind the menu, so it can be looked at before it is played.
+  onPreview(seed) {
+    newGame(seed);
+    matchRunning = false;
+    menus.setSeed(state.seed);
   },
 });
 
@@ -682,6 +698,19 @@ function frame(now) {
 
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);
   hud.update(state, ui, { totalWaves: totalWaves(), canStart: canRequestSalvo(state) });
+  menus.setStatus({
+    running: matchRunning && state.phase !== 'defeat' && state.phase !== 'victory',
+    // "Untouched" is about the map, not about the menu: a campaign that has
+    // been backed out of before the first salvo is still the map on screen, and
+    // "Neue Partie" may simply play it. One that has been fought on is not.
+    untouched: state.wave === 0 && state.phase === 'planning' && state.towers.length === 0,
+    wave: state.wave,
+    totalWaves: totalWaves(),
+    lives: state.lives,
+    requisition: state.requisition,
+    phase: state.phase,
+    seed: state.seed,
+  });
   commandBar.update(state, ui);
   infoPanel.update(state, ui);
   debugPanel?.update(state);

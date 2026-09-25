@@ -1,11 +1,12 @@
-// The screens around the game: main menu, pause, settings and the end screen.
+// The five screens around the game (docs/ART.md, "Menüs außerhalb der Partie"):
+// main menu, seed entry, pause, settings and the end screen.
 //
 // All of them are the same overlay: a panel with ink edges over the running
 // picture, so the battlefield stays visible behind them. Only one is open at a
 // time; the game is paused while any of them is up.
 
 import { STRINGS } from '../data/strings.js';
-import { normalizeSeed, randomSeed } from '../core/seed.js';
+import { validateSeed, randomSeed } from '../core/seed.js';
 import { PREF_DEFAULTS } from '../core/prefs.js';
 import { createRecordsScreen } from './records.js';
 
@@ -74,14 +75,29 @@ function createOverlay(root, name, label) {
  * @param {ReturnType<import('../core/prefs.js').createPrefs>} options.prefs
  * @param {(seed: string|null) => void} options.onStart  New match; null means a random seed.
  * @param {() => void} options.onResume
+ * @param {(seed: string) => void} [options.onPreview]  Regenerates the map behind
+ *   the screens from a seed, without starting the match.
  * @param {(open: boolean) => void} options.onToggle  Called whenever a screen opens or closes.
  * @param {ReturnType<import('../storage/profile.js').createProfileStore>} options.profile
  * @param {() => void} [options.onApplyUpdate]  Lets the waiting build take over.
  * @param {boolean} options.canStore  False shows a warning in the settings.
  */
-export function createMenus(root, { prefs, profile, onStart, onResume, onToggle, onApplyUpdate, canStore = true }) {
-  /** @type {'main'|'pause'|'settings'|'end'|null} */
+export function createMenus(root, {
+  prefs,
+  profile,
+  onStart,
+  onResume,
+  onPreview,
+  onToggle,
+  onApplyUpdate,
+  canStore = true,
+}) {
+  /** @type {'main'|'seed'|'pause'|'settings'|'records'|'end'|null} */
   let open = null;
+  /** The seed the title screen's map was generated from. */
+  let seed = null;
+  /** Whether that map is still untouched, i.e. nothing has been played on it. */
+  let fresh = true;
   /** Where "back" leads from the settings. */
   let settingsReturn = 'main';
   /** The same for the records screen, which the end screen also opens. */
@@ -92,25 +108,24 @@ export function createMenus(root, { prefs, profile, onStart, onResume, onToggle,
   main.panel.append(el('h1', 'menu-title', STRINGS.gameTitle));
   main.panel.append(el('p', 'menu-subtitle', T.subtitle));
 
-  const seedRow = el('div', 'menu-seed');
-  const seedLabel = el('label', 'menu-seed-label', T.seedLabel);
-  const seedInput = el('input', 'menu-seed-input');
-  seedInput.type = 'text';
-  seedInput.maxLength = 12;
-  seedInput.autocapitalize = 'characters';
-  seedInput.spellcheck = false;
-  seedInput.setAttribute('aria-label', T.seedLabel);
-  seedLabel.append(seedInput);
-  seedRow.append(seedLabel, button(T.seedRandom, 'alt', () => (seedInput.value = randomSeed())));
-  main.panel.append(seedRow, el('p', 'menu-hint', T.seedHint));
-
-  const mainActions = el('div', 'menu-actions');
+  // "Neue Partie" plays the map already generated behind this screen, as long
+  // as nothing has been played on it. Once a match has run, it rolls a fresh
+  // one instead of replaying the same map.
+  const startButton = button(T.start, 'primary menu-primary', () => {
+    close();
+    onStart(fresh ? seed : null);
+  });
+  // There is no save in mid-campaign (docs/SPEICHER.md), so this leads back
+  // into the running match and nowhere else.
+  const resumeButton = button(T.resumeMatch, 'alt', () => {
+    close();
+    onResume();
+  });
+  const mainActions = el('div', 'menu-actions menu-actions-column');
   mainActions.append(
-    button(T.start, 'primary menu-primary', () => {
-      const typed = normalizeSeed(seedInput.value);
-      close();
-      onStart(typed);
-    }),
+    startButton,
+    resumeButton,
+    button(T.seedScreen, 'alt', () => show('seed', 'main')),
     button(T.records, 'alt', () => show('records', 'main')),
     button(T.settings, 'alt', () => show('settings', 'main')),
   );
@@ -118,23 +133,83 @@ export function createMenus(root, { prefs, profile, onStart, onResume, onToggle,
   main.panel.append(el('p', 'menu-howto', T.howTo));
   main.panel.append(el('p', 'menu-hint', T.hint));
 
+  // ---------- Seed entry ----------
+  // A dialog of its own over the darkened main menu, so the title screen keeps
+  // to the five things a player actually picks between.
+  const seedScreen = createOverlay(root, 'seed', T.seedTitle);
+  seedScreen.panel.append(el('h2', 'menu-title', T.seedTitle));
+  seedScreen.panel.append(el('p', 'menu-subtitle', T.seedIntro));
+
+  const seedRow = el('div', 'menu-seed');
+  const seedInput = el('input', 'menu-seed-input');
+  seedInput.type = 'text';
+  seedInput.maxLength = 24;
+  seedInput.autocapitalize = 'characters';
+  seedInput.spellcheck = false;
+  seedInput.setAttribute('aria-label', T.seedLabel);
+  seedRow.append(seedInput, button(T.seedRandom, 'alt', () => {
+    seedInput.value = randomSeed();
+    saySeed('');
+  }));
+  const seedMessage = el('p', 'menu-seed-message');
+  seedMessage.setAttribute('role', 'status');
+  seedScreen.panel.append(seedRow, seedMessage, el('p', 'menu-hint', T.seedHint));
+
+  function saySeed(text, bad = false) {
+    seedMessage.textContent = text;
+    seedMessage.classList.toggle('is-bad', bad);
+  }
+
+  /** Reads the field; on a slip it says what is wrong and gives nothing back. */
+  function takeSeed() {
+    const result = validateSeed(seedInput.value);
+    if (!result.ok) {
+      const say = T.seedErrors[result.reason];
+      saySeed(typeof say === 'function' ? say(result.chars) : say, true);
+      seedInput.focus();
+      return null;
+    }
+    seedInput.value = result.seed;
+    return result.seed;
+  }
+
+  const seedActions = el('div', 'menu-actions');
+  seedActions.append(
+    button(T.seedStart, 'primary menu-primary', () => {
+      const picked = takeSeed();
+      if (picked === null) return;
+      close();
+      onStart(picked);
+    }),
+    button(T.seedApply, 'alt', () => {
+      const picked = takeSeed();
+      if (picked === null) return;
+      // Applying regenerates the map behind the screen without starting it, so
+      // the player can look at it before committing.
+      onPreview?.(picked);
+      saySeed(T.seedTaken(picked));
+    }),
+    button(T.back, 'alt', () => show('main')),
+  );
+  seedScreen.panel.append(seedActions);
+
   // ---------- Pause ----------
   const pause = createOverlay(root, 'pause', T.pauseTitle);
   pause.panel.append(el('h2', 'menu-title', T.pauseTitle));
-  const pauseActions = el('div', 'menu-actions');
+  const pauseActions = el('div', 'menu-actions menu-actions-column');
   pauseActions.append(
     button(T.resume, 'primary menu-primary', () => {
       close();
       onResume();
     }),
     button(T.settings, 'alt', () => show('settings', 'pause')),
-    button(T.newGame, 'alt', () => {
-      close();
-      onStart(null);
-    }),
-    button(T.toMenu, 'alt', () => show('main')),
+    button(T.leaveMatch, 'alt', () => show('main')),
   );
-  pause.panel.append(pauseActions, el('p', 'menu-hint', T.hint));
+  // A line to get one's bearings by, and the two values the status bar gave up
+  // when it went down to six fields (docs/ART.md, "Obere Statusleiste").
+  const pauseStatus = el('p', 'menu-status');
+  const pauseDetail = el('p', 'menu-hint');
+  pause.panel.append(pauseActions, pauseStatus, pauseDetail, el('p', 'menu-hint', T.hint));
 
   // ---------- Settings ----------
   const settings = createOverlay(root, 'settings', TS.title);
@@ -166,6 +241,21 @@ export function createMenus(root, { prefs, profile, onStart, onResume, onToggle,
     return b;
   });
   settings.panel.append(motionGroup, el('p', 'menu-hint', TS.motionHint));
+
+  // Fixed for now, but named, so nobody has to guess whether it can be changed.
+  settings.panel.append(el('h3', 'menu-section', TS.language));
+  const languageRow = el('p', 'menu-readout', TS.languageValue);
+  settings.panel.append(languageRow, el('p', 'menu-hint', TS.languageHint));
+
+  // The save itself lives on the records screen with the table it belongs to;
+  // this is the door to it, where the sheet puts it.
+  settings.panel.append(el('h3', 'menu-section', TS.save));
+  const saveRow = el('div', 'menu-choice');
+  saveRow.append(
+    button(TR.export, 'alt', () => show('records', settingsReturn)),
+    button(TR.import, 'alt', () => show('records', settingsReturn)),
+  );
+  settings.panel.append(saveRow, el('p', 'menu-hint', TS.saveHint));
   if (!canStore) settings.panel.append(el('p', 'menu-warning', TS.storageWarning));
   const settingsActions = el('div', 'menu-actions');
   settingsActions.append(button(T.back, 'primary menu-primary', () => show(settingsReturn)));
@@ -189,9 +279,10 @@ export function createMenus(root, { prefs, profile, onStart, onResume, onToggle,
   const recordsScreen = createRecordsScreen(records.panel, {
     profile,
     canStore,
-    onSeed(seed) {
-      seedInput.value = seed;
-      show('main');
+    onSeed(taken) {
+      seedInput.value = taken;
+      saySeed('');
+      show('seed');
     },
     onBack: () => show(recordsReturn),
   });
@@ -285,7 +376,7 @@ export function createMenus(root, { prefs, profile, onStart, onResume, onToggle,
   prefs.onChange(syncInstall);
   syncInstall();
 
-  const screens = { main, pause, settings, records, end };
+  const screens = { main, seed: seedScreen, pause, settings, records, end };
 
   function show(name, from) {
     if (from) {
@@ -320,6 +411,8 @@ export function createMenus(root, { prefs, profile, onStart, onResume, onToggle,
         show(settingsReturn);
       } else if (name === 'records') {
         show(recordsReturn);
+      } else if (name === 'seed') {
+        show('main');
       }
     });
   }
@@ -360,8 +453,25 @@ export function createMenus(root, { prefs, profile, onStart, onResume, onToggle,
     },
 
     /** Fills the seed field, e.g. with the seed of the running match. */
-    setSeed(seed) {
-      seedInput.value = seed ?? '';
+    setSeed(value) {
+      seed = value ?? null;
+      fresh = true;
+      seedInput.value = value ?? '';
+      saySeed('');
+    },
+
+    /**
+     * The pause screen's bearings, and whether there is a match to go back to.
+     * Called from the frame loop, so it only writes when something changed.
+     */
+    setStatus({ running, untouched, wave, totalWaves, lives, requisition, phase, seed: matchSeed }) {
+      fresh = untouched;
+      resumeButton.disabled = !running;
+      resumeButton.title = running ? '' : T.resumeNone;
+      const line = T.pauseStatus(wave, totalWaves, lives, requisition);
+      if (pauseStatus.textContent !== line) pauseStatus.textContent = line;
+      const detail = T.pauseDetail(STRINGS.phases[phase], matchSeed);
+      if (pauseDetail.textContent !== detail) pauseDetail.textContent = detail;
     },
   };
 }

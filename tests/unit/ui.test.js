@@ -1,5 +1,7 @@
-// The three states of a rune disc (docs/ART.md, "Runenscheiben-Knopf"), read
-// off a real command status so the HUD and the simulation cannot drift apart.
+// The parts of the interface that can be checked without a browser: the three
+// states of a rune disc, read off a real command status so the HUD and the
+// simulation cannot drift apart; the order of the command rail; and what the
+// seed field accepts (docs/ART.md, "HUD" and "Menüs außerhalb der Partie").
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,6 +11,7 @@ import { commandStatus } from '../../src/sim/commands.js';
 import { commandFace } from '../../src/ui/runeButton.js';
 import { COMMANDS, commandById } from '../../src/data/commands.js';
 import { railOrder } from '../../src/ui/commands.js';
+import { validateSeed, randomSeed } from '../../src/core/seed.js';
 import { ICONS } from '../../src/ui/icons.js';
 
 /** The orbital strike is a wave-phase command, so that is where it is usable. */
@@ -86,4 +89,29 @@ test('commands unlocking in the same wave keep the order of the table', () => {
   const same = COMMANDS.filter((c) => c.fromWave === 30).map((c) => c.id);
   const inRail = railOrder().filter((c) => c.fromWave === 30).map((c) => c.id);
   assert.deepEqual(inRail, same);
+});
+
+// ---------- Seed entry (docs/ART.md, "Menüs außerhalb der Partie") ----------
+
+test('the seed field takes what a player can reasonably type', () => {
+  assert.deepEqual(validateSeed('kol-7284-xt'), { ok: true, seed: 'KOL7284XT' });
+  assert.deepEqual(validateSeed('  bastion '), { ok: true, seed: 'BASTION' });
+  assert.deepEqual(validateSeed('A B 1 2'), { ok: true, seed: 'AB12' });
+});
+
+test('the seed field says what is wrong instead of taking it anyway', () => {
+  assert.deepEqual(validateSeed(''), { ok: false, reason: 'empty' });
+  assert.deepEqual(validateSeed('   '), { ok: false, reason: 'empty' });
+  assert.deepEqual(validateSeed(null), { ok: false, reason: 'empty' });
+  assert.equal(validateSeed('A'.repeat(25)).reason, 'long');
+  const bad = validateSeed('hallo welt!');
+  assert.equal(bad.reason, 'chars');
+  assert.equal(bad.chars, '!', 'it names only what it refused');
+});
+
+test('a seed the game hands out passes its own check', () => {
+  for (let i = 0; i < 50; i++) {
+    const seed = randomSeed();
+    assert.deepEqual(validateSeed(seed), { ok: true, seed });
+  }
 });

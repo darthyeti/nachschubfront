@@ -108,6 +108,8 @@ try {
     // navigation with the one page.
     await page.goto(`${server.url}?seed=OFFLINE`, { waitUntil: 'load' });
     await page.waitForSelector('body[data-ready]', { timeout: 30000 });
+    // The field lives on the seed screen now; the deep link fills it just the same.
+    await page.getByRole('button', { name: 'Seed eingeben' }).click();
     assert.equal(await page.inputValue('.menu-seed-input'), 'OFFLINE');
   });
 

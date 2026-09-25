@@ -361,7 +361,7 @@ try {
       await page.keyboard.press('Escape');
       await pause.waitFor({ state: 'visible' });
       assert.equal((await game(page)).speed, 0, 'the match stops while the screen is up');
-      await pause.getByRole('button', { name: 'Weiter' }).tap();
+      await pause.getByRole('button', { name: 'Fortsetzen' }).tap();
       await pause.waitFor({ state: 'hidden' });
       assert.ok((await game(page)).speed > 0, 'and runs again afterwards');
     });
@@ -380,7 +380,7 @@ try {
       // Back to full, so the rest of the run is unaffected.
       await settings.getByRole('button', { name: 'Voll' }).tap();
       await settings.getByRole('button', { name: 'Zurück' }).tap();
-      await page.locator('.menu[data-menu="pause"]').getByRole('button', { name: 'Weiter' }).tap();
+      await page.locator('.menu[data-menu="pause"]').getByRole('button', { name: 'Fortsetzen' }).tap();
       await page.locator('.menu[data-menu="pause"]').waitFor({ state: 'hidden' });
     });
 
@@ -974,7 +974,7 @@ try {
     const openRecords = async () => {
       await page.keyboard.press('Escape');
       await page.waitForSelector('.menu[data-menu="pause"]:not([hidden])');
-      await page.getByRole('button', { name: 'Hauptmenü' }).tap();
+      await page.getByRole('button', { name: 'Partie verlassen' }).tap();
       await page.waitForSelector('.menu[data-menu="main"]:not([hidden])');
       await page.getByRole('button', { name: 'Bestenliste' }).tap();
       await page.waitForSelector('.menu[data-menu="records"]:not([hidden])');
@@ -996,7 +996,7 @@ try {
       assert.ok(await page.getByRole('button', { name: 'Exportieren' }).isDisabled(), 'nothing to export yet');
       await page.getByRole('button', { name: 'Zurück' }).tap();
       await page.waitForSelector('.menu[data-menu="main"]:not([hidden])');
-      await page.getByRole('button', { name: 'Feldzug beginnen' }).tap();
+      await page.getByRole('button', { name: 'Neue Partie' }).tap();
       await page.waitForSelector('.menu[data-menu="main"]', { state: 'hidden' });
     });
 
@@ -1023,10 +1023,12 @@ try {
       await page.screenshot({ path: join(OUT, 'records-list.png') });
     });
 
-    await check('a tap on a seed carries it to the main menu', async () => {
+    await check('a tap on a seed carries it to the seed screen', async () => {
       await page.locator('.records-seed').first().tap();
-      await page.waitForSelector('.menu[data-menu="main"]:not([hidden])');
+      await page.waitForSelector('.menu[data-menu="seed"]:not([hidden])');
       assert.equal(await page.inputValue('.menu-seed-input'), SEED);
+      await page.getByRole('button', { name: 'Zurück' }).tap();
+      await page.waitForSelector('.menu[data-menu="main"]:not([hidden])');
     });
 
     await check('every control on the records screen is at least 44 px tall', async () => {
@@ -1140,7 +1142,7 @@ try {
 
     await check('export and import work the same way with a mouse', async () => {
       await page.keyboard.press('Escape');
-      await page.getByRole('button', { name: 'Hauptmenü' }).click();
+      await page.getByRole('button', { name: 'Partie verlassen' }).click();
       await page.getByRole('button', { name: 'Bestenliste' }).click();
       await page.waitForSelector('.menu[data-menu="records"]:not([hidden])');
 

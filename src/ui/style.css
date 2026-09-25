@@ -1050,6 +1050,10 @@ button[hidden] {
   text-shadow: 4px 4px 0 var(--ink);
 }
 
+.menu[data-menu='end'][data-result='victory'] .menu-title {
+  color: var(--btn);
+}
+
 .menu[data-menu='end'][data-result='defeat'] .menu-title {
   color: #ff7a5a;
 }
@@ -1111,14 +1115,100 @@ button[hidden] {
   margin-top: 18px;
 }
 
-.menu-actions button {
+/* Text-button fitting (docs/ART.md, "Menüs außerhalb der Partie"): a dark plate
+   with a thin gold edge and a rune tick in each corner instead of a full ring,
+   because here the word is the point. */
+.menu-actions button,
+.menu-choice button,
+.menu-seed button {
+  position: relative;
   min-height: 44px;
   min-width: 44px;
+  background: #3c342c;
+  color: var(--text);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(232, 200, 114, 0.55) inset, 3px 3px 0 var(--ink);
+  padding: 10px 20px;
+}
+
+.menu-actions button::before,
+.menu-actions button::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  height: 5px;
+  /* Two short rune ticks per corner, drawn with a repeating edge. */
+  background:
+    linear-gradient(rgba(138, 91, 192, 0.85), rgba(138, 91, 192, 0.85)) left top / 7px 1.5px no-repeat,
+    linear-gradient(rgba(138, 91, 192, 0.85), rgba(138, 91, 192, 0.85)) right top / 7px 1.5px no-repeat;
+  pointer-events: none;
+}
+
+.menu-actions button::before {
+  top: 4px;
+}
+
+.menu-actions button::after {
+  bottom: 4px;
+  transform: scaleY(-1);
+}
+
+/* The one button each screen is really about, and the choice that is in force. */
+.menu-actions button.menu-primary,
+.menu-choice button.on,
+.menu-choice button.primary {
+  background: var(--btn);
+  color: #1a1410;
+  font-size: 19px;
+}
+
+.menu-actions button:disabled {
+  opacity: 0.45;
 }
 
 .menu-primary {
   font-size: 19px;
   padding: 10px 22px;
+}
+
+/* The title screen stacks its choices, as on the sheet. */
+.menu-actions-column {
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* The pause screen's bearings, under its buttons. */
+.menu-status {
+  margin: 16px 0 0;
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* A value the player can read but not change, like the language. */
+.menu-readout {
+  margin: 6px 0 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--btn);
+}
+
+/* What the seed field answers: the seed taken, or why it was not. */
+.menu-seed-message {
+  margin: 10px 0 0;
+  min-height: 1.2em;
+  font-size: 15px;
+  color: var(--btn);
+}
+
+.menu-seed-message.is-bad {
+  color: #ff9a6a;
 }
 
 .menu-hint,
