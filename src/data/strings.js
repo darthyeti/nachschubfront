@@ -12,7 +12,12 @@ export const STRINGS = {
     lives: 'Leben',
     seed: 'Seed',
     route: (cells) => `Route: ${cells} Felder`,
+    routeLabel: 'Routenlänge',
     routeBlocked: 'Route blockiert',
+    /** On the status plate there is room for the number alone. */
+    routeBlockedShort: '—',
+    supplyLabel: 'Nachschubstufe',
+    requisitionLabel: 'Requisition',
     requestSalvo: 'Salve anfordern',
     /** On the round main button there is only room for the word itself. */
     requestSalvoShort: 'Salve',

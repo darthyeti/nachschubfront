@@ -10,6 +10,7 @@ import { RANK_COLORS } from '../data/ranks.js';
 import { supplyWeights, MAX_SUPPLY_LEVEL } from '../data/supply.js';
 import { previewRoute, zoneLimit } from '../sim/zones.js';
 import { canBuySupply, nextSupplyCost, nextRubbleCost, nextBulwarkCost } from '../sim/economy.js';
+import { RULES } from '../data/rules.js';
 
 const T = STRINGS.hud;
 
@@ -18,31 +19,58 @@ const T = STRINGS.hud;
  * @param {{debug: boolean, onAction: (action: string) => void}} options
  */
 export function createHud(root, { debug, onAction }) {
-  // Top left: title and match stats.
+  // One riveted plate bar across the top, the values in sections (docs/ART.md,
+  // "Obere Statusleiste"). Seed and phase are not in it: they live in the pause
+  // screen now, so six fields still fit on a tablet in landscape.
   const top = el('div', 'hud-top');
-  const title = el('h1', 'hud-title', STRINGS.gameTitle);
-  const stats = el('div', 'hud-stats');
-  const wave = el('span', 'chip');
-  const lives = el('span', 'chip chip-lives');
-  const phase = el('span', 'chip chip-phase');
-  stats.append(wave, lives, phase);
-  top.append(title, stats);
+  const leftPlates = el('div', 'plate-row');
+  const rightPlates = el('div', 'plate-row');
+  top.append(leftPlates, rightPlates);
 
-  // Top right: seed and route length.
-  const info = el('div', 'hud-info');
-  // The Koloss run, when one is announced. It rides with the match chips rather
-  // than beside the title: the left group is as wide as the title makes it, and
-  // a fourth chip there runs into this one on a tablet.
-  const koloss = el('div', 'chip chip-koloss');
+  const title = el('div', 'plate plate-title');
+  title.append(el('h1', 'hud-title', STRINGS.gameTitle));
+  leftPlates.append(title);
+
+  /** One plate: a symbol and the value beside it. */
+  function plate(row, iconName, className, label) {
+    const box = el('div', `plate ${className}`);
+    const value = el('span', 'plate-value');
+    box.append(icon(iconName, 'plate-icon'), value);
+    box.setAttribute('aria-label', label);
+    row.append(box);
+    return { box, value };
+  }
+
+  const wave = plate(leftPlates, 'wave', 'plate-wave', T.wave);
+  const lives = plate(leftPlates, 'lives', 'plate-lives', T.lives);
+
+  // The Koloss run, when one is announced. It is situational, like victory and
+  // defeat, so it takes no permanent seat in the bar.
+  const koloss = el('div', 'plate plate-koloss');
   koloss.hidden = true;
-  const seed = el('span', 'chip');
-  const route = el('span', 'chip');
-  const zones = el('span', 'chip chip-zones');
-  const supply = el('span', 'chip');
-  const requisition = el('span', 'chip chip-requisition');
-  const points = el('span', 'chip');
-  points.title = T.commandPointsTitle;
-  info.append(koloss, zones, supply, requisition, points, route, seed);
+  rightPlates.append(koloss);
+
+  const supply = plate(rightPlates, 'supply', 'plate-supply', T.supplyLabel);
+  const requisition = plate(rightPlates, 'requisition', 'plate-requisition', T.requisitionLabel);
+  const points = plate(rightPlates, 'points', 'plate-points', T.commandPointsTitle);
+  const route = plate(rightPlates, 'route', 'plate-route', T.routeLabel);
+
+  // Housekeeping, not the action of the round: the codex and the menu sit at
+  // the end of the status bar rather than in the bottom bar.
+  function plateButton(iconName, label, action) {
+    const b = el('button', 'plate plate-button interactive');
+    b.type = 'button';
+    b.setAttribute('aria-label', label);
+    b.append(icon(iconName, 'plate-icon'));
+    b.addEventListener('click', () => {
+      onAction(action);
+      b.blur();
+    });
+    rightPlates.append(b);
+    return b;
+  }
+  plateButton('codex', T.codex, 'codex');
+  plateButton('menu', T.menu, 'menu');
 
   // Bottom: the rune discs, the main action, the speed group (docs/ART.md,
   // "Untere Leiste").
@@ -108,9 +136,7 @@ export function createHud(root, { debug, onAction }) {
   const groundGroup = el('div', 'rune-group');
   groundGroup.append(supplyDisc.el, demolishDisc.el, bulwarkDisc.el);
 
-  const codex = button(T.codex, 'alt', () => onAction('codex'));
-  const menu = button(T.menu, 'alt', () => onAction('menu'));
-  bar.append(groundGroup, start, restart, speedGroup, codex, menu);
+  bar.append(groundGroup, start, restart, speedGroup);
 
   let obstacleButton = null;
   let artButton = null;
@@ -146,7 +172,7 @@ export function createHud(root, { debug, onAction }) {
   // report can say which build it happened on.
   const version = el('div', 'hud-version', STRINGS.version(APP_VERSION));
 
-  root.append(top, info, bottom, banner, version);
+  root.append(top, bottom, banner, version);
   if (debugEl) root.append(debugEl);
 
   const cache = new Map();
@@ -162,19 +188,34 @@ export function createHud(root, { debug, onAction }) {
 
     /** Syncs the HUD with game state and render-side UI state. */
     update(state, ui, { totalWaves, canStart }) {
-      set('wave', `${state.wave}/${totalWaves}`, (v) => (wave.textContent = `${T.wave} ${v}`));
-      set('lives', state.lives, (v) => (lives.textContent = `${T.lives} ${v}`));
-      set('phase', state.phase, (v) => {
-        phase.textContent = STRINGS.phases[v];
-        phase.dataset.phase = v;
+      set('wave', `${state.wave}/${totalWaves}`, (v) => {
+        wave.value.textContent = v;
+        wave.box.setAttribute('aria-label', `${T.wave} ${v}`);
       });
-      set('seed', state.seed, (v) => (seed.textContent = `${T.seed} ${v}`));
+      set('lives', state.lives, (v) => {
+        lives.value.textContent = String(v);
+        lives.box.setAttribute('aria-label', `${T.lives} ${v}`);
+        // Two steps, so the bar warns before it shouts (docs/ART.md).
+        const share = v / RULES.startLives;
+        lives.box.dataset.level = share <= 0.25 ? 'critical' : share <= 0.5 ? 'low' : 'fine';
+      });
       const shown = previewRoute(state);
-      const routeText = shown ? T.route(Math.round(shown.length)) : T.routeBlocked;
-      set('route', routeText, (v) => (route.textContent = v));
-      set('supply', state.supplyLevel, (v) => (supply.textContent = T.supply(v)));
-      set('requisition', state.requisition, (v) => (requisition.textContent = T.requisition(v)));
-      set('points', state.commandPoints, (v) => (points.textContent = T.commandPoints(v)));
+      set('route', shown ? String(Math.round(shown.length)) : T.routeBlockedShort, (v) => {
+        route.value.textContent = v;
+        route.box.setAttribute('aria-label', shown ? T.route(v) : T.routeBlocked);
+      });
+      set('supply', state.supplyLevel, (v) => {
+        supply.value.textContent = String(v);
+        supply.box.setAttribute('aria-label', T.supply(v));
+      });
+      set('requisition', state.requisition, (v) => {
+        requisition.value.textContent = String(v);
+        requisition.box.setAttribute('aria-label', T.requisition(v));
+      });
+      set('points', state.commandPoints, (v) => {
+        points.value.textContent = String(v);
+        points.box.setAttribute('aria-label', T.commandPoints(v));
+      });
       const supplyCost = nextSupplyCost(state);
       const supplyTop = supplyCost === null;
       set('buySupply', `${state.supplyLevel}/${supplyCost}`, () => {
@@ -232,17 +273,16 @@ export function createHud(root, { debug, onAction }) {
         koloss.dataset.stage = run.stage;
       });
 
+
       // The zone counter rides on the salvo button now, not in the status bar:
       // it belongs to the action it counts down to (docs/ART.md, "Untere Leiste").
       const limit = zoneLimit(state);
       set('zones', state.phase === 'planning' ? `${state.zones.length}/${limit}` : '', (v) => {
         startZones.hidden = v === '';
-        zones.hidden = v === '';
         if (v === '') return;
         startZones.textContent = v;
         // The button keeps its plain name; the count speaks for itself.
         startZones.setAttribute('aria-label', T.zones(...v.split('/')));
-        zones.textContent = T.zones(...v.split('/'));
       });
       set('speed', state.speed, (v) => {
         for (const b of speedButtons) b.classList.toggle('on', Number(b.dataset.speed) === v);

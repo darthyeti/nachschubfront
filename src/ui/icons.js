@@ -17,9 +17,6 @@ const CYAN = '#5fd4ff';
 const FIRE = '#ff8a2a';
 const BLOOD = '#9e1b1b';
 
-/** Common outline so every symbol reads as a drawing, not an icon font. */
-const K = `fill="none" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"`;
-
 export const ICONS = {
   // ---------- Status bar ----------
 
@@ -38,8 +35,10 @@ export const ICONS = {
 
   /** Supply level: the receiving antenna on its foot. */
   supply: `
-    <path d="M5.5 9.5 A8 8 0 0 1 18.5 9.5" ${K}/>
-    <path d="M7.5 12 A5.2 5.2 0 0 1 16.5 12" ${K}/>
+    <path d="M4.6 10.4 A9.4 9.4 0 0 1 19.4 10.4" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+    <path d="M4.6 10.4 A9.4 9.4 0 0 1 19.4 10.4" fill="none" stroke="${GOLD}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M7.4 12.6 A6 6 0 0 1 16.6 12.6" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+    <path d="M7.4 12.6 A6 6 0 0 1 16.6 12.6" fill="none" stroke="${GOLD}" stroke-width="2" stroke-linecap="round"/>
     <path d="M12 6.5 V18" stroke="${INK}" stroke-width="3.8" stroke-linecap="round" fill="none"/>
     <path d="M12 6.5 V18" stroke="${STONE}" stroke-width="1.8" stroke-linecap="round" fill="none"/>
     <circle cx="12" cy="6.4" r="1.8" fill="${GOLD}" stroke="${INK}" stroke-width="1.4"/>

@@ -235,9 +235,9 @@ try {
         'the preview already walks around the zone',
       );
       // Wave 1 gets six pods (GDD section 3); the counter names the salvo size.
-      // By class, not by position: the info group gained a Koloss chip in v3.
-      const shown = await page.locator('.chip-zones').textContent();
-      assert.match(shown, /Zonen 1\/6/);
+      // Since M5c it rides on the salvo button, not in the status bar.
+      const shown = await page.locator('.salvo-zones').textContent();
+      assert.equal(shown, '1/6');
 
       await page.touchscreen.tap(x, y);
       await frames(page);
@@ -903,7 +903,7 @@ try {
       await frames(page, 3);
     };
     const run = () => page.evaluate(() => window.__nachschub.state().koloss);
-    const chip = page.locator('.chip-koloss');
+    const chip = page.locator('.plate-koloss');
 
     await check('two waves out it warns, with no target yet', async () => {
       await jump(33);

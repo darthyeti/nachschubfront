@@ -86,80 +86,166 @@ body {
   pointer-events: auto;
 }
 
+/* ---------- Status bar (docs/ART.md, "Obere Statusleiste") ----------
+   One dark bar across the top carrying riveted plates: the match on the left,
+   the purse and the route on the right, housekeeping at the end. */
+
 .hud-top {
   position: absolute;
-  left: calc(16px + var(--safe-left));
-  top: calc(10px + var(--safe-top));
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 10px;
+  padding: calc(6px + var(--safe-top)) calc(10px + var(--safe-right)) 6px calc(10px + var(--safe-left));
+  background: linear-gradient(#241c17, #1a1410);
+  border-bottom: 2px solid var(--ink);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+.plate-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* A plate with a rivet in each corner, as on the sheet. */
+.plate {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.hud-title {
-  font-family: var(--font-title);
-  font-weight: 400;
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1;
-  margin: 0;
-  text-shadow: 3px 3px 0 var(--ink);
-}
-
-.hud-stats,
-.hud-info {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.hud-info {
-  position: absolute;
-  right: calc(16px + var(--safe-right));
-  top: calc(12px + var(--safe-top));
-  justify-content: flex-end;
-}
-
-.chip {
-  background: var(--panel);
-  border: 2px solid var(--ink);
-  box-shadow: 3px 3px 0 var(--ink);
-  border-radius: 3px;
+  gap: 6px;
   padding: 4px 10px;
-  font-size: 17px;
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+  background: #4a4137;
+  box-shadow: inset 0 1px 0 rgba(234, 223, 196, 0.12);
+  color: var(--text);
+  font-size: 19px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.chip-lives {
-  color: #ff8a6a;
+.plate::before,
+.plate::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(26, 20, 16, 0.65);
+  box-shadow: calc(100% + 2px) 0 0 rgba(26, 20, 16, 0.65);
+}
+
+.plate::before {
+  top: 3px;
+}
+
+.plate::after {
+  bottom: 3px;
+}
+
+.plate-icon {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+
+.plate-title {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding-left: 4px;
+}
+
+.plate-title::before,
+.plate-title::after {
+  display: none;
+}
+
+.hud-title {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: clamp(20px, 2.4vw, 30px);
+  line-height: 1;
+  margin: 0;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.plate-wave .plate-value {
+  color: var(--btn);
+}
+
+.plate-requisition .plate-value {
+  color: var(--btn);
+}
+
+.plate-points .plate-value {
+  color: #5fd4ff;
+}
+
+.plate-route .plate-value {
+  color: var(--btn-alt);
+}
+
+/* The bastion warns before it shouts. */
+.plate-lives[data-level='low'] .plate-value {
+  color: #ffb13b;
+}
+
+.plate-lives[data-level='critical'] .plate-value {
+  color: #ff6a4a;
 }
 
 /* The Koloss run: a warning first, then red once it is on the field. */
-.chip-koloss {
+.plate-koloss {
   color: #ffc46a;
   border-color: #6b3a18;
 }
 
-.chip-koloss[data-stage='predicted'] {
+.plate-koloss[data-stage='predicted'] {
   color: #ff9a4a;
 }
 
-.chip-koloss[data-stage='arrived'] {
+.plate-koloss[data-stage='arrived'] {
   color: #1a1410;
   background: var(--accent);
 }
 
-.chip-koloss[hidden] {
+.plate-koloss[hidden] {
   display: none;
 }
 
-.chip-phase[data-phase='wave'] {
-  color: var(--btn);
+/* Codex and menu: plates that can be pressed, and therefore thumb-sized. The
+   bar takes its height from them, which is why the other plates stretch. */
+button.plate-button {
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+  padding: 4px 10px;
+  cursor: pointer;
 }
 
-.chip-phase[data-phase='defeat'] {
-  color: #ff6a4a;
+button.plate-button .plate-icon {
+  width: 26px;
+  height: 26px;
+}
+
+button.plate-button:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+/* On a narrow screen the title gives way before any value does. */
+@media (max-width: 860px) {
+  .plate-title {
+    display: none;
+  }
 }
 
 .hud-bottom {
@@ -395,7 +481,7 @@ button[hidden] {
 .hud-debug {
   position: absolute;
   right: calc(16px + var(--safe-right));
-  /* Below the info chips: the bottom column grows when the selection panel opens. */
+  /* Below the status bar: the bottom column grows when the selection panel opens. */
   top: calc(58px + var(--safe-top));
   font-size: 14px;
   color: var(--muted);
