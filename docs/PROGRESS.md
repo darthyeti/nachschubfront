@@ -1,6 +1,8 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
+M5c HUD, Menüs und die letzten vier Spezialstellungen ist in Arbeit. Der Plan ist am 25.09.2026 freigegeben, mit vier Entscheidungen (Reinigungsschrein behält seine Aura, „Fortsetzen" bleibt ohne laufende Partie ausgegraut, Seed und Phase wandern aus der Statusleiste ins Pausenmenü, Rezepte und Menü werden Plattenknöpfe am rechten Ende der oberen Leiste). Die Vorarbeit ist erledigt: `ART-update-v4.md` ist in `docs/ART.md` eingearbeitet (Stand jetzt v4: neue Abschnitte „HUD" und „Menüs außerhalb der Partie", der Abschnitt „Spezialstellungen" komplett neu mit Wirkungsanker-Spalte), die Einzeldatei ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik. Der Arbeitsauftrag liegt unter `docs/meilensteine/M5c-hud-menues-spezialstellungen.md`, die neuen Blätter in `reference/konzept/hud/`, `menues/` und `spezialstellungen/`.
+
 M5b Späte Bedrohung und Ressourcen-Senken ist umgesetzt und wartet auf die Abnahme. Der Plan ist am 24.09.2026 freigegeben, mit drei Entscheidungen (Koloss in Welle 35 und 45 statt 30/40/50, Salve wird ruhiger statt doppelt so lang, Koloss und Bollwerk zeichne ich selbst) und einer vierten unterwegs: „Ausreichend verstärkt" hängt an Bollwerken, nicht an einer unsichtbaren Feuerkraftschwelle.
 
 M5 Speichern und PWA ist umgesetzt und wartet auf die Abnahme (vor allem auf dem iPad: Export und Import mit dem Finger, der Installationshinweis in Safari, und ob das Spiel nach dem Ablegen auf dem Home-Bildschirm im Flugmodus startet). Der Plan ist am 24.09.2026 freigegeben, mit drei Entscheidungen: Der Import **ersetzt** mit Bestätigung statt zusammenzuführen, die Einstellungen bleiben ein eigenes Dokument und gehen nicht in den Export, und eine neue Version meldet sich als Zeile im Menü statt selbst neu zu laden. Dazu kam auf Wunsch eine sichtbare Versionsnummer unten links.
@@ -15,7 +17,7 @@ M4b Designanpassungen aus Spieltest 1 ist umgesetzt und wartet auf die Abnahme (
 
 M4 Präsentation ist umgesetzt und wartet auf die Abnahme auf dem iPad (Ton und Mehrfinger-Gesten lassen sich nur dort wirklich beurteilen). M3 wartet ebenfalls auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
 
-Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → M4c → M4d → M5 → **M5b** → M6
+Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → M4c → M4d → M5 → M5b → **M5c** → M6
 
 ## Erledigt
 - Game-Design-Grundlagen (docs/GDD.md)
@@ -266,6 +268,11 @@ Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → M4c → M4d → M5 → 
 - Hinweis: iPadOS ignoriert `display: fullscreen` im Manifest und nutzt `standalone`.
 
 ## Entscheidungen
+- M5c-Plan freigegeben (25.09.2026), mit vier Entscheidungen:
+  - **Der Reinigungsschrein behält seine Aura.** Die Ergänzung v4 beschreibt ihn als Mörser, dessen Flammenring am Zielort entsteht. Das wäre Spiellogik und Balancing, und M5c ist ausdrücklich reine Präsentation. Der Wirkungsanker liegt darum auf der Feuerschale, das eingelassene Rohr bleibt Detail der Zeichnung. Der Umbau ist ein Thema für M6.
+  - **„Fortsetzen" ist ausgegraut, solange keine Partie läuft.** Einen Spielstand mitten im Feldzug gibt es nicht (`docs/SPEICHER.md` schließt ihn aus); der Knopf führt in die laufende Partie zurück, auf dem kalten Titelbildschirm hat er kein Ziel.
+  - **Seed und Phase verlassen die Statusleiste.** Die Ergänzung nennt sechs Felder, heute stehen dort zehn. Seed und Phase stehen künftig im Pausenmenü, der Zonenzähler auf dem Salve-Knopf, die Koloss-Ankündigung bleibt situativ wie Sieg und Niederlage.
+  - **Rezepte und Menü werden Plattenknöpfe am rechten Ende der oberen Leiste.** In der Skizze der unteren Leiste kommen sie nicht vor; sie gehören zur Verwaltung, nicht zur Handlung der Runde.
 - M5b-Plan freigegeben (24.09.2026), mit vier Entscheidungen:
   - **Koloss in Welle 35 und 45** statt „ab 30, alle 10 Wellen". 30, 40 und 50 tragen schon einen Boss; nebeneinander nehmen sich die beiden die Wirkung, und der Spieler kann seine Kommandos nicht gezielt für einen von beiden aufsparen. Folge, die im Blick bleiben muss: Der Koloss tritt damit nur **zweimal** pro Partie auf. Wenn das zu dünn wirkt, ist die Frequenz der Hebel, nicht der Startpunkt.
   - **Salve wird ruhiger, nicht doppelt so lang.** Fall, Öffnen und Hologramm auf gut das Doppelte, die Staffelung zwischen zwei Kapseln nur leicht hoch. 5,25 s statt 3,40 s bei sechs Kapseln; wortgetreue Proportionalität hätte 7,1 s ergeben.

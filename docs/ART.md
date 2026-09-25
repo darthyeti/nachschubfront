@@ -2,7 +2,7 @@
 
 Verbindliche Gestaltungsregeln für alle Figuren. Die Konzeptskizzen liegen als SVG in `reference/konzept/` und sind die Grafikquelle für das Spiel.
 
-Stand: v3 (Koloss, Bollwerk, Ränge als Striche, kleinere und langsamere Kapsel).
+Stand: v4 (HUD in Runenscheiben-Optik, fünf Menü-Bildschirme, alle sechs Spezialstellungen als eigene Bauwerke mit Wirkungsanker).
 
 ## Grundregeln
 
@@ -28,27 +28,28 @@ Stand: v3 (Koloss, Bollwerk, Ränge als Striche, kleinere und langsamere Kapsel)
 
 ### Spezialstellungen
 
-Die sechs Rezept-Stellungen (GDD Abschnitt 8) sind seit M4d stationäre **Fahrzeuge**, keine Türme. Sie stehen auf zwei Fahrgestellen, beide mit sichtbaren Ketten (kein Rad-Look), und tragen darauf einen thematischen Aufsatz:
-
-- **Kampfpanzer-Fahrgestell**: kompakt, niedrig, Turm mit kurzem, schmalem Rohr, das nach vorn feuert, nicht nach oben.
-- **Artillerie-Fahrgestell**: offen, mit erhöhtem Rohr für indirekten Fernkampf.
+Die sechs Rezept-Stellungen (GDD Abschnitt 8) sind seit v4 **eigenständige Bauwerke**, jedes mit eigener Grundform. Die Fahrgestell-Fassung aus v2 ist verworfen: Die Namen legen zu unterschiedliche Formen nahe, als dass zwei Chassis sie alle tragen könnten.
 
 Wie bisher stehen sie auf demselben Sockel, tragen die Goldkante (sie sind die Spitze der Entwicklung, haben aber keinen Rang und darum keine Winkel) und stehen im Spiel in einem goldenen Bodenring. Die Leitfarbe bleibt die der erstgenannten Zutat.
 
-| Spezialstellung | Fahrgestell | Gezeichnet | Aufsatz |
+**Wirkungsanker.** Jede Zeile nennt die Stelle am Modell, von der Schuss, Flamme, Blitz oder Aura ausgeht, damit die Wirkung aus GDD Abschnitt 8 nicht an einer generischen Mitte ansetzt. Die Simulation rechnet weiter mit der Feldmitte; den sichtbaren Ursprung setzt allein der Renderer ein (Simulation und Darstellung bleiben getrennt). Die Werte stehen in `src/render/sprites/manifest.js`.
+
+| Spezialstellung | Bauform | Beschreibung | Wirkungsanker |
 |---|---|---|---|
-| Sturmbatterie | Kampfpanzer | ja | Offener Vierlings-Flakturm. Im Feuer vier gleichzeitige Mündungsblitze und umherfliegende Patronenhülsen |
-| Seelenfeuer-Obelisk | keines | ja | Kein Fahrzeug, sondern ein Runenobelisk, deutlich höher als jede andere Stellung, mit schwebendem Psi-Auge, Blitzen und Flammen am Fuß. Bewusst das auffälligste Bauwerk und die einzige Held-Stufe |
-| Reinigungsschrein | Artillerie | nein | Flammendüse statt Rohrspitze, schwebender Psi-Splitter darüber |
-| Glutkessel | Kampfpanzer | nein | Turmaufsatz aus Flammendüse und Tesla-Spule, brennender Ring um die Wanne |
-| Belagerungsmörser | Artillerie | nein | Überlanges, dickeres Rohr mit aufgesetztem Laser-Zielgerät |
-| Gewitterturm | Artillerie | nein | Rohr ersetzt durch eine hohe Tesla-Spule mit Psi-Ring darüber |
+| Reinigungsschrein | Gotischer Altar | Steinaltar mit brennender Feuerschale, schwebendem violettem Psi-Splitter darüber, Mörserrohr in den Sockel eingelassen | Die Feuerschale. Der große Flammenring liegt als stehendes Feld um den Schrein selbst (Abweichung, siehe unten) |
+| Sturmbatterie | Panzerfahrgestell | Offener Vierlings-Flakturm, im Feuer vier gleichzeitige Mündungsblitze, Hülsen fliegen umher | Die vier Laufmündungen. „Schnellfeuer auf drei Ziele" heißt: Der Turm wählt pro Salve drei Ziele, alle vier Mündungen dürfen dabei gleichzeitig aufblitzen. Er dreht sich nicht, er zeigt nach oben |
+| Glutkessel | Eiserner Kessel | Bauchiger Kessel auf Steinsockel, loderndes Feuer innen, vier Tesla-Elektroden am Rand, seitliche Autokanonen-Auslässe | Die brennende Aura geht von der Kesselöffnung oben aus und liegt um den Kessel. Die Blitze, die Gegner entzünden, schlagen von den vier Elektroden am Rand aus |
+| Belagerungsmörser | Holz-Stahl-Lafette | Schwere Lafette mit Sandsackring, überlanges Rohr, aufgesetztes Laser-Zielfernrohr | Die Rohrmündung am Ende des langen Rohrs ist der Abschusspunkt, der riesige Explosionsradius liegt am Einschlag. Das Zielfernrohr zeichnet vor dem Schuss kurz eine dünne Laserlinie zum Ziel, rein optisch, als Vorwarnung |
+| Gewitterturm | Schlanker Gittermast | Vierbeiniger Mast, oben Tesla-Spule mit schwebendem Psi-Ring | Die Spule an der Mastspitze ist der Ursprung der Kette über acht Ziele, dieselbe Stelle, von der die Umgebungsblitze der Ruheanimation ausgehen |
+| Seelenfeuer-Obelisk | Runenobelisk | Höchstes Bauwerk im Spiel, schwebendes Psi-Auge an der Spitze, Blitze, Flammen am Fuß | Das schwebende Auge an der Spitze ist der Ursprung des Schadens in Prozent der maximalen Lebenspunkte, als Strahl auf das Ziel: das Urteil des Obelisken |
 
-Fertig gezeichnet sind Sturmbatterie und Seelenfeuer-Obelisk, dazu die beiden nackten Fahrgestelle; die Blätter liegen in `reference/konzept/spezialstellungen/`. Die übrigen vier behalten vorerst die Platzhaltergrafik aus M4 (`tests/tools/add-specials.py`, Blätter in `reference/konzept/stellungen/`) und folgen später nach demselben Baukasten: Fahrgestell aus der Tabelle plus Aufsatz.
+Alle sechs Blätter liegen in `reference/konzept/spezialstellungen/`. Die Platzhalter aus M4 (`tests/tools/add-specials.py`) und die beiden nackten Fahrgestelle sind damit erledigt.
 
-**Sockel.** Die Skizzen zeigen die Fahrzeuge frei auf dem Boden, mit eigenem Schlagschatten. Im Spiel stehen sie wie jede andere Stellung auf dem gemeinsamen Sockel — er grenzt eigene Bauwerke von Trümmern ab, und der goldene Rand kennzeichnet die Rezept-Stellung. Jede Figur wird dafür um die Höhe ihres eigenen Schlagschattens angehoben, damit Ketten oder Fuß auf der Sockeloberfläche aufsetzen. Der eigene Schlagschatten fällt weg, beim Obelisken auch sein eigener breiter Sockel.
+**Abweichung beim Reinigungsschrein.** Die Ergänzung v4 legt seinen Abschusspunkt in die Mörserröhre im Sockel und den Flammenring an den Zielort. Umgesetzt bleibt die Aura um den Schrein selbst (`behaviour: 'aura'` in `src/data/specials.js`), weil der Wechsel Spiellogik und Balancing wäre und M5c ausdrücklich keine neue Spiellogik bringt (Entscheidung vom 25.09.2026). Der Anker liegt darum auf der Feuerschale, die Röhre bleibt Detail der Zeichnung und feuert nicht. Wird der Schrein in M6 auf einen Mörser umgestellt, ist die Röhre der Abschusspunkt und der Ring gehört an den Einschlag.
 
-**Was am Obelisken Code ist.** Flammen am Fuß, Blitze von der Spitze zum Auge, das Leuchten und der Ring um das Auge. Das Auge selbst ist ein Sprite und schwebt wie der Psi-Kristall. Bei der Sturmbatterie sind es die vier Mündungsblitze und die Patronenhülsen; der Vierlingsturm dreht sich nicht, er zeigt nach oben.
+**Sockel.** Die Skizzen zeigen die Bauwerke frei auf dem Boden, mit eigenem Schlagschatten. Im Spiel stehen sie wie jede andere Stellung auf dem gemeinsamen Sockel — er grenzt eigene Bauwerke von Trümmern ab, und der goldene Rand kennzeichnet die Rezept-Stellung. Jede Figur wird dafür um die Höhe ihres eigenen Schlagschattens angehoben, damit ihr Fuß auf der Sockeloberfläche aufsetzt. Der eigene Schlagschatten fällt weg, beim Obelisken auch sein eigener breiter Sockel.
+
+**Was Code ist, nicht Sprite.** Am Obelisken die Flammen am Fuß, die Blitze von der Spitze zum Auge, das Leuchten und der Ring um das Auge; das Auge selbst ist ein Sprite und schwebt wie der Psi-Kristall. An der Sturmbatterie die vier Mündungsblitze und die Patronenhülsen. Dazu seit v4: das lodernde Feuer im Glutkessel und die Blitze seiner vier Elektroden, der schwebende Psi-Splitter und die Feuerschale des Reinigungsschreins, der Psi-Ring über der Spule des Gewitterturms samt ihren Umgebungsblitzen, und die Laserlinie des Belagerungsmörsers. Sein Rohr ist wie beim normalen Mörser eine bewegliche Waffe und neigt sich zum Ziel.
 
 ### Ränge
 
@@ -174,6 +175,58 @@ Zwei Regeln, die keine Grafik sind, sondern Renderlogik.
 **Goldener Bodenring der Rezept-Stellungen.** Zu prüfen mit `npm run ringcheck` (Rezept-Stellungen auf benachbarten Feldern, Zoom als Parameter). Der Ring liegt auf Bodenhöhe, wie der Schatten unter einer Figur, und gehört deshalb in den Bodendurchgang — gezeichnet, bevor die tiefensortierten Objekte an der Reihe sind. Er darf unter keinem Zoom und keiner Kameraposition über einem Bauwerk liegen. Bis v3 wurde er zusammen mit seiner eigenen Stellung gezeichnet und legte sich dabei über die Sockelkante der beiden Nachbarn dahinter, weil die Ellipse an den Diagonalen über den Bodenrhombus ihrer Zelle hinausragt.
 
 **Geräumte Trümmerfelder.** Ein im Abbruchmodus geräumtes Feld behält denselben gestrichelten Goldring wie eine Zielmarkierung, nur schwächer (geringere Deckkraft), bis die Planungsphase endet oder eine Kapsel darauf landet. So findet man das freigeräumte Feld beim Anfordern der nächsten Salve wieder.
+
+## HUD
+
+Referenz: `reference/konzept/hud/hud-uebersicht.svg` zeigt alle Knöpfe im Zusammenhang. Das Blatt ist eine reine Ansichtszeichnung ohne IDs; Runenscheibe, Plattenleiste und die Symbole der Statusleiste werden im Code nachgebaut, nicht als Sprite importiert.
+
+### Runenscheiben-Knopf
+
+Alle Icon-Knöpfe im laufenden Spiel — Nachschub, Abriss, Bollwerk und jedes Spezialkommando — bekommen dieselbe kreisrunde Fassung: dunkler Steinkern, dünner Goldring außen, darauf zehn eingeritzte Runensymbole am Rand, darüber das eigentliche Symbol. Textknöpfe bleiben davon unberührt.
+
+Drei Zustände, für jede Scheibe gleich:
+
+| Zustand | Aussehen |
+|---|---|
+| Bereit | Normale Deckkraft |
+| Abklingzeit | Dunkler Tortenausschnitt über der Scheibe, Zahl in der Mitte zeigt die verbleibenden Wellen |
+| Gesperrt | Ganze Scheibe abgedunkelt, kleines Schloss-Symbol, goldenes Zahlen-Badge oben rechts nennt die Welle der Freischaltung |
+
+**Bedienung.** Klick oder Tippen löst die Aktion aus. Langes Drücken (am Desktop: Hover) zeigt eine kurze Erklärung als Sprechblase — dieselbe Regel wie bei Stellungen und Gegnern (GDD Abschnitt 13). Das lange Drücken darf die Aktion nicht zusätzlich auslösen. Bei einer neu freigeschalteten Scheibe blitzt die Beschriftung einmalig auf und verschwindet von selbst; danach ist sie nur noch über langes Drücken zu erreichen.
+
+### Untere Leiste
+
+Von links nach rechts: Nachschub-Scheibe (Stufe als goldenes Zahlen-Badge oben rechts, Preis klein darunter), Abriss-Scheibe (Mülleimer), Bollwerk-Scheibe, mittig der große goldene Hauptknopf „Salve anfordern" mit kleinem Kapsel-Symbol — er bleibt bewusst größer und mit Text, weil er die zentrale Handlung jeder Runde ist —, rechts die kompakte Tempo-Gruppe (Pause, 1x, 2x, 3x) als einfache quadratische Knöpfe, der aktive golden hervorgehoben.
+
+Der Zonenzähler steht auf dem Salve-Knopf, nicht mehr in der Statusleiste. Die Rang-Wahrscheinlichkeiten des Nachschubs stehen in der Sprechblase seiner Scheibe, nicht mehr als Balkenreihe auf dem Knopf.
+
+### Rechte Kommandoleiste
+
+Eigene senkrechte Leiste am rechten Bildschirmrand, ausschließlich Runenscheiben ohne Text. Die Reihenfolge von oben nach unten ist die Freischalt-Reihenfolge (Orbitalschlag, Stasisfeld, Luftschlag, Heiliges Banner). Zustände wie oben. Kommen später weitere Kommandos dazu, wird die Leiste ab einer Anzahl scrollbar, die auf dem Tablet-Querformat noch ganz sichtbar ist.
+
+### Obere Statusleiste
+
+Durchgehende Metallplatte statt einzelner schwarzer Kästchen, die Werte in kleinen Abschnitten mit Nietentrennern. Von links: Spieltitel, Welle (Standarte, „aktuelle/gesamt"), Bastion-Leben (Turm; die Zahl färbt sich bei kritischem Stand orange und rot). Rechts: Nachschubstufe (Antenne), Requisition (Münze), Kommandopunkte (Blitz-Chevron), Routenlänge (gepunkteter Pfad). Ganz rechts zwei kleine Plattenknöpfe für Rezepte und Menü — sie gehören zur Verwaltung, nicht zur Handlung der Runde, und darum nicht in die untere Leiste.
+
+Was **nicht** dauerhaft in der Leiste steht: Seed und Phase (beide im Pausenmenü), der Zonenzähler (auf dem Salve-Knopf), Sieg und Niederlage (eigener Bildschirm), die Koloss-Ankündigung (situative Einblendung, solange ein Lauf angekündigt ist).
+
+Bei sechs Feldern wird die Leiste auf dem Tablet-Querformat eng. Kommen weitere Werte dazu, gehören sie eher ins Pausenmenü als dauerhaft auf den Bildschirm.
+
+## Menüs außerhalb der Partie
+
+Fünf Bildschirme, alle mit dem Skyline-Motiv aus dem Stiltest im Hintergrund, Titel in Pirata One, Fließtext in Barlow Condensed. Referenzen: `reference/konzept/menues/hauptmenu.svg`, `seed-eingabe.svg`, `pause.svg`, `einstellungen.svg`, `ende-sieg.svg` (Niederlage ist derselbe Bildschirm, nur Titel und Farbe anders, darum kein eigenes Blatt).
+
+**Textknopf-Fassung.** Ergänzt die Runenscheibe: rechteckige dunkle Platte mit dünnem Goldrand und kleinen Runenstrichen als Eckakzent statt vollem Ring, weil hier der Text im Vordergrund steht. Der wichtigste Knopf jedes Bildschirms ist golden hervorgehoben, alle anderen bleiben dunkel mit hellem Text.
+
+| Bildschirm | Inhalt |
+|---|---|
+| Hauptmenü | Neue Partie (golden), Fortsetzen, Seed eingeben, Bestenliste, Einstellungen |
+| Seed-Eingabe | Dialog über abgedunkeltem Hauptmenü: Eingabefeld für den Seed-Code, „Zufällig", „Übernehmen", darunter der Start-Knopf |
+| Pause | Halbtransparent über der laufenden Partie: Fortsetzen (golden), Einstellungen, Partie verlassen, darunter eine kompakte Statuszeile (Welle, Leben, Requisition) zur Orientierung |
+| Einstellungen | Regler für Musik- und Effektlautstärke, Schalter für reduzierte Bewegung, Sprachanzeige (fest Deutsch), Exportieren und Importieren des Spielstands, Zurück (golden) |
+| Ende | Titel Sieg oder Niederlage, Kennzahlen (Punkte, verbleibende Leben, Abschüsse, gegebenenfalls neuer Bestwert), Nochmal (golden) und Hauptmenü |
+
+**Fortsetzen ohne Zwischenspeicher.** Einen Spielstand mitten im Feldzug gibt es nicht (`docs/SPEICHER.md`). „Fortsetzen" führt deshalb in die laufende Partie zurück und ist ausgegraut, solange keine läuft — also auf dem kalten Titelbildschirm (Entscheidung vom 25.09.2026).
 
 ## Technische Umsetzung
 
