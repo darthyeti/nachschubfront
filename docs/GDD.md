@@ -180,10 +180,12 @@ Name im Spiel: **Koloss**. Nicht „Titan" — das ist im Grimdark-Sci-Fi-Genre 
 **Ankündigung in drei Stufen:**
 
 1. **Zwei Wellen vor Ankunft:** allgemeine Warnung („Ein Koloss nähert sich, Ankunft in 2 Wellen"), noch kein Ziel.
-2. **Eine Welle vor Ankunft:** Zielvorhersage — die Stelle mit der geringsten Feuerkraft in Reichweite auf dem kürzesten Weg zur Bastion, als Zielmarkierung wie bei Kapseln. Verstärkt der Spieler diese Stelle (neue Stellung, Bollwerk), rückt die Vorhersage sofort auf die nächstschwächste Stelle.
-3. **Die Welle des Auftritts:** Das Ziel ist fest. Der Koloss erscheint und bewegt sich direkt darauf zu.
+2. **Eine Welle vor Ankunft:** Zielvorhersage — die Stelle mit der geringsten Feuerkraft in Reichweite auf dem kürzesten Weg zur Bastion. Geschützte Felder (Riss, Signalfeuer, Bastion und ihr Umfeld) sind ausgenommen: Eine Markierung dort wäre eine Drohung, auf die der Spieler nicht antworten darf. Verstärkt er die Stelle, rückt die Vorhersage sofort auf die nächstschwächste. Als Verstärkung zählt Feuerkraft in Reichweite und ein Bollwerk in der Nähe.
+3. **Die Welle des Auftritts:** Das Ziel ist fest, sobald die Welle beginnt — die Planungsphase davor gehört noch dem Spieler. Der Koloss erscheint und fährt direkt darauf zu.
 
-**Durchbruch:** Ist die Zielstelle nicht ausreichend verstärkt, reißt der Koloss eine gerade Schneise von etwa 5 Feldern (Startwert) in seiner Fahrtrichtung durch das Labyrinth. Getroffene Trümmerfelder werden zerstört, getroffene **Bollwerke widerstehen** und stoppen die Schneise an dieser Stelle. Der Durchbruch selbst kostet keine Leben. Danach reiht sich der Koloss in die neu berechnete Wegfindung ein und bewegt sich mit eigenem, langsamem Tempo weiter, weiterhin bekämpfbar durch Stellungen und Kommandos.
+**Durchbruch:** Am Ziel angekommen reißt der Koloss eine gerade Schneise von etwa 5 Feldern (Startwert) in seiner Fahrtrichtung durch das Labyrinth. Getroffene Trümmerfelder werden zerstört. Die Schneise endet, wo sie auf etwas Gebautes trifft: ein **Bollwerk** oder eine **Stellung**. Beide bleiben dabei stehen. Der Durchbruch selbst kostet keine Leben. Danach nimmt der Koloss den kürzesten Weg zur Bastion — eine Maschine, die gerade durchgebrochen ist, läuft die Signalfeuer nicht mehr ab — und bleibt durch Stellungen und Kommandos bekämpfbar.
+
+„Ausreichend verstärkt" heißt also: mit Bollwerken abgeriegelt (Entscheidung vom 24.09.2026). Feuerkraft verhindert den Rammstoß nicht, sie verhindert, dass er überhaupt ankommt.
 
 **Erreicht der Koloss die Bastion**, kostet das 15 Leben statt der 5 eines normalen Bosses (Startwert, im Balancing zu justieren).
 
