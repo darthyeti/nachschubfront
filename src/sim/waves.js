@@ -1,6 +1,7 @@
 // Wave spawning. Wave definitions live in data/waves.js.
 
 import { WAVES } from '../data/waves.js';
+import { updateKoloss, spawnKoloss } from './koloss.js';
 import { groundPolyline, flyerPolyline } from './route.js';
 import { spawnEnemy } from './enemies.js';
 
@@ -38,6 +39,9 @@ export function beginWave(state) {
   state.banners.length = 0;
   for (const tower of state.towers) tower.damage = 0;
   state.events.push({ type: 'waveStart', wave: state.wave });
+  // The Koloss arrives on top of the wave, not instead of it (GDD section 9).
+  updateKoloss(state);
+  spawnKoloss(state);
 }
 
 /** Spawns everything that is due at the current wave time (phaseTime). */

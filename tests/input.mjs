@@ -235,7 +235,8 @@ try {
         'the preview already walks around the zone',
       );
       // Wave 1 gets six pods (GDD section 3); the counter names the salvo size.
-      const shown = await page.locator('.hud-info .chip').first().textContent();
+      // By class, not by position: the info group gained a Koloss chip in v3.
+      const shown = await page.locator('.chip-zones').textContent();
       assert.match(shown, /Zonen 1\/6/);
 
       await page.touchscreen.tap(x, y);
@@ -875,6 +876,79 @@ try {
       // And now it is on cooldown, which is what the button has to say.
       await frames(page, 2);
       assert.ok(await button.isDisabled(), 'four waves of cooldown');
+    });
+
+    await context.close();
+  }
+
+  // ---------- The Koloss announces itself ----------
+  // The ram and the walk afterwards are unit-tested; what only a browser shows
+  // is the warning, the marker on the map and that the marker moves when the
+  // player reinforces the spot.
+  console.log('koloss announcement (tablet, touch)');
+  {
+    const { context, page } = await openGame({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+    const jump = async (wave) => {
+      await page.locator('.debug-panel input[type=number]').fill(String(wave));
+      await page.getByRole('button', { name: 'Springen' }).click();
+      await frames(page, 3);
+    };
+    const run = () => page.evaluate(() => window.__nachschub.state().koloss);
+    const chip = page.locator('.chip-koloss');
+
+    await check('two waves out it warns, with no target yet', async () => {
+      await jump(33);
+      const state = await run();
+      assert.equal(state.stage, 'warning');
+      assert.equal(state.target, null);
+      assert.ok(await chip.isVisible(), 'the HUD says one is coming');
+      assert.match(await chip.textContent(), /Koloss in 2/);
+      assert.match(await page.locator('.hud-banner').textContent(), /Ein Koloss nähert sich/);
+    });
+
+    await check('one wave out it names the spot, and reinforcing moves it', async () => {
+      await jump(34);
+      const before = await run();
+      assert.equal(before.stage, 'predicted');
+      assert.ok(before.target, 'a spot is marked');
+      await frames(page, 2);
+      assert.match(await chip.textContent(), /Koloss in 1/);
+      await page.screenshot({ path: join(OUT, 'koloss-predicted.png') });
+
+      // A bulwark beside the marked spot counts as reinforcement (GDD section 9).
+      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 2000 }));
+      const beside = { x: before.target.x + 1, y: before.target.y };
+      await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
+      const [bx, by] = await screenOf(page, beside);
+      await page.mouse.click(bx, by);
+      await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
+      await page.getByRole('button', { name: /^Bollwerk/ }).tap();
+      await page.mouse.click(bx, by);
+      await page.getByRole('button', { name: /^Bollwerk/ }).tap();
+      await frames(page, 3);
+
+      const after = await run();
+      assert.notDeepEqual(after.target, before.target, 'the marker moved off the reinforced spot');
+    });
+
+    await check('in its own wave the Koloss is on the field', async () => {
+      await jump(35);
+      assert.equal((await run()).stage, 'arrived');
+      await frames(page, 2);
+      assert.match(await chip.textContent(), /Koloss!/);
+
+      await playRound(page, (x, y) => page.mouse.click(x, y));
+      await page.waitForFunction(
+        () => window.__nachschub.state().enemyTypes.includes('koloss'),
+        null,
+        { timeout: 30000 },
+      );
+      await page.screenshot({ path: join(OUT, 'koloss-arrived.png') });
     });
 
     await context.close();

@@ -48,6 +48,12 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
     burn: null,
     /** Distance travelled along the route, in cells. */
     d,
+    /**
+     * A route of this creature's own, used instead of the wave's. Only the
+     * Koloss has one: it drives at the spot it picked and, after the ram, walks
+     * a path computed from where it stands (sim/koloss.js).
+     */
+    route: null,
     x: 0,
     y: 0,
     dx: 1,
@@ -100,10 +106,17 @@ export function updateEnemies(state, dt) {
   let write = 0;
   for (let read = 0; read < state.enemies.length; read++) {
     const e = state.enemies[read];
-    const line = e.flying ? flyer : ground;
+    const line = e.route ?? (e.flying ? flyer : ground);
     e.d += enemySpeed(state, e) * dt;
+    // A charging Koloss stops at the end of its run to ram, it does not leak.
+    if (e.charging) {
+      e.d = Math.min(e.d, line.length);
+      positionAt(line, e.d, e);
+      state.enemies[write++] = e;
+      continue;
+    }
     if (e.d >= line.length) {
-      const cost = e.boss ? RULES.bossLeakCost : RULES.leakCost;
+      const cost = e.koloss ? RULES.kolossLeakCost : e.boss ? RULES.bossLeakCost : RULES.leakCost;
       lost += cost;
       // Debug invulnerability still counts the breakthrough, it only spares the bastion.
       if (!state.invulnerable) state.lives = Math.max(0, state.lives - cost);

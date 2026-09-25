@@ -152,6 +152,7 @@ function newGame(seed = null) {
   ui.flashes.length = 0;
   ui.effects.clear();
   ui.banner = null;
+  kolossTold = '';
   const url = new URL(location.href);
   url.searchParams.set('seed', state.seed);
   history.replaceState(null, '', url);
@@ -581,11 +582,37 @@ function drainEvents() {
     }
     if (ev.type === 'phase' && ev.phase === 'salvo') ui.podSelected = 0;
     else if (ev.type === 'waveCleared') showBanner(STRINGS.banners.waveCleared(ev.wave, ev.leaked));
+    else if (ev.type === 'kolossArrived') showBanner(STRINGS.koloss.arrived, STRINGS.koloss.arrivedDetail);
+    else if (ev.type === 'kolossBreach') {
+      const t = STRINGS.koloss;
+      const stopped = ev.stoppedBy === 'bulwark' ? t.stoppedByBulwark : ev.stoppedBy === 'tower' ? t.stoppedByTower : '';
+      showBanner(t.breach(ev.cleared), stopped);
+    }
     else if (ev.type === 'phase' && (ev.phase === 'defeat' || ev.phase === 'victory')) {
       showEndScreen(ev.phase === 'victory');
     }
   }
   state.events.length = 0;
+  announceKoloss();
+}
+
+/** The stage of the Koloss run the player has already been told about. */
+let kolossTold = '';
+
+/**
+ * Announces the run once per stage (GDD section 9). The stage lives on the
+ * state; this only decides when to say it out loud.
+ */
+function announceKoloss() {
+  const run = state.koloss;
+  const stage = run ? `${run.wave}:${run.stage}` : '';
+  if (stage === kolossTold) return;
+  kolossTold = stage;
+  if (!run || run.stage === 'arrived') return;
+  const t = STRINGS.koloss;
+  const away = run.wave - (state.phase === 'planning' ? state.wave + 1 : state.wave);
+  if (run.stage === 'warning') showBanner(t.warning(away), t.warningDetail);
+  else showBanner(t.predicted, t.predictedDetail);
 }
 
 /** The result of a finished match, with the score from GDD section 12. */
@@ -724,6 +751,9 @@ if (debug) {
       commandPoints: state.commandPoints,
       demolished: state.demolished,
       waveStats: { ...state.waveStats },
+      /** Enough to tell the Koloss from the wave around it in a browser check. */
+      enemyTypes: state.enemies.map((e) => e.type),
+      koloss: state.koloss ? { ...state.koloss, target: state.koloss.target ? { ...state.koloss.target } : null } : null,
       projectiles: state.projectiles.length,
     }),
     /** Debug actions; the visible debug panel uses the same simulation calls. */

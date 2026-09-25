@@ -125,13 +125,63 @@ export const BOSSES = {
   },
 };
 
+/**
+ * The Koloss (GDD section 9, v3): the late threat, a war machine rather than a
+ * creature. It travels outside the boss table because it is not a wave's boss —
+ * it turns up in addition to one.
+ *
+ * Derived numbers, none of them in the GDD (candidates for M6):
+ * - `health` 9000 against the wave-50 boss's 5000, so it reads as "markedly
+ *   tougher than a boss" even though it arrives fifteen waves earlier.
+ * - `speed` below every boss: it should be on the field long enough to be worth
+ *   spending commands on.
+ * - `reward` above a boss's 50, because it costs more to bring down.
+ */
+export const KOLOSS = {
+  koloss: true,
+  /** It counts as a boss everywhere a rule says "boss": damage caps, stasis, points. */
+  boss: true,
+  armor: 'plate',
+  health: 9000,
+  speed: 0.35,
+  reward: 80,
+  flying: false,
+  sprite: 'breaker',
+  scale: 2.6,
+};
+
+/**
+ * When it comes and what it does when it arrives. Every number here is a data
+ * value the balancing pass can turn.
+ */
+export const KOLOSS_RUN = {
+  /**
+   * Waves it appears in. Update v3 said "from wave 30, every 10 waves"; 30, 40
+   * and 50 are boss waves already, so the run is offset by five and the two do
+   * not take each other's effect away (decision of 24.09.2026, see docs/GDD.md).
+   */
+  waves: [35, 45],
+  /** Waves of warning before it lands: first a warning, then the prediction. */
+  warningWaves: 2,
+  /** Cells the ram tears through the maze, in its direction of travel. */
+  breachCells: 5,
+  /**
+   * What a bulwark near the predicted spot is worth when the prediction looks
+   * for the weakest place. The GDD wants the marker to move when the player
+   * reinforces, and a bulwark carries no firepower of its own.
+   */
+  bulwarkFirepower: 40,
+  /** How close a bulwark has to be to count, in cells. */
+  bulwarkRadius: 1.5,
+};
+
 /** Fixed order: the sprite gallery and the stress test follow it. */
 export const ENEMY_IDS = Object.keys(ENEMIES);
 
 export const BOSS_IDS = Object.keys(BOSSES);
 
-/** Every enemy the simulation can spawn, normal types and bosses. */
-export const ALL_ENEMIES = { ...ENEMIES, ...BOSSES };
+/** Every enemy the simulation can spawn: normal types, bosses and the Koloss. */
+export const ALL_ENEMIES = { ...ENEMIES, ...BOSSES, koloss: KOLOSS };
 
 export function enemyDef(type) {
   const def = ALL_ENEMIES[type];

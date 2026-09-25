@@ -79,6 +79,11 @@ export function createHud(root, { debug, onAction }) {
 
   // Top right: seed and route length.
   const info = el('div', 'hud-info');
+  // The Koloss run, when one is announced. It rides with the match chips rather
+  // than beside the title: the left group is as wide as the title makes it, and
+  // a fourth chip there runs into this one on a tablet.
+  const koloss = el('div', 'chip chip-koloss');
+  koloss.hidden = true;
   const seed = el('span', 'chip');
   const route = el('span', 'chip');
   const zones = el('span', 'chip chip-zones');
@@ -86,7 +91,7 @@ export function createHud(root, { debug, onAction }) {
   const requisition = el('span', 'chip chip-requisition');
   const points = el('span', 'chip');
   points.title = T.commandPointsTitle;
-  info.append(zones, supply, requisition, points, route, seed);
+  info.append(koloss, zones, supply, requisition, points, route, seed);
 
   // Bottom: speed controls and the main action.
   const bar = el('div', 'hud-bar');
@@ -220,6 +225,15 @@ export function createHud(root, { debug, onAction }) {
         demolishButton.disabled = !v;
       });
       set('demolishMode', ui.demolishMode, (v) => demolishButton.classList.toggle('on', v));
+
+      const run = state.koloss;
+      const away = run ? Math.max(0, run.wave - (state.phase === 'planning' ? state.wave + 1 : state.wave)) : null;
+      set('koloss', run ? `${run.stage}:${away}` : '', (v) => {
+        koloss.hidden = v === '';
+        if (v === '') return;
+        koloss.textContent = STRINGS.koloss.chip(away);
+        koloss.dataset.stage = run.stage;
+      });
 
       const bulwarkPrice = nextBulwarkCost(state);
       set('bulwarkCost', bulwarkPrice, (v) => (bulwarkButton.textContent = T.bulwark(v)));

@@ -16,6 +16,8 @@ export const RULES = {
   leakCost: 1,
   /** Lives lost when a boss reaches the bastion. */
   bossLeakCost: 5,
+  /** Lives lost when the Koloss reaches the bastion (GDD section 12, v3). */
+  kolossLeakCost: 15,
   /** Seconds the evaluation banner stays before planning resumes. */
   evaluationSeconds: 2,
 

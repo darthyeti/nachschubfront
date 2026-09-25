@@ -13,6 +13,7 @@ import { updateEffects } from './effects.js';
 import { updateShields, updateFlashes } from './damage.js';
 import { settleWave } from './economy.js';
 import { updateStress } from './debug.js';
+import { updateKoloss, updateKolossRun } from './koloss.js';
 
 export function stepSimulation(state, dt) {
   state.tick += 1;
@@ -30,6 +31,10 @@ export function stepSimulation(state, dt) {
     return;
   }
 
+  // The announcement follows the planning: the prediction has to move with the
+  // maze while the player is still building.
+  if (state.phase === 'planning') updateKoloss(state);
+
   if (state.phase === 'salvo') {
     updatePods(state, dt);
     // The selection waits for the player; the wave starts with their choice.
@@ -37,6 +42,7 @@ export function stepSimulation(state, dt) {
   } else if (state.phase === 'wave') {
     updateSpawns(state);
     updateEnemies(state, dt);
+    updateKolossRun(state);
     updateAbilities(state, dt);
     updateCombat(state, dt);
     updateProjectiles(state, dt);

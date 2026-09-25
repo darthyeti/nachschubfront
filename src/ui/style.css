@@ -135,6 +135,25 @@ body {
   color: #ff8a6a;
 }
 
+/* The Koloss run: a warning first, then red once it is on the field. */
+.chip-koloss {
+  color: #ffc46a;
+  border-color: #6b3a18;
+}
+
+.chip-koloss[data-stage='predicted'] {
+  color: #ff9a4a;
+}
+
+.chip-koloss[data-stage='arrived'] {
+  color: #1a1410;
+  background: var(--accent);
+}
+
+.chip-koloss[hidden] {
+  display: none;
+}
+
 .chip-phase[data-phase='wave'] {
   color: var(--btn);
 }

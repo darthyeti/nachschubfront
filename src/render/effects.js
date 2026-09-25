@@ -197,6 +197,23 @@ export function createEffects() {
       if (event.index === 0) addWord(event.x + 0.5, event.y + 0.5, STRINGS.effects.podImpact, 38);
     } else if (event.type === 'stasis') {
       fields.push({ x: event.x, y: event.y, radius: event.radius, life: event.seconds, max: event.seconds });
+    } else if (event.type === 'kolossBreach') {
+      // The ram goes through: dust and debris cell by cell along the swathe, and
+      // a shout, because this is the moment the maze the player built gives way.
+      for (const c of event.cells) {
+        burst(c.x + 0.5, c.y + 0.5, 0, 'dust', reducedMotion ? 6 : 16, {
+          speed: 140, size: 8, grow: 18, life: 1.2, gravity: -6,
+        });
+        burst(c.x + 0.5, c.y + 0.5, 8, 'debris', reducedMotion ? 4 : 12, {
+          speed: 130, size: 3.5, life: 1, gravity: 420,
+        });
+      }
+      addRing(event.x, event.y, { radius: 3.4, life: 0.7, width: 6 });
+      jolt(SHAKE.podImpact, FLASH.podImpact);
+      addWord(event.x, event.y, STRINGS.effects.kolossBreach, 40);
+    } else if (event.type === 'kolossArrived') {
+      jolt(SHAKE.bossKill, FLASH.bossKill);
+      addRing(event.x, event.y, { radius: 2.6, life: 0.8, colour: '#ff6a4a', width: 5 });
     } else if (event.type === 'airstrike') {
       // A run of blasts along the line instead of one crater: the squadron flies
       // the strip, it does not drop everything on one spot.

@@ -224,6 +224,30 @@ export const STRINGS = {
     warpherald: 'Warp-Herold',
     swarmqueen: 'Schwarmkönigin',
     daemonprince: 'Dämonenprinz',
+    koloss: 'Koloss',
+  },
+
+  koloss: {
+    /** Two waves out: it is coming, no target yet (GDD section 9). */
+    warning: (waves) =>
+      waves === 1 ? 'Ein Koloss nähert sich · Ankunft in 1 Welle' : `Ein Koloss nähert sich · Ankunft in ${waves} Wellen`,
+    warningDetail: 'Bollwerke halten seinem Rammstoß stand, Trümmer nicht.',
+    /** One wave out: the marked spot is where he will hit. */
+    predicted: 'Der Koloss zielt hierher',
+    predictedDetail: 'Verstärke sie, dann sucht er sich die nächstschwächste.',
+    arrived: 'Der Koloss ist da',
+    arrivedDetail: 'Kein Kommando tötet ihn allein.',
+    breach: (cells) =>
+      cells === 0
+        ? 'Der Koloss bricht durch'
+        : cells === 1
+          ? 'Der Koloss reißt ein Feld auf'
+          : `Der Koloss reißt ${cells} Felder auf`,
+    stoppedByBulwark: 'Ein Bollwerk hält den Rammstoß auf',
+    stoppedByTower: 'Eine Stellung hält den Rammstoß auf',
+    /** Chip in the HUD while a run is announced. */
+    chip: (waves) => (waves === 0 ? 'Koloss!' : `Koloss in ${waves}`),
+    target: 'Ziel des Kolosses',
   },
 
   /** Wave kinds, shown in the info panel and the wave statistics. */
@@ -378,6 +402,7 @@ export const STRINGS = {
     podImpact: 'KRACH!',
     orbitalStrike: 'EINSCHLAG!',
     airstrike: 'ANFLUG!',
+    kolossBreach: 'DURCHBRUCH!',
   },
 
   gallery: {

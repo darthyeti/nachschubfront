@@ -2,7 +2,7 @@
 // Rules: docs/ART.md. Symbol ids come from the generated enemies.js / towers.js.
 
 import { MAX_RANK } from '../../data/ranks.js';
-import { BOSSES } from '../../data/enemies.js';
+import { BOSSES, KOLOSS } from '../../data/enemies.js';
 
 /** World pixels per SVG unit. A cell is 64 x 32 world pixels. */
 export const SPRITE_SCALE = {
@@ -71,13 +71,17 @@ export const BOSS_SYMBOLS = {
   daemonprince: 'e-prince',
 };
 
+/** The Koloss is no boss of a wave, so it stands apart (GDD section 9, v3). */
+export const KOLOSS_SYMBOL = { koloss: 'e-koloss' };
+
 /** Extra size factor on top of SPRITE_SCALE.enemy; 1 for normal enemies. */
-export const ENEMY_EXTRA_SCALE = Object.fromEntries(
-  Object.entries(BOSSES).map(([id, boss]) => [id, boss.scale]),
-);
+export const ENEMY_EXTRA_SCALE = {
+  ...Object.fromEntries(Object.entries(BOSSES).map(([id, boss]) => [id, boss.scale])),
+  koloss: KOLOSS.scale,
+};
 
 /** Every drawable enemy symbol, normal types first. */
-export const ALL_ENEMY_SYMBOLS = { ...ENEMY_SYMBOLS, ...BOSS_SYMBOLS };
+export const ALL_ENEMY_SYMBOLS = { ...ENEMY_SYMBOLS, ...BOSS_SYMBOLS, ...KOLOSS_SYMBOL };
 
 /** Ground shadow per enemy (radius in world pixels). */
 const BASE_SHADOW = {
@@ -95,6 +99,9 @@ export const ENEMY_SHADOW = {
   ...Object.fromEntries(
     Object.entries(BOSSES).map(([id, boss]) => [id, BASE_SHADOW[boss.sprite] * boss.scale]),
   ),
+  // The Koloss is wider than it is tall, so its shadow is wider than the factor
+  // alone would make it.
+  koloss: BASE_SHADOW[KOLOSS.sprite] * KOLOSS.scale * 1.15,
 };
 
 /**

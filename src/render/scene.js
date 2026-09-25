@@ -146,6 +146,30 @@ function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
 }
 
 /**
+ * The spot the Koloss is driving at: a ring of warning stripes that tightens
+ * once it is on the field. Deliberately unlike a landing zone — one is an offer,
+ * this is a threat.
+ */
+function drawKolossTarget(ctx, cell, t, reducedMotion, arrived) {
+  const pulse = reducedMotion ? 0.8 : 0.6 + 0.4 * Math.abs(Math.sin(t * (arrived ? 4 : 2)));
+  const rgb = arrived ? '255,58,42' : '255,154,74';
+  drawCellMarker(ctx, cell, `rgba(${rgb},${0.14 * pulse})`, `rgba(${rgb},${0.95 * pulse})`, arrived ? 4 : 3);
+  const [x, y] = iso(cell.x + 0.5, cell.y + 0.5);
+  // Crosshair arms, so the cell reads as aimed at and not merely marked.
+  ctx.strokeStyle = `rgba(${rgb},${0.9 * pulse})`;
+  ctx.lineWidth = 2.5;
+  for (const [dx, dy] of [
+    [-1, 0],
+    [1, 0],
+  ]) {
+    ctx.beginPath();
+    ctx.moveTo(x + dx * 16, y + dy * 8);
+    ctx.lineTo(x + dx * 34, y + dy * 17);
+    ctx.stroke();
+  }
+}
+
+/**
  * Everything the demolish mode could clear (GDD section 13). Rubble is marked in
  * gold, a position of the player's own in red: tearing one down is the
  * expensive, irreversible move. What the player cannot afford stays dim, and the
@@ -272,6 +296,11 @@ export function createSceneRenderer(sprites) {
       } else {
         state.zones.forEach((zone, i) => drawZoneMarker(ctx, zone, i, t, ui.reducedMotion));
       }
+    }
+    // Where the Koloss is aimed (GDD section 9). Drawn during planning and while
+    // it is on the field, so the player can see what it is driving at.
+    if (state.koloss?.target && state.koloss.stage !== 'warning' && !state.koloss.breached) {
+      drawKolossTarget(ctx, state.koloss.target, t, ui.reducedMotion, state.koloss.stage === 'arrived');
     }
     // Cells cleared in demolish mode keep a faint ring until a capsule takes
     // them or the wave starts (docs/ART.md).

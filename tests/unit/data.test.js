@@ -8,8 +8,18 @@ import { DOCTRINES, DOCTRINE_IDS, DOCTRINE_COLORS } from '../../src/data/doctrin
 import { RANKS, MAX_RANK, MIN_RANK, isRank, rankStats } from '../../src/data/ranks.js';
 import { SUPPLY_LEVELS, MAX_SUPPLY_LEVEL, supplyWeights, supplyCost } from '../../src/data/supply.js';
 import { RECIPES, RECIPE_IDS, recipeById } from '../../src/data/recipes.js';
-import { ENEMIES, ENEMY_IDS, BOSSES, BOSS_IDS, ALL_ENEMIES, enemyDef } from '../../src/data/enemies.js';
+import {
+  ENEMIES,
+  ENEMY_IDS,
+  BOSSES,
+  BOSS_IDS,
+  ALL_ENEMIES,
+  KOLOSS,
+  KOLOSS_RUN,
+  enemyDef,
+} from '../../src/data/enemies.js';
 import { WAVES, waveScale } from '../../src/data/waves.js';
+import { RULES } from '../../src/data/rules.js';
 import { SPECIALS, specialDef } from '../../src/data/specials.js';
 import { ARMOR_TYPES, DAMAGE_MATRIX, damageFactor } from '../../src/data/combat.js';
 import { ECONOMY, waveBonus, rubbleCost } from '../../src/data/economy.js';
@@ -223,8 +233,29 @@ test('bosses have their own values, artwork and a name', () => {
     waves.push(boss.wave);
   }
   assert.deepEqual(waves, [10, 20, 30, 40, 50], 'one boss every tenth wave');
-  assert.deepEqual(Object.keys(STRINGS.enemies), [...ENEMY_IDS, ...BOSS_IDS]);
+  assert.deepEqual(Object.keys(STRINGS.enemies), [...ENEMY_IDS, ...BOSS_IDS, 'koloss']);
   assert.equal(enemyDef('broodmother'), BOSSES.broodmother);
+});
+
+test('the Koloss is tougher than any boss and comes between them', () => {
+  // GDD section 9: markedly tougher than a normal boss, and slower than all of them.
+  assert.ok(KOLOSS.health > Math.max(...Object.values(BOSSES).map((b) => b.health)), 'tougher than any boss');
+  assert.ok(KOLOSS.speed < Math.min(...Object.values(BOSSES).map((b) => b.speed)), 'slower than any boss');
+  assert.ok(KOLOSS.reward > Math.max(...Object.values(BOSSES).map((b) => b.reward)));
+  assert.equal(KOLOSS.armor, 'plate');
+  assert.equal(KOLOSS.boss, true, 'every rule that says "boss" has to catch it too');
+  assert.equal(KOLOSS.koloss, true);
+  assert.equal(enemyDef('koloss'), KOLOSS);
+
+  // It turns up between the boss waves, not on them (decision of 24.09.2026).
+  const bossWaves = Object.values(BOSSES).map((b) => b.wave);
+  for (const wave of KOLOSS_RUN.waves) {
+    assert.ok(!bossWaves.includes(wave), `wave ${wave} already carries a boss`);
+    assert.ok(wave <= WAVES.length, `wave ${wave} is inside the match`);
+  }
+  assert.ok(KOLOSS_RUN.warningWaves >= 2, 'two waves of warning at least');
+  assert.ok(KOLOSS_RUN.breachCells > 0);
+  assert.ok(RULES.kolossLeakCost > RULES.bossLeakCost, 'it costs more to let through than a boss');
 });
 
 test('the wave list covers 50 waves of known enemies', () => {

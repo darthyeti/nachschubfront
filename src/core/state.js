@@ -48,6 +48,11 @@ export function createGameState(seed) {
     supplyBonus: 0,
     /** Enemies killed in the whole match (score, GDD section 12). */
     kills: 0,
+    /**
+     * The Koloss run being announced or running (sim/koloss.js), or null:
+     * { wave, stage, target, mapVersion, breached }.
+     */
+    koloss: null,
     /** Towers built per doctrine in this match; the profile adds them up (M5). */
     builtByDoctrine: {},
     /** Landing zones marked during planning, at most the salvo size of the coming wave. */
