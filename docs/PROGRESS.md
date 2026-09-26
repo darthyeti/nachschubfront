@@ -11,6 +11,31 @@ Die Vorarbeit ist erledigt: `GDD-update-v4.md` ist in `docs/GDD.md` eingearbeite
 
 **Gemeldete Auffälligkeit, nicht eigenmächtig geändert:** Die neuen Startwerte der Spezialstellungen sind deutlich kleiner als die bisher hergeleiteten (Sturmbatterie 5 statt 14 Schaden, Glutkessel 6 statt 90, Gewitterturm 14 statt 110). Sie werden wie geschrieben übernommen, dürften gegen die Lebenspunkte ab Welle 35 aber zu schwach sein. Zwischen M7 und M6 ist mit spürbar schwächeren Spezialstellungen zu rechnen; das ist Thema von M6, kein Fehler.
 
+### Stand von M7 (26.09.2026)
+
+**Fertig und committet:**
+
+- **Block A, Koloss-Logik.** Auftritt am Kartenrand der Riss-Seite, Fahrlinienwahl nach der geringsten Feuerkraft über dem ersten blockierenden Feld, Schneise von 5 Feldern beim Überfahren zermalmt, Stopp mit 3 s Betäubung an Bollwerk und Stellung, danach eigene 4er-Wegfindung ohne Signalfeuer mit Trümmerkosten 6, Rammen mit 8-s-Countdown bei Einschluss, Drehung auf der Stelle. Gegner hinter ihm werden nach jeder Zerstörung auf die neue Route gesetzt, ohne zu springen. `findPath` hat dafür zwei Optionen bekommen (nur Achsen, Kosten für eigentlich blockierte Felder).
+- **Bugfix verwaister Effekt.** Ursache gefunden: `updateCombat` läuft nur in der Welle, also behielt `tower.firing` seinen letzten Wert, und die Renderseite zeichnet Auren und Kegel genau daraus. Ein Obelisk, der beim Durchbruch gerade arbeitete, drehte seinen Ring über der leeren Karte weiter. Behoben an einer Stelle: Das Verlassen der Wellenphase stellt jede Stellung ab. Dazu gibt `removeTower` jetzt alles frei, was auf eine Stellung zeigt (Brände, Geschosse, Feuerzustand) — nötig, weil das Rammen Stellungen zerstört.
+- **Block B, Luftschlag.** Linie rastet auf die nähere Achse ein, Vorschau zeigt die eingerastete Linie. 1,1 s Vorwarnung mit gelber gestrichelter Linie und acht Einschlagmarken, dann fallen die Bomben einzeln über 3,4 s. Der Anteil ist das Budget des ganzen Einsatzes, nicht ein Treffer, also deckelt er wie bisher. Obelisk auf Einzelstrahl alle 1,6 s mit 22 % und 5 % gegen Bosse. Neues HUD-Symbol (Gunship von oben).
+- **Block C, Grafik, teilweise.** Umwandler von Studien-Zeichencode nach SVG (`npm run studies`), Bunker-Baukasten mit allen fünf Rängen und zwölf Aufsätzen im Spiel, Spezialbasis, alte Sockel-/Fahnen-/Chevron-Logik entfernt, Spezialstellungen auf ihre v4-Rollen (inklusive überspringendem Brand des Glutkessels), drehbares Modellmodul (`src/render/model.js`) und der Koloss als Modell in allen vier Richtungen mit eigenem Lebensbalken.
+
+**Offen in Block C:**
+
+1. **Gunship als Modell** (`src/render/gunship.js`, ART Abschnitt „Gunship"): Rumpf, Flügel, schräges Heck mit Klappe, zwei runde Düsengondeln, fallende Bomben. Das Modellmodul steht bereit, `nacelle()` ist dafür schon portiert. Der Luftschlag zeichnet bis dahin nur Vorwarnung und Einschläge.
+2. **Neue Zielankündigung des Koloss** (ART „Zielankündigung"): rote gestrichelte Fahrlinie, pulsierende Schneisenfelder, roter Zielring mit Segmenten, Warnbanner. Aktuell zeichnet `drawKolossTarget` in `src/render/scene.js` noch den alten goldenen Kapselring. Die Daten liegen bereit: `state.koloss.lane`, `.target`, `.swathe`.
+3. **Bollwerk in der finalen Grafik** (ART „Bollwerk"): Steinblock, zwei Stützstreben, gelbes Warnband, ersetzt das Trümmerfeld.
+4. **Durchsicht der Kommando-Effekte** (Orbitalschlag, Stasisfeld, Heiliges Banner) auf Platzhalter.
+5. **Screenshots** aller vier Koloss-Richtungen und beider Stellungsmodi in 1180 x 820, danach Versionsnummer hoch.
+
+**Gemeldete Auffälligkeiten, Werte unverändert übernommen:**
+
+- Der **Belagerungsmörser** reicht mit 6,6 kürzer als jeder Mörser seiner Doktrin (Rekrut 7,0, Legende 8,4). Die Belagerungswaffe ist damit der kurzreichweitigste Mörser im Spiel. Auffälligste Stelle der neuen Startwerte.
+- **Reinigungsschrein** 11 Schaden/s, **Glutkessel** 6 und **Gewitterturm** 14 liegen je Ziel unter einer einzelnen Stellung ihrer Ausgangsdoktrin auf Mindestrang (Flamme Veteran 39,6, Tesla Elite 70). Über alle Ziele gerechnet trägt es, einzeln gemessen nicht. Der Datentest prüft deshalb die Rolle, nicht mehr die Schadenszahl.
+- Der **Obelisk** macht gegen normale Gegner 22 % pro Strahl statt bisher 3 % pro Sekunde — gegen eine einzelne Einheit etwa das Viereinhalbfache.
+- **Abgeleitete Entscheidung:** Der übergesprungene Brand des Glutkessels springt nicht weiter. Das Update sagt dazu nichts, und eine Kette ohne Ende zündet mit einem Geschoss eine ganze Welle an.
+- **Abgeleitete Entscheidung:** Der Koloss zermalmt auch Gelände (Ruinen, Krater, Mauerstücke), nicht nur Trümmer. Sonst könnte sein Zielfeld ein Hindernis sein, das er nicht beseitigen kann, und er bliebe stehen.
+
 M5c HUD, Menüs und die letzten vier Spezialstellungen ist umgesetzt und wartet auf die Abnahme (vor allem auf dem iPad: die Runenscheiben mit dem Finger, langes Drücken ohne versehentliches Auslösen, die rechte Kommandoleiste im Querformat und die Seed-Eingabe mit der Bildschirmtastatur). Der Plan ist am 25.09.2026 freigegeben, mit vier Entscheidungen (Reinigungsschrein behält seine Aura, „Fortsetzen" bleibt ohne laufende Partie ausgegraut, Seed und Phase wandern aus der Statusleiste ins Pausenmenü, Rezepte und Menü werden Plattenknöpfe am rechten Ende der oberen Leiste). Die Vorarbeit ist erledigt: `ART-update-v4.md` ist in `docs/ART.md` eingearbeitet (Stand jetzt v4: neue Abschnitte „HUD" und „Menüs außerhalb der Partie", der Abschnitt „Spezialstellungen" komplett neu mit Wirkungsanker-Spalte), die Einzeldatei ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik. Der Arbeitsauftrag liegt unter `docs/meilensteine/M5c-hud-menues-spezialstellungen.md`, die neuen Blätter in `reference/konzept/hud/`, `menues/` und `spezialstellungen/`.
 
 M5b Späte Bedrohung und Ressourcen-Senken ist umgesetzt und wartet auf die Abnahme. Der Plan ist am 24.09.2026 freigegeben, mit drei Entscheidungen (Koloss in Welle 35 und 45 statt 30/40/50, Salve wird ruhiger statt doppelt so lang, Koloss und Bollwerk zeichne ich selbst) und einer vierten unterwegs: „Ausreichend verstärkt" hängt an Bollwerken, nicht an einer unsichtbaren Feuerkraftschwelle.
