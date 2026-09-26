@@ -15,6 +15,7 @@
     "test:webkit": "node tests/input.mjs --browser webkit && node tests/offline.mjs --browser webkit && node tests/screenshots.mjs --browser webkit --query \"seed=BASTION&debug\" && node tests/perf.mjs --browser webkit",
     "icons": "node tests/tools/make-icons.mjs",
     "sprites": "node tests/tools/import-sprites.mjs",
+    "studies": "node tests/tools/study-to-svg.mjs",
     "waves": "node tests/tools/make-waves.mjs",
     "playmatch": "node tests/tools/playmatch.mjs",
     "precache": "node tests/tools/make-precache.mjs",
