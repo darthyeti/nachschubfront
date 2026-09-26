@@ -31,16 +31,65 @@ export function applyStun(state, enemy, seconds) {
  * @param {boolean} [stack]  True adds to the burn already running (purge shrine),
  *   false refreshes it (GDD section 6: the flame doctrine burns for 3 s).
  */
-export function applyBurn(state, enemy, burn, doctrine, towerId, { stack = false } = {}) {
+export function applyBurn(state, enemy, burn, doctrine, towerId, { stack = false, spread = null } = {}) {
   const until = state.time + burn.seconds;
   if (!enemy.burn || state.time >= enemy.burn.until) {
-    enemy.burn = { dps: burn.damagePerSecond, until, doctrine, towerId };
+    enemy.burn = { dps: burn.damagePerSecond, until, doctrine, towerId, spread, nextJump: spread ? state.time + spread.everySeconds : 0 };
     return;
   }
   enemy.burn.dps = stack ? enemy.burn.dps + burn.damagePerSecond : Math.max(enemy.burn.dps, burn.damagePerSecond);
   enemy.burn.until = Math.max(enemy.burn.until, until);
   enemy.burn.doctrine = doctrine;
   enemy.burn.towerId = towerId;
+  if (spread && !enemy.burn.spread) {
+    enemy.burn.spread = spread;
+    enemy.burn.nextJump = state.time + spread.everySeconds;
+  }
+}
+
+/** True while an enemy is alight. */
+export function isBurning(state, enemy) {
+  return Boolean(enemy.burn) && state.time < enemy.burn.until;
+}
+
+/**
+ * The nearest enemy that is not alight, within `range` cells of `from`. Ties go
+ * to the lower id, so the same field always spreads the same way.
+ */
+function nearestUnburnt(state, from, range) {
+  const r2 = range * range;
+  let best = null;
+  let bestDistance = Infinity;
+  for (const e of state.enemies) {
+    if (e.dead || e === from || isBurning(state, e)) continue;
+    const d = (e.x - from.x) ** 2 + (e.y - from.y) ** 2;
+    if (d > r2) continue;
+    if (d < bestDistance - 1e-9 || (Math.abs(d - bestDistance) <= 1e-9 && best && e.id < best.id)) {
+      bestDistance = d;
+      best = e;
+    }
+  }
+  return best;
+}
+
+/**
+ * The cauldron's fire jumping on (GDD section 8): every so often a burning
+ * enemy sets one that is not alight yet on fire, for a shorter while. The fire
+ * it lights does not spread again — see the note in data/specials.js.
+ */
+function spreadBurn(state, enemy) {
+  const { spread } = enemy.burn;
+  enemy.burn.nextJump = state.time + spread.everySeconds;
+  const next = nearestUnburnt(state, enemy, spread.range);
+  if (!next) return;
+  applyBurn(
+    state,
+    next,
+    { damagePerSecond: enemy.burn.dps, seconds: spread.seconds },
+    enemy.burn.doctrine,
+    enemy.burn.towerId,
+  );
+  state.events.push({ type: 'emberJump', from: { x: enemy.x, y: enemy.y }, to: { x: next.x, y: next.y } });
 }
 
 /** Speed of an enemy right now, in cells per second (0 while frozen). */
@@ -73,5 +122,6 @@ export function updateEffects(state, dt) {
       const tower = towers.get(e.burn.towerId);
       if (tower) tower.damage += dealt;
     }
+    if (e.burn.spread && state.time >= e.burn.nextJump) spreadBurn(state, e);
   }
 }

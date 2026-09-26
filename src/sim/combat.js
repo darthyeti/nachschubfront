@@ -5,6 +5,13 @@ import { towerStats, towerCentre } from './towers.js';
 import { bestTarget, targetsInRange, canTarget, distanceSq, routeProgress } from './targeting.js';
 import { damageEnemy } from './damage.js';
 import { applyBurn, applySlow, applyStun } from './effects.js';
+
+/**
+ * Seconds the golden glow of the purge shrine stays on an enemy after the aura
+ * last touched it. The aura re-marks every step, so this only has to bridge to
+ * the next one, like the slow does.
+ */
+const GILD_LINGER_SECONDS = 0.15;
 import { launchShell } from './projectiles.js';
 import { bannerBonus } from './commands.js';
 
@@ -71,10 +78,19 @@ function fireMulti(state, tower, stats, target) {
   if (targets.length === 0) targets.push(target);
   for (const e of targets) {
     hit(tower, stats, e, stats.damage);
+    // The cauldron's bolts set their targets alight, and that fire spreads
+    // (GDD section 8); the storm battery's do not.
+    if (stats.def.burn) {
+      applyBurn(state, e, stats.def.burn, stats.doctrine, tower.id, {
+        stack: stats.burnStacks,
+        spread: stats.def.spread ?? null,
+      });
+    }
     state.events.push({
       type: 'shot',
       towerId: tower.id,
       doctrine: stats.doctrine,
+      tracer: stats.def.tracer ?? null,
       x: tower.x + 0.5,
       y: tower.y + 0.5,
       tx: e.x,
@@ -191,6 +207,9 @@ function fireAura(state, tower, stats, dt) {
     // weapon against bosses: it does not care how much health they have.
     hit(tower, stats, e, (stats.damage + percent * e.maxHealth) * dt);
     if (stats.def.slow) applySlow(state, e, stats.def.slow);
+    // The shrine's aura marks what stands in it, so the render side can show
+    // the gold on the enemy rather than only on the ground (docs/ART.md).
+    if (stats.def.gilds) e.gildUntil = state.time + GILD_LINGER_SECONDS;
     if (stats.def.burn) applyBurn(state, e, stats.def.burn, stats.doctrine, tower.id, { stack: stats.burnStacks });
     if (routeProgress(state, e) > routeProgress(state, lead)) lead = e;
   }

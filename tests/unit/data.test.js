@@ -351,19 +351,54 @@ test('every recipe has a special tower whose values fit its ingredients', () => 
   assert.throws(() => specialDef('nope'));
 });
 
-test('a special tower beats the doctrine it is built from', () => {
-  // Rough guard against a special that would not be worth three towers. The
-  // obelisk is left out on purpose: it deals a share of the target's health, so
-  // there is no flat number to hold against a doctrine. It is checked below.
-  const damagePerSecond = (def) => (def.fire === 'aura' ? def.damage : def.damage * def.fire);
+test('every special does something no single emplacement can', () => {
+  // Until v4 this test asked for more damage per second than the leading
+  // doctrine at the recipe's minimum rank. The v4 start values break that for
+  // three of the six, and deliberately so: what a special is worth now is in
+  // what it reaches and what it leaves behind, not in one number. The shrine
+  // hits everything in its radius at once, the cauldron sets fires that spread,
+  // the tower chains over eight and stuns, the obelisk works in shares of
+  // health. So the guard is on the role, and the numbers themselves are a
+  // matter for the balancing pass (docs/PROGRESS.md).
+  const role = {
+    purgeShrine: (def) => def.behaviour === 'aura' && def.slow > 0,
+    stormBattery: (def) => def.multiTargets > 1 && def.fire > 10,
+    emberCauldron: (def) => def.multiTargets > 1 && def.burn && def.spread,
+    siegeMortar: (def) => def.splashRadius > 0 && def.range > 6,
+    thunderTower: (def) => def.chain.targets >= 8 && def.chain.stun > 0,
+    soulfireObelisk: (def) => def.percentPerHit > 0,
+  };
   for (const recipe of RECIPES) {
     const def = specialDef(recipe.id);
-    if (def.behaviour === 'soulfire') continue;
-    const plain = DOCTRINES[recipe.ingredients[0]];
-    const plainDps = (plain.fire === 'aura' || plain.fire === 'stream' ? plain.damage : plain.damage * plain.fire)
-      * RANKS[recipe.minRank - 1].damage;
-    assert.ok(damagePerSecond(def) >= plainDps, `${recipe.id}: ${damagePerSecond(def)} vs ${plainDps}`);
+    assert.ok(role[recipe.id], `${recipe.id} has no role recorded`);
+    assert.ok(role[recipe.id](def), `${recipe.id}: its values no longer carry its role`);
   }
+});
+
+test('the values of the six specials are the ones the update names', () => {
+  // Straight from GDD section 8. They are start values and the balancing pass
+  // will move them; this is here so a move is a decision and not a slip.
+  const expected = {
+    purgeShrine: { damage: 11, range: 2.8 },
+    stormBattery: { damage: 5, range: 3.2, multiTargets: 3 },
+    emberCauldron: { damage: 6, range: 3.2, multiTargets: 3 },
+    siegeMortar: { range: 6.6, minRange: 1.5 },
+    thunderTower: { damage: 14, range: 3.1 },
+    soulfireObelisk: { range: 4.2 },
+  };
+  for (const [id, values] of Object.entries(expected)) {
+    const def = specialDef(id);
+    for (const [key, value] of Object.entries(values)) {
+      assert.ok(Math.abs(def[key] - value) < 1e-9, `${id}.${key}: ${def[key]} instead of ${value}`);
+    }
+  }
+  // The cadences the update gives in seconds, held here as shots per second.
+  for (const [id, seconds] of [['stormBattery', 0.06], ['emberCauldron', 1.2], ['siegeMortar', 3.2], ['thunderTower', 1.3], ['soulfireObelisk', 1.6]]) {
+    assert.ok(Math.abs(1 / specialDef(id).fire - seconds) < 1e-6, `${id}: ${1 / specialDef(id).fire} s between shots`);
+  }
+  assert.equal(specialDef('emberCauldron').burn.damagePerSecond, 9);
+  assert.equal(specialDef('thunderTower').chain.stun, 0.5);
+  assert.equal(specialDef('thunderTower').chain.jumpRange, 1.8);
 });
 
 test('the obelisk is measured in shares of health, and capped against bosses', () => {

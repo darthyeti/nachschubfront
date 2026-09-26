@@ -184,10 +184,23 @@ export function createEffects() {
   function handle(event, state, reducedMotion) {
     const colour = DOCTRINE_COLORS[event.doctrine] ?? C.gold;
     if (event.type === 'shot') {
-      shots.push({ kind: 'shot', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: FLASH_SECONDS });
+      // The storm battery fires blue tracer, not the brass of the doctrine it
+      // is built from (docs/ART.md, "Spezialstellungen").
+      const shade = event.tracer ?? colour;
+      shots.push({ kind: 'shot', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour: shade, life: FLASH_SECONDS });
       if (!reducedMotion) burst(event.x, event.y, 26, 'spark', 2, { speed: 40, size: 2, life: 0.25 });
     } else if (event.type === 'beam') {
       shots.push({ kind: 'beam', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: BEAM_SECONDS });
+    } else if (event.type === 'emberJump') {
+      // A short ember arc from the one that is alight to the one catching fire.
+      shots.push({
+        kind: 'chain',
+        points: [event.from, event.to],
+        origin: null,
+        colour: '#ff8a2a',
+        life: BEAM_SECONDS * 1.6,
+      });
+      if (!reducedMotion) burst(event.to.x, event.to.y, 10, 'fire', 4, { speed: 35, size: 3, life: 0.35, gravity: -30 });
     } else if (event.type === 'soulfire') {
       // The obelisk's judgement: one beam out of the eye at its tip to the one
       // thing it is passing judgement on (docs/ART.md).
@@ -470,12 +483,16 @@ export function createEffects() {
     }
 
     for (const tower of state.towers) {
+      const stats = towerStats(tower);
+      // The psi emplacement's ring is up whether it is working or not: it is
+      // part of the figure, not of its fire (docs/ART.md, "Aufsätze").
+      if (stats.behaviour === 'psi') {
+        drawStandingAura(ctx, tower, stats, t, reducedMotion);
+        continue;
+      }
       if (!tower.firing || !tower.aim) continue;
       // The behaviour, not the doctrine: a purge shrine is a flame tower with a ring.
-      const stats = towerStats(tower);
-      if (stats.behaviour === 'aura' || stats.behaviour === 'psi') {
-        drawAura(ctx, tower, stats, t, reducedMotion);
-      }
+      if (stats.behaviour === 'aura') drawAura(ctx, tower, stats, t, reducedMotion);
       else if (stats.behaviour === 'cone' || stats.behaviour === 'flame') drawCone(ctx, tower, t, reducedMotion);
     }
   }
@@ -590,6 +607,33 @@ export function createEffects() {
     ctx.globalAlpha = alpha * 0.25;
     ctx.fillStyle = colour;
     ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  /**
+   * The psi emplacement's standing ring: a dashed circle the size of its reach,
+   * up for as long as the building is (docs/ART.md). Fainter than the shrine's,
+   * because it is there all the time.
+   */
+  function drawStandingAura(ctx, tower, stats, t, reducedMotion) {
+    const [x, y] = project(tower.x + 0.5, tower.y + 0.5);
+    const colour = DOCTRINE_COLORS[stats.doctrine] ?? C.warpL;
+    const r = stats.range * 32;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, 0.5);
+    ctx.globalAlpha = tower.firing ? 0.16 : 0.08;
+    ctx.fillStyle = colour;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.55;
+    ctx.setLineDash([7, 6]);
+    ctx.lineDashOffset = reducedMotion ? 0 : -t * 14;
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
     ctx.restore();
     ctx.globalAlpha = 1;
   }

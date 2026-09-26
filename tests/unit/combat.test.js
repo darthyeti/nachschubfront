@@ -363,8 +363,9 @@ test('the storm battery fires at three targets at once', () => {
   assert.equal(enemies.filter((e) => e.health < e.maxHealth).length, 3);
 });
 
-test('the purge shrine burns a whole ring and its burns stack', () => {
+test('the purge shrine is a ring that hurts and slows, and nothing else', () => {
   const state = battlefield();
+  const def = specialDef('purgeShrine');
   const tower = addTower(state, { x: 8, y: 10, doctrine: 'flame', rank: null, special: 'purgeShrine' });
   const ahead = put(state, 'warrior', 9);
   const behind = put(state, 'warrior', 7);
@@ -373,10 +374,15 @@ test('the purge shrine burns a whole ring and its burns stack', () => {
   updateCombat(state, SIM_STEP);
   assert.ok(ahead.health < 1e6 && behind.health < 1e6, 'a ring, not a cone');
   assert.ok(ahead.slow > 0, 'and it slows');
-  const first = ahead.burn.dps;
-  updateCombat(state, SIM_STEP);
-  assert.ok(ahead.burn.dps > first, 'the burn stacks instead of being refreshed');
   assert.ok(tower.damage > 0);
+
+  // v4: no shell and no fire any more, just the aura, for as long as they are
+  // in it (GDD section 8).
+  assert.equal(ahead.burn, null, 'it sets nothing alight');
+  assert.equal(def.burn, undefined);
+  assert.ok(def.gilds, 'and the ones inside glow gold instead of wearing the slow ring');
+  const taken = 1e6 - ahead.health;
+  assert.ok(Math.abs(taken / SIM_STEP - def.damage * damageFactor('flame', ahead.armorBelow)) < 1e-6, 'per second, not per shot');
 });
 
 test('the soulfire obelisk hurts by the share of a boss health bar', () => {
@@ -430,7 +436,15 @@ test('special towers have no rank and keep the doctrine of their first ingredien
   const tower = addTower(state, { x: 8, y: 10, doctrine: 'mortar', rank: null, special: 'siegeMortar' });
   const stats = towerStats(tower);
   assert.equal(stats.doctrine, 'mortar');
-  assert.ok(stats.range > towerStats({ doctrine: 'mortar', rank: 5 }).range, 'and outranges a legend mortar');
+  assert.ok(stats.minRange > 0, 'and it cannot shoot what is standing on it');
+
+  // v4 cut its reach from 12 to 6.6, which is shorter than every rank of the
+  // doctrine it is built from — a recruit mortar reaches 7. The value is the
+  // update's and stands as written; this records it so the balancing pass finds
+  // it rather than rediscovers it (docs/PROGRESS.md).
+  const recruit = towerStats({ doctrine: 'mortar', rank: 1 }).range;
+  assert.ok(stats.range < recruit, `siege mortar ${stats.range} vs recruit mortar ${recruit}`);
+  assert.ok(stats.splashRadius > 0, 'what it has over them is the blast, not the reach');
 });
 
 test('how far along counts per route, so flyers are not ignored', () => {
@@ -493,4 +507,56 @@ test('the obelisk reloads between beams instead of burning continuously', () => 
   assert.equal(target.health, afterFirst, 'no damage between beams');
   for (let t = 0; t < SIM_STEP * 8; t += SIM_STEP) updateCombat(state, SIM_STEP);
   assert.ok(target.health < afterFirst, 'and the next beam lands on time');
+});
+
+// ---------- Glutkessel (GDD section 8, v4) ----------
+
+test('the cauldron sets its targets alight, and the fire jumps on', () => {
+  const state = battlefield();
+  const def = specialDef('emberCauldron');
+  // Three in front of it, plus one standing just beside the leader.
+  const lead = spawnEnemy(state, 'warrior', { d: 6 });
+  lead.x = 6.5;
+  lead.y = 10.5;
+  const beside = spawnEnemy(state, 'warrior', { d: 6 });
+  beside.x = 6.5 + def.spread.range * 0.6;
+  beside.y = 10.5;
+  addTower(state, { x: 6, y: 9, doctrine: 'flame', special: 'emberCauldron' });
+
+  updateCombat(state, SIM_STEP);
+  assert.ok(lead.burn, 'the bolt lights it');
+  assert.equal(lead.burn.dps, def.burn.damagePerSecond);
+  assert.ok(lead.burn.spread, 'and that fire can spread');
+
+  // The one beside it is out of range of the tower's own bolts but close
+  // enough for the fire to reach.
+  beside.burn = null;
+  state.time += def.spread.everySeconds;
+  updateEffects(state, SIM_STEP);
+  assert.ok(beside.burn, 'the fire jumped across');
+  assert.equal(beside.burn.spread, null, 'and stops there, it does not cascade');
+  assert.ok(
+    beside.burn.until - state.time <= def.spread.seconds + 1e-6,
+    'the fire it caught burns for the shorter while',
+  );
+  assert.ok(state.events.some((e) => e.type === 'emberJump'), 'and the render side is told');
+});
+
+test('the fire never jumps to something already alight', () => {
+  const state = battlefield();
+  const def = specialDef('emberCauldron');
+  const a = spawnEnemy(state, 'warrior', { d: 6 });
+  a.x = 6.5;
+  a.y = 10.5;
+  const b = spawnEnemy(state, 'warrior', { d: 6 });
+  b.x = 6.5 + def.spread.range * 0.5;
+  b.y = 10.5;
+  applyBurn(state, a, def.burn, 'flame', 1, { spread: def.spread });
+  applyBurn(state, b, def.burn, 'flame', 1);
+  const before = b.burn.until;
+
+  state.time += def.spread.everySeconds;
+  updateEffects(state, SIM_STEP);
+  assert.equal(b.burn.until, before, 'the one already burning is left alone');
+  assert.equal(state.events.filter((e) => e.type === 'emberJump').length, 0);
 });

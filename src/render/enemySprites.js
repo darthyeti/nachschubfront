@@ -134,6 +134,19 @@ export function createEnemySpriteRenderer(cache) {
 
     const r = ENEMY_SHADOW[e.type] ?? 14;
     shadow(ctx, sx, sy + 1, r, r * 0.42, e.flying ? 0.2 : 0.3);
+    // Standing in the purge shrine's aura: a gold light on the creature itself,
+    // so the aura is readable on what it is doing and not only on the ground
+    // (docs/ART.md, "Spezialstellungen").
+    if (e.gildUntil > simTime) {
+      const pulse = reducedMotion ? 0.3 : 0.24 + Math.abs(Math.sin(t * 5 + e.id)) * 0.14;
+      const g = ctx.createRadialGradient(sx, sy - r * 0.5, r * 0.2, sx, sy - r * 0.5, r * 1.5);
+      g.addColorStop(0, `rgba(255,210,63,${pulse})`);
+      g.addColorStop(1, 'rgba(255,210,63,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(sx, sy - r * 0.5, r * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
     const stunned = e.stunUntil > simTime;
     const bob =
       reducedMotion || stunned ? 0 : e.flying ? Math.sin(t * 3 + e.id) * 3 : Math.abs(Math.sin(t * 9 + e.id)) * 1.6;

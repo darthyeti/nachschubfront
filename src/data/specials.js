@@ -19,64 +19,74 @@
 
 export const SPECIALS = {
   purgeShrine: {
+    // v4: no projectile at all. A standing golden aura that hurts and slows
+    // everything inside it, for as long as it is inside (GDD section 8).
     doctrine: 'flame',
     behaviour: 'aura',
     fire: 'aura',
-    damage: 60,
-    range: 3.0,
+    damage: 11,
+    range: 2.8,
     targets: ['ground'],
     slow: 0.25,
-    burn: { damagePerSecond: 10, seconds: 3 },
-    /** GDD: the burn stacks instead of being refreshed. */
-    burnStacks: true,
+    /** Enemies in the aura glow gold instead of wearing the violet slow ring. */
+    gilds: true,
   },
 
   stormBattery: {
+    // Rapid fire with blue tracer, spread over the three leading enemies.
     doctrine: 'autocannon',
     behaviour: 'multi',
-    fire: 6,
-    damage: 14,
-    range: 4.0,
+    fire: 1 / 0.06,
+    damage: 5,
+    range: 3.2,
     targets: ['ground', 'air'],
     multiTargets: 3,
+    /** Blue tracer and blue muzzle flashes, not the doctrine's brass. */
+    tracer: '#7fd8ff',
   },
 
   emberCauldron: {
-    // Flame is the leading ingredient, so its bolts burn like fire does: hard
-    // on flesh, useless against flyers, which it therefore does not target.
+    // v4: no aura. Fire bolts at the leading enemies, and the fire they set
+    // spreads from one to the next.
     doctrine: 'flame',
-    behaviour: 'chain',
-    fire: 1.2,
-    damage: 90,
+    behaviour: 'multi',
+    fire: 1 / 1.2,
+    damage: 6,
     range: 3.2,
     targets: ['ground'],
-    chain: { targets: 4, falloff: 0.15, jumpRange: 2.5 },
-    /** Every bolt sets its targets alight. */
-    burn: { damagePerSecond: 14, seconds: 3 },
-    /** The burning aura around the cauldron. */
-    aura: { damage: 20, range: 2.0, burn: { damagePerSecond: 6, seconds: 2 } },
+    multiTargets: 3,
+    burn: { damagePerSecond: 9, seconds: 3 },
+    /**
+     * The fire jumps to one enemy that is not burning yet, this often, this far
+     * (GDD section 8). A fire that was caught this way does not spread again:
+     * the update does not say it does, and an unbounded chain would set a whole
+     * wave alight off one bolt. Derived, for the balancing pass.
+     */
+    spread: { everySeconds: 0.45, range: 0.85, seconds: 2.2 },
   },
 
   siegeMortar: {
     doctrine: 'mortar',
     behaviour: 'mortar',
-    fire: 0.4,
+    fire: 1 / 3.2,
     damage: 260,
-    range: 12,
-    minRange: 2,
+    range: 6.6,
+    minRange: 1.5,
     targets: ['ground'],
     splashRadius: 2.6,
     flightSeconds: 1.2,
+    /** Seconds it holds the target in its scope before the shell leaves. */
+    aimSeconds: 0.8,
   },
 
   thunderTower: {
     doctrine: 'tesla',
     behaviour: 'chain',
-    fire: 1,
-    damage: 110,
-    range: 4.0,
+    fire: 1 / 1.3,
+    damage: 14,
+    range: 3.1,
     targets: ['ground', 'air'],
-    chain: { targets: 8, falloff: 0.12, jumpRange: 3.0, stun: 0.35 },
+    chain: { targets: 8, falloff: 0, jumpRange: 1.8, stun: 0.5 },
   },
 
   soulfireObelisk: {

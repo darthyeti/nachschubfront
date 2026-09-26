@@ -46,6 +46,8 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
     slowUntil: 0,
     stunUntil: 0,
     burn: null,
+    /** While this is in the future the purge shrine's aura is on it. */
+    gildUntil: 0,
     /** Distance travelled along the route, in cells. */
     d,
     /**
