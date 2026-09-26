@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nachschubfront",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tests/tools/serve.mjs"],
+      "port": 8000
+    }
+  ]
+}

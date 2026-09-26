@@ -147,3 +147,31 @@ export function positionAt(line, d, out = { x: 0, y: 0, dx: 1, dy: 0 }) {
   }
   return out;
 }
+
+/**
+ * How far along a polyline the point nearest to (x, y) lies. Used when the maze
+ * changes under enemies that are already walking: the route is recomputed and
+ * everyone is bound to the new line at the place they are standing, instead of
+ * keeping a distance that now means somewhere else entirely.
+ */
+export function nearestDistanceOn(line, x, y) {
+  const { points, cumulative } = line;
+  let best = 0;
+  let bestDistance = Infinity;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    const vx = b.x - a.x;
+    const vy = b.y - a.y;
+    const length2 = vx * vx + vy * vy;
+    const u = length2 > 0 ? Math.max(0, Math.min(1, ((x - a.x) * vx + (y - a.y) * vy) / length2)) : 0;
+    const px = a.x + vx * u;
+    const py = a.y + vy * u;
+    const distance = (px - x) ** 2 + (py - y) ** 2;
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = cumulative[i - 1] + Math.sqrt(length2) * u;
+    }
+  }
+  return best;
+}

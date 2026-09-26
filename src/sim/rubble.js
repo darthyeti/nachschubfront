@@ -43,6 +43,28 @@ export function addRubble(state, { x, y }) {
   return obstacle;
 }
 
+/**
+ * Grinds one cell down to open ground: the heap of rubble on it, or the piece
+ * of terrain — a ruin, a crater, a length of wall. A wall keeps its other
+ * cells, only the one driven over is taken out of it.
+ *
+ * Used by the Koloss, which crushes whatever it rolls over except what the
+ * player built to stand: a bulwark or an emplacement (GDD section 9).
+ * @returns {boolean} False if there was nothing to grind down.
+ */
+export function crushCell(state, cell) {
+  const { map } = state;
+  const index = map.obstacles.findIndex(
+    (o) => o.kind !== 'bulwark' && o.cells.some((c) => c.x === cell.x && c.y === cell.y),
+  );
+  if (index < 0) return false;
+  const obstacle = map.obstacles[index];
+  obstacle.cells = obstacle.cells.filter((c) => c.x !== cell.x || c.y !== cell.y);
+  setBlocked(map.grid, cell.x, cell.y, false);
+  if (obstacle.cells.length === 0) map.obstacles.splice(index, 1);
+  return true;
+}
+
 /** Index of the bulwark on a cell, or -1. */
 export function bulwarkIndexAt(map, cell) {
   return map.obstacles.findIndex(

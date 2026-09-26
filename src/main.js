@@ -774,6 +774,13 @@ if (debug) {
       /** Enough to tell the Koloss from the wave around it in a browser check. */
       enemyTypes: state.enemies.map((e) => e.type),
       koloss: state.koloss ? { ...state.koloss, target: state.koloss.target ? { ...state.koloss.target } : null } : null,
+      /** The machine itself while it is on the field, for the same checks. */
+      kolossEnemy: (() => {
+        const e = state.enemies.find((enemy) => enemy.koloss);
+        if (!e) return null;
+        const { x, y, dx, dy, charging, crushed, health } = e;
+        return { x, y, dx, dy, charging, crushed, health, ramming: Boolean(e.ram), holdFor: Math.max(0, e.holdUntil - state.time) };
+      })(),
       projectiles: state.projectiles.length,
     }),
     /** Debug actions; the visible debug panel uses the same simulation calls. */

@@ -46,6 +46,9 @@ export function applyBurn(state, enemy, burn, doctrine, towerId, { stack = false
 /** Speed of an enemy right now, in cells per second (0 while frozen). */
 export function enemySpeed(state, enemy) {
   if (state.time < enemy.stunUntil) return 0;
+  // The Koloss holds still while it turns on the spot, while it is stunned
+  // after a bulwark stopped it, and while it rams (sim/koloss.js).
+  if (enemy.holdUntil && state.time < enemy.holdUntil) return 0;
   const slow = state.time < enemy.slowUntil ? enemy.slow : 0;
   return enemy.speed * (1 - slow);
 }

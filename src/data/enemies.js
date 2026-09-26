@@ -165,6 +165,18 @@ export const KOLOSS_RUN = {
   warningWaves: 2,
   /** Cells the ram tears through the maze, in its direction of travel. */
   breachCells: 5,
+  /** Seconds for a quarter turn; it only ever turns on the spot (GDD 9). */
+  turnSeconds: 0.6,
+  /** Seconds it stands stunned after a bulwark or an emplacement stopped it. */
+  stunSeconds: 3,
+  /**
+   * What a heap of rubble adds to a cell in its own pathfinding, in cells. It
+   * can drive through rubble, but only takes that way when the detour through
+   * the maze would be much longer.
+   */
+  rubbleExtraCost: 6,
+  /** Seconds it rams a bulwark or an emplacement when it is walled in. */
+  ramSeconds: 8,
   /**
    * What a bulwark near the predicted spot is worth when the prediction looks
    * for the weakest place. The GDD wants the marker to move when the player

@@ -54,6 +54,12 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
      * a path computed from where it stands (sim/koloss.js).
      */
     route: null,
+    /**
+     * Seconds until the Koloss moves again: it holds still while it turns on
+     * the spot, while it is stunned and while it rams (sim/koloss.js). Zero for
+     * everything else, which never stops of its own accord.
+     */
+    holdUntil: 0,
     x: 0,
     y: 0,
     dx: 1,
