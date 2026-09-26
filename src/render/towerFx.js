@@ -12,8 +12,6 @@ import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 
 /** Where the hero's banner stands on the base and how big it is (SVG units). */
-const BANNER = { x: 31, y: -9, height: 46, cloth: 21 };
-
 /** How far the outer two ports aim off the firing direction (radians). */
 const PORT_SPREAD = 0.3;
 
@@ -56,64 +54,6 @@ function arc(ctx, x, y, angle, length, colour, jitter) {
 }
 
 /**
- * Rank details that move (docs/ART.md): the hero's banner waves, the legend
- * stands in a halo. Drawn right behind the weapon, so the figure covers the pole.
- * @param {{rank: number, colour: string, origin: number[], scale: number, t: number, reducedMotion: boolean}} view
- */
-export function drawRankMarks(ctx, view) {
-  const { rank, colour, origin, scale, t, reducedMotion } = view;
-  if (rank >= 5) {
-    // Legend: a halo standing behind the emplacement.
-    const [hx, hy] = [origin[0], origin[1] - 54 * scale];
-    glow(ctx, hx, hy, 34 * scale, C.gold, reducedMotion ? 0.22 : 0.18 + Math.sin(t * 2) * 0.06);
-    ctx.strokeStyle = 'rgba(242,193,78,.55)';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.ellipse(hx, hy, 26 * scale, 10 * scale, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-  if (rank < 4) return;
-
-  // Hero: a pole on the back corner of the base with a waving cloth.
-  const px = origin[0] + BANNER.x * scale;
-  const py = origin[1] + BANNER.y * scale;
-  const top = py - BANNER.height * scale;
-  ctx.strokeStyle = C.ink;
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(px, py);
-  ctx.lineTo(px, top);
-  ctx.stroke();
-  ctx.strokeStyle = C.steelL;
-  ctx.lineWidth = 1.4;
-  ctx.stroke();
-
-  const wave = reducedMotion ? 0 : Math.sin(t * 3) * 3 * scale;
-  const w = BANNER.cloth * scale;
-  const h = BANNER.cloth * 0.75 * scale;
-  ctx.beginPath();
-  ctx.moveTo(px, top);
-  ctx.quadraticCurveTo(px - w * 0.5, top - wave, px - w, top + wave * 0.5);
-  ctx.lineTo(px - w, top + h + wave * 0.5);
-  ctx.quadraticCurveTo(px - w * 0.5, top + h * 0.8 - wave, px, top + h * 0.7);
-  ctx.closePath();
-  ctx.fillStyle = colour;
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = C.ink;
-  ctx.stroke();
-  // Golden fringe along the lower edge.
-  ctx.beginPath();
-  ctx.moveTo(px - w, top + h + wave * 0.5);
-  ctx.quadraticCurveTo(px - w * 0.5, top + h * 0.8 - wave, px, top + h * 0.7);
-  ctx.strokeStyle = C.gold;
-  ctx.lineWidth = 1.6;
-  ctx.stroke();
-  ell(ctx, px, top, 2.2 * scale, 2.2 * scale, C.gold, C.ink, 1.2);
-}
-
-/**
  * The glowing parts behind the weapon: psi aura and rings, tesla halo.
  * @param {{doctrine: string, pivot: number[], muzzle: number[], scale: number, t: number, reducedMotion: boolean}} view
  */
@@ -121,33 +61,19 @@ export function drawWeaponGlow(ctx, tower, view) {
   const { doctrine, pivot, scale, t, reducedMotion } = view;
   const firing = isFiring(tower);
 
-  if (tower.special === 'soulfireObelisk') drawObelisk(ctx, view);
   // Normally the doctrine decides the halo, but two recipe buildings hover a psi
   // part whose colour is not their doctrine's: the shrine's splinter is violet
   // on a flame building, the thunder tower's core is blue (docs/ART.md).
   const kind = view.glow?.kind ?? doctrine;
   const colour = view.glow?.colour ?? DOCTRINE_COLORS[doctrine] ?? C.gold;
 
-  if (kind === 'psi') {
-    const bob = reducedMotion ? 0 : Math.sin(t * 2 + tower.x) * 3 * scale;
-    const y = pivot[1] - bob;
-    glow(ctx, pivot[0], y, 30 * scale, colour, firing ? 0.34 : 0.22);
-    // Two rings around the crystal, turning against each other.
-    ctx.save();
-    ctx.translate(pivot[0], y);
-    for (const [speed, rx, ry, width] of [[0.6, 24, 7, 2.5], [-0.9, 22, 6, 2]]) {
-      ctx.save();
-      ctx.rotate(reducedMotion ? -0.3 : t * speed);
-      ctx.strokeStyle = speed > 0 ? colour : '#d9c2ff';
-      ctx.lineWidth = width;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, rx * scale, ry * scale, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-    ctx.restore();
-  } else if (kind === 'tesla') {
-    glow(ctx, pivot[0], pivot[1], 30 * scale, colour, firing ? 0.38 : 0.25);
+  // Since v5 the rings and the coil are part of the drawing, so only the light
+  // around them is left to the code: two sets of rings on one figure read as a
+  // mistake, not as a glow (docs/ART.md).
+  if (kind === 'psi' || kind === 'tesla') {
+    const [ax, ay] = view.anchor ?? pivot;
+    const bob = reducedMotion ? 0 : Math.sin(t * 2 + tower.x) * 2 * scale;
+    glow(ctx, ax, ay - bob, 26 * scale, colour, firing ? 0.36 : 0.22);
   }
 }
 
@@ -244,36 +170,7 @@ function drawCasings(ctx, { ports, shot, scale }) {
   });
 }
 
-/**
- * The soulfire obelisk (docs/ART.md): flames at its foot and lightning from the
- * tip up to the psi eye that hovers above it. Both were drawn into the concept
- * sheet and are code now, like every other effect.
- */
-function drawObelisk(ctx, view) {
-  const { origin, pivot, scale, t, reducedMotion } = view;
-  const [ox, oy] = origin;
-  const at = (x, y) => [ox + x * scale, oy + y * scale];
 
-  // Two braziers on the corners of the block.
-  for (const side of [-1, 1]) {
-    const [fx, fy] = at(side * 27, -8);
-    const flicker = reducedMotion ? 1 : 0.8 + Math.sin(t * 9 + side) * 0.2;
-    tongue(ctx, fx, fy, [0, -1], 26 * scale * flicker, 7 * scale, '#ff8a2a');
-    tongue(ctx, fx, fy, [0, -1], 15 * scale * flicker, 4 * scale, '#ffd23f');
-  }
-
-  // Lightning from the tip to the eye, which hovers well above it.
-  const [tx, ty] = at(0, -171);
-  const reach = Math.hypot(pivot[0] - tx, pivot[1] - ty);
-  const count = reducedMotion ? 1 : 2;
-  const jitter = reducedMotion ? 0 : 7 * scale;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  for (let i = 0; i < count; i++) {
-    const angle = -Math.PI / 2 + Math.sin(t * 2.3 + i * 2.7) * 0.35;
-    arc(ctx, tx, ty, angle, reach, '#8fd8ff', jitter);
-  }
-}
 
 /** The bright bits in front: pilot light, lens, arcs. */
 export function drawWeaponSpark(ctx, tower, view) {

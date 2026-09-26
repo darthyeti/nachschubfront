@@ -6,8 +6,12 @@ import { BOSSES, KOLOSS } from '../../data/enemies.js';
 
 /** World pixels per SVG unit. A cell is 64 x 32 world pixels. */
 export const SPRITE_SCALE = {
-  /** The base's top face (88 SVG units wide) covers 90 % of a cell. */
-  tower: (64 * 0.9) / 88,
+  /**
+   * One. The emplacement sheets are exported from the study, which draws in the
+   * same isometric projection the game uses, so its units are world pixels
+   * already and the bunker covers exactly one cell without being resized.
+   */
+  tower: 1,
   /** Enemies share one scale so their relative sizes from the concept sheet are kept. */
   enemy: 0.42,
   /**
@@ -50,7 +54,13 @@ export const POD_PETAL_ORDER = ['pod-petal-br', 'pod-petal-fr', 'pod-petal-bl', 
 export const POD_OPEN_SCALE = 0.85;
 
 /** Height of the base's top face above ground, in SVG units (the symbol origin sits on it). */
-export const TOWER_BASE_TOP = 18;
+/**
+ * Height of the roof plate above the ground, in SVG units, for the standard
+ * bunker and for the taller special base. The top sits there; the bunker's own
+ * symbol has its origin on the ground.
+ */
+export const BUNKER_ROOF = 24 * 0.66 + 3.5;
+export const SPECIAL_ROOF = 40;
 
 export const ENEMY_SYMBOLS = {
   swarmer: 'e-swarm',
@@ -130,136 +140,78 @@ export const ENEMY_LIMBS = {
 };
 
 /** Recipe emplacements (GDD section 8); each one has its own silhouette since M4. */
+/** The top each recipe emplacement carries on the special base. */
 export const SPECIAL_SYMBOLS = {
-  purgeShrine: 't-purge',
-  stormBattery: 't-storm',
-  emberCauldron: 't-ember',
-  siegeMortar: 't-siege',
-  thunderTower: 't-thunder',
-  soulfireObelisk: 't-obelisk',
+  purgeShrine: 'stop-purgeShrine',
+  stormBattery: 'stop-stormBattery',
+  emberCauldron: 'stop-emberCauldron',
+  siegeMortar: 'stop-siegeMortar',
+  thunderTower: 'stop-thunderTower',
+  soulfireObelisk: 'stop-soulfireObelisk',
 };
 
+/** And the top each doctrine carries on the bunker roof. */
 export const DOCTRINE_SYMBOLS = {
-  flame: 't-flame',
-  autocannon: 't-ac',
-  laser: 't-laser',
-  mortar: 't-mortar',
-  psi: 't-psi',
-  tesla: 't-tesla',
+  flame: 'top-fire',
+  autocannon: 'top-auto',
+  laser: 'top-laser',
+  mortar: 'top-mortar',
+  psi: 'top-psi',
+  tesla: 'top-tesla',
 };
 
 /**
- * The mortar already carries a sandbag ring in its base form, so the veteran
- * ring is skipped for it (decision M1b). The autocannon was in this set until
- * M4d took its own ring away with the shared bunker.
- */
-export const OWN_SANDBAGS = new Set(['mortar']);
-
-/**
- * Veteran detail for the doctrine that already has a ring: an ammunition crate.
- * The mortar's right side is taken by its own crate, so it gets the mirrored
- * one (decision M1b, settled in M4).
- */
-export const VETERAN_CRATE = { mortar: 'crate-l' };
-
-/**
- * Where the elite armour plates sit on doctrines whose weapon does not aim
- * (SVG units), optionally followed by the plate's size and the screen angle it
- * lies along. The bunkers get theirs flat against the left front face, which in
- * the isometric view runs down to the right at 1:2. Everything else gets the
- * plate on the barrel, along its axis.
- */
-const ISO_FACE = Math.atan2(0.5, 1);
-export const PLATE_SPOT = {
-  psi: [0, -46],
-  tesla: [0, -52],
-  flame: [-14, -3, 5.5, ISO_FACE],
-  autocannon: [-14, -3, 5.5, ISO_FACE],
-};
-
-/**
- * The three embrasures of the shared bunker (docs/ART.md, "Gemeinsamer Bunker"),
- * in SVG units, left to right across its front.
- */
-export const BUNKER_EMBRASURES = [[-11, -12.5], [0, -12.5], [11, -12.5]];
-
-/**
- * The four barrel mouths of the storm battery's quad flak, in the same frame.
- * It stands still and fires out of all four at once (docs/ART.md).
- */
-const BATTERY_MOUTHS = [[-15.1, -60], [-3.7, -63], [7.7, -63], [19.1, -60]];
-
-/**
- * The tips of the ember cauldron's four tesla electrodes, from which the bolts
- * that set enemies alight leave (docs/ART.md, "Wirkungsanker"). Lifted onto the
- * socket like the rest of the figure.
- */
-const CAULDRON_ELECTRODES = [[11, -76.9], [20.7, -72.7], [20.7, -67.3], [11, -63.1]];
-
-/**
- * The moving part of each emplacement (M4: the weapon comes out of the sprite and is
- * turned in code). All values are SVG units in the symbol's own frame.
+ * Where the effect of each emplacement leaves its figure (docs/ART.md,
+ * "Wirkungsanker"), in SVG units in the top's own frame — the origin of a top
+ * is the roof plate it stands on. The simulation keeps working from the middle
+ * of the cell; only the drawing starts here.
  *
- * - `pivot`   where the weapon sits on its mount and turns around.
- * - `rest`    screen angle the weapon points at in the artwork (atan2, y downwards).
- * - `muzzle`  distance from the pivot to the muzzle, for flames, glows and arcs.
- * - `track`   how much of the way to the target it turns; the mortar only leans.
- * - `turn`    turning speed in radians per second.
- * - `recoil`  how far the weapon is pushed back along its axis after a shot.
+ * The values are the `tip` the study names for each weapon, scaled the way the
+ * study places it on a roof, and printed by `npm run studies` so they stay in
+ * step with the figures instead of being guessed.
+ *
+ * - `tip`     the one point an effect leaves from.
+ * - `sparks`  several such points, when it leaves from more than one.
  * - `spin`    sideways wobble of a barrel cluster while firing.
- * - `float`   the part hovers instead of aiming (the psi crystal).
- * - `static`  nothing moves; the entry only marks where the glow sits (tesla sphere).
- * - `ports`   openings the effect comes out of instead of one muzzle: the
- *             bunker's three embrasures, the storm battery's four barrel mouths.
- * - `anchor`  where the emplacement's effect starts on the figure (docs/ART.md,
- *             "Wirkungsanker"). The simulation keeps working from the middle of
- *             the cell; only the drawing starts here. A weapon that aims has no
- *             anchor of its own: its muzzle is the point, and it moves.
- * - `sparks`  several such points, when the effect leaves from more than one.
- * - `glow`    the halo and rings around a hovering part, when the doctrine's own
- *             would be the wrong colour or missing altogether.
- * - `sight`   the weapon draws a thin aiming line before it fires.
+ * - `casings` spent cases tumble out while firing.
+ * - `sight`   a thin aiming line is drawn before the shot.
+ * - `glow`    halo and rings around a hovering part, when the doctrine's own
+ *             colour would be wrong or missing.
+ * - `float`   the top hovers instead of sitting still.
  */
-export const TOWER_WEAPONS = {
-  // The two bunkers have nothing that aims (M4d). Their pivot is the middle
-  // embrasure, which is where the idle pilot light of the flame sits.
-  flame: { pivot: [0, -12.5], ports: BUNKER_EMBRASURES },
-  autocannon: { pivot: [0, -12.5], ports: BUNKER_EMBRASURES },
-  // The laser kept its design and its pose; update 4 only scaled the figure
-  // down by 0.68 and lifted it by 16 units, so pivot and muzzle follow.
-  laser: { pivot: [0, -92.2], rest: 2.78, muzzle: 32.7, track: 1, turn: 8, recoil: 1.7 },
-  mortar: { pivot: [4, -6], rest: -1.7819, muzzle: 57.3, track: 0.22, turn: 5, recoil: 7 },
-  psi: { pivot: [0, -100], float: true },
-  tesla: { pivot: [0, -100], static: true },
-  // Recipe emplacements (all six finished in M5c). The siege mortar leans its
-  // tube, the storm battery's quad flak points upwards and flashes out of all
-  // four mouths, two of them hover a psi part instead of aiming, and the
-  // cauldron stands still and works through its aura.
-  stormBattery: { pivot: [2, -40], ports: BATTERY_MOUTHS, casings: true, anchor: [2, -61.5] },
-  // Lafette and tube from the M5c sheet: the pivot is where the tube sits on
-  // the carriage, the muzzle the far end of it, both lifted onto the socket.
-  siegeMortar: { pivot: [0, -26], rest: -2.6522, muzzle: 72.5, track: 0.18, turn: 4, recoil: 9, sight: true },
-  // The psi splinter over the shrine and the psi core over the thunder tower's
-  // coil hover, like the psi crystal and the obelisk's eye.
-  // The shrine burns in its bowl; the splinter above it is violet, not the
-  // orange of the flame doctrine it inherits.
-  purgeShrine: {
-    pivot: [0, -62],
-    float: true,
-    anchor: [0, -36],
-    glow: { kind: 'psi', colour: '#b784ff' },
+export const TOWER_TOPS = {
+  autocannon: { tip: [-28.16, -9.63], spin: 1.1 },
+  flame: { tip: [-24.45, -2.96] },
+  mortar: { tip: [-11.4, -28.5], recoil: 3 },
+  tesla: { tip: [0, -28.5] },
+  laser: { tip: [-23.75, -15.2] },
+  psi: { tip: [0, -28.5], float: true },
+
+  // The recipe emplacements. Three of them work from more than one point: the
+  // battery has four mouths, the cauldron four electrodes.
+  purgeShrine: { tip: [0, -14.28], float: true, glow: { kind: 'psi', colour: '#e8c872' } },
+  stormBattery: {
+    tip: [-32.26, -16.13],
+    casings: true,
+    sparks: [
+      [-33.26, -21.77],
+      [-27.22, -20.56],
+      [-33.26, -10.68],
+      [-27.22, -9.48],
+    ],
   },
-  // The aura rises out of the cauldron's mouth, the bolts leave the electrodes.
-  emberCauldron: { pivot: [0, -54], static: true, anchor: [0, -54], sparks: CAULDRON_ELECTRODES },
-  // The chain over eight targets starts at the coil on the mast, not at the psi
-  // core hovering above it.
-  thunderTower: {
-    pivot: [0, -128],
-    float: true,
-    anchor: [0, -114],
-    glow: { kind: 'psi', colour: '#5fd4ff' },
+  emberCauldron: {
+    tip: [0, -25.2],
+    sparks: [
+      [-13.86, -22.68],
+      [-4.62, -24.36],
+      [4.62, -24.36],
+      [13.86, -22.68],
+    ],
   },
-  soulfireObelisk: { pivot: [0, -214], float: true, anchor: [0, -214] },
+  siegeMortar: { tip: [-21.84, -36.96], recoil: 4, sight: true },
+  thunderTower: { tip: [0, -37.8], glow: { kind: 'psi', colour: '#5fd4ff' } },
+  soulfireObelisk: { tip: [0, -75.6], glow: { kind: 'psi', colour: '#b784ff' } },
 };
 
 export const RANK_COUNT = MAX_RANK;

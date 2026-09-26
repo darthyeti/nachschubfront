@@ -30,7 +30,7 @@ Der eigene Betonsockel mit Warnstreifen (`sockel.svg`) entfällt: Der Bunker ist
 | Mörser | Steiles Rohr auf Lafette, unverändert | #d8ae5f |
 | Tesla | Kleine Zylindersäule | #5fd4ff |
 | Laser | Kleine Scheibe mit kurzem Lauf | #ff4a4a |
-| Psi | Zwei Ringe, dazu eine **dauerhafte** gestrichelte violette Aura in Reichweitengröße | #b784ff |
+| Psi | Zwei Ringe, dazu eine **dauerhafte** gestrichelte violette Aura in Reichweitengröße auf dem Boden | #b784ff |
 
 Damit ist der offene Punkt „Waffenaufsätze der sechs Basisdoktrinen optisch überarbeiten" erledigt.
 
@@ -57,7 +57,7 @@ Referenz: `reference/konzept/stellungen/spezialstellungen.png` und die Studie im
 
 **Der Reinigungsschrein bleibt eine Aura.** Die Ergänzung v4 hatte ihn als Mörser beschrieben, dessen Flammenring am Zielort entsteht; in M5c blieb es aus Balancing-Gründen bei der Aura um den Schrein selbst (Entscheidung vom 25.09.2026). v5 entscheidet dauerhaft für die Aura, jetzt in Gold statt in Flammen, und ohne Mörserrohr. Die offene Frage aus M5c ist damit erledigt.
 
-**Was Code ist, nicht Sprite.** Am Obelisken die Flammen am Fuß und der Blick des Auges; das Auge selbst ist ein Sprite und schwebt. An der Sturmbatterie die vier Mündungsblitze und die Patronenhülsen. Am Schrein das goldene Artefakt mit seinen drei kreisenden Funken und die Bodenaura mit ihren Runen, am Glutkessel das Feuer in der Öffnung und die Blitze der vier Elektroden, am Gewitterturm die schwebende Kugel im violetten Ring und der Kettenblitz, am Belagerungsmörser die Laserlinie und der Rückstoß des Rohrs.
+**Was Code ist, nicht Sprite.** Am Obelisken das Leuchten um das Auge und der Seelenstrahl auf das Ziel; das Auge, die Runen und die Flammen am Fuß stehen in der Zeichnung. An der Sturmbatterie die vier Mündungsblitze und die Patronenhülsen. Am Schrein das goldene Artefakt mit seinen drei kreisenden Funken und die Bodenaura mit ihren Runen, am Glutkessel das Feuer in der Öffnung und die Blitze der vier Elektroden, am Gewitterturm die schwebende Kugel im violetten Ring und der Kettenblitz, am Belagerungsmörser die Laserlinie und der Rückstoß des Rohrs.
 
 ### Ränge
 
@@ -286,7 +286,7 @@ Fünf Bildschirme, alle mit dem Skyline-Motiv aus dem Stiltest im Hintergrund, T
 - **Ausnahme: drehbare Modelle.** Figuren, die in mehreren Achsrichtungen stimmen müssen — Koloss und Gunship — sind kein SVG, sondern werden aus einfachen Körpern in lokalen Koordinaten aufgebaut (siehe „Drehbare Modelle" unten). Sie werden genauso einmal je Richtung gerastert; die Ausgabe ist identisch, nur die Quelle ist Zeichencode statt Zeichnung. Der Grund steht dort.
 - **Bunker und Aufsätze kommen aus dem Zeichencode der Studie**, aber als SVG: Der Zeichencode aus `reference/studien/stellungen-simulation.html` wird einmalig nach `reference/konzept/stellungen/` exportiert und läuft danach durch dieselbe Pipeline wie jede andere Figur (`npm run sprites`). Sie sind statisch, also bleibt die SVG-Regel für sie in Kraft.
 - **Rasterstufen nach Zoom.** Pro Figur werden wenige Auflösungsstufen vorgehalten (etwa 0,5x, 1x, 2x mal devicePixelRatio) und die passende gewählt, damit beim Zoomen nichts unscharf wird.
-- **Statische Teile als Sprite, Bewegung im Code.** Sockel, Gehäuse, Körper, Köpfe und Klingen kommen aus dem SVG. Was sich bewegt, wird wie im Stiltest per Code gezeichnet: schwenkende Waffen, Flammen, Blitze, Insektenbeine im Laufzyklus, Flügelschlag.
+- **Statische Teile als Sprite, Bewegung im Code.** Bunker, Gehäuse, Körper, Köpfe und Klingen kommen aus dem SVG. Was sich bewegt, wird wie im Stiltest per Code gezeichnet: schwenkende Waffen, Flammen, Blitze, Insektenbeine im Laufzyklus, Flügelschlag.
 - Die Zerlegung ist in M4 passiert (`tests/tools/split-towers.py` und `split-enemies.py`, beides einmalige Eingriffe in `reference/konzept/`). Die Symbolbibliothek trägt seitdem pro Figur mehrere Teile:
 
 | Teil | Stellungen | Gegner |

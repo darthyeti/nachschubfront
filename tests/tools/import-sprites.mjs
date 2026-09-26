@@ -13,14 +13,13 @@ import { ROOT } from './server.mjs';
 const SOURCES = [
   { dirs: ['reference/konzept/gegner'], out: 'src/render/sprites/enemies.js', name: 'ENEMY_SPRITES' },
   {
-    // The recipe vehicles share the emplacement library (same socket, same
-    // hazard pattern), so they go into the same module.
-    dirs: ['reference/konzept/stellungen', 'reference/konzept/spezialstellungen'],
+    // Since v5 every emplacement is the same bunker with a different top, and
+    // both sheets are generated from the study by `npm run studies`. The v4
+    // sheets in reference/konzept/spezialstellungen/ stay on disk as the draft
+    // they were, but nothing imports them any more (docs/ART.md).
+    dirs: ['reference/konzept/stellungen'],
     out: 'src/render/sprites/towers.js',
     name: 'TOWER_SPRITES',
-    // The rank badges ride along in the vehicle sheets but belong to the UI,
-    // and the two bare chassis are reference for the four recipes still to come.
-    drop: ['badge-0', 'badge-1', 'badge-2', 'badge-3', 'badge-4', 'v-tank2', 'v-artillery2'],
   },
   {
     dirs: ['reference/konzept/kapsel'],

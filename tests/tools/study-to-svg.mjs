@@ -13,18 +13,23 @@
 // Usage: npm run studies   (then npm run sprites)
 
 import { chromium } from 'playwright';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ROOT, startServer } from './server.mjs';
 import { installRecorder } from './canvas-to-svg.mjs';
 
-/** The shared style block, taken verbatim from the hand-drawn sheets. */
-const STYLE = await (async () => {
-  const text = await readFile(join(ROOT, 'reference/konzept/stellungen/sockel.svg'), 'utf8');
-  const match = text.match(/<style>([\s\S]*?)<\/style>/);
-  if (!match) throw new Error('no <style> in sockel.svg to share');
-  return match[1];
-})();
+/**
+ * The shared style block. Every sheet in a source folder has to carry the same
+ * one (import-sprites.mjs), and since the hand-drawn emplacement sheets are
+ * gone this is where it lives. The classes are the ink weights of the style
+ * test; the exported paths carry their own widths and do not use them.
+ */
+const STYLE =
+  '.k3{stroke:#1a1410;stroke-width:3px;stroke-linejoin:round;stroke-linecap:round}' +
+  '.k2{stroke:#1a1410;stroke-width:2.2px;stroke-linejoin:round;stroke-linecap:round}' +
+  '.k15{stroke:#1a1410;stroke-width:1.6px;stroke-linejoin:round;stroke-linecap:round}' +
+  '.k1{stroke:#1a1410;stroke-width:1.1px;stroke-linejoin:round}';
 
 /**
  * What to export. `call` runs inside the page with the recorder installed and
