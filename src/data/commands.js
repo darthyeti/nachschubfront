@@ -74,12 +74,38 @@ export const COMMANDS = [
     halfWidth: 1,
     /** Longest line the player may draw, in cells; a longer drag is cut short. */
     maxLength: 10,
-    /** Seconds between drawing the line and the squadron arriving. */
-    warnSeconds: 1.5,
+    /**
+     * Seconds between drawing the line and the gunship coming in. The yellow
+     * dashed line and the impact marks are up for this long (GDD section 11).
+     */
+    warnSeconds: 1.1,
+    /** Seconds the gunship needs to fly the line from end to end. */
+    runSeconds: 3.4,
+    /** Bombs it drops along the run, alternating either side of the line. */
+    bombs: 8,
+    /** How far off the line they fall, in cells. */
+    bombSpread: 0.35,
+    /**
+     * Blast radius of one bomb, in cells. Derived, and tied to `bombShare`
+     * below: wide enough that consecutive blasts overlap, so every point on the
+     * line is caught by at least two of them.
+     */
+    blastRadius: 1.5,
+    /**
+     * Share of an enemy's budget one bomb takes. Derived: with two blasts over
+     * every point of the line, anything the run passes over loses its whole
+     * share, exactly as it did when the strike landed in one piece, while
+     * anything clipped at the edge of the run loses half.
+     */
+    bombShare: 0.5,
     /**
      * Share of maximum health, like the orbital strike and for the same reason:
      * a fixed number is decisive in wave 30 and meaningless in wave 50. Derived,
      * the GDD gives no figure — a candidate for M6.
+     *
+     * Since v4 it is the budget for the whole run, not one hit: each bomb takes
+     * an eighth of it, so an enemy that sits under the full run loses as much
+     * as it used to, and one clipped at the end of the line loses less.
      */
     damageFraction: 0.5,
     /** Against the armour type plate (GDD: bonus against Panzer). */

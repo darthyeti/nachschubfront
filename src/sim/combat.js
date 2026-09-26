@@ -44,6 +44,25 @@ function fireSingle(state, tower, stats, target) {
   });
 }
 
+/**
+ * The soulfire obelisk: one beam at one target, for a share of its maximum
+ * health. Against a boss or the Koloss the share is capped far lower, so no
+ * single emplacement takes one of them apart on its own (GDD section 8).
+ */
+function fireSoulfire(state, tower, stats, target) {
+  const share = target.boss ? stats.def.bossPercentPerHit : stats.def.percentPerHit;
+  hit(tower, stats, target, stats.damage + share * target.maxHealth);
+  state.events.push({
+    type: 'soulfire',
+    towerId: tower.id,
+    doctrine: stats.doctrine,
+    x: tower.x + 0.5,
+    y: tower.y + 0.5,
+    tx: target.x,
+    ty: target.y,
+  });
+}
+
 // ---------- Storm battery: one volley, several targets ----------
 
 function fireMulti(state, tower, stats, target) {
@@ -200,6 +219,7 @@ const SHOT = {
   tesla: fireChain,
   chain: fireChain,
   multi: fireMulti,
+  soulfire: fireSoulfire,
 };
 
 /** How the continuous weapons work. */

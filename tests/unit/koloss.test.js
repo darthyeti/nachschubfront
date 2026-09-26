@@ -631,7 +631,9 @@ test('the wave behind it takes the gap it tore, without being teleported', () =>
 test('the wave ending stops every effect the towers were drawing', () => {
   const state = bareField();
   const cell = state.route.cells[10];
-  const tower = addTower(state, { x: cell.x, y: cell.y - 1, doctrine: 'psi', special: 'soulfireObelisk' });
+  // A psi emplacement: its aura is the standing effect the render side draws
+  // from `firing`, which is exactly what used to be left behind.
+  const tower = addTower(state, { x: cell.x, y: cell.y - 1, doctrine: 'psi', rank: 3 });
   state.phase = 'wave';
   state.waveScale = 1;
   state.waveStats = { spawned: 0, leaked: 0, killed: 0, bossKills: 0 };

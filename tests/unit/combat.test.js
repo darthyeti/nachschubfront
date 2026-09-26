@@ -14,7 +14,8 @@ import { bestTarget, canTarget, inRange, targetsInRange, routeProgress } from '.
 import { createPolyline } from '../../src/sim/route.js';
 import { DOCTRINES } from '../../src/data/doctrines.js';
 import { rankStats } from '../../src/data/ranks.js';
-import { WARP_SHIELD } from '../../src/data/combat.js';
+import { WARP_SHIELD, damageFactor } from '../../src/data/combat.js';
+import { specialDef } from '../../src/data/specials.js';
 import { SIM_STEP } from '../../src/data/settings.js';
 
 /**
@@ -451,4 +452,45 @@ test('how far along counts per route, so flyers are not ignored', () => {
   assert.ok(flyer.d < ground.d, 'the flyer is behind by raw distance');
   assert.ok(routeProgress(state, flyer) > routeProgress(state, ground), 'but closer to the bastion');
   assert.equal(bestTarget(state, tower, towerStats(tower)).id, flyer.id);
+});
+
+// ---------- Seelenfeuer-Obelisk (GDD section 8, v4) ----------
+
+test('the obelisk takes a fifth of anything, and a twentieth of a boss', () => {
+  const def = specialDef('soulfireObelisk');
+  for (const [type, share] of [['warrior', def.percentPerHit], ['colossusbreaker', def.bossPercentPerHit], ['koloss', def.bossPercentPerHit]]) {
+    const state = battlefield();
+    const target = spawnEnemy(state, type, { d: 4 });
+    target.x = 5.5;
+    target.y = 10.5;
+    const tower = addTower(state, { x: 5, y: 9, doctrine: 'psi', special: 'soulfireObelisk' });
+    const before = target.health;
+
+    // One step is enough: the beam is a shot, not a standing aura.
+    updateCombat(state, SIM_STEP);
+    const taken = (before - target.health) / target.maxHealth;
+    const factor = damageFactor('psi', target.armorBelow);
+    assert.ok(
+      Math.abs(taken - share * factor) < 1e-9,
+      `${type}: took ${taken.toFixed(4)}, expected ${(share * factor).toFixed(4)}`,
+    );
+    assert.equal(tower.damage > 0, true, 'and it is credited with it');
+  }
+});
+
+test('the obelisk reloads between beams instead of burning continuously', () => {
+  const state = battlefield();
+  const target = spawnEnemy(state, 'warrior', { d: 4 });
+  target.x = 5.5;
+  target.y = 10.5;
+  addTower(state, { x: 5, y: 9, doctrine: 'psi', special: 'soulfireObelisk' });
+  const def = specialDef('soulfireObelisk');
+
+  updateCombat(state, SIM_STEP);
+  const afterFirst = target.health;
+  // A moment later: still reloading, so nothing more has happened.
+  for (let t = 0; t < 1 / def.fire - SIM_STEP * 4; t += SIM_STEP) updateCombat(state, SIM_STEP);
+  assert.equal(target.health, afterFirst, 'no damage between beams');
+  for (let t = 0; t < SIM_STEP * 8; t += SIM_STEP) updateCombat(state, SIM_STEP);
+  assert.ok(target.health < afterFirst, 'and the next beam lands on time');
 });

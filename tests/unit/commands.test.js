@@ -17,6 +17,7 @@ import {
   takeSupplyBonus,
   supplyRankBonus,
   clampLine,
+  snapToAxis,
 } from '../../src/sim/commands.js';
 import { distanceToSegment2 } from '../../src/sim/targeting.js';
 import { createPods } from '../../src/sim/pods.js';
@@ -201,6 +202,12 @@ function runWarning(state, seconds) {
   for (let t = 0; t < seconds + SIM_STEP; t += SIM_STEP) updateCommands(state, SIM_STEP);
 }
 
+/** Runs an airstrike out: the warning, then the whole run of the gunship. */
+function flyStrike(state) {
+  const command = commandById('airstrike');
+  runWarning(state, command.warnSeconds + command.runSeconds);
+}
+
 test('the airstrike needs a line, not a cell', () => {
   const state = battlefield(30);
   assert.equal(canUseCommand(state, 'airstrike', { x: 5, y: 10 }).reason, 'outside', 'a single cell is not a line');
@@ -222,10 +229,37 @@ test('the airstrike hits along the whole strip and misses what is beside it', ()
 
   assert.ok(useCommand(state, 'airstrike', { from: { x: 1, y: 10 }, to: { x: 15, y: 10 } }).ok);
   assert.equal(state.enemies.every((e) => e.health === e.maxHealth || e === far), true, 'nothing happens yet');
-  runWarning(state, command.warnSeconds);
+  // Halfway through the warning the line is drawn and nothing has been hit yet.
+  runWarning(state, command.warnSeconds / 2);
+  assert.equal(
+    state.enemies.every((e) => e.health === e.maxHealth || e === far),
+    true,
+    'the warning is a warning, not damage',
+  );
+  flyStrike(state);
 
   near.forEach((e, i) => assert.ok(e.health < health[i] || e.dead, `enemy ${i} was hit`));
   assert.equal(far.health, far.maxHealth, 'the one beside the strip is untouched');
+});
+
+test('the line snaps onto an axis, because the gunship flies one', () => {
+  const from = { x: 4, y: 4 };
+  // Mostly sideways: the end is pulled onto the row of the start.
+  assert.deepEqual(snapToAxis(from, { x: 12, y: 7 }), { x: 12, y: 4 });
+  // Mostly up or down: onto its column.
+  assert.deepEqual(snapToAxis(from, { x: 7, y: 12 }), { x: 4, y: 12 });
+  // Exactly diagonal: the row, so the choice is never undecided.
+  assert.deepEqual(snapToAxis(from, { x: 9, y: 9 }), { x: 9, y: 4 });
+
+  const state = battlefield(30);
+  // An enemy on the row of the start, well off the line the player drew.
+  const online = put(state, 'warrior', 8);
+  assert.ok(useCommand(state, 'airstrike', { from: { x: 1, y: 10 }, to: { x: 11, y: 14 } }).ok);
+  const [hit] = state.pendingStrikes;
+  assert.equal(hit.from.y, hit.to.y, 'the run is one row');
+  assert.equal(hit.drops.length, commandById('airstrike').bombs, 'eight bombs');
+  flyStrike(state);
+  assert.ok(online.health < online.maxHealth, 'and it flew over the row, not the diagonal');
 });
 
 test('the airstrike hits plate harder, and can never finish a boss in one go', () => {
@@ -238,7 +272,7 @@ test('the airstrike hits plate harder, and can never finish a boss in one go', (
   assert.equal(boss.boss, true);
 
   assert.ok(useCommand(state, 'airstrike', { from: { x: 1, y: 10 }, to: { x: 15, y: 10 } }).ok);
-  runWarning(state, command.warnSeconds);
+  flyStrike(state);
 
   const share = (e) => 1 - e.health / e.maxHealth;
   assert.ok(Math.abs(share(flesh) - command.damageFraction) < 1e-6, `flesh lost ${share(flesh)}`);

@@ -19,6 +19,7 @@ import {
 import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
 import { createBackdropLayer } from './backdrop.js';
 import { createAtmosphere } from './atmosphere.js';
+import { snapToAxis } from '../sim/commands.js';
 import { drawTowerSprite, drawSpecialRing } from './towerSprites.js';
 import {
   createPodRenderer,
@@ -347,7 +348,10 @@ export function createSceneRenderer(sprites) {
       // a mouse it follows the pointer.
       const end = ui.commandLineTo ?? ui.hoverCell;
       if (ui.commandLineFrom && end) {
-        ui.effects?.drawLineAiming(ctx, ui.commandLineFrom, end, ui.commandLine.halfWidth, t);
+        // The gunship flies an axis, so the preview shows the line that will
+        // actually be flown, not the one the pointer draws (GDD section 11).
+        const snapped = snapToAxis(ui.commandLineFrom, end);
+        ui.effects?.drawLineAiming(ctx, ui.commandLineFrom, snapped, ui.commandLine.halfWidth, t);
       } else if (ui.hoverCell) {
         ui.effects?.drawAiming(ctx, ui.hoverCell, ui.commandLine.halfWidth);
       }

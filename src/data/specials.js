@@ -80,18 +80,28 @@ export const SPECIALS = {
   },
 
   soulfireObelisk: {
+    // Since v4 a single beam every 1.6 s instead of a standing aura: the
+    // strongest weapon in the game against one big target, and no answer at all
+    // to a crowd (GDD section 8).
     doctrine: 'psi',
-    behaviour: 'aura',
-    fire: 'aura',
-    damage: 60,
-    range: 3.5,
+    behaviour: 'soulfire',
+    fire: 0.625,
+    damage: 0,
+    range: 4.2,
     targets: ['ground', 'air'],
     /**
-     * Share of maximum health per second on top of the flat damage. This is
-     * what makes it the answer to a boss: it does not care how much health the
-     * boss has. It goes through the damage matrix like everything else.
+     * Share of the target's maximum health per beam. This is what makes it the
+     * answer to a boss: it does not care how much health the boss has. It goes
+     * through the damage matrix like everything else.
      */
-    percentPerSecond: 0.03,
+    percentPerHit: 0.22,
+    /**
+     * And what it does to a boss or a Koloss instead (GDD section 8). Alone it
+     * takes a Koloss apart in about 32 s rather than 8, so it stays the best
+     * single weapon against a boss without replacing the commands. The cap is
+     * per hit; unlike the airstrike there is none per wave.
+     */
+    bossPercentPerHit: 0.05,
   },
 };
 

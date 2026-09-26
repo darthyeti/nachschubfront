@@ -327,12 +327,15 @@ test('health grows by 12 percent per wave and waves get bigger', () => {
 
 test('every recipe has a special tower whose values fit its ingredients', () => {
   assert.deepEqual(Object.keys(SPECIALS), RECIPE_IDS, 'one special per recipe, same order');
-  const behaviours = new Set(['single', 'multi', 'beam', 'chain', 'mortar', 'cone', 'aura']);
+  const behaviours = new Set(['single', 'multi', 'beam', 'chain', 'mortar', 'cone', 'aura', 'soulfire']);
   for (const recipe of RECIPES) {
     const def = specialDef(recipe.id);
     assert.equal(def.doctrine, recipe.ingredients[0], `${recipe.id}: the leading ingredient types it`);
     assert.ok(behaviours.has(def.behaviour), `${recipe.id}: ${def.behaviour}`);
-    assert.ok(def.damage > 0 && def.range > 0, recipe.id);
+    // The obelisk deals no flat damage at all: its whole weapon is a share of
+    // the target's maximum health (GDD section 8).
+    assert.ok(def.damage > 0 || def.percentPerHit > 0, recipe.id);
+    assert.ok(def.range > 0, recipe.id);
     assert.ok(def.fire === 'aura' || def.fire > 0, recipe.id);
     for (const t of def.targets) assert.ok(t === 'ground' || t === 'air', `${recipe.id}: ${t}`);
     // A special must not shoot at armour it cannot hurt.
@@ -340,20 +343,39 @@ test('every recipe has a special tower whose values fit its ingredients', () => 
     if (def.behaviour === 'chain') assert.ok(def.chain.targets > 1, recipe.id);
     if (def.behaviour === 'multi') assert.ok(def.multiTargets > 1, recipe.id);
     if (def.behaviour === 'mortar') assert.ok(def.splashRadius > 0 && def.flightSeconds > 0, recipe.id);
+    if (def.behaviour === 'soulfire') {
+      assert.ok(def.percentPerHit > 0 && def.percentPerHit <= 1, recipe.id);
+      assert.ok(def.bossPercentPerHit > 0 && def.bossPercentPerHit < def.percentPerHit, recipe.id);
+    }
   }
   assert.throws(() => specialDef('nope'));
 });
 
 test('a special tower beats the doctrine it is built from', () => {
-  // Rough guard against a special that would not be worth three towers.
+  // Rough guard against a special that would not be worth three towers. The
+  // obelisk is left out on purpose: it deals a share of the target's health, so
+  // there is no flat number to hold against a doctrine. It is checked below.
   const damagePerSecond = (def) => (def.fire === 'aura' ? def.damage : def.damage * def.fire);
   for (const recipe of RECIPES) {
     const def = specialDef(recipe.id);
+    if (def.behaviour === 'soulfire') continue;
     const plain = DOCTRINES[recipe.ingredients[0]];
     const plainDps = (plain.fire === 'aura' || plain.fire === 'stream' ? plain.damage : plain.damage * plain.fire)
       * RANKS[recipe.minRank - 1].damage;
     assert.ok(damagePerSecond(def) >= plainDps, `${recipe.id}: ${damagePerSecond(def)} vs ${plainDps}`);
   }
+});
+
+test('the obelisk is measured in shares of health, and capped against bosses', () => {
+  const def = specialDef('soulfireObelisk');
+  // What it does to anything ordinary: a fifth of its health with every beam,
+  // so five beams end it whatever wave it came from.
+  assert.equal(def.percentPerHit, 0.22);
+  assert.ok(1 / def.percentPerHit < 6, 'fewer than six beams for an ordinary enemy');
+  // And against a boss or a Koloss (GDD section 8): about 32 s on its own.
+  assert.equal(def.bossPercentPerHit, 0.05);
+  const secondsToKill = (1 / def.bossPercentPerHit) / def.fire;
+  assert.ok(secondsToKill > 25 && secondsToKill < 40, `${secondsToKill.toFixed(0)} s against a Koloss`);
 });
 
 test('the version is one plain number triple, and the corner label shows it', () => {

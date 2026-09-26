@@ -188,6 +188,11 @@ export function createEffects() {
       if (!reducedMotion) burst(event.x, event.y, 26, 'spark', 2, { speed: 40, size: 2, life: 0.25 });
     } else if (event.type === 'beam') {
       shots.push({ kind: 'beam', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: BEAM_SECONDS });
+    } else if (event.type === 'soulfire') {
+      // The obelisk's judgement: one beam out of the eye at its tip to the one
+      // thing it is passing judgement on (docs/ART.md).
+      shots.push({ kind: 'beam', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: BEAM_SECONDS * 2 });
+      if (!reducedMotion) burst(event.tx, event.ty, 14, 'warp', 10, { speed: 60, size: 3, life: 0.5, gravity: -40 });
     } else if (event.type === 'chain') {
       // The simulation starts the chain in the middle of the cell; the drawing
       // starts it where the figure says it does — the coil on the mast, or the
@@ -264,23 +269,15 @@ export function createEffects() {
     } else if (event.type === 'kolossArrived') {
       jolt(SHAKE.bossKill, FLASH.bossKill);
       addRing(event.x, event.y, { radius: 2.6, life: 0.8, colour: '#ff6a4a', width: 5 });
-    } else if (event.type === 'airstrike') {
-      // A run of blasts along the line instead of one crater: the squadron flies
-      // the strip, it does not drop everything on one spot.
-      const dx = event.to.x - event.from.x;
-      const dy = event.to.y - event.from.y;
-      const steps = Math.max(2, Math.round(Math.hypot(dx, dy)));
-      for (let i = 0; i <= steps; i++) {
-        const u = i / steps;
-        const x = event.from.x + dx * u;
-        const y = event.from.y + dy * u;
-        burst(x, y, 6, 'fire', reducedMotion ? 3 : 8, { speed: 80, size: 6, grow: 11, life: 0.35 });
-        burst(x, y, 0, 'dust', reducedMotion ? 4 : 10, { speed: 110, size: 6, grow: 15, life: 1, gravity: -6 });
-        addRing(x, y, { radius: event.halfWidth * 1.6, life: 0.45, width: 4 });
-        addDecal({ kind: 'scorch', x, y, radius: event.halfWidth * 0.8, life: 14, max: 14 });
-      }
-      jolt(SHAKE.airstrike, FLASH.airstrike);
+    } else if (event.type === 'airstrikeRun') {
+      // The run is announced; the bombs arrive one by one as their own events.
       addWord((event.from.x + event.to.x) / 2, (event.from.y + event.to.y) / 2, STRINGS.effects.airstrike, 34);
+    } else if (event.type === 'airstrikeBomb') {
+      burst(event.x, event.y, 6, 'fire', reducedMotion ? 3 : 10, { speed: 90, size: 6, grow: 12, life: 0.4 });
+      burst(event.x, event.y, 0, 'dust', reducedMotion ? 4 : 10, { speed: 110, size: 6, grow: 15, life: 1.1, gravity: -6 });
+      addRing(event.x, event.y, { radius: event.radius, life: 0.45, width: 4 });
+      addDecal({ kind: 'scorch', x: event.x, y: event.y, radius: event.radius * 0.7, life: 14, max: 14 });
+      jolt(SHAKE.airstrike, FLASH.airstrike);
     } else if (event.type === 'command' && event.id === 'prioritySupply') {
       // No target on the map: the order goes out from the bastion.
       const { x, y } = state.map.bastion;
@@ -455,8 +452,13 @@ export function createEffects() {
     // Stasis: a lattice of ice over everything inside the field.
     for (const field of fields) drawStasis(ctx, field, t, reducedMotion);
 
-    // Orbital strikes counting down, and the banners standing this wave.
+    // Orbital strikes counting down, airstrikes warning, and the banners
+    // standing this wave.
     for (const hit of state.pendingStrikes) {
+      if (hit.kind === 'airstrike') {
+        if (hit.t < hit.warnSeconds) drawAirstrikeWarning(ctx, hit, t);
+        continue;
+      }
       const u = Math.min(1, hit.t / hit.warnSeconds);
       drawTargetRing(ctx, hit.x, hit.y, hit.radius, '#ff6a4a', reducedMotion ? 0.7 : 0.45 + u * 0.5, 1 - u * 0.25);
       const [x, y] = project(hit.x, hit.y, 0);
@@ -473,11 +475,33 @@ export function createEffects() {
       const stats = towerStats(tower);
       if (stats.behaviour === 'aura' || stats.behaviour === 'psi') {
         drawAura(ctx, tower, stats, t, reducedMotion);
-        // The obelisk's judgement comes out of the eye at its tip, as a thin
-        // beam to what it is passing judgement on (docs/ART.md).
-        if (tower.special === 'soulfireObelisk') drawJudgement(ctx, tower, stats, state, t, reducedMotion);
       }
       else if (stats.behaviour === 'cone' || stats.behaviour === 'flame') drawCone(ctx, tower, t, reducedMotion);
+    }
+  }
+
+  /**
+   * The run before the gunship comes in: a yellow dashed line along the axis it
+   * will fly, and a mark on every cell a bomb is going to fall on, so there is
+   * time to see what is about to happen (GDD section 11).
+   */
+  function drawAirstrikeWarning(ctx, hit, t) {
+    const a = project(hit.from.x, hit.from.y);
+    const b = project(hit.to.x, hit.to.y);
+    ctx.save();
+    ctx.setLineDash([10, 7]);
+    ctx.lineDashOffset = -t * 30;
+    ctx.strokeStyle = '#ffb13b';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+    ctx.restore();
+    for (const drop of hit.drops) {
+      const [x, y] = project(drop.x, drop.y);
+      ell(ctx, x, y, 10, 5, null, '#ffb13b', 2);
     }
   }
 
@@ -590,42 +614,6 @@ export function createEffects() {
     ctx.strokeStyle = `${colour}88`;
     ctx.lineWidth = 3;
     ctx.stroke();
-    ctx.restore();
-  }
-
-  /** How many enemies the obelisk keeps a beam on at once, so it stays readable. */
-  const JUDGED = 4;
-
-  /**
-   * Thin psi beams from the obelisk's floating eye to the enemies inside its
-   * aura. The damage itself is the aura's; this only shows where it is landing.
-   */
-  function drawJudgement(ctx, tower, stats, state, t, reducedMotion) {
-    const [ex, ey] = towerAnchor(tower);
-    const reach = stats.range * stats.range;
-    const targets = [];
-    for (const enemy of state.enemies) {
-      const d = (enemy.x - (tower.x + 0.5)) ** 2 + (enemy.y - (tower.y + 0.5)) ** 2;
-      if (d <= reach) targets.push([d, enemy]);
-    }
-    if (!targets.length) return;
-    targets.sort((a, b) => a[0] - b[0]);
-    const colour = DOCTRINE_COLORS[stats.doctrine] ?? C.warpL;
-    const flicker = reducedMotion ? 0.55 : 0.4 + Math.abs(Math.sin(t * 7)) * 0.3;
-    ctx.save();
-    ctx.lineCap = 'round';
-    for (const [, enemy] of targets.slice(0, JUDGED)) {
-      const [tx, ty] = project(enemy.x, enemy.y, 14);
-      for (const [width, stroke, alpha] of [[5, C.ink, 0.35], [2.4, colour, flicker], [1, '#ffffff', flicker * 0.8]]) {
-        ctx.globalAlpha = alpha;
-        ctx.strokeStyle = stroke;
-        ctx.lineWidth = width;
-        ctx.beginPath();
-        ctx.moveTo(ex, ey);
-        ctx.lineTo(tx, ty);
-        ctx.stroke();
-      }
-    }
     ctx.restore();
   }
 

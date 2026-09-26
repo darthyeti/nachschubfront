@@ -3,7 +3,7 @@
 
 import { COMMANDS, commandById } from '../data/commands.js';
 import { MAX_RANK } from '../data/ranks.js';
-import { enemiesAround, enemiesAlong } from './targeting.js';
+import { enemiesAround } from './targeting.js';
 import { damageEnemy } from './damage.js';
 import { applyStun } from './effects.js';
 import { inBounds } from './grid.js';
@@ -104,28 +104,79 @@ function strike(state, hit) {
 }
 
 /**
- * Resolves an airstrike once its warning has run out. Like the orbital strike
- * it works on a share of maximum health and goes around the damage matrix; the
- * one armour that matters is plate, which the squadron is loaded for.
+ * Pulls the end of a line onto one of the four grid axes: the end is dragged
+ * onto the row or the column of the start, whichever is nearer (GDD section 11).
+ * The gunship flies an axis, so the line the player draws has to be one.
  */
-function airstrike(state, hit) {
-  for (const e of enemiesAlong(state, hit.from, hit.to, hit.halfWidth)) {
-    // A boss or a Koloss takes the capped share and nothing more: no command may
-    // kill one in a single use (GDD section 9).
+export function snapToAxis(from, to) {
+  return Math.abs(to.x - from.x) >= Math.abs(to.y - from.y)
+    ? { x: to.x, y: from.y }
+    : { x: from.x, y: to.y };
+}
+
+/**
+ * Where the bombs of a run fall: spread evenly along the line, alternating
+ * slightly either side of it (GDD section 11, and the study).
+ */
+export function bombRun(from, to, command) {
+  const count = command.bombs;
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.hypot(dx, dy) || 1;
+  // Across the line, for the alternating offset.
+  const ax = -dy / length;
+  const ay = dx / length;
+  const drops = [];
+  for (let i = 0; i < count; i++) {
+    const u = count === 1 ? 0.5 : i / (count - 1);
+    const off = (i % 2 ? 1 : -1) * command.bombSpread;
+    drops.push({
+      x: from.x + dx * u + ax * off,
+      y: from.y + dy * u + ay * off,
+      /** Share of the run at which this one goes off. */
+      at: u,
+      done: false,
+    });
+  }
+  return drops;
+}
+
+/**
+ * One bomb of a run. Like the orbital strike it works on a share of maximum
+ * health and goes around the damage matrix; the one armour that matters is
+ * plate, which the gunship is loaded for.
+ *
+ * The share is the budget for the whole run: each bomb takes its part of it and
+ * never more than what is left, so a boss or a Koloss loses at most its capped
+ * share per use, however many bombs happen to land on it (GDD section 9).
+ */
+function dropBomb(state, hit, drop) {
+  drop.done = true;
+  for (const e of enemiesAround(state, drop, hit.blastRadius)) {
     const share = e.boss
       ? hit.bossDamageFraction
       : Math.min(1, hit.damageFraction * (e.armor === 'plate' ? hit.plateFactor : 1));
+    const budget = e.maxHealth * share;
+    const already = hit.dealt.get(e.id) ?? 0;
+    const amount = Math.min(budget * hit.bombShare, budget - already);
+    if (amount <= 0) continue;
+    hit.dealt.set(e.id, already + amount);
     e.shield = 0;
-    e.health -= e.maxHealth * share;
+    e.health -= amount;
     e.flash = 0.12;
     if (e.health <= 0) e.dead = true;
   }
-  state.events.push({
-    type: 'airstrike',
-    from: { ...hit.from },
-    to: { ...hit.to },
-    halfWidth: hit.halfWidth,
-  });
+  state.events.push({ type: 'airstrikeBomb', x: drop.x, y: drop.y, radius: hit.blastRadius });
+}
+
+/** Counts a run of bombs down and drops the ones that are due. */
+function updateAirstrike(state, hit, dt) {
+  if (hit.t < hit.warnSeconds) return false;
+  const u = (hit.t - hit.warnSeconds) / hit.runSeconds;
+  for (const drop of hit.drops) {
+    if (!drop.done && u >= drop.at) dropBomb(state, hit, drop);
+  }
+  return u >= 1;
 }
 
 /**
@@ -176,18 +227,27 @@ export function useCommand(state, id, cell = null) {
     state.banners.push({ x: point.x, y: point.y, radius: command.radius, bonus: command.damageBonus });
   } else if (id === 'airstrike') {
     const from = { x: cell.from.x + 0.5, y: cell.from.y + 0.5 };
-    const to = clampLine(from, { x: cell.to.x + 0.5, y: cell.to.y + 0.5 }, command.maxLength);
-    state.pendingStrikes.push({
+    const axis = snapToAxis(from, { x: cell.to.x + 0.5, y: cell.to.y + 0.5 });
+    const to = clampLine(from, axis, command.maxLength);
+    const hit = {
       kind: 'airstrike',
       from,
       to,
       halfWidth: command.halfWidth,
+      blastRadius: command.blastRadius,
+      bombShare: command.bombShare,
       damageFraction: command.damageFraction,
       plateFactor: command.plateFactor,
       bossDamageFraction: command.bossDamageFraction,
       t: 0,
       warnSeconds: command.warnSeconds,
-    });
+      runSeconds: command.runSeconds,
+      drops: bombRun(from, to, command),
+      /** Share of its maximum health each enemy has lost to this run so far. */
+      dealt: new Map(),
+    };
+    state.pendingStrikes.push(hit);
+    state.events.push({ type: 'airstrikeRun', from: { ...from }, to: { ...to }, warnSeconds: command.warnSeconds, runSeconds: command.runSeconds });
   }
 
   state.commandPoints -= command.cost;
@@ -196,15 +256,20 @@ export function useCommand(state, id, cell = null) {
   return { ok: true };
 }
 
-/** Counts down the orbital strikes and lets the ones that are due go off. */
+/**
+ * Counts the pending strikes down. An orbital strike goes off at the end of its
+ * warning; an airstrike runs on, dropping its bombs along the line, and is only
+ * over when the gunship has flown the whole run.
+ */
 export function updateCommands(state, dt) {
   let write = 0;
   for (let read = 0; read < state.pendingStrikes.length; read++) {
     const hit = state.pendingStrikes[read];
     hit.t += dt;
-    if (hit.t >= hit.warnSeconds) {
-      if (hit.kind === 'airstrike') airstrike(state, hit);
-      else strike(state, hit);
+    if (hit.kind === 'airstrike') {
+      if (updateAirstrike(state, hit, dt)) continue;
+    } else if (hit.t >= hit.warnSeconds) {
+      strike(state, hit);
       continue;
     }
     state.pendingStrikes[write++] = hit;

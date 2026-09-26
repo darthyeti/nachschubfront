@@ -142,12 +142,22 @@ export const ICONS = {
     <path d="M11.2 10.5 v.9 M12.8 10.5 v.9" stroke="${INK}" stroke-width="1.1" stroke-linecap="round"/>
   `,
 
-  /** Airstrike: the strafing run, two fields wide. */
+  /**
+   * Airstrike: the gunship from above, after
+   * reference/konzept/hud/luftschlag.svg — broad wings with rust tips, the red
+   * band across the fuselage, the two round nacelles and the twin tail.
+   */
   airstrike: `
-    <path d="M3.4 14.6 L20.6 8.2" stroke="${STONE_DARK}" stroke-width="1.6" stroke-dasharray="2 2.4"
-      stroke-linecap="round" fill="none"/>
-    <path d="M20.6 11.2 L8.6 5.4 L11 11.2 L8.6 17 Z"
-      fill="${STONE}" stroke="${INK}" stroke-width="1.7" stroke-linejoin="round" transform="rotate(-20 12 12)"/>
+    <path d="M3.7 9.8 h16.6 v3.4 H3.7 Z" fill="${STONE}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M3.7 9.8 h1.9 v3.4 H3.7 Z M18.4 9.8 h1.9 v3.4 h-1.9 Z" fill="#b0643a" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M9.6 3 h4.9 l1 2.9 v10.2 l-1 1.5 H9.6 l-1-1.5 V5.9 Z" fill="${STONE_DARK}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M10.1 4 h3.9 l.5 1.9 H9.6 Z" fill="#3f6a80" stroke="${INK}" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M8.6 7.4 h6.8 v1 H8.6 Z" fill="${BLOOD}" stroke="${INK}" stroke-width="0.9"/>
+    <path d="M6.9 13.7 a1.2 1.2 0 0 1 1.2 1.2 v2.5 a1.2 1.2 0 0 1 -2.4 0 v-2.5 a1.2 1.2 0 0 1 1.2 -1.2 Z
+             M17.1 13.7 a1.2 1.2 0 0 1 1.2 1.2 v2.5 a1.2 1.2 0 0 1 -2.4 0 v-2.5 a1.2 1.2 0 0 1 1.2 -1.2 Z"
+      fill="#6f655b" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M10.1 17.1 h.9 v2.4 h-.9 Z M13 17.1 h.9 v2.4 H13 Z" fill="${STONE}" stroke="${INK}" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M6.2 19.1 l.7 1.9 .7-1.9 Z M16.4 19.1 l.7 1.9 .7-1.9 Z" fill="${FIRE}" stroke="${INK}" stroke-width="1"/>
   `,
 
   // ---------- States ----------
