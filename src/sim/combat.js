@@ -210,6 +210,20 @@ const CONTINUOUS = {
   aura: fireAura,
 };
 
+/**
+ * Everything a tower carries only while it is shooting. The render side hangs
+ * the auras, cones and glows off these, so they have to go the moment the
+ * shooting does — otherwise a ring keeps turning over an empty map long after
+ * the wave that caused it (the stray violet ring after a Koloss broke through).
+ */
+export function standDown(state) {
+  for (const tower of state.towers) {
+    tower.firing = false;
+    tower.aim = null;
+    tower.cooldown = 0;
+  }
+}
+
 /** One simulation step of tower fire. */
 export function updateCombat(state, dt) {
   for (const tower of state.towers) {

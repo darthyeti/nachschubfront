@@ -22,11 +22,13 @@ import {
   routeToBastion,
   updateKolossRun,
 } from '../../src/sim/koloss.js';
-import { addTower } from '../../src/sim/towers.js';
+import { addTower, removeTower } from '../../src/sim/towers.js';
 import { addRubble, isRubble, raiseBulwark, isBulwark } from '../../src/sim/rubble.js';
 import { computeRoute, groundPolyline, flyerPolyline, positionAt } from '../../src/sim/route.js';
 import { isBlocked, setBlocked } from '../../src/sim/grid.js';
-import { updateEnemies } from '../../src/sim/enemies.js';
+import { updateEnemies, spawnEnemy } from '../../src/sim/enemies.js';
+import { updateCombat } from '../../src/sim/combat.js';
+import { setPhase } from '../../src/core/phases.js';
 import { KOLOSS_RUN } from '../../src/data/enemies.js';
 import { RULES } from '../../src/data/rules.js';
 import { SIM_STEP } from '../../src/data/settings.js';
@@ -622,4 +624,90 @@ test('the wave behind it takes the gap it tore, without being teleported', () =>
   // It was put back on the new line where it stands, not thrown somewhere else.
   const now = positionAt(state.waveRoutes.ground, other.d);
   assert.ok(Math.hypot(now.x - other.x, now.y - other.y) < 1.5, 'no jump');
+});
+
+// ---------- Nothing outlives what it hangs off ----------
+
+test('the wave ending stops every effect the towers were drawing', () => {
+  const state = bareField();
+  const cell = state.route.cells[10];
+  const tower = addTower(state, { x: cell.x, y: cell.y - 1, doctrine: 'psi', special: 'soulfireObelisk' });
+  state.phase = 'wave';
+  state.waveScale = 1;
+  state.waveStats = { spawned: 0, leaked: 0, killed: 0, bossKills: 0 };
+  state.waveRoutes = { ground: groundPolyline(state.route), flyer: flyerPolyline(state.map) };
+  const e = spawnEnemy(state, 'warrior');
+  e.x = cell.x + 0.5;
+  e.y = cell.y + 0.5;
+
+  updateCombat(state, SIM_STEP);
+  assert.equal(tower.firing, true, 'it is working while the wave runs');
+
+  // However the wave ends — cleared or lost — nothing may still be drawn as
+  // firing, or a violet ring keeps turning over an empty map.
+  setPhase(state, 'evaluation');
+  assert.equal(tower.firing, false);
+  assert.equal(tower.aim, null);
+});
+
+test('taking an emplacement off the field leaves nothing pointing at it', () => {
+  const state = bareField();
+  const cell = state.route.cells[10];
+  state.phase = 'wave';
+  state.waveScale = 1;
+  state.waveStats = { spawned: 0, leaked: 0, killed: 0, bossKills: 0 };
+  state.waveRoutes = { ground: groundPolyline(state.route), flyer: flyerPolyline(state.map) };
+  const tower = addTower(state, { x: cell.x, y: cell.y - 1, doctrine: 'flame', rank: 3 });
+  const e = spawnEnemy(state, 'warrior');
+  e.x = cell.x + 0.5;
+  e.y = cell.y + 0.5;
+  e.burn = { dps: 5, until: state.time + 3, doctrine: 'flame', towerId: tower.id };
+  state.projectiles.push({ id: 1, towerId: tower.id, from: { x: 0, y: 0 }, to: { x: 1, y: 1 }, t: 0, flight: 1 });
+  tower.firing = true;
+  tower.aim = { x: e.x, y: e.y };
+
+  removeTower(state, tower.id);
+  assert.equal(tower.firing, false, 'it is not firing, it is gone');
+  assert.equal(tower.aim, null);
+  assert.equal(e.burn.towerId, null, 'the fire it lit belongs to nobody now');
+  assert.equal(state.projectiles.length, 0, 'and its shell went with it');
+  assert.ok(state.events.some((ev) => ev.type === 'towerRemoved'), 'the render side is told');
+});
+
+test('the ram destroys the emplacement in its way, effects and all', () => {
+  const state = bareField();
+  const { map } = state;
+  const cell = { x: 8, y: 8 };
+  const ahead = { x: cell.x + 1, y: cell.y };
+  const tower = addTower(state, { ...ahead, doctrine: 'psi', special: 'soulfireObelisk' });
+  tower.firing = true;
+  tower.aim = { x: 1, y: 1 };
+  for (const [dx, dy] of [[-1, 0], [0, 1], [0, -1]]) {
+    const wall = { x: cell.x + dx, y: cell.y + dy };
+    addRubble(state, wall);
+    raiseBulwark(state, wall);
+  }
+  const e = {
+    x: cell.x + 0.5,
+    y: cell.y + 0.5,
+    dx: 1,
+    dy: 0,
+    koloss: true,
+    dead: false,
+    charging: false,
+    holdUntil: 0,
+    crushed: 0,
+  };
+  state.enemies.push(e);
+  state.phase = 'wave';
+
+  assert.equal(routeToBastion(state, e), false, 'walled in, with the emplacement as one wall');
+  breach(state, e);
+  assert.deepEqual(e.ram.cell, ahead, 'it rams the emplacement');
+
+  state.time += KOLOSS_RUN.ramSeconds + SIM_STEP;
+  updateKolossRun(state);
+  assert.equal(state.towers.length, 0, 'the emplacement is gone');
+  assert.equal(isBlocked(map.grid, ahead.x, ahead.y), false, 'its cell with it');
+  assert.equal(tower.firing, false, 'and it left no effect behind');
 });

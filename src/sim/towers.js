@@ -41,10 +41,26 @@ export function towerById(state, id) {
 /**
  * Removes a tower from the list. The cell stays blocked: callers turn it into
  * rubble, which keeps the maze the player built intact.
+ *
+ * Everything hanging off the tower goes with it. A weapon that is taken off the
+ * field must leave nothing behind that still points at it — neither a fire
+ * credited to it, nor a shell it has already launched, nor the firing state the
+ * render side draws auras and cones from. Anything else leaves an effect on the
+ * map with no owner, which is what the stray violet ring after a Koloss broke
+ * through turned out to be.
  */
 export function removeTower(state, id) {
   const index = state.towers.findIndex((t) => t.id === id);
-  return index >= 0 ? state.towers.splice(index, 1)[0] : null;
+  if (index < 0) return null;
+  const [tower] = state.towers.splice(index, 1);
+  tower.firing = false;
+  tower.aim = null;
+  for (const e of state.enemies) {
+    if (e.burn?.towerId === id) e.burn.towerId = null;
+  }
+  state.projectiles = state.projectiles.filter((p) => p.towerId !== id);
+  state.events.push({ type: 'towerRemoved', id, x: tower.x + 0.5, y: tower.y + 0.5 });
+  return tower;
 }
 
 /**
