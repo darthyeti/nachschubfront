@@ -1,6 +1,16 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
+M7 Koloss-Verhalten, Stellungsgrafik, Gunship und die letzten Platzhalter ist in Arbeit. Der Plan ist am 26.09.2026 freigegeben, aufgeteilt in Block A (Koloss-Logik), B (Luftschlag und Bossdeckel) und C (Grafik), mit drei Entscheidungen:
+
+- **M7 wird vor M6 eingeschoben**, wie die sechs Einschübe davor auch. Der Arbeitsauftrag sagt „kommt nach M6", das ist eine Annahme des Pakets über den Einspielzeitpunkt. Sachlich hängt M7 an nichts aus M6, und M6 stimmt Zahlen ab, die M7 ohnehin ersetzt: die komplette Wirkungstabelle der Spezialstellungen, dazu das Verhalten von Koloss und Obelisk. Wer vorher balanciert, tariert Werte aus, die danach überschrieben sind. M6 bleibt der Abschluss und balanciert die endgültige Mechanik.
+- **Die Konzept-PNGs werden verkleinert.** Die zehn Blätter kamen mit 2560 px Breite und 8 MB ins Paket; `reference/` war vorher 1,4 MB und rein SVG. Sie liegen jetzt mit 1280 px und indizierter Palette bei zusammen rund 1 MB. Verbindlich sind ohnehin die Studien, die PNGs sind Standbilder daraus.
+- **Die SVG-Regel bleibt, mit einer benannten Ausnahme.** Bunker und Aufsätze werden aus dem Zeichencode der Studie einmalig nach SVG exportiert und laufen danach durch dieselbe Pipeline wie jede andere Figur. Koloss und Gunship nicht: Sie müssen in vier Achsrichtungen stimmen, und ein SVG kennt keine Normalen — vier Standbilder würden die richtungsabhängige Schattierung verlieren und müssten bei jeder Änderung viermal nachgezogen werden. Für sie gilt das drehbare Modellmodul. Festgeschrieben in `docs/ART.md` („Drehbare Modelle") und `CLAUDE.md`.
+
+Die Vorarbeit ist erledigt: `GDD-update-v4.md` ist in `docs/GDD.md` eingearbeitet (Stand jetzt „Grundlagen v4": Koloss-Abschnitt mit Fahrlinie, Schneise und eigener Wegfindung neu, Luftschlag mit Achseneinrastung, Wirkungsspalte in Abschnitt 8 ersetzt), `ART-update-v5.md` in `docs/ART.md` (Stand jetzt v5: Bunker als gemeinsame Grundform aller sechs Doktrinen, neue Rangleiter ohne Fahne, Spezialbasis statt sechs Einzelbauwerke, neue Abschnitte „Gunship" und „Drehbare Modelle"). Beide Einzeldateien sind danach gelöscht worden, GDD und ART sind wieder die einzigen Quellen. Der Arbeitsauftrag liegt unter `docs/meilensteine/M7-koloss-und-stellungen.md`, die Studien in `reference/studien/`, die Standbilder in `reference/konzept/koloss/` und `stellungen/`.
+
+**Gemeldete Auffälligkeit, nicht eigenmächtig geändert:** Die neuen Startwerte der Spezialstellungen sind deutlich kleiner als die bisher hergeleiteten (Sturmbatterie 5 statt 14 Schaden, Glutkessel 6 statt 90, Gewitterturm 14 statt 110). Sie werden wie geschrieben übernommen, dürften gegen die Lebenspunkte ab Welle 35 aber zu schwach sein. Zwischen M7 und M6 ist mit spürbar schwächeren Spezialstellungen zu rechnen; das ist Thema von M6, kein Fehler.
+
 M5c HUD, Menüs und die letzten vier Spezialstellungen ist umgesetzt und wartet auf die Abnahme (vor allem auf dem iPad: die Runenscheiben mit dem Finger, langes Drücken ohne versehentliches Auslösen, die rechte Kommandoleiste im Querformat und die Seed-Eingabe mit der Bildschirmtastatur). Der Plan ist am 25.09.2026 freigegeben, mit vier Entscheidungen (Reinigungsschrein behält seine Aura, „Fortsetzen" bleibt ohne laufende Partie ausgegraut, Seed und Phase wandern aus der Statusleiste ins Pausenmenü, Rezepte und Menü werden Plattenknöpfe am rechten Ende der oberen Leiste). Die Vorarbeit ist erledigt: `ART-update-v4.md` ist in `docs/ART.md` eingearbeitet (Stand jetzt v4: neue Abschnitte „HUD" und „Menüs außerhalb der Partie", der Abschnitt „Spezialstellungen" komplett neu mit Wirkungsanker-Spalte), die Einzeldatei ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik. Der Arbeitsauftrag liegt unter `docs/meilensteine/M5c-hud-menues-spezialstellungen.md`, die neuen Blätter in `reference/konzept/hud/`, `menues/` und `spezialstellungen/`.
 
 M5b Späte Bedrohung und Ressourcen-Senken ist umgesetzt und wartet auf die Abnahme. Der Plan ist am 24.09.2026 freigegeben, mit drei Entscheidungen (Koloss in Welle 35 und 45 statt 30/40/50, Salve wird ruhiger statt doppelt so lang, Koloss und Bollwerk zeichne ich selbst) und einer vierten unterwegs: „Ausreichend verstärkt" hängt an Bollwerken, nicht an einer unsichtbaren Feuerkraftschwelle.
@@ -17,7 +27,7 @@ M4b Designanpassungen aus Spieltest 1 ist umgesetzt und wartet auf die Abnahme (
 
 M4 Präsentation ist umgesetzt und wartet auf die Abnahme auf dem iPad (Ton und Mehrfinger-Gesten lassen sich nur dort wirklich beurteilen). M3 wartet ebenfalls auf die Abnahme. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
 
-Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → M4c → M4d → M5 → M5b → **M5c** → M6
+Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → M4c → M4d → M5 → M5b → M5c → **M7** → M6
 
 ## Erledigt
 - Game-Design-Grundlagen (docs/GDD.md)

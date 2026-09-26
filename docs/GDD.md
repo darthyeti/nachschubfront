@@ -1,6 +1,6 @@
 # Nachschubfront: Game-Design-Dokument
 
-Stand: Grundlagen v3 (nach Spieltest 2: Koloss als späte Bedrohung, Bollwerk, Landezonen auf Trümmern, Luftschlag und geschärfte Kommandos). Alle Zahlen sind Startwerte für das Balancing und liegen später in Datendateien, nicht im Code.
+Stand: Grundlagen v4 (Koloss auf Rasterachsen mit Fahrlinie, Schneise und eigener Wegfindung, Luftschlag mit Achseneinrastung, neue Rollen der sechs Spezialstellungen). Alle Zahlen sind Startwerte für das Balancing und liegen in Datendateien, nicht im Code.
 
 ## 1. Vision
 
@@ -119,14 +119,18 @@ Angaben in Prozent.
 
 Ein Rezept besteht aus drei verschiedenen Doktrinen mit Mindestrang. Es kann in der Auswahlphase erfüllt werden, wenn die Kapseln dieser Salve zusammen mit bereits stehenden Stellungen alle Zutaten enthalten und mindestens eine Zutat aus der aktuellen Salve stammt. Die Spezialstellung entsteht auf dem Feld dieser Kapsel. Verbrauchte bestehende Stellungen werden zu Trümmern, die übrigen Kapseln ebenfalls.
 
-| Spezialstellung | Zutaten | Mindestrang | Wirkung (Startidee) |
+Die Rollen sind klar getrennt: Der Schrein ist eine reine Schadensaura, der Kessel ein sich ausbreitendes Feuer, die Batterie Dauerfeuer, der Mörser Artillerie auf Distanz, der Turm eine Kette, der Obelisk die Bosswaffe. Alle Zahlen sind Startwerte, stehen in `src/data/` und werden im Balancing endgültig bestimmt.
+
+| Spezialstellung | Zutaten | Mindestrang | Wirkung (Startwerte) |
 |---|---|---|---|
-| Reinigungsschrein | Flamme, Psi, Mörser | Veteran | Großer Flammenring, verlangsamt, Brand stapelt |
-| Sturmbatterie | Autokanone, Laser, Tesla | Veteran | Schnellfeuer auf drei Ziele, stark gegen Luft |
-| Glutkessel | Flamme, Tesla, Autokanone | Veteran | Brennende Aura, Blitze entzünden |
-| Belagerungsmörser | Mörser, Laser, Autokanone | Elite | Sehr große Reichweite, riesiger Explosionsradius |
-| Gewitterturm | Tesla, Psi, Laser | Elite | Kette über 8 Ziele, kurze Betäubung |
-| Seelenfeuer-Obelisk | Psi, Flamme, Tesla | Held | Schaden in Prozent der maximalen Lebenspunkte, Waffe gegen Bosse |
+| Reinigungsschrein | Flamme, Psi, Mörser | Veteran | Kein Geschoss. Dauerhafte goldene Aura, Radius 2,8. Jeder Gegner darin erleidet 11 Schaden/s und ist verlangsamt, solange er in der Aura ist. Betroffene Gegner leuchten golden statt den violetten Verlangsamungsring zu tragen |
+| Sturmbatterie | Autokanone, Laser, Tesla | Veteran | Schnellfeuer mit blauer Leuchtspurmunition, Radius 3,2, verteilt auf die 3 vordersten Gegner, 5 Schaden pro Schuss, Schusstakt 0,06 s, stark gegen Luft |
+| Glutkessel | Flamme, Tesla, Autokanone | Veteran | Keine Aura. Alle 1,2 s Feuerblitze auf die 3 vordersten Gegner in Radius 3,2: 6 Schaden plus Brand 3 s (9 Schaden/s). Der Brand springt alle 0,45 s auf einen nicht brennenden Gegner innerhalb 0,85 Feldern über (dort 2,2 s) |
+| Belagerungsmörser | Mörser, Laser, Autokanone | Elite | Radius 6,6, Mindestabstand 1,5. Zielt 0,8 s mit sichtbarem Laser, dann Granate mit Vorhalt, riesiger Explosionsradius, Nachladezeit 3,2 s |
+| Gewitterturm | Tesla, Psi, Laser | Elite | Radius 3,1, alle 1,3 s Kettenblitz über bis zu 8 Ziele (Sprungweite 1,8), 14 Schaden und 0,5 s Betäubung pro Ziel |
+| Seelenfeuer-Obelisk | Psi, Flamme, Tesla | Held | Radius 4,2, alle 1,6 s Seelenstrahl: 22 % der maximalen Lebenspunkte des Ziels. Gegen Bosse und den Koloss gedeckelt auf 5 % pro Treffer |
+
+**Bossdeckel des Obelisken:** Gegen Bosse und den Koloss macht der Seelenstrahl höchstens 5 % der maximalen Lebenspunkte pro Treffer, gegen alle anderen Gegner bleibt es bei 22 %. Allein würde der Obelisk einen Koloss damit in etwa 32 s statt 8 s zerstören: Er bleibt die beste Einzelwaffe gegen Bosse, ersetzt aber nicht die Kommandos. Der Deckel gilt pro Treffer, einen Deckel pro Welle wie beim Luftschlag gibt es hier nicht.
 
 Weitere Rezepte folgen nach den ersten Tests. Rezepte sind im Spiel über ein Nachschlagewerk einsehbar.
 
@@ -177,19 +181,45 @@ Name im Spiel: **Koloss**. Nicht „Titan" — das ist im Grimdark-Sci-Fi-Genre 
 
 **Auftritt:** Welle 35 und 45 (Startwerte, als Datenwerte einstellbar). Das Update v3 nannte „ab Welle 30, alle 10 Wellen"; weil 30, 40 und 50 bereits Bosswellen sind, ist der Auftritt um fünf Wellen versetzt, damit Koloss und Boss einander nicht die Wirkung nehmen und der Spieler seine Kommandos gezielt für einen von beiden aufsparen kann (Entscheidung vom 24.09.2026). Der Abstand von 10 Wellen bleibt.
 
+**Bewegungsachsen:** Der Koloss bewegt sich ausschließlich entlang der vier Rasterachsen (+x, -x, +y, -y), nie diagonal. Richtungswechsel nur an Feldmitten, als Drehung auf der Stelle (Startwert 0,6 s pro 90°).
+
+**Auftritt und Fahrlinie:**
+
+- Er erscheint **am Kartenrand auf der Seite des Warp-Risses**, nicht am Riss selbst.
+- Er fährt **geradlinig auf einer Rasterachse** zum vorhergesagten Ziel. Die Fahrlinie ist eine Zeile oder Spalte der Karte.
+- **Kandidaten:** alle Zeilen und Spalten, die am Rand der Riss-Seite beginnen und in Richtung Bastion verlaufen.
+- **Ziel einer Fahrlinie:** das erste blockierende Feld auf ihr, also Trümmer, Bollwerk oder Stellung. Vor dem Ziel liegt dadurch per Definition nichts im Weg.
+- **Auswahl:** Gewählt wird die Fahrlinie, deren Ziel die geringste Feuerkraft in Reichweite hat (Summe der Schadenswerte aller Stellungen, die das Zielfeld erreichen). Bei Gleichstand gewinnt die Fahrlinie, die näher am aktuellen kürzesten Weg zur Bastion liegt.
+- Eine Fahrlinie ohne blockierendes Feld ist kein gültiger Kandidat. Gibt es keinen gültigen Kandidaten, geht der Koloss sofort in die eigene Wegfindung über.
+
 **Ankündigung in drei Stufen:**
 
 1. **Zwei Wellen vor Ankunft:** allgemeine Warnung („Ein Koloss nähert sich, Ankunft in 2 Wellen"), noch kein Ziel.
-2. **Eine Welle vor Ankunft:** Zielvorhersage — die Stelle mit der geringsten Feuerkraft in Reichweite auf dem kürzesten Weg zur Bastion. Geschützte Felder (Riss, Signalfeuer, Bastion und ihr Umfeld) sind ausgenommen: Eine Markierung dort wäre eine Drohung, auf die der Spieler nicht antworten darf. Verstärkt er die Stelle, rückt die Vorhersage sofort auf die nächstschwächste. Als Verstärkung zählt Feuerkraft in Reichweite und ein Bollwerk in der Nähe.
-3. **Die Welle des Auftritts:** Das Ziel ist fest, sobald die Welle beginnt — die Planungsphase davor gehört noch dem Spieler. Der Koloss erscheint und fährt direkt darauf zu.
+2. **Eine Welle vor Ankunft:** Zielvorhersage. Sichtbar sind eine rote, gestrichelte Fahrlinie vom Rand bis zum Ende der Schneise, die 5 Schneisenfelder rot pulsierend und ein roter, pulsierender Zielring mit umlaufenden Segmenten auf dem Zielfeld, dazu ein deutliches Textbanner in Rot mit gelbem Warnstreifen. Nicht der goldgestrichelte Kapselring. Geschützte Felder (Riss, Signalfeuer, Bastion und ihr Umfeld) sind ausgenommen: Eine Markierung dort wäre eine Drohung, auf die der Spieler nicht antworten darf. Verstärkt er das Zielfeld oder baut er dort ein Bollwerk, wird die Vorhersage sofort neu berechnet.
+3. **Die Welle des Auftritts:** Die Fahrlinie ist fest, sobald die Welle beginnt — die Planungsphase davor gehört noch dem Spieler. Der Koloss erscheint und fährt direkt darauf zu.
 
-**Durchbruch:** Am Ziel angekommen reißt der Koloss eine gerade Schneise von etwa 5 Feldern (Startwert) in seiner Fahrtrichtung durch das Labyrinth. Getroffene Trümmerfelder werden zerstört. Die Schneise endet, wo sie auf etwas Gebautes trifft: ein **Bollwerk** oder eine **Stellung**. Beide bleiben dabei stehen. Der Durchbruch selbst kostet keine Leben. Danach nimmt der Koloss den kürzesten Weg zur Bastion — eine Maschine, die gerade durchgebrochen ist, läuft die Signalfeuer nicht mehr ab — und bleibt durch Stellungen und Kommandos bekämpfbar.
+**Durchbruch:**
+
+- Ab dem Zielfeld walzt der Koloss eine Schneise von **5 Feldern Länge und genau 1 Feld Breite** in Fahrtrichtung.
+- Jedes Trümmerfeld in der Schneise wird zerstört, sichtbar mit Staub, Brocken, Rissen und kurzem Bildschirmwackeln.
+- Freie Felder in der Schneise zählen mit. Die Schneise ist immer 5 Felder lang, egal wie viele Trümmer darin liegen.
+- Das Modell ist optisch breiter als ein Feld (etwa 1,7 Felder). Nachbarfelder bleiben trotzdem unberührt. Das ist gewollt und kein Fehler.
+- **Bollwerke und Stellungen** in der Schneise widerstehen. Der Koloss stoppt davor, mit Funkenregen, kräftigem Wackeln und dem Text „Das Bollwerk hält. Durchbruch verhindert". Danach ist er **3 s betäubt** und geht in die eigene Wegfindung über.
+- Der Durchbruch selbst kostet keine Leben.
+
+**Wegfindung nach Schneise oder Stopp:**
+
+- Der Koloss sucht seinen eigenen Weg zur Bastion und **ignoriert die Signalfeuer** — eine Maschine, die gerade durchgebrochen ist, läuft keine Wegpunkte ab.
+- **Trümmer sind für ihn passierbar, aber teuer:** Ein Trümmerfeld kostet in seiner Wegberechnung zusätzlich 6 Felder (Startwert). Er walzt also nur dann durch Trümmer, wenn der Umweg durch das Labyrinth deutlich länger wäre. Jedes überfahrene Trümmerfeld wird zerstört wie in der Schneise.
+- Bollwerke und Stellungen bleiben für ihn unpassierbar.
+- **Vollständig eingeschlossen** (kein Weg ohne Bollwerk oder Stellung): Er rammt das Hindernis in seiner aktuellen Fahrtrichtung, über dem Hindernis läuft ein sichtbarer Countdown von 8 s. Danach wird das Hindernis zu Trümmern, sofort zermalmt, und er fährt weiter.
+- Alle anderen Gegner nutzen weiterhin die normale Wegfindung mit Signalfeuern. Sie berechnen ihren Weg neu, sobald der Koloss Trümmer zerstört hat.
 
 „Ausreichend verstärkt" heißt also: mit Bollwerken abgeriegelt (Entscheidung vom 24.09.2026). Feuerkraft verhindert den Rammstoß nicht, sie verhindert, dass er überhaupt ankommt.
 
-**Erreicht der Koloss die Bastion**, kostet das 15 Leben statt der 5 eines normalen Bosses (Startwert, im Balancing zu justieren).
+**Welle und Bastion:** Die Welle gilt nicht als beendet, solange der Koloss lebt. Erreicht er die Bastion, kostet das 15 Leben statt der 5 eines normalen Bosses (Startwert, im Balancing zu justieren).
 
-**Stärke:** Der Koloss ist so ausgelegt, dass unverstärkte Stellungen ihn in der Regel nicht rechtzeitig stoppen. Der gezielte Einsatz von Spezialkommandos, besonders des Luftschlags, ist meist nötig, um Durchbruch oder das Erreichen der Bastion zu verhindern. Jeder Schadensdeckel gegen Bosse (Orbitalschlag, Luftschlag) gilt gegen den Koloss genauso; kein Kommando darf ihn in einem Einsatz töten können.
+**Stärke:** Der Koloss ist so ausgelegt, dass unverstärkte Stellungen ihn in der Regel nicht rechtzeitig stoppen. Der gezielte Einsatz von Spezialkommandos, besonders des Luftschlags, ist meist nötig, um Durchbruch oder das Erreichen der Bastion zu verhindern. Jeder Schadensdeckel gegen Bosse (Orbitalschlag, Luftschlag, Seelenfeuer-Obelisk) gilt gegen den Koloss genauso; kein Kommando darf ihn in einem Einsatz töten können.
 
 ### Wellenaufbau
 
@@ -229,7 +259,7 @@ Einsatz jederzeit während einer Welle, außer wo anders angegeben. Sie setzen k
 | Stasisfeld | 2 KP | 20 | 2 Wellen | Friert Gegner im Radius 2,5 für 5 s ein, Bosse und den Koloss für 2 s |
 | Priorisierter Nachschub | 3 KP | 25 | 3 Wellen | Nur in der Planung: nächste Salve erhält garantiert einen Rang mehr, ab Nachschubstufe 6 zwei Ränge |
 | Heiliges Banner | 2 KP | 30 | 2 Wellen | Stellungen im Radius 2,5 verursachen eine Welle lang 50 % mehr Schaden |
-| Luftschlag | 4 KP | 30 | 4 Wellen | Linienziel: Start- und Endpunkt markieren. Nach kurzer Vorwarnung fliegt ein Geschwader die Linie ab und verursacht Flächenschaden entlang des ganzen Streifens, mit Bonus gegen die Rüstungsart Panzer. Gegen Bosse und den Koloss höchstens 30 % ihrer maximalen Lebenspunkte |
+| Luftschlag | 4 KP | 30 | 4 Wellen | Linienziel: Start- und Endpunkt markieren. Die Linie **rastet auf eine der vier Rasterachsen ein** — der Endpunkt wird auf die Zeile oder Spalte des Startpunkts gezogen, je nachdem, welche Achse näher liegt. Nach 1,1 s Vorwarnung (gelbe gestrichelte Linie und Einschlagmarken) überfliegt ein Gunship die Linie in Achsrichtung und wirft 8 Bomben, abwechselnd leicht links und rechts der Linie. Flächenschaden entlang des ganzen Streifens, mit Bonus gegen die Rüstungsart Panzer. Gegen Bosse und den Koloss höchstens 30 % ihrer maximalen Lebenspunkte pro Einsatz |
 
 ## 12. Sieg, Niederlage, Wertung
 

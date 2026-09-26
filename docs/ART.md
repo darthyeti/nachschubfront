@@ -2,7 +2,12 @@
 
 Verbindliche Gestaltungsregeln für alle Figuren. Die Konzeptskizzen liegen als SVG in `reference/konzept/` und sind die Grafikquelle für das Spiel.
 
-Stand: v4 (HUD in Runenscheiben-Optik, fünf Menü-Bildschirme, alle sechs Spezialstellungen als eigene Bauwerke mit Wirkungsanker).
+Für Bunker, Aufsätze, Spezialstellungen, Koloss und Gunship sind seit v5 die beiden interaktiven Studien in `reference/studien/` die verbindliche Vorlage. Sie laufen direkt im Browser und enthalten den vollständigen Zeichencode. Maße, Farben und Formen dort übernehmen, nicht nachempfinden. Die PNGs in `reference/konzept/stellungen/` und `reference/konzept/koloss/` sind Standbilder daraus.
+
+- `stellungen-simulation.html`: Bunker mit allen Rängen, sechs Standard-Aufsätze, Spezialbasis, sechs Spezialwaffen inklusive Effekten.
+- `koloss-studie.html`: Koloss, Zielvorhersage, Durchbruch, Bollwerk-Stopp, Luftschlag mit Gunship, alle vier Fahrtrichtungen.
+
+Stand: v5 (Bunker-Baukasten mit allen fünf Rängen, überarbeitete Aufsätze aller sechs Doktrinen, Spezialbasis und neue Rollen der Spezialwaffen, Koloss und Gunship als drehbare Modelle).
 
 ## Grundregeln
 
@@ -12,60 +17,63 @@ Stand: v4 (HUD in Runenscheiben-Optik, fünf Menü-Bildschirme, alle sechs Spezi
 
 ## Stellungen
 
-- Alle Stellungen stehen auf demselben Betonsockel mit Warnstreifen (`sockel.svg`). Er grenzt eigene Bauwerke klar von Trümmern ab.
-- Jede Doktrin hat eine eigene Grundform und eine Leitfarbe, die auch im Kapsel-Hologramm verwendet wird:
+**Der Bunker ist seit v5 die gemeinsame Grundform aller sechs Doktrinen.** Der niedrige Betonbunker aus Tills Skizzen ersetzt die sechs Einzelformen aus v4: Grundfläche genau ein Feld, erhöhte Dachplatte in der Mitte, zwei dunkle Schießscharten, je eine pro sichtbarer Seite. Unterschieden werden die Doktrinen über den **Aufsatz auf der Dachplatte**, die Leitfarbe und den Effekt. Damit fällt der frühere Sonderfall weg, dass Flamme und Autokanone sich einen Bunker teilen, die vier übrigen aber eigene Bauformen haben.
 
-| Doktrin | Grundform | Leitfarbe |
+Der eigene Betonsockel mit Warnstreifen (`sockel.svg`) entfällt: Der Bunker ist sein eigener Sockel und grenzt eigene Bauwerke ebenso klar von Trümmern ab.
+
+**Aufsätze.** Sie sitzen auf der Dachplatte, Grundskalierung 0,95. Die Leitfarbe wird auch im Kapsel-Hologramm verwendet:
+
+| Doktrin | Aufsatz | Leitfarbe |
 |---|---|---|
-| Flamme | Gemeinsamer Bunker, Flammenstoß aus den Scharten | #ff8a2a |
-| Autokanone | Gemeinsamer Bunker, Mündungsblitz an den Scharten | #f0e2b8 |
-| Laser | Schlanker Mast, schwenkbare Strahlkanone mit Energiezellen, seit M4d etwa 30 Prozent kleiner | #ff4a4a |
-| Mörser | Flache Grube, steiles Rohr, Granatkiste | #d8ae5f |
-| Psi | Gotischer Schrein, schwebender Kristall mit Ringen | #b784ff |
-| Tesla | Kupferspule mit Kugel, Blitze | #5fd4ff |
+| Autokanone | Drehlauf-Gehäuse, verkleinert (Faktor 0,78) | #f0e2b8 |
+| Flamme | Tankgehäuse mit Brennrohr, verkleinert (Faktor 0,78) | #ff8a2a |
+| Mörser | Steiles Rohr auf Lafette, unverändert | #d8ae5f |
+| Tesla | Kleine Zylindersäule | #5fd4ff |
+| Laser | Kleine Scheibe mit kurzem Lauf | #ff4a4a |
+| Psi | Zwei Ringe, dazu eine **dauerhafte** gestrichelte violette Aura in Reichweitengröße | #b784ff |
 
-**Gemeinsamer Bunker.** Flamme und Autokanone teilen sich seit M4d dieselbe Bunkerform: gedrungen, breiter als hoch, mit drei sichtbaren Schießscharten in der Front. Kein Lauf ragt mehr aus der Stellung heraus. Unterschieden werden die beiden ausschließlich über die Akzentfarbe und den Effekt an der Scharte — Autokanone ein kurzer Mündungsblitz an allen drei Scharten, Flamme ein kurzer Flammenstoß. Der Entwurf kostet die Autokanone ihre Drehkanone und den Munitionskasten; beides gehört nicht mehr zur Grundform.
+Damit ist der offene Punkt „Waffenaufsätze der sechs Basisdoktrinen optisch überarbeiten" erledigt.
+
+Referenz: `reference/konzept/stellungen/standard-rang1.png`, `standard-rang3.png`, `standard-rang5.png` und die Studie im Modus „Standard".
 
 ### Spezialstellungen
 
-Die sechs Rezept-Stellungen (GDD Abschnitt 8) sind seit v4 **eigenständige Bauwerke**, jedes mit eigener Grundform. Die Fahrgestell-Fassung aus v2 ist verworfen: Die Namen legen zu unterschiedliche Formen nahe, als dass zwei Chassis sie alle tragen könnten.
+Die sechs Rezept-Stellungen (GDD Abschnitt 8) stehen seit v5 auf einer **gemeinsamen Spezialbasis**. Die Fahrgestell-Fassung aus v2 und die sechs eigenständigen Bauwerke aus v4 sind damit beide verworfen: Der sichtbare Unterschied zu einer Standard-Stellung entsteht über die Höhe, nicht über die Form.
 
-Wie bisher stehen sie auf demselben Sockel, tragen die Goldkante (sie sind die Spitze der Entwicklung, haben aber keinen Rang und darum keine Winkel) und stehen im Spiel in einem goldenen Bodenring. Die Leitfarbe bleibt die der erstgenannten Zutat.
+**Spezialbasis.** Höherer Bunker (Höhe 40 statt der Standardhöhe). Der **Korpus hat exakt die Grundfläche eines Standardbunkers**, also genau ein Feld. Nur die vier schrägen Stützen ragen optisch über die Feldgrenze hinaus; sie sind reine Grafik ohne Kollision und werden bei der Tiefensortierung mit dem Bunker gezeichnet. Oben eine kleinere Luke, darauf sitzt die Spezialwaffe mit Grundskalierung 0,84. Die Leitfarbe bleibt die der erstgenannten Zutat, der goldene Bodenring bleibt.
 
 **Wirkungsanker.** Jede Zeile nennt die Stelle am Modell, von der Schuss, Flamme, Blitz oder Aura ausgeht, damit die Wirkung aus GDD Abschnitt 8 nicht an einer generischen Mitte ansetzt. Die Simulation rechnet weiter mit der Feldmitte; den sichtbaren Ursprung setzt allein der Renderer ein (Simulation und Darstellung bleiben getrennt). Die Werte stehen in `src/render/sprites/manifest.js`.
 
-| Spezialstellung | Bauform | Beschreibung | Wirkungsanker |
-|---|---|---|---|
-| Reinigungsschrein | Gotischer Altar | Steinaltar mit brennender Feuerschale, schwebendem violettem Psi-Splitter darüber, Mörserrohr in den Sockel eingelassen | Die Feuerschale. Der große Flammenring liegt als stehendes Feld um den Schrein selbst (Abweichung, siehe unten) |
-| Sturmbatterie | Panzerfahrgestell | Offener Vierlings-Flakturm, im Feuer vier gleichzeitige Mündungsblitze, Hülsen fliegen umher | Die vier Laufmündungen. „Schnellfeuer auf drei Ziele" heißt: Der Turm wählt pro Salve drei Ziele, alle vier Mündungen dürfen dabei gleichzeitig aufblitzen. Er dreht sich nicht, er zeigt nach oben |
-| Glutkessel | Eiserner Kessel | Bauchiger Kessel auf Steinsockel, loderndes Feuer innen, vier Tesla-Elektroden am Rand, seitliche Autokanonen-Auslässe | Die brennende Aura geht von der Kesselöffnung oben aus und liegt um den Kessel. Die Blitze, die Gegner entzünden, schlagen von den vier Elektroden am Rand aus |
-| Belagerungsmörser | Holz-Stahl-Lafette | Schwere Lafette mit Sandsackring, überlanges Rohr, aufgesetztes Laser-Zielfernrohr | Die Rohrmündung am Ende des langen Rohrs ist der Abschusspunkt, der riesige Explosionsradius liegt am Einschlag. Das Zielfernrohr zeichnet vor dem Schuss kurz eine dünne Laserlinie zum Ziel, rein optisch, als Vorwarnung |
-| Gewitterturm | Schlanker Gittermast | Vierbeiniger Mast, oben Tesla-Spule mit schwebendem Psi-Ring | Die Spule an der Mastspitze ist der Ursprung der Kette über acht Ziele, dieselbe Stelle, von der die Umgebungsblitze der Ruheanimation ausgehen |
-| Seelenfeuer-Obelisk | Runenobelisk | Höchstes Bauwerk im Spiel, schwebendes Psi-Auge an der Spitze, Blitze, Flammen am Fuß | Das schwebende Auge an der Spitze ist der Ursprung des Schadens in Prozent der maximalen Lebenspunkte, als Strahl auf das Ziel: das Urteil des Obelisken |
+| Spezialstellung | Aufsatz | Effekt und Anker |
+|---|---|---|
+| Reinigungsschrein | Kleiner Schrein aus zwei Säulen mit Bogen, darin schwebt ein goldenes Artefakt mit Leuchtpunkt, drei goldene Funken kreisen | **Kein Mörser mehr.** Dauerhafte goldene Aura am Boden mit Runen, pulsierend. Anker: das Artefakt. Gegner in der Aura leuchten golden, der violette Verlangsamungsring wird bei ihnen unterdrückt |
+| Sturmbatterie | Gewölbtes Gehäuse, zwei quadratische Luken, 2 x 2 Läufe, Faktor 1,2 | **Kein Tesla-Aufbau mehr.** Blaue Leuchtspur und blaue Mündungsblitze, Hülsen fliegen nach hinten aus. Anker: die vier Mündungen, abwechselnd |
+| Glutkessel | Bauchiger schwarzer Kessel auf drei Beinen, Feuer in der Öffnung, vier Elektroden am Rand | **Keine Aura.** Feuerblitze von den Elektroden zu den Zielen. Brand als Flammen am Gegner, Übersprung als kurzer Glutbogen zwischen zwei Gegnern |
+| Belagerungsmörser | Keilförmige Lafette, überlanges Rohr mit Rückstoß, Zielfernrohr mit rotem Punkt | Rote Laserlinie vom Fernrohr zum Ziel während des Anvisierens, dann große Granate und große Explosion |
+| Gewitterturm | Zylindersockel, Spule aus sieben blauen Ringen, darüber schwebender violetter Ring mit blauer Kugel | Kettenblitz von der Kugel von Ziel zu Ziel |
+| Seelenfeuer-Obelisk | Schlanker Obelisk mit violetten Runen, Flammen am Fuß, darüber schwebendes Auge mit rotem Blick | Seelenstrahl vom Auge zum Ziel, violette Partikel beim Treffer |
 
-Alle sechs Blätter liegen in `reference/konzept/spezialstellungen/`. Die Platzhalter aus M4 (`tests/tools/add-specials.py`) und die beiden nackten Fahrgestelle sind damit erledigt.
+Referenz: `reference/konzept/stellungen/spezialstellungen.png` und die Studie im Modus „Spezial". Die Blätter in `reference/konzept/spezialstellungen/` bleiben als Entwurfsstand v4 liegen, werden aber nicht mehr importiert.
 
-**Abweichung beim Reinigungsschrein.** Die Ergänzung v4 legt seinen Abschusspunkt in die Mörserröhre im Sockel und den Flammenring an den Zielort. Umgesetzt bleibt die Aura um den Schrein selbst (`behaviour: 'aura'` in `src/data/specials.js`), weil der Wechsel Spiellogik und Balancing wäre und M5c ausdrücklich keine neue Spiellogik bringt (Entscheidung vom 25.09.2026). Der Anker liegt darum auf der Feuerschale, die Röhre bleibt Detail der Zeichnung und feuert nicht. Wird der Schrein in M6 auf einen Mörser umgestellt, ist die Röhre der Abschusspunkt und der Ring gehört an den Einschlag.
+**Der Reinigungsschrein bleibt eine Aura.** Die Ergänzung v4 hatte ihn als Mörser beschrieben, dessen Flammenring am Zielort entsteht; in M5c blieb es aus Balancing-Gründen bei der Aura um den Schrein selbst (Entscheidung vom 25.09.2026). v5 entscheidet dauerhaft für die Aura, jetzt in Gold statt in Flammen, und ohne Mörserrohr. Die offene Frage aus M5c ist damit erledigt.
 
-**Sockel.** Die Skizzen zeigen die Bauwerke frei auf dem Boden, mit eigenem Schlagschatten. Im Spiel stehen sie wie jede andere Stellung auf dem gemeinsamen Sockel — er grenzt eigene Bauwerke von Trümmern ab, und der goldene Rand kennzeichnet die Rezept-Stellung. Jede Figur wird dafür um die Höhe ihres eigenen Schlagschattens angehoben, damit ihr Fuß auf der Sockeloberfläche aufsetzt. Der eigene Schlagschatten fällt weg, beim Obelisken auch sein eigener breiter Sockel.
-
-**Was Code ist, nicht Sprite.** Am Obelisken die Flammen am Fuß, die Blitze von der Spitze zum Auge, das Leuchten und der Ring um das Auge; das Auge selbst ist ein Sprite und schwebt wie der Psi-Kristall. An der Sturmbatterie die vier Mündungsblitze und die Patronenhülsen. Dazu seit v4: das Feuer in der Schale des Reinigungsschreins und im Glutkessel samt beider Glut, die Blitze der vier Elektroden des Kessels, die Ringe um den Psi-Splitter des Schreins und um den Psi-Kern des Gewitterturms, dessen Umgebungsblitze, und die Laserlinie des Belagerungsmörsers.
-
-Zwei Teile sind Sprites, die schweben statt zu zielen, wie der Psi-Kristall und das Auge des Obelisken: der Psi-Splitter über dem Reinigungsschrein und der Psi-Kern über der Spule des Gewitterturms. Beweglich zielt nur das Rohr des Belagerungsmörsers; es neigt sich wie das des normalen Mörsers.
+**Was Code ist, nicht Sprite.** Am Obelisken die Flammen am Fuß und der Blick des Auges; das Auge selbst ist ein Sprite und schwebt. An der Sturmbatterie die vier Mündungsblitze und die Patronenhülsen. Am Schrein das goldene Artefakt mit seinen drei kreisenden Funken und die Bodenaura mit ihren Runen, am Glutkessel das Feuer in der Öffnung und die Blitze der vier Elektroden, am Gewitterturm die schwebende Kugel im violetten Ring und der Kettenblitz, am Belagerungsmörser die Laserlinie und der Rückstoß des Rohrs.
 
 ### Ränge
 
-Jeder Rang ergänzt ein sichtbares Detail, kumulativ:
+Die Rangstufen bauen aufeinander auf, jede Stufe behält alles der vorherigen. Seit v5 sitzen sie am Bunker selbst, nicht mehr an einem Sockel darunter:
 
-| Rang | Ergänzung | Winkel am Sockel | Umsetzung |
-|---|---|---|---|
-| Rekrut | Grundform | 1 | — |
-| Veteran | Sandsackring | 2 | Symbole `sb-back`/`sb-front`; der Mörser hat den Ring schon und bekommt stattdessen eine Munitionskiste (`crate-l`). Die Autokanone stand bis M4d auch in dieser Ausnahme; mit dem gemeinsamen Bunker hat sie keinen eigenen Ring mehr und bekommt den geteilten |
-| Elite | Panzerplatten an der Waffe | 3 | erzeugtes SVG quer zum Lauf, auf einem Drittel des Wegs zur Mündung; wo die Waffe nicht zielt (Psi, Tesla, seit M4d beide Bunker) sitzt die Platte am Gehäuse. Am Bunker liegt sie flach an der linken Vorderseite, unterhalb der Scharten, damit sie keine verdeckt |
-| Held | Banner | 4 | im Code gezeichnet, weht in der Leitfarbe mit Goldsaum |
-| Legende | Goldkanten, Halo | 5 (gold) | Goldkante am Sockelrand als SVG, Halo im Code |
+| Rang | Zusatz |
+|---|---|
+| Rekrut | Nackter Bunker |
+| Veteran | Sandsäcke vor beiden sichtbaren Seiten |
+| Elite | Angenietete Panzerplatten an beiden Seiten |
+| Held | Zinnen auf den oberen Kanten, Totenkopf-Emblem an der Frontkante |
+| Legende | Goldene Kanten an Dach und Frontkante |
 
-Die Winkel sitzen auf der linken Vorderseite des Sockels. Abweichung: Die Goldkante der Legende läuft am Sockel entlang, nicht an der Figur — ein Umriss pro Doktrin wäre für jede Waffe eine eigene Zeichnung.
+Referenz: `reference/konzept/stellungen/bunker-raenge-und-spezialbasis.png`.
+
+**Keine Fahne mehr beim Held.** Das wehende Banner aus v2 war auf Tablet-Größe nicht erkennbar und ist durch die Zinnen und den Totenkopf ersetzt. Damit entfallen auch die Winkel am Sockel: Der Rang ist am Bunker selbst abzulesen, nicht an einer Markierung darunter. Die Spezialstellungen haben wie bisher keinen Rang und tragen nur die Goldkanten.
 
 #### Rangabzeichen im Auswahldialog
 
@@ -152,21 +160,63 @@ Die Sequenz bleibt wie in M4 umgesetzt: Zielmarkierung, Absturz, Bremstriebwerke
 
 ## Koloss
 
-Die späte Bedrohung aus GDD Abschnitt 9. Eine monströse Kriegsmaschine, kein Insekt: Der Koloss ist das einzige Gegenstück auf dem Feld, das gebaut und nicht gezüchtet wirkt.
+Die späte Bedrohung aus GDD Abschnitt 9. Eine monströse Kriegsmaschine, kein Insekt: Der Koloss ist das einzige Gegenstück auf dem Feld, das gebaut und nicht gezüchtet wirkt. Eigenständiger Entwurf nach Tills Skizze, keine Anlehnung an geschützte Vorlagen, Name weiterhin „Koloss".
 
-- **Eigenständiges Design.** Keine Anlehnung an geschützte Fahrzeugvorlagen aus dem Genre.
-- **Silhouette:** breit, kantig, auf Kettenlaufwerk oder schweren Stampfbeinen, deutlich höher und vor allem deutlich **breiter** als jeder Boss. Wo ein Boss eine große Kreatur ist, ist der Koloss eine fahrende Festung — schon als Schattenriss nicht zu verwechseln.
-- **Rüstung Panzer**, also die Plattenfarbe der Brecher, aber mit Rost, Nieten und aufgesetzten Schilden statt Chitin.
-- **Ramme vorn**: Das Teil, mit dem er die Schneise schlägt, muss sichtbar sein, damit der Durchbruch nicht aus dem Nichts kommt.
-- Bewegliche Teile im Code wie bei den Bossen: mahlendes Laufwerk, schwenkender Kopf oder Turm, Rauch aus den Auspuffrohren.
+**Aufbau:**
+
+- Zwei Ketten mit je sechs Laufrollen. Die Rollen drehen sich mit der Fahrt und sind nur auf der sichtbaren Kettenseite gezeichnet.
+- Rumpf mit schrägem Bug, rostfarbenes Band an den Seiten, Knochendornen oben, zwei Seitengeschütze pro Seite.
+- Räumschild mit fünf Knochenzähnen vorn — das Teil, mit dem er die Schneise schlägt, muss sichtbar sein, damit der Durchbruch nicht aus dem Nichts kommt.
+- Turm mit zwei roten Augen, Hauptgeschütz mit Rückstoß, vier schräg nach oben zeigende Flakrohre, Antenne hinten mit roter Spitze und Funken.
+
+**Größe:** Skalierung 1,3 Felder, also optisch etwa 1,7 Felder breit. Die Schneise bleibt trotzdem 1 Feld breit (GDD Abschnitt 9). Sortierwert in der Tiefensortierung: seine Mitte plus 0,4.
+
+**Anzeigen:**
+
+- Lebensbalken über dem Modell, mit einer Markierung bei 70 %. Die Markierung zeigt, wie viel ein einzelner Luftschlag höchstens abziehen kann.
+- Beim Treffer blitzt das Modell kurz hell auf.
+
+**Effekte:**
+
+- Beim Fahren wackelt das Modell leicht und wirbelt Staub hinter den Ketten auf.
+- Alle 2,4 s feuert das Hauptgeschütz mit Mündungsblitz und Rauch.
+- Zwischendurch geben die Flakrohre Leuchtspur-Salven nach oben ab.
+- **Durchbruch:** Trümmer brechen mit Brocken, Staub und Rissen am Boden.
+- **Bollwerk-Stopp:** Funkenregen und starkes Wackeln (bei reduzierter Bewegung ohne Wackeln).
+
+Referenz: `reference/konzept/koloss/1-zielvorhersage.png`, `2-durchbruch.png`, `3-bollwerk-stoppt.png`, `modellbogen-4-richtungen.png`.
+
+### Zielankündigung
+
+Ersetzt den bisher wiederverwendeten goldenen Kapselring. Sichtbar ab Stufe 2 der Ankündigung (GDD Abschnitt 9):
+
+- rote gestrichelte Fahrlinie vom Kartenrand bis zum Ende der Schneise,
+- die fünf Schneisenfelder rot pulsierend,
+- roter Zielring mit umlaufenden Segmenten auf dem Zielfeld,
+- Textbanner in Rot mit gelbem Warnstreifen.
+
+Bei `prefers-reduced-motion` bleibt das Pulsen erhalten, nur langsamer.
+
+## Gunship (Luftschlag)
+
+Massive fliegende Festung in Seitenansicht und 3D, Skalierung 1,45, Flughöhe 92 px über dem Boden, Schatten am Boden.
+
+- **Rumpf:** Breiter Kastenrumpf mit rotem Seitenband, dunkler Seitentafel und schrägem Bug. Kanzel mit blauer Scheibe, zwei Bugkanonen, Rückenturm mit zwei Rohren.
+- **Flügel:** Kurz und breit, mit Rostspitzen, darunter je zwei Behälter.
+- **Heck:** Schräg abfallend statt kastig, kleine dunkle Heckklappe mit zwei Scharnieren und gelbem Warnstreifen, schmales Doppelleitwerk mit Rostspitzen.
+- **Triebwerke:** Zwei runde Düsengondeln an kurzen Pylonen, nach hinten leicht verjüngt, mit zwei Ringrippen. Von hinten eine dunkle Düsenöffnung mit orangem Glühen, dahinter flackernde Flammen.
+- **Bomben:** Fallen mit Beschleunigung. Einschlag mit Explosion, Schockring, Feuer- und Rauchpartikeln und Brandfleck.
+
+Referenz: `reference/konzept/koloss/modellbogen-4-richtungen.png`, oberer Teil, und `4-luftschlag.png`.
 
 ## Bollwerk
 
-Der Bauwerktyp aus GDD Abschnitt 10, gebaut aus einem Trümmerfeld.
+Der Bauwerktyp aus GDD Abschnitt 10, gebaut aus einem Trümmerfeld. Es **ersetzt** das Trümmerfeld, auf dem es gebaut wird, es steht nicht darauf.
 
-- Muss von Trümmern **auf einen Blick** zu unterscheiden sein, sonst weiß der Spieler nicht, welches Feld dem Koloss standhält: aufgeschichtete Blöcke mit klarer, gerader Oberkante statt der unregelmäßigen Trümmerhaufen, dazu Stahlträger oder Klammern an den Ecken.
-- Keine Leitfarbe, kein Rang: Es gehört keiner Doktrin und greift nicht an. Farbe aus der Geländepalette, nur die Metallteile heller.
-- Etwas höher als ein Trümmerhaufen, aber niedriger als der Sockel einer Stellung, damit es die Karte nicht zustellt.
+- Form wie in der Studie: Steinblock mit klarer, gerader Oberkante, zwei Stützstreben, gelbes Warnband.
+- Muss von Trümmern **auf einen Blick** zu unterscheiden sein, sonst weiß der Spieler nicht, welches Feld dem Koloss standhält.
+- Keine Leitfarbe, kein Rang: Es gehört keiner Doktrin und greift nicht an. Farbe aus der Geländepalette, nur die Metallteile heller, das Warnband gelb.
+- Etwas höher als ein Trümmerhaufen, aber niedriger als ein Bunker, damit es die Karte nicht zustellt.
 
 ## Verhalten in der Planungsphase
 
@@ -233,6 +283,8 @@ Fünf Bildschirme, alle mit dem Skyline-Motiv aus dem Stiltest im Hintergrund, T
 ## Technische Umsetzung
 
 - **SVG als Quelle, Canvas als Ausgabe.** Die SVGs werden beim Start einmal in Offscreen-Canvas gerastert und danach nur noch per `drawImage` gezeichnet. Kein SVG-Zeichnen pro Frame.
+- **Ausnahme: drehbare Modelle.** Figuren, die in mehreren Achsrichtungen stimmen müssen — Koloss und Gunship — sind kein SVG, sondern werden aus einfachen Körpern in lokalen Koordinaten aufgebaut (siehe „Drehbare Modelle" unten). Sie werden genauso einmal je Richtung gerastert; die Ausgabe ist identisch, nur die Quelle ist Zeichencode statt Zeichnung. Der Grund steht dort.
+- **Bunker und Aufsätze kommen aus dem Zeichencode der Studie**, aber als SVG: Der Zeichencode aus `reference/studien/stellungen-simulation.html` wird einmalig nach `reference/konzept/stellungen/` exportiert und läuft danach durch dieselbe Pipeline wie jede andere Figur (`npm run sprites`). Sie sind statisch, also bleibt die SVG-Regel für sie in Kraft.
 - **Rasterstufen nach Zoom.** Pro Figur werden wenige Auflösungsstufen vorgehalten (etwa 0,5x, 1x, 2x mal devicePixelRatio) und die passende gewählt, damit beim Zoomen nichts unscharf wird.
 - **Statische Teile als Sprite, Bewegung im Code.** Sockel, Gehäuse, Körper, Köpfe und Klingen kommen aus dem SVG. Was sich bewegt, wird wie im Stiltest per Code gezeichnet: schwenkende Waffen, Flammen, Blitze, Insektenbeine im Laufzyklus, Flügelschlag.
 - Die Zerlegung ist in M4 passiert (`tests/tools/split-towers.py` und `split-enemies.py`, beides einmalige Eingriffe in `reference/konzept/`). Die Symbolbibliothek trägt seitdem pro Figur mehrere Teile:
@@ -243,9 +295,26 @@ Fünf Bildschirme, alle mit dem Skyline-Motiv aus dem Stiltest im Hintergrund, T
 | `-gun` / `-body` | Waffe, dreht sich zum Ziel | Körper |
 | `-front` | Sandsäcke und Kisten vor der Waffe | Beine oder Flügel vor dem Körper |
 
+  Für die Stellungen tritt seit v5 der Bunker-Baukasten an die Stelle dieser Aufteilung: ein Bunkerteil je Rangstufe und ein Aufsatz je Doktrin. Der Aufsatz dreht sich nicht, er wird zum Ziel hin gespiegelt, wie ein Gegner.
+
   Die Kapsel kommt in M4c dazu: geschlossen ein Stück, geöffnet ein Kern (seit M4d mit dem Dach darauf) und vier einzeln ansteuerbare Segmentklappen, damit sie wie bisher nacheinander aufklappen.
 
   Wo die Teile sitzen und wie sie sich bewegen (Drehpunkt, Ruhewinkel, Mündung, Ausschlag), steht in `src/render/sprites/manifest.js`. Der Warp-Seher schwebt und bleibt ein Stück.
-- **Aus den SVGs entfernt und jetzt Code** (`src/render/towerFx.js`): Flammenstrahl, Mündungsbögen, Mörserrauch, das Leuchten von Laser und Tesla, die Blitze der Spule, Aura und Ringe des Psi-Schreins. Seit M4d dazu die Mündungsblitze und Flammenstöße an den drei Bunkerscharten und die Feuersequenz der Sturmbatterie.
-- Abweichung: Der Bunker von Flamme und Autokanone hat keine zielende Waffe mehr. Beide bleiben ein Stück; gezielt wird nur noch über den Effekt an der Scharte, die zum Ziel zeigt. Das ersetzt die frühere Regelung für die drei Läufe der Autokanone.
+- **Aus den SVGs entfernt und jetzt Code** (`src/render/towerFx.js`): Flammenstrahl, Mündungsbögen, Mörserrauch, das Leuchten von Laser und Tesla, die Blitze der Spule, die Ringe und die dauerhafte Aura der Psi-Stellung, die Feuersequenz der Sturmbatterie. Seit v5 dazu die beweglichen Teile der Aufsätze: die rotierenden Läufe der Autokanone, die Zündflamme am Brennrohr, der Rückstoß des Mörserrohrs.
+- Der Bunker hat seit v5 zwei Schießscharten, je eine pro sichtbarer Seite, statt drei in der Front. Sie sind Zeichnung, kein Abschusspunkt: Gefeuert wird vom Aufsatz auf der Dachplatte. Das ersetzt die Regelung aus M4d, nach der Flamme und Autokanone ausschließlich über den Effekt an der Scharte zielten.
 - Treffer-Aufblitzen über eine vorgerenderte helle Variante des Sprites, nicht über Filter pro Frame.
+
+## Drehbare Modelle
+
+Koloss und Gunship werden nicht als feste Flächen für eine Blickrichtung gezeichnet, sondern aus einfachen Körpern in lokalen Koordinaten aufgebaut. So stimmen sie in allen vier Achsrichtungen, ohne dass vier Zeichnungen gepflegt werden müssen. Das Prinzip steht vollständig in `reference/studien/koloss-studie.html` (Funktionen `kframe3`, `prism`, `boxP`, `nacelle`, `render`) und wird als kleines Modul in `src/render/` übernommen.
+
+- **Lokale Achsen:** lx vorwärts und ly seitwärts, beide in Feldern, dazu z nach oben in Pixeln. Die Welt-Position ergibt sich aus Mitte + lx · vorwärts + ly · seitwärts, mit seitwärts = (-vorwärts.y, vorwärts.x). Danach folgt die normale Iso-Projektion.
+- **Körper:** Prisma — ein Querschnitt in (lx, z), extrudiert entlang ly; ein Quader ist ein Sonderfall davon. Dazu Zylinder entlang lx für die Triebwerke.
+- **Sichtbarkeit:** Eine Fläche wird nur gezeichnet, wenn ihre Welt-Normale n zur Kamera zeigt, also n.x + n.y + 1,2 · n.z > 0.
+- **Schattierung nach Normale:** Oben am hellsten, +y mittel, +x dunkler. Damit fällt das Licht in allen Richtungen gleich.
+- **Zeichenreihenfolge:** Teile nach Tiefe ihrer Mitte sortieren (x + y). Aufbauten bekommen einen Ebenen-Zuschlag, damit sie über dem Rumpf liegen.
+- **Zierbänder** (Rostband, rote Streifen) zeichnen nur ihre Seitenflächen, nie Ober- oder Unterseite. Sonst überdecken sie die Oberseite des Rumpfs.
+- **Rollen:** Laufrollen sind Ellipsen, die mit der Bildschirmrichtung der Fahrtachse geschert werden (`ctx.transform(u.x, u.y, 0, 1, 0, 0)`).
+- **Leistung:** Koloss und Gunship existieren höchstens einmal gleichzeitig. Farbwerte der Schattierung zwischenspeichern, wie in der Studie (`shadeCache`).
+
+**Warum kein SVG.** Ein SVG kennt keine Normalen. Vier Standbilder statt des Modells würden bedeuten, dass jede Änderung viermal nachgezogen werden muss und die richtungsabhängige Schattierung verlorengeht. Für statische Figuren gilt die SVG-Regel deshalb unverändert weiter; die Ausnahme greift nur, wo eine Figur sich um die Hochachse dreht.

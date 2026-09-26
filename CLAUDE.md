@@ -7,6 +7,7 @@ Pflichtlektüre vor jeder Aufgabe:
 - `docs/PROGRESS.md` für den aktuellen Stand
 - den Arbeitsauftrag des aktuellen Meilensteins in `docs/meilensteine/`
 - `reference/stiltest.html` für Optik, Zeichenfunktionen und Effekte
+- die Studien in `reference/studien/` für Bunker, Aufsätze, Spezialwaffen, Koloss und Gunship (verbindliche Maße und Formen)
 - `docs/ART.md` für Stellungen, Gegner und Sprites (Konzeptgrafiken in `reference/konzept/`)
 - `docs/SPEICHER.md` für Speicherformat, Export/Import und den Service Worker
 
@@ -61,6 +62,7 @@ Verbindliche Prinzipien:
 Sprites (Details in `docs/ART.md`):
 
 - Stellungen und Gegner kommen aus den SVGs in `reference/konzept/`. Sie werden als Module mit dem SVG-Text nach `src/render/sprites/` übernommen, nicht per Netzwerk geladen.
+- Ausnahme: Figuren, die in mehreren Achsrichtungen stimmen müssen (Koloss, Gunship), sind kein SVG. Sie werden aus einfachen Körpern in lokalen Koordinaten aufgebaut, weil ein SVG keine Normalen kennt und die richtungsabhängige Schattierung sonst verlorengeht. Die Ausgabe bleibt gleich: einmal je Richtung rastern, danach nur `drawImage`. Regeln in `docs/ART.md`, Abschnitt „Drehbare Modelle".
 - SVG ist nur die Quelle, Canvas die Ausgabe: SVGs beim Start einmal in Offscreen-Canvas rastern, danach nur `drawImage`. Kein SVG-Zeichnen pro Frame.
 - Pro Figur wenige Rasterstufen nach Zoom (etwa 0,5x, 1x, 2x mal devicePixelRatio) vorhalten und die passende wählen, damit beim Zoomen nichts unscharf wird.
 - Statische Teile als Sprite, Bewegung im Code: Sockel, Gehäuse, Körper, Köpfe und Klingen aus dem SVG; drehende Läufe, schwenkende Waffen, Flammen, Blitze, Beine im Laufzyklus und Flügelschlag per Code wie im Stiltest. Dazu werden die SVGs in Teile mit Ankerpunkt zerlegt.
