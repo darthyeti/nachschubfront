@@ -20,6 +20,7 @@ import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
 import { createBackdropLayer } from './backdrop.js';
 import { createAtmosphere } from './atmosphere.js';
 import { snapToAxis } from '../sim/commands.js';
+import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
 import { drawTowerSprite, drawSpecialRing } from './towerSprites.js';
 import {
   createPodRenderer,
@@ -385,7 +386,12 @@ export function createSceneRenderer(sprites) {
     items.push([map.rift.x + map.rift.y + 1, KIND_RIFT, map.rift, 0]);
     items.push([map.bastion.x + map.bastion.y + 1, KIND_BASTION, map.bastion, 0]);
     map.beacons.forEach((b, i) => items.push([b.x + b.y + 1, KIND_BEACON, b, i]));
-    for (const e of state.enemies) if (onScreen(e.x, e.y)) items.push([e.x + e.y, KIND_ENEMY, e, 0]);
+    for (const e of state.enemies) {
+      if (!onScreen(e.x, e.y)) continue;
+      // The Koloss covers more than one cell, so it sorts by its own depth
+      // (docs/ART.md, "Koloss").
+      items.push([isKolossEnemy(e) ? kolossDepth(e) : e.x + e.y, KIND_ENEMY, e, 0]);
+    }
     items.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 
     // One view object for all enemies, instead of one per creature per frame.
@@ -401,6 +407,10 @@ export function createSceneRenderer(sprites) {
         if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, o, cam.zoom, view.dpr, t, dt, ui.reducedMotion)) {
           drawTowerPlaceholder(ctx, o);
         }
+      } else if (isKolossEnemy(o) && ui.art === 'sprites') {
+        // A model, not a sprite: it has to read on all four axes, and it draws
+        // its own health bar with the airstrike mark on it.
+        drawKoloss(ctx, o, { t, dt, reducedMotion: ui.reducedMotion });
       } else {
         if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, enemyView)) drawEnemy(ctx, o, t);
         drawEnemyBar(ctx, o, ENEMY_TOP[o.type] ?? 20);
