@@ -117,6 +117,7 @@ export function updateEffects(state, dt) {
       continue;
     }
     const dealt = damageEnemy(e, e.burn.dps * dt, e.burn.doctrine);
+    state.waveStats.damage += dealt;
     if (dealt > 0 && e.burn.towerId != null) {
       if (!towers) towers = new Map(state.towers.map((t) => [t.id, t]));
       const tower = towers.get(e.burn.towerId);

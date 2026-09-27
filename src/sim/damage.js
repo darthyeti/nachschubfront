@@ -36,9 +36,14 @@ export function damageEnemy(enemy, amount, doctrine) {
 
   const factor = damageFactor(doctrine, enemy.armorBelow);
   if (factor > 0) {
-    const onHealth = Math.min(enemy.health, raw * factor);
+    const arriving = raw * factor;
+    const onHealth = Math.min(enemy.health, arriving);
     enemy.health -= onHealth;
     dealt += onHealth;
+    // What the cap swallowed. It can only ever happen on a killing blow, so the
+    // death pass folds it into the wave's statistics (sim/enemies.js). Counted,
+    // not changed: the cap is what keeps the statistics honest (M6).
+    if (arriving > onHealth) enemy.spill = (enemy.spill ?? 0) + (arriving - onHealth);
   }
   if (dealt > 0) enemy.flash = FLASH_SECONDS;
   if (enemy.health <= 0) enemy.dead = true;

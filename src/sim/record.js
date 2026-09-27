@@ -54,7 +54,27 @@ export function startLog(state, ruleset, id = 0) {
 export function record(state, action, data = null) {
   const log = state.log;
   if (!log) return;
-  log.actions.push({ t: state.tick, w: state.wave, p: state.phase, a: action, ...(data ?? {}) });
+  log.actions.push({
+    /** Simulation step, for the order and for reading the protocol. */
+    t: state.tick,
+    /**
+     * Which round and which phase it belongs to. This, not the step, is what
+     * the replay anchors to: under changed numbers a wave takes longer or
+     * shorter, and an action tied to a step alone would land in the wrong phase
+     * and be lost — with it, the same decision is made at the same point of the
+     * same round, whatever the numbers do to the clock.
+     */
+    w: state.wave,
+    p: state.phase,
+    /**
+     * Seconds into the phase. It matters inside a wave, where a command at the
+     * eighth second is a different decision from one at the twentieth; in the
+     * planning phases, which wait for the player anyway, the replay ignores it.
+     */
+    pt: Math.round(state.phaseTime * 100) / 100,
+    a: action,
+    ...(data ?? {}),
+  });
 }
 
 /**
@@ -76,7 +96,7 @@ export function taint(state, lever) {
 export function recordWave(state) {
   const log = state.log;
   if (!log) return;
-  const { spawned, killed, leaked } = state.waveStats;
+  const { spawned, killed, leaked, health, damage, commandDamage, overkill } = state.waveStats;
   log.waves.push({
     w: state.wave,
     spawned,
@@ -86,9 +106,26 @@ export function recordWave(state) {
     requisition: state.requisition,
     commandPoints: state.commandPoints,
     towers: state.towers.length,
+    /**
+     * How many emplacements of each rank were standing, recruit to legend, and
+     * how many special emplacements beside them — a special has no rank
+     * (sim/towers.js), so counting it in one of the five would lose it.
+     */
+    byRank: byRank(state),
+    specials: state.towers.filter((tower) => tower.special).length,
     supply: state.supplyLevel,
     /** Length of the route the wave actually ran, rounded to one decimal. */
     route: state.waveRoutes ? Math.round(state.waveRoutes.ground.length * 10) / 10 : 0,
+    /**
+     * What the wave brought and what was spent on it: total health plus shields,
+     * the damage the emplacements landed, what the commands landed, and the
+     * damage thrown at enemies that were already dead. Rounded — a balancing
+     * run reads these, and the fraction behind the comma says nothing.
+     */
+    health: Math.round(health),
+    damage: Math.round(damage),
+    commandDamage: Math.round(commandDamage),
+    overkill: Math.round(overkill),
     /** Set later by the player, from the line of three buttons after the wave. */
     rating: null,
   });
@@ -109,6 +146,15 @@ export function recordEnd(state, phase) {
   const log = state.log;
   if (!log) return;
   log.end = { phase, wave: state.wave, lives: state.lives, kills: state.kills };
+}
+
+/** Emplacements per rank, recruit to legend. Specials are counted apart. */
+function byRank(state) {
+  const counts = [0, 0, 0, 0, 0];
+  for (const tower of state.towers) {
+    if (tower.rank >= 1 && tower.rank <= counts.length) counts[tower.rank - 1] += 1;
+  }
+  return counts;
 }
 
 /**

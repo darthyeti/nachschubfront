@@ -20,10 +20,15 @@ function period(stats) {
   return typeof stats.fire === 'number' ? 1 / stats.fire : null;
 }
 
-/** Deals damage and books it on the tower that caused it. */
-function hit(tower, stats, enemy, amount) {
+/**
+ * Deals damage and books it on the tower that caused it, and on the wave, which
+ * is what a balancing run reads (M6). `state` may be left out where there is no
+ * wave to book against.
+ */
+function hit(tower, stats, enemy, amount, state = null) {
   const dealt = damageEnemy(enemy, amount, stats.doctrine);
   tower.damage += dealt;
+  if (state) state.waveStats.damage += dealt;
   return dealt;
 }
 
@@ -39,7 +44,7 @@ function aimAt(tower, point) {
 // ---------- Single target ----------
 
 function fireSingle(state, tower, stats, target) {
-  hit(tower, stats, target, stats.damage);
+  hit(tower, stats, target, stats.damage, state);
   state.events.push({
     type: 'shot',
     towerId: tower.id,
@@ -58,7 +63,7 @@ function fireSingle(state, tower, stats, target) {
  */
 function fireSoulfire(state, tower, stats, target) {
   const share = target.boss ? stats.def.bossPercentPerHit : stats.def.percentPerHit;
-  hit(tower, stats, target, stats.damage + share * target.maxHealth);
+  hit(tower, stats, target, stats.damage + share * target.maxHealth, state);
   state.events.push({
     type: 'soulfire',
     towerId: tower.id,
@@ -77,7 +82,7 @@ function fireMulti(state, tower, stats, target) {
   const targets = targetsInRange(state, tower, stats, stats.range, true).slice(0, stats.def.multiTargets);
   if (targets.length === 0) targets.push(target);
   for (const e of targets) {
-    hit(tower, stats, e, stats.damage);
+    hit(tower, stats, e, stats.damage, state);
     // The cauldron's bolts set their targets alight, and that fire spreads
     // (GDD section 8); the storm battery's do not.
     if (stats.def.burn) {
@@ -111,7 +116,7 @@ function fireBeam(state, tower, stats, target) {
     if (along < 0) continue; // behind the muzzle
     const across = Math.abs(dx * uy - dy * ux);
     if (across > width) continue;
-    hit(tower, stats, e, stats.damage);
+    hit(tower, stats, e, stats.damage, state);
   }
   state.events.push({
     type: 'beam',
@@ -150,7 +155,7 @@ function fireChain(state, tower, stats, target) {
   let current = target;
   let damage = stats.damage;
   while (current && hitIds.size < targets) {
-    hit(tower, stats, current, damage);
+    hit(tower, stats, current, damage, state);
     if (stun > 0) applyStun(state, current, stun);
     hitIds.add(current.id);
     points.push({ x: current.x, y: current.y });
@@ -188,7 +193,7 @@ function fireCone(state, tower, stats, dt) {
     const length = Math.hypot(dx, dy);
     // The cone opens from the muzzle; anything sitting on top of it is hit too.
     if (length > 0.2 && (dx * ux + dy * uy) / length < cos) continue;
-    hit(tower, stats, e, stats.damage * dt);
+    hit(tower, stats, e, stats.damage * dt, state);
     if (stats.def.burn) applyBurn(state, e, stats.def.burn, stats.doctrine, tower.id, { stack: stats.burnStacks });
   }
   tower.aim = { x: target.x, y: target.y };
@@ -205,7 +210,7 @@ function fireAura(state, tower, stats, dt) {
   for (const e of targets) {
     // Damage in percent of maximum health is what makes the soulfire obelisk a
     // weapon against bosses: it does not care how much health they have.
-    hit(tower, stats, e, (stats.damage + percent * e.maxHealth) * dt);
+    hit(tower, stats, e, (stats.damage + percent * e.maxHealth) * dt, state);
     if (stats.def.slow) applySlow(state, e, stats.def.slow);
     // The shrine's aura marks what stands in it, so the render side can show
     // the gold on the enemy rather than only on the ground (docs/ART.md).
@@ -222,7 +227,7 @@ function updateSecondaryAura(state, tower, stats, dt) {
   const ring = stats.def.aura;
   if (!ring) return;
   for (const e of targetsInRange(state, tower, stats, ring.range)) {
-    hit(tower, stats, e, ring.damage * dt);
+    hit(tower, stats, e, ring.damage * dt, state);
     if (ring.slow) applySlow(state, e, ring.slow);
     if (ring.burn) applyBurn(state, e, ring.burn, stats.doctrine, tower.id, { stack: stats.burnStacks });
   }

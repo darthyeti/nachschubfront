@@ -25,6 +25,53 @@ weiter). Eine Partie mit Einträgen darin lässt sich weiter nachspielen, taugt
 aber nicht als Messung — eine Bastion, die nicht bluten kann, sagt nichts über
 die Schwierigkeit.
 
+## Nachspielen
+
+Ein Protokoll lässt sich ohne Grafik wieder abspielen:
+
+```
+npm run replay -- balancing/protokolle/<datei>.json
+```
+
+Das gibt eine Zeile je Welle aus (Gegner, Abschüsse, Durchbrüche, Leben,
+Lebenspunkte der Welle, Schaden der Stellungen, Schaden der Kommandos,
+verschwendeter Schaden, Routenlänge, Requisition, Kommandopunkte, Stellungen
+nach Rang, Bewertung) und prüft am Ende, dass dasselbe herauskommt wie in der
+gespielten Partie. Kommt es nicht dasselbe heraus, ist das ein Fehler und der
+Lauf endet mit einem Fehlercode.
+
+Mit geänderten Werten:
+
+```
+npm run replay -- <protokoll>.json --data <aenderungen>.json --csv <auswertung>.csv
+```
+
+Die Änderungsdatei sieht aus wie die Tabellen, die sie ändert:
+
+```json
+{
+  "enemies": { "warrior": { "health": 90 } },
+  "waves": { "healthGrowth": 1.08 },
+  "ranks": { "4": { "damage": 24 } }
+}
+```
+
+Listen (`ranks`, `supply`, `salvo`, `commands`) werden über den **Index ab null**
+angesprochen: Nachschubstufe 8 ist `"7"`, der Rang Legende ist `"4"`. Das
+Werkzeug ändert nur Werte — eine Zeile hinzufügen lehnt es ab und sagt, warum
+(mehrere abgeleitete Konstanten entstehen beim Start und würden eine neue Zeile
+nicht bemerken). Eine Aktion, die unter den neuen Werten nicht mehr geht, wird
+übersprungen und benannt; der Lauf bricht nicht ab.
+
+Zum Entwickeln gibt es auch Protokolle vom Bot:
+
+```
+npm run playmatch -- BASTION --protocol balancing/protokolle/bot-BASTION.json
+```
+
+Ein Bot setzt seine Zonen nach einer Regel und ist damit **keine Messung** — für
+das Werkzeug ist es aber eine echte Partie.
+
 ## `runden/`
 
 Eine Auswertung je Abstimmungsrunde (`runde-1.md`, `runde-2.md`, …): was

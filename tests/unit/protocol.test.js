@@ -22,13 +22,23 @@ function fakeLog({ id = 1, seed = 'BASTION', waves = 2, tainted = [] } = {}) {
     tick: 0,
     wave: 0,
     phase: 'planning',
+    phaseTime: 0,
     lives: 20,
     requisition: 0,
     commandPoints: 0,
     towers: [],
     supplyLevel: 1,
     waveRoutes: null,
-    waveStats: { spawned: 10, killed: 10, leaked: 0, bossKills: 0 },
+    waveStats: {
+      spawned: 10,
+      killed: 10,
+      leaked: 0,
+      bossKills: 0,
+      health: 600,
+      damage: 620,
+      commandDamage: 0,
+      overkill: 40,
+    },
     kills: 0,
   };
   startLog(state, 2, id);
@@ -70,6 +80,16 @@ test('an exported file carries its Kennung, the build and the match', () => {
   const back = parseProtocol(JSON.stringify(file));
   assert.equal(back.ok, true);
   assert.deepEqual(back.match, log);
+
+  // Nothing in a protocol may be a null or a NaN. JSON turns a NaN into a null
+  // on the way out, and a null where a number belongs would quietly poison
+  // whatever reads the protocol later.
+  for (const line of [...file.match.waves, ...file.match.actions]) {
+    for (const [key, value] of Object.entries(line)) {
+      if (key === 'rating' && value === null) continue;
+      assert.ok(value !== null && !Number.isNaN(value), `${key} is ${value}`);
+    }
+  }
 });
 
 test('parseProtocol takes a bare match too, and refuses what is not one', () => {

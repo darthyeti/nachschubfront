@@ -32,7 +32,25 @@ export function beginWave(state) {
   state.spawns = buildSpawns(def);
   state.waveScale = def.scale;
   state.waveRoutes = { ground: groundPolyline(state.route), flyer: flyerPolyline(state.map) };
-  state.waveStats = { spawned: 0, leaked: 0, killed: 0, bossKills: 0 };
+  state.waveStats = {
+    spawned: 0,
+    leaked: 0,
+    killed: 0,
+    bossKills: 0,
+    /** Health plus shields of everything that spawned: what the wave brought. */
+    health: 0,
+    /** Damage the emplacements landed, and what the commands landed beside them. */
+    damage: 0,
+    commandDamage: 0,
+    /**
+     * Damage thrown away on enemies that were already as good as dead. The
+     * simulation caps a hit at the health left (so the statistics never show
+     * more damage than there was to deal); this counts what the cap swallowed,
+     * because a doctrine that overkills half its shots is badly tuned, not
+     * strong (M6).
+     */
+    overkill: 0,
+  };
   state.projectiles.length = 0;
   // Banners and strikes belong to one wave only.
   state.pendingStrikes.length = 0;

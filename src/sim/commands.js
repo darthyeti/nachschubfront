@@ -97,6 +97,7 @@ function strike(state, hit) {
     const amount = e.maxHealth * share;
     e.shield = 0;
     e.health -= amount;
+    state.waveStats.commandDamage += amount;
     e.flash = 0.12;
     if (e.health <= 0) e.dead = true;
   }
@@ -164,6 +165,7 @@ function dropBomb(state, hit, drop) {
     hit.dealt.set(e.id, already + amount);
     e.shield = 0;
     e.health -= amount;
+    state.waveStats.commandDamage += amount;
     e.flash = 0.12;
     if (e.health <= 0) e.dead = true;
   }

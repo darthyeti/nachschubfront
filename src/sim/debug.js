@@ -9,11 +9,14 @@ import { groundPolyline, flyerPolyline, positionAt, computeRoute } from './route
 import { isBlocked, setBlocked } from './grid.js';
 import { spawnEnemy } from './enemies.js';
 import { addTower, removeTower } from './towers.js';
-import { taint } from './record.js';
+import { record, taint } from './record.js';
 
-// Every lever here marks the protocol as tainted (sim/record.js). The match can
-// still be replayed, but it is not a measurement: a wave that was jumped to or a
-// bastion that cannot bleed says nothing about balance.
+// Every lever here marks the protocol as tainted (sim/record.js) and is written
+// into it as an action. Tainted, because a wave that was jumped to or a bastion
+// that cannot bleed says nothing about balance. Recorded all the same, because a
+// lever that changed the match and is not in the protocol makes the replay
+// disagree with the match it is replaying — and then nobody can tell a real
+// difference from a missing one.
 
 /**
  * Sets the bastion's lives. Debug only: the visible panel and the browser tests
@@ -22,6 +25,7 @@ import { taint } from './record.js';
 export function setLives(state, lives) {
   taint(state, 'setLives');
   state.lives = Math.max(0, Math.round(lives));
+  record(state, 'lives', { lives: state.lives });
   return state.lives;
 }
 
@@ -34,6 +38,10 @@ export function setWave(state, wave) {
   if (state.phase !== 'planning' || state.stress) return false;
   taint(state, 'setWave');
   const total = WAVES.length;
+  // Recorded before the jump, not after: the action has to carry the round it
+  // was made in, and after the jump that is a round the replay cannot reach —
+  // this action is what would take it there.
+  record(state, 'jump', { wave: Math.max(0, Math.min(total - 1, Math.round(wave) - 1)) });
   state.wave = Math.max(0, Math.min(total - 1, Math.round(wave) - 1));
   return true;
 }
@@ -43,6 +51,7 @@ export function grant(state, { requisition = 0, commandPoints = 0 }) {
   taint(state, 'grant');
   state.requisition = Math.max(0, state.requisition + requisition);
   state.commandPoints = Math.max(0, state.commandPoints + commandPoints);
+  record(state, 'grant', { requisition, commandPoints });
 }
 
 /**
@@ -52,12 +61,14 @@ export function grant(state, { requisition = 0, commandPoints = 0 }) {
 export function forcePod(state, content) {
   taint(state, 'forcePod');
   state.forcedPod = content;
+  record(state, 'forcePod', { content });
 }
 
 /** Breakthroughs still count, but the bastion stops losing lives. */
 export function toggleInvulnerable(state) {
   taint(state, 'invulnerable');
   state.invulnerable = !state.invulnerable;
+  record(state, 'invulnerable', { on: state.invulnerable });
   return state.invulnerable;
 }
 

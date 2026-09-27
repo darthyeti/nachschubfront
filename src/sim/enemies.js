@@ -37,6 +37,8 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
     /** Seconds of hit flash left, and the flag the death pass looks for. */
     flash: 0,
     dead: false,
+    /** Damage the health cap swallowed on the killing blow (sim/damage.js). */
+    spill: 0,
     /** True if this type does more than walk (sim/abilities.js). */
     hasAbility: Boolean(def.heal || def.spawnTrail || def.warpJump || def.armorCycle),
     /** Seconds since the ability last went off. */
@@ -69,6 +71,9 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
   };
   positionAt(line, d, e);
   state.enemies.push(e);
+  // What the wave brings, for the balancing statistics (M6). Counted here and
+  // not from the wave table, because hatched swarmers are part of the wave too.
+  state.waveStats.health += health + shield;
   return e;
 }
 
@@ -90,6 +95,7 @@ export function removeDead(state) {
     state.requisition += e.reward;
     state.kills += 1;
     state.waveStats.killed += 1;
+    state.waveStats.overkill += e.spill ?? 0;
     if (e.boss) state.waveStats.bossKills += 1;
     state.events.push({ type: 'kill', enemyId: e.id, enemyType: e.type, x: e.x, y: e.y, boss: e.boss });
     const death = enemyDef(e.type).death;

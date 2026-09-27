@@ -50,6 +50,7 @@ function explode(state, shell) {
     dealt += damageEnemy(e, shell.damage, shell.doctrine);
   }
   if (dealt > 0) {
+    state.waveStats.damage += dealt;
     const tower = towers.find((t) => t.id === shell.towerId);
     if (tower) tower.damage += dealt;
   }
