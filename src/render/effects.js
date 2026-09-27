@@ -576,16 +576,21 @@ export function createEffects() {
     ctx.strokeStyle = '#bff2ff';
     ctx.lineWidth = 3;
     ctx.stroke();
-    // Six shards standing in the ring, turning very slowly.
+    // Six ice shards standing in the ring, turning very slowly. Each gets an
+    // ink underlay, so it reads as a crystal in the comic style and not as a
+    // plain cyan line (docs/ART.md, Kommando-Durchsicht).
     ctx.rotate(reducedMotion ? 0 : t * 0.4);
-    ctx.strokeStyle = 'rgba(223,246,255,.85)';
-    ctx.lineWidth = 2.5;
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(a) * r * 0.25, Math.sin(a) * r * 0.25);
-      ctx.lineTo(Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9);
-      ctx.stroke();
+    ctx.lineCap = 'round';
+    for (const [width, stroke] of [[4.5, C.ink], [2.5, 'rgba(223,246,255,.9)']]) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = width;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r * 0.25, Math.sin(a) * r * 0.25);
+        ctx.lineTo(Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9);
+        ctx.stroke();
+      }
     }
     ctx.restore();
     ctx.globalAlpha = 1;
