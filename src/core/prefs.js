@@ -5,6 +5,7 @@
 // empty store only means "defaults" and never stops the game.
 
 import { storage as defaultStorage } from '../storage/index.js';
+import { RULESET_TESTING } from '../data/rules.js';
 
 const KEY = 'prefs';
 
@@ -17,6 +18,12 @@ export const PREF_DEFAULTS = {
   motion: 'auto',
   /** The player waved the "add to home screen" hint away on this device. */
   installHintDismissed: false,
+  /**
+   * The line of three buttons after a wave (M6). On while the ruleset is marked
+   * as a test version, because that is when the answers are worth having; off
+   * for good once the values are settled.
+   */
+  rateWaves: RULESET_TESTING,
 };
 
 const VOLUMES = ['master', 'sfx', 'music'];
@@ -32,6 +39,7 @@ export function sanitizePrefs(raw) {
   }
   if (MOTIONS.includes(raw.motion)) out.motion = raw.motion;
   if (typeof raw.installHintDismissed === 'boolean') out.installHintDismissed = raw.installHintDismissed;
+  if (typeof raw.rateWaves === 'boolean') out.rateWaves = raw.rateWaves;
   return out;
 }
 

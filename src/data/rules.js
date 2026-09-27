@@ -9,6 +9,15 @@
  */
 export const RULESET_VERSION = 2;
 
+/**
+ * True while the numbers are still being tuned (M6). It turns on what only a
+ * test version wants — the rating line after every wave — and it is a separate
+ * flag from the version number on purpose: the version says which rules a score
+ * was played under, this says whether the rules are settled. Set it to false
+ * with the last balancing round.
+ */
+export const RULESET_TESTING = true;
+
 export const RULES = {
   /** Bastion lives at the start of a match. */
   startLives: 20,

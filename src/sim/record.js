@@ -25,10 +25,14 @@ export const PROTOCOL_VERSION = 1;
  * tests and the replay itself run without a log.
  * @param {object} state
  * @param {number} ruleset  RULESET_VERSION the match is played under.
+ * @param {string|number} id  Tells two matches on the same seed apart, so saving
+ *   the same one again replaces it instead of piling up. Handed in rather than
+ *   made here, because nothing in this module asks the clock.
  */
-export function startLog(state, ruleset) {
+export function startLog(state, ruleset, id = 0) {
   state.log = {
     version: PROTOCOL_VERSION,
+    id,
     seed: state.seed,
     ruleset,
     /** Supply level the match started on; debug can raise it before wave 1. */

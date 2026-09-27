@@ -90,6 +90,7 @@ export function createMenus(root, {
   onPreview,
   onToggle,
   onApplyUpdate,
+  onExportMatch = null,
   canStore = true,
 }) {
   /** @type {'main'|'seed'|'pause'|'settings'|'records'|'end'|null} */
@@ -193,6 +194,31 @@ export function createMenus(root, {
   );
   seedScreen.panel.append(seedActions);
 
+  // ---------- Exporting the running match (M6, Teil 1) ----------
+  // Recorded matches are the measurement M6 works from, so the way out of the
+  // game has to be within reach of the player: one button on the pause screen
+  // and one on the end screen, each with a line underneath saying what happened.
+  const exportSays = { pause: el('p', 'menu-hint'), end: el('p', 'menu-hint') };
+
+  function exportButton(where) {
+    return button(T.exportMatch, 'alt', () => {
+      const result = onExportMatch?.() ?? { ok: false, reason: 'empty' };
+      const line = exportSays[where];
+      if (result.ok) {
+        line.textContent = [
+          result.copied ? T.exportMatchCopied : T.exportMatchDone(result.name),
+          result.about ? T.exportMatchAbout(result.about) : '',
+          result.about?.tainted ? T.exportMatchTainted : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
+      } else {
+        line.textContent = result.reason === 'empty' ? T.exportMatchEmpty : T.exportMatchFailed;
+      }
+      line.classList.toggle('menu-warning', !result.ok);
+    });
+  }
+
   // ---------- Pause ----------
   const pause = createOverlay(root, 'pause', T.pauseTitle);
   pause.panel.append(el('h2', 'menu-title', T.pauseTitle));
@@ -203,13 +229,23 @@ export function createMenus(root, {
       onResume();
     }),
     button(T.settings, 'alt', () => show('settings', 'pause')),
+    // A door of its own, not part of the profile export: that one carries best
+    // scores to a friend, and a protocol has no business travelling with it (M6).
+    exportButton('pause'),
     button(T.leaveMatch, 'alt', () => show('main')),
   );
   // A line to get one's bearings by, and the two values the status bar gave up
   // when it went down to six fields (docs/ART.md, "Obere Statusleiste").
   const pauseStatus = el('p', 'menu-status');
   const pauseDetail = el('p', 'menu-hint');
-  pause.panel.append(pauseActions, pauseStatus, pauseDetail, el('p', 'menu-hint', T.hint));
+  pause.panel.append(
+    pauseActions,
+    exportSays.pause,
+    el('p', 'menu-hint', T.exportMatchHint),
+    pauseStatus,
+    pauseDetail,
+    el('p', 'menu-hint', T.hint),
+  );
 
   // ---------- Settings ----------
   const settings = createOverlay(root, 'settings', TS.title);
@@ -242,6 +278,23 @@ export function createMenus(root, {
   });
   settings.panel.append(motionGroup, el('p', 'menu-hint', TS.motionHint));
 
+  // The rating line after a wave (M6). A switch, because somebody who just wants
+  // to play should not be asked after every wave.
+  settings.panel.append(el('h3', 'menu-section', TS.rating));
+  const ratingGroup = el('div', 'menu-choice');
+  ratingGroup.setAttribute('role', 'group');
+  ratingGroup.setAttribute('aria-label', TS.rating);
+  const ratingButtons = [
+    [true, TS.ratingOn],
+    [false, TS.ratingOff],
+  ].map(([value, label]) => {
+    const b = button(label, 'alt', () => prefs.set('rateWaves', value));
+    b.dataset.rate = value ? 'on' : 'off';
+    ratingGroup.append(b);
+    return b;
+  });
+  settings.panel.append(ratingGroup, el('p', 'menu-hint', TS.ratingHint));
+
   // Fixed for now, but named, so nobody has to guess whether it can be changed.
   settings.panel.append(el('h3', 'menu-section', TS.language));
   const languageRow = el('p', 'menu-readout', TS.languageValue);
@@ -268,6 +321,7 @@ export function createMenus(root, {
       made.readout.textContent = TS.percent(values[key]);
     }
     for (const b of motionButtons) b.classList.toggle('on', b.dataset.motion === values.motion);
+    for (const b of ratingButtons) b.classList.toggle('on', (b.dataset.rate === 'on') === values.rateWaves);
   }
   prefs.onChange(syncSettings);
   syncSettings(prefs.values);
@@ -306,9 +360,10 @@ export function createMenus(root, {
       onStart(endSeed);
     }),
     button(TE.records, 'alt', () => show('records', 'end')),
+    exportButton('end'),
     button(T.toMenu, 'alt', () => show('main')),
   );
-  end.panel.append(endTitle, endDetail, endScore, endRecord, endActions);
+  end.panel.append(endTitle, endDetail, endScore, endRecord, endActions, exportSays.end);
 
   // ---------- Notices ----------
   // An update concerns the title screen and the pause screen, so each gets its

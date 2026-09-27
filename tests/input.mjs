@@ -317,6 +317,97 @@ try {
       await page.waitForFunction(() => window.__nachschub.state().phase === 'planning', null, { timeout: 180000 });
     });
 
+    await check('after a wave the rating line asks, and an answer lands in the protocol', async () => {
+      const row = page.locator('.hud-rating');
+      await row.waitFor({ state: 'visible' });
+      assert.match(await row.locator('.hud-rating-label').textContent(), /Welle 1/, 'it names the wave');
+
+      // It sits above the bottom bar and never over it (M6: unobtrusive).
+      const bar = await page.locator('.hud-bar').first().boundingBox();
+      const box = await row.boundingBox();
+      assert.ok(box.y + box.height <= bar.y + 1, 'the line is above the bar');
+
+      // Same rule as every other target on a tablet (GDD section 13).
+      for (const name of ['Zu leicht', 'Passt', 'Zu schwer']) {
+        const b = await row.getByRole('button', { name }).boundingBox();
+        assert.ok(b.width >= 44 && b.height >= 44, `${name} is ${b.width}x${b.height}`);
+      }
+
+      // Answering is one tap, and it is the end of the question.
+      await row.getByRole('button', { name: 'Zu schwer' }).tap();
+      await row.waitFor({ state: 'hidden' });
+      const log = await page.evaluate(() => window.__nachschub.log());
+      assert.equal(log.waves.find((w) => w.w === 1).rating, 'hard', 'the verdict is in the protocol');
+      assert.equal(log.seed, SEED);
+      assert.ok(log.actions.length >= 3, 'and so is what was done: zone, salvo, choice');
+      assert.ok(log.actions.every((a) => Number.isInteger(a.t)), 'every action carries its simulation step');
+      // The bastion was propped up with a debug lever above, so the protocol
+      // has to say so rather than pass as a measurement.
+      assert.ok(log.tainted.includes('setLives'), 'a debug lever marks the protocol');
+    });
+
+    await check('the rating line stays down when it is switched off', async () => {
+      await page.keyboard.press('Escape');
+      await page.locator('.menu[data-menu="pause"]').waitFor({ state: 'visible' });
+      await page.getByRole('button', { name: 'Einstellungen' }).tap();
+      const settings = page.locator('.menu[data-menu="settings"]');
+      await settings.waitFor({ state: 'visible' });
+      await settings.locator('button[data-rate="off"]').tap();
+      assert.equal(
+        await page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:prefs')).rateWaves),
+        false,
+        'the switch is remembered',
+      );
+      // On again, because the rest of the run is the test version's default.
+      await settings.locator('button[data-rate="on"]').tap();
+      assert.equal(
+        await page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:prefs')).rateWaves),
+        true,
+      );
+      await settings.getByRole('button', { name: 'Zurück' }).tap();
+      await page.locator('.menu[data-menu="pause"]').getByRole('button', { name: 'Fortsetzen' }).tap();
+      await page.locator('.menu[data-menu="pause"]').waitFor({ state: 'hidden' });
+    });
+
+    await check('the pause screen hands the match over as a file', async () => {
+      // The download is caught rather than kept: what matters is that the button
+      // produces the right file, not that the browser stores it.
+      await page.evaluate(() => {
+        window.__download = null;
+        const real = HTMLAnchorElement.prototype.click;
+        HTMLAnchorElement.prototype.click = function () {
+          if (this.download) {
+            window.__download = this.download;
+            return;
+          }
+          return real.call(this);
+        };
+        const create = URL.createObjectURL;
+        URL.createObjectURL = (blob) => {
+          window.__blob = blob;
+          return create.call(URL, blob);
+        };
+      });
+
+      await page.keyboard.press('Escape');
+      const pause = page.locator('.menu[data-menu="pause"]');
+      await pause.waitFor({ state: 'visible' });
+      await pause.getByRole('button', { name: 'Partie exportieren' }).tap();
+
+      const name = await page.evaluate(() => window.__download);
+      assert.match(name, /^nachschubfront-\d{4}-\d{2}-\d{2}-.+-welle\d+\.json$/, name);
+      const file = await page.evaluate(async () => JSON.parse(await window.__blob.text()));
+      assert.equal(file.magic, 'nachschubfront.protokoll');
+      assert.equal(file.match.seed, SEED);
+      assert.equal(file.match.waves.find((w) => w.w === 1).rating, 'hard', 'the answer travels with it');
+      assert.ok(file.match.actions.length >= 3);
+      // And the line under the button says what happened, in German.
+      assert.match(await pause.locator('.menu-hint').first().textContent(), /Gespeichert: nachschubfront-/);
+
+      await pause.getByRole('button', { name: 'Fortsetzen' }).tap();
+      await pause.waitFor({ state: 'hidden' });
+    });
+
     await check('second salvo at 3x, the wave runs and the towers kill', async () => {
       await page.getByRole('button', { name: '3x' }).tap();
       await playRound(page, (x, y) => page.touchscreen.tap(x, y));

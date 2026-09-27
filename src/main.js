@@ -42,6 +42,15 @@ import { POD_SPRITE_DEFS, keepClearedCells } from './render/pods.js';
 import { startStress, stopStress, setLives, setWave, grant, forcePod, toggleInvulnerable } from './sim/debug.js';
 import { score, scoreEntry } from './sim/score.js';
 import { createProfileStore, bestForSeed } from './storage/profile.js';
+import {
+  createProtocolStore,
+  describeProtocol,
+  exportProtocol,
+  protocolFileName,
+} from './storage/protocol.js';
+import { startLog, recordRating, isMeasurable } from './sim/record.js';
+import { RULESET_VERSION } from './data/rules.js';
+import { createRatingRow } from './ui/rating.js';
 import { registerServiceWorker } from './core/updates.js';
 
 const FLASH_SECONDS = 0.9;
@@ -64,6 +73,7 @@ const startSupply = Math.min(MAX_SUPPLY_LEVEL, Math.max(MIN_SUPPLY_LEVEL, Number
 
 let state = createGameState(normalizeSeed(params.get('seed')) ?? randomSeed());
 state.supplyLevel = startSupply;
+startLog(state, RULESET_VERSION, Date.now());
 /** Speed to restore when unpausing with Space. */
 let lastSpeed = 1;
 
@@ -147,6 +157,10 @@ function applyObstacle(cell) {
 function newGame(seed = null) {
   state = createGameState(normalizeSeed(seed) ?? randomSeed());
   state.supplyLevel = startSupply;
+  // A fresh protocol per match. The id tells two matches on the same seed apart,
+  // so saving the same one again replaces it instead of piling up (M6).
+  startLog(state, RULESET_VERSION, Date.now());
+  rating?.hide();
   bounds = mapBounds(state.map.size);
   stepper.reset();
   ui.flashes.length = 0;
@@ -440,6 +454,15 @@ function onAction(action) {
 const codex = createCodex(document.body);
 const hudRoot = document.getElementById('hud');
 const hud = createHud(hudRoot, { debug, onAction });
+// The line of three buttons after a wave (M6). It lives in the same column as
+// the bottom bar, so it is in thumb reach and can never cover it.
+const rating = createRatingRow(hud.bottom, {
+  onRate(wave, verdict) {
+    recordRating(state, wave, verdict);
+    saveProtocol();
+    showBanner(STRINGS.rating.thanks);
+  },
+});
 const commandBar = createCommandBar(hudRoot, { onPick: pickCommand });
 const debugPanel = debug
   ? createDebugPanel(document.getElementById('hud'), {
@@ -511,6 +534,52 @@ const prefs = createPrefs(storage);
 // an imported profile must not change how loud this device plays.
 const profile = createProfileStore(storage);
 profile.load();
+// Recorded matches (M6, Teil 1). Their own document next to the profile: the
+// profile export carries best scores to a friend, and a protocol is not that.
+const protocols = createProtocolStore(storage);
+protocols.load();
+/**
+ * Puts the running match on disk. Called after every wave, so a session somebody
+ * breaks off halfway is saved too — those are worth having, and nobody reaches
+ * the end screen of every match they start.
+ */
+function saveProtocol() {
+  if (state.log && state.log.waves.length > 0) protocols.save(state.log, Date.now());
+}
+
+/**
+ * Hands the running match to the player as a file. The download is the normal
+ * way; on iPadOS a download can land somewhere awkward, so the clipboard is the
+ * fallback, exactly as the records screen does it.
+ * @returns {{ok: true, name?: string, copied?: boolean, about: object} | {ok: false, reason: string}}
+ */
+function exportMatch() {
+  const log = state.log;
+  if (!log || log.waves.length === 0) return { ok: false, reason: 'empty' };
+  saveProtocol();
+  const now = Date.now();
+  const name = protocolFileName(log, now);
+  const about = { ...describeProtocol(log), measurable: isMeasurable(log) };
+  const text = JSON.stringify(exportProtocol(log, now), null, 2);
+  try {
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    // Safari needs the URL a moment longer than the click.
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    return { ok: true, name, about };
+  } catch {
+    try {
+      navigator.clipboard.writeText(text);
+      return { ok: true, copied: true, about };
+    } catch {
+      return { ok: false, reason: 'failed' };
+    }
+  }
+}
+
 const systemMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 function applyMotion() {
@@ -551,6 +620,7 @@ const menus = createMenus(document.body, {
   profile,
   canStore: storage.persistent,
   onApplyUpdate: () => updates.apply(),
+  onExportMatch: exportMatch,
   onToggle(open) {
     if (open) {
       if (state.speed > 0) speedBeforeMenu = state.speed;
@@ -587,8 +657,17 @@ function drainEvents() {
       leaveDemolishMode();
       leaveBulwarkMode();
     }
-    if (ev.type === 'phase' && ev.phase === 'salvo') ui.podSelected = 0;
-    else if (ev.type === 'waveCleared') showBanner(STRINGS.banners.waveCleared(ev.wave, ev.leaked));
+    if (ev.type === 'phase' && ev.phase === 'salvo') {
+      ui.podSelected = 0;
+      rating.hide();
+    }
+    else if (ev.type === 'waveCleared') {
+      showBanner(STRINGS.banners.waveCleared(ev.wave, ev.leaked));
+      saveProtocol();
+      // Voluntary and never in the way: the round goes on whether it is answered
+      // or not, and the next salvo takes the question down again.
+      if (prefs.values.rateWaves) rating.ask(ev.wave);
+    }
     else if (ev.type === 'kolossArrived') showBanner(STRINGS.koloss.arrived, STRINGS.koloss.arrivedDetail);
     else if (ev.type === 'kolossBreach') {
       const t = STRINGS.koloss;
@@ -626,6 +705,8 @@ function announceKoloss() {
 /** The result of a finished match, with the score from GDD section 12. */
 function showEndScreen(victory) {
   const t = STRINGS.score;
+  rating.hide();
+  saveProtocol();
   // The old record has to be read before the new one goes in, otherwise the run
   // that just ended is its own previous best.
   const previous = bestForSeed(profile.values, state.seed);
@@ -784,6 +865,8 @@ if (debug) {
       })(),
       projectiles: state.projectiles.length,
     }),
+    /** The recorded match, for the browser checks of the protocol (M6). */
+    log: () => (state.log ? JSON.parse(JSON.stringify(state.log)) : null),
     /** Debug actions; the visible debug panel uses the same simulation calls. */
     debug: {
       setLives: (n) => setLives(state, n),

@@ -86,6 +86,18 @@ export const STRINGS = {
     settings: 'Einstellungen',
     back: 'Zurück',
     resume: 'Fortsetzen',
+    exportMatch: 'Partie exportieren',
+    exportMatchCopy: 'Protokoll kopieren',
+    exportMatchHint:
+      'Schreibt mit, was du in dieser Partie getan hast, als Datei. ' +
+      'Für das Abstimmen der Werte — Bestwerte und Statistik bleiben davon unberührt.',
+    exportMatchDone: (name) => `Gespeichert: ${name}`,
+    exportMatchCopied: 'Protokoll in die Zwischenablage kopiert.',
+    exportMatchFailed: 'Das Protokoll konnte nicht abgelegt werden.',
+    exportMatchEmpty: 'Noch nichts aufgezeichnet: spiele zuerst eine Welle.',
+    exportMatchTainted: 'Achtung: In dieser Partie wurden Debug-Hebel benutzt.',
+    exportMatchAbout: ({ seed, wave, waves, ratings }) =>
+      `Seed ${seed}, ${waves} ${waves === 1 ? 'Welle' : 'Wellen'} bis Welle ${wave}, ${ratings} bewertet.`,
     pauseTitle: 'Pausiert',
     pauseStatus: (wave, total, lives, requisition) =>
       `Welle ${wave}/${total} · Leben ${lives} · Requisition ${requisition}`,
@@ -176,6 +188,19 @@ export const STRINGS = {
       'neue Ergebnisse werden nicht gespeichert.',
   },
 
+  /** The line of three buttons after a wave (M6, Teil 1). */
+  rating: {
+    label: 'Wie war die Welle?',
+    question: 'Wie war die Welle?',
+    questionFor: (wave) => `Welle ${wave}: wie war sie?`,
+    answers: {
+      easy: 'Zu leicht',
+      fine: 'Passt',
+      hard: 'Zu schwer',
+    },
+    thanks: 'Notiert.',
+  },
+
   settings: {
     title: 'Einstellungen',
     volumes: 'Lautstärke',
@@ -192,6 +217,12 @@ export const STRINGS = {
     languageHint: 'Weitere Sprachen sind nicht vorgesehen.',
     save: 'Spielstand',
     saveHint: 'Bestwerte und Statistik. Die Einstellungen bleiben am Gerät.',
+    rating: 'Wellen bewerten',
+    ratingOn: 'An',
+    ratingOff: 'Aus',
+    ratingHint:
+      'Nach jeder Welle erscheinen drei Knöpfe: zu leicht, passt, zu schwer. ' +
+      'Die Antworten wandern ins Partie-Protokoll und helfen beim Abstimmen der Werte.',
     percent: (v) => `${Math.round(v * 100)} %`,
     storageWarning: 'Einstellungen können in diesem Browser nicht gespeichert werden.',
   },

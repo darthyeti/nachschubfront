@@ -260,6 +260,52 @@ button.plate-button:active {
   width: min(920px, calc(100% - 24px - var(--safe-left) - var(--safe-right)));
 }
 
+/* The rating line after a wave (M6, Teil 1). It sits above the bottom bar, in
+   thumb reach on a tablet, and stays quieter than the bar: a thin plate, no
+   drop shadow, so it reads as a question and not as another control of the
+   round. Nothing waits for an answer, so nothing here shouts for one. */
+.hud-rating {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  background: rgba(36, 28, 23, 0.9);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  padding: 6px 12px;
+  max-width: 100%;
+}
+
+/* An author rule beats the browser's own display:none for [hidden], so every
+   element the code hides needs this line (the same as the panels above). */
+.hud-rating[hidden] {
+  display: none;
+}
+
+.hud-rating-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--btn);
+  margin-right: 4px;
+}
+
+/* Smaller than a button of the round, but never below the 44 pixels every
+   target has to have (GDD section 13). */
+button.hud-rating-answer {
+  font-size: 15px;
+  padding: 6px 12px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+@media (max-width: 720px) {
+  .hud-rating-label {
+    width: 100%;
+    margin-right: 0;
+    text-align: center;
+  }
+}
+
 .hud-bar {
   display: flex;
   gap: 14px;
