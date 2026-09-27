@@ -1,6 +1,8 @@
-# M7: Koloss-Verhalten, Stellungsgrafik, Gunship, Platzhalter abschließen
+# M5d: Koloss-Verhalten, Stellungsgrafik, Gunship, Platzhalter abschließen
 
-Kommt nach M6 (Balancing). Grundlage: `docs/GDD-update-v4.md`, `docs/ART-update-v5.md` und die beiden Studien in `reference/studien/`.
+Update 7, eingeschoben nach M5c und vor M6 (Balancing). Grundlage: `docs/GDD-update-v4.md`, `docs/ART-update-v5.md` und die beiden Studien in `reference/studien/`.
+
+> **Zur Benennung.** Das Paket kam als „M7" herein und sagt in der Zeile darunter „kommt nach M6". Beides war irreführend: Definiert sind sieben Meilensteine, M0 bis M6, und M6 ist der Abschluss — nach ihm kommt keiner mehr. Update 7 ist wie die fünf Updates davor ein Einschub und heißt darum M5d (Update 2 → M4b, 3 → M4c, 4 → M4d, 5 → M5b, 6 → M5c, 7 → M5d). Umbenannt am 27.09.2026, nach der Abnahme, damit die Ablage keinen Meilenstein mehr behauptet, den es nicht gibt.
 
 ## Ziel
 - Der Koloss verhält sich so, wie er angekündigt wird:

@@ -8,7 +8,7 @@
 // writes every fill and stroke out as an SVG path.
 //
 // It is deliberately narrow. Only what the studies actually call is supported
-// (see the survey in the M7 notes): paths, ellipses, arcs, rectangles, the
+// (see the survey in the M5d notes): paths, ellipses, arcs, rectangles, the
 // three curve commands, transforms, alpha, dashes. Anything else throws rather
 // than quietly dropping a shape.
 //
