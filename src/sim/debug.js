@@ -9,12 +9,18 @@ import { groundPolyline, flyerPolyline, positionAt, computeRoute } from './route
 import { isBlocked, setBlocked } from './grid.js';
 import { spawnEnemy } from './enemies.js';
 import { addTower, removeTower } from './towers.js';
+import { taint } from './record.js';
+
+// Every lever here marks the protocol as tainted (sim/record.js). The match can
+// still be replayed, but it is not a measurement: a wave that was jumped to or a
+// bastion that cannot bleed says nothing about balance.
 
 /**
  * Sets the bastion's lives. Debug only: the visible panel and the browser tests
  * use it to reach a defeat without playing a whole match.
  */
 export function setLives(state, lives) {
+  taint(state, 'setLives');
   state.lives = Math.max(0, Math.round(lives));
   return state.lives;
 }
@@ -26,6 +32,7 @@ export function setLives(state, lives) {
  */
 export function setWave(state, wave) {
   if (state.phase !== 'planning' || state.stress) return false;
+  taint(state, 'setWave');
   const total = WAVES.length;
   state.wave = Math.max(0, Math.min(total - 1, Math.round(wave) - 1));
   return true;
@@ -33,6 +40,7 @@ export function setWave(state, wave) {
 
 /** Adds requisition and command points out of thin air. */
 export function grant(state, { requisition = 0, commandPoints = 0 }) {
+  taint(state, 'grant');
   state.requisition = Math.max(0, state.requisition + requisition);
   state.commandPoints = Math.max(0, state.commandPoints + commandPoints);
 }
@@ -42,11 +50,13 @@ export function grant(state, { requisition = 0, commandPoints = 0 }) {
  * with null. The seeded draw still happens, so nothing else shifts.
  */
 export function forcePod(state, content) {
+  taint(state, 'forcePod');
   state.forcedPod = content;
 }
 
 /** Breakthroughs still count, but the bastion stops losing lives. */
 export function toggleInvulnerable(state) {
+  taint(state, 'invulnerable');
   state.invulnerable = !state.invulnerable;
   return state.invulnerable;
 }
@@ -88,6 +98,7 @@ function addStressTowers(state) {
  */
 export function startStress(state, count) {
   if (state.phase !== 'planning' || !state.route || state.stress) return false;
+  taint(state, 'stress');
   state.stress = true;
   state.waveRoutes = { ground: groundPolyline(state.route), flyer: flyerPolyline(state.map) };
   addStressTowers(state);

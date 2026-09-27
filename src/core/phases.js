@@ -2,6 +2,7 @@
 // End states: defeat, victory.
 
 import { standDown } from '../sim/combat.js';
+import { recordWave, recordEnd } from '../sim/record.js';
 
 export const PHASES = ['planning', 'salvo', 'selection', 'wave', 'evaluation', 'defeat', 'victory'];
 
@@ -25,10 +26,15 @@ export function setPhase(state, to) {
     throw new Error(`Invalid phase transition ${state.phase} -> ${to}`);
   }
   // Leaving the wave, however it ends: nothing is shooting any more, so nothing
-  // may still be drawn as shooting. One place for every way out of a wave.
-  if (state.phase === 'wave') standDown(state);
+  // may still be drawn as shooting. One place for every way out of a wave — and
+  // therefore also the one place the protocol notes how the wave went (M6).
+  if (state.phase === 'wave') {
+    standDown(state);
+    recordWave(state);
+  }
   state.phase = to;
   state.phaseTime = 0;
+  if (to === 'defeat' || to === 'victory') recordEnd(state, to);
   state.events.push({ type: 'phase', phase: to });
 }
 

@@ -7,6 +7,7 @@ import { enemiesAround } from './targeting.js';
 import { damageEnemy } from './damage.js';
 import { applyStun } from './effects.js';
 import { inBounds } from './grid.js';
+import { record } from './record.js';
 
 /**
  * The wave a command is measured against: during planning that is the wave the
@@ -253,7 +254,18 @@ export function useCommand(state, id, cell = null) {
   state.commandPoints -= command.cost;
   state.commandUses[id] = currentWave(state);
   state.events.push({ type: 'command', id, x: point?.x ?? null, y: point?.y ?? null });
+  // The cell as the player aimed it, before the axis snap: the replay runs the
+  // same snap again, so a changed maximum length changes the line with it.
+  record(state, 'command', { id, ...(cell ? cellTarget(cell) : {}) });
   return { ok: true };
+}
+
+/** A command's aim as the log keeps it: one cell, or the two ends of a line. */
+function cellTarget(cell) {
+  if (cell.from) {
+    return { from: { x: cell.from.x, y: cell.from.y }, to: { x: cell.to.x, y: cell.to.y } };
+  }
+  return { cell: { x: cell.x, y: cell.y } };
 }
 
 /**

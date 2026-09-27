@@ -6,6 +6,7 @@ import { PODS, salvoSize } from '../data/pods.js';
 import { checkPlacement, routeWith } from './route.js';
 import { isRubble } from './rubble.js';
 import { upcomingWave } from './pods.js';
+import { record } from './record.js';
 
 /**
  * Recomputes the route the enemies would take once the marked zones are built
@@ -55,12 +56,14 @@ export function toggleZone(state, cell) {
   if (index >= 0) {
     state.zones.splice(index, 1);
     refreshZonePreview(state);
+    record(state, 'zone', { x: cell.x, y: cell.y, on: false });
     return { ok: true, action: 'removed' };
   }
   const check = canMarkZone(state, cell);
   if (!check.ok) return check;
   state.zones.push({ x: cell.x, y: cell.y });
   refreshZonePreview(state);
+  record(state, 'zone', { x: cell.x, y: cell.y, on: true });
   return { ok: true, action: 'added' };
 }
 

@@ -8,6 +8,7 @@ import { setBlocked } from './grid.js';
 import { computeRoute, routeExists } from './route.js';
 import { towerAt, removeTower } from './towers.js';
 import { rubbleIndexAt, bulwarkIndexAt, isRubble, raiseBulwark } from './rubble.js';
+import { record } from './record.js';
 
 /** Cost of the next supply level, or null at the top. */
 export function nextSupplyCost(state) {
@@ -32,6 +33,7 @@ export function buySupply(state) {
   state.requisition -= check.cost;
   state.supplyLevel += 1;
   state.events.push({ type: 'supply', level: state.supplyLevel, cost: check.cost });
+  record(state, 'supply');
   return check;
 }
 
@@ -108,6 +110,7 @@ export function demolish(state, cell) {
   state.route = computeRoute(state.map);
   state.mapVersion += 1;
   state.events.push({ type: 'demolish', x: cell.x, y: cell.y, cost: check.cost, kind: target.kind });
+  record(state, 'demolish', { x: cell.x, y: cell.y });
   return check;
 }
 
@@ -143,6 +146,7 @@ export function buildBulwark(state, cell) {
   state.demolished += 1;
   state.mapVersion += 1;
   state.events.push({ type: 'bulwark', x: cell.x, y: cell.y, cost: check.cost });
+  record(state, 'bulwark', { x: cell.x, y: cell.y });
   return check;
 }
 
