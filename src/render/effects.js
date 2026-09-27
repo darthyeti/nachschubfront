@@ -14,6 +14,7 @@ import { STRINGS } from '../data/strings.js';
 import { PODS } from '../data/pods.js';
 import { towerStats, towerById } from '../sim/towers.js';
 import { towerAnchor, towerSparks } from './towerSprites.js';
+import { drawGunship } from './gunship.js';
 import { sinceImpact } from '../sim/pods.js';
 
 /** Upper bounds (CLAUDE.md: particles and decals need a ceiling). */
@@ -690,6 +691,10 @@ export function createEffects() {
 
   /** Shells, flashes, beams, particles and numbers, on top of everything. */
   function drawAbove(ctx, state, t, reducedMotion) {
+    // The gunship flies over everything else while its run lasts.
+    for (const hit of state.pendingStrikes) {
+      if (hit.kind === 'airstrike' && hit.t >= hit.warnSeconds) drawGunship(ctx, hit, t, reducedMotion);
+    }
     for (const shell of state.projectiles) {
       const u = Math.min(1, shell.t / shell.flight);
       const height = 4 * 70 * u * (1 - u);
