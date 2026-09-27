@@ -1,7 +1,7 @@
 # Fortschritt
 
 ## Aktueller Meilenstein
-M7 Koloss-Verhalten, Stellungsgrafik, Gunship und die letzten Platzhalter ist in Arbeit. Der Plan ist am 26.09.2026 freigegeben, aufgeteilt in Block A (Koloss-Logik), B (Luftschlag und Bossdeckel) und C (Grafik), mit drei Entscheidungen:
+M7 Koloss-Verhalten, Stellungsgrafik, Gunship und die letzten Platzhalter ist umgesetzt und **am 27.09.2026 auf dem iPad abgenommen**. Der Plan war am 26.09.2026 freigegeben, aufgeteilt in Block A (Koloss-Logik), B (Luftschlag und Bossdeckel) und C (Grafik), mit drei Entscheidungen:
 
 - **M7 wird vor M6 eingeschoben**, wie die sechs Einschübe davor auch. Der Arbeitsauftrag sagt „kommt nach M6", das ist eine Annahme des Pakets über den Einspielzeitpunkt. Sachlich hängt M7 an nichts aus M6, und M6 stimmt Zahlen ab, die M7 ohnehin ersetzt: die komplette Wirkungstabelle der Spezialstellungen, dazu das Verhalten von Koloss und Obelisk. Wer vorher balanciert, tariert Werte aus, die danach überschrieben sind. M6 bleibt der Abschluss und balanciert die endgültige Mechanik.
 - **Die Konzept-PNGs werden verkleinert.** Die zehn Blätter kamen mit 2560 px Breite und 8 MB ins Paket; `reference/` war vorher 1,4 MB und rein SVG. Sie liegen jetzt mit 1280 px und indizierter Palette bei zusammen rund 1 MB. Verbindlich sind ohnehin die Studien, die PNGs sind Standbilder daraus.
@@ -11,7 +11,7 @@ Die Vorarbeit ist erledigt: `GDD-update-v4.md` ist in `docs/GDD.md` eingearbeite
 
 **Gemeldete Auffälligkeit, nicht eigenmächtig geändert:** Die neuen Startwerte der Spezialstellungen sind deutlich kleiner als die bisher hergeleiteten (Sturmbatterie 5 statt 14 Schaden, Glutkessel 6 statt 90, Gewitterturm 14 statt 110). Sie werden wie geschrieben übernommen, dürften gegen die Lebenspunkte ab Welle 35 aber zu schwach sein. Zwischen M7 und M6 ist mit spürbar schwächeren Spezialstellungen zu rechnen; das ist Thema von M6, kein Fehler.
 
-M7 Koloss-Verhalten, Stellungsgrafik, Gunship und die letzten Platzhalter ist umgesetzt und wartet auf die Abnahme auf dem iPad. Der Plan war am 26.09.2026 freigegeben (drei Entscheidungen: M7 vor M6 eingeschoben, PNGs verkleinert, SVG-Regel mit benannter Ausnahme für drehbare Modelle). Fertig am 27.09.2026, alle drei Blöcke abgeschlossen.
+M7 Koloss-Verhalten, Stellungsgrafik, Gunship und die letzten Platzhalter ist umgesetzt und am 27.09.2026 auf dem iPad abgenommen. Der Plan war am 26.09.2026 freigegeben (drei Entscheidungen: M7 vor M6 eingeschoben, PNGs verkleinert, SVG-Regel mit benannter Ausnahme für drehbare Modelle). Alle drei Blöcke abgeschlossen, Version 0.8.0. Die iPad-Effektschwächen (Flammenkegel, fehlende Autokanonen-Hülsen, Mündungsursprung) sind vor der Abnahme behoben. **Nächster geplanter Meilenstein: M6 Balancing** — die dort vorgemerkten Auffälligkeiten stehen unten.
 
 **Block A, Koloss-Logik:** Auftritt am Kartenrand der Riss-Seite, Fahrlinienwahl nach der geringsten Feuerkraft über dem ersten blockierenden Feld, Schneise von 5 Feldern beim Überfahren zermalmt, Stopp mit 3 s Betäubung an Bollwerk und Stellung, danach eigene Vier-Achsen-Wegfindung ohne Signalfeuer mit Trümmerkosten 6, Rammen mit 8-s-Countdown bei Einschluss, Drehung auf der Stelle. Gegner hinter ihm werden nach jeder Zerstörung auf die neue Route gesetzt, ohne zu springen. `findPath` hat zwei Optionen bekommen (nur Achsen, Kosten für eigentlich blockierte Felder). Der verwaiste lila Effekt ist grundsätzlich behoben: Das Verlassen der Wellenphase stellt jede Stellung ab, `removeTower` gibt frei, was auf eine Stellung zeigt.
 
