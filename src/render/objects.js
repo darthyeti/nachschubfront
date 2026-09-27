@@ -79,38 +79,49 @@ function drawRubble(ctx, x, y, variant) {
 }
 
 /**
- * Bulwark (docs/ART.md): stacked blocks with a straight top edge and steel
- * brackets at the corners. It has to be told from a heap of rubble at a glance,
- * because only the bulwark stops a Koloss — hence the flat crown against the
- * rubble's scattered lumps. No guide colour, no rank: it belongs to no doctrine.
+ * Bulwark (docs/ART.md, "Bollwerk"), in the study's final form: a stone block
+ * with two support struts and a yellow warning band, replacing the heap of
+ * rubble it is built on. It has to be told from rubble at a glance, because
+ * only the bulwark stops a Koloss. No guide colour, no rank; it belongs to no
+ * doctrine.
  */
-const BULWARK_TOP = 22;
-
 function drawBulwark(ctx, x, y) {
-  const [sx, sy] = iso(x + 0.5, y + 0.5);
-  shadow(ctx, sx + 4, sy + 3, 32, 13, 0.3);
-  // Two courses of blocks, the upper one set back, so the silhouette reads as
-  // built rather than dumped.
-  box(ctx, x + 0.08, y + 0.08, 0.84, 0.84, 13, 0, [C.concL, C.conc, C.concD]);
-  box(ctx, x + 0.16, y + 0.16, 0.68, 0.68, BULWARK_TOP - 13, 13, STONE);
-
-  // Joint lines on the top face, so the crown does not read as one flat slab.
-  const seam = 'rgba(0,0,0,.35)';
-  ctx.strokeStyle = seam;
-  ctx.lineWidth = 1.6;
-  for (const f of [0.38, 0.62]) {
-    const a = iso(x + 0.16, y + 0.16 + 0.68 * f, BULWARK_TOP);
-    const b = iso(x + 0.84, y + 0.16 + 0.68 * f, BULWARK_TOP);
+  const hw = 0.46;
+  const cx = x + 0.5;
+  const cy = y + 0.5;
+  const h = 26;
+  const b = [iso(cx - hw, cy + hw), iso(cx + hw, cy + hw), iso(cx + hw, cy - hw)];
+  const top = [iso(cx - hw, cy - hw, h), iso(cx + hw, cy - hw, h), iso(cx + hw, cy + hw, h), iso(cx - hw, cy + hw, h)];
+  const [gx, gy] = iso(cx, cy);
+  shadow(ctx, gx, gy, 30, 12, 0.3);
+  poly(ctx, [b[0], b[1], top[2], top[3]], '#6b6154', C.ink, 2.6);
+  poly(ctx, [b[1], b[2], top[1], top[2]], '#4a433a', C.ink, 2.6);
+  poly(ctx, top, '#8a7d6a', C.ink, 2.6);
+  // Two struts up the front face.
+  ctx.strokeStyle = '#3a332b';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  for (const u of [0.25, 0.75]) {
+    const a = iso(cx - hw + u * 2 * hw, cy + hw, 4);
+    const c = iso(cx - hw + u * 2 * hw, cy + hw, h - 2);
     ctx.beginPath();
     ctx.moveTo(a[0], a[1]);
-    ctx.lineTo(b[0], b[1]);
+    ctx.lineTo(c[0], c[1]);
     ctx.stroke();
   }
-
-  // Steel brackets on the two corners that face the camera.
-  const STEEL = ['#8d8a84', '#6a6660', '#49453f'];
-  box(ctx, x + 0.06, y + 0.42, 0.1, 0.16, BULWARK_TOP + 3, 0, STEEL, 1.6);
-  box(ctx, x + 0.42, y + 0.84, 0.16, 0.1, BULWARK_TOP + 3, 0, STEEL, 1.6);
+  // The yellow warning band across the front.
+  poly(
+    ctx,
+    [
+      iso(cx - hw, cy + hw, h * 0.45),
+      iso(cx + hw, cy + hw, h * 0.45),
+      iso(cx + hw, cy + hw, h * 0.62),
+      iso(cx - hw, cy + hw, h * 0.62),
+    ],
+    '#e8b93a',
+    C.ink,
+    1.4,
+  );
 }
 
 /** Draws one cell of an obstacle; multi-cell walls are depth-sorted per cell. */
