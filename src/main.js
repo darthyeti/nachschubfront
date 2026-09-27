@@ -132,8 +132,8 @@ function flash(cell, ok, label) {
   ui.flashes.push({ cell, ok, label, life: FLASH_SECONDS, max: FLASH_SECONDS });
 }
 
-function showBanner(text, detail = '') {
-  ui.banner = { text, detail, life: BANNER_SECONDS };
+function showBanner(text, detail = '', danger = false) {
+  ui.banner = { text, detail, danger, life: BANNER_SECONDS };
 }
 
 function applyObstacle(cell) {
@@ -618,8 +618,9 @@ function announceKoloss() {
   if (!run || run.stage === 'arrived') return;
   const t = STRINGS.koloss;
   const away = run.wave - (state.phase === 'planning' ? state.wave + 1 : state.wave);
-  if (run.stage === 'warning') showBanner(t.warning(away), t.warningDetail);
-  else showBanner(t.predicted, t.predictedDetail);
+  // The Koloss banner is a warning, so it wears the danger stripe (docs/ART.md).
+  if (run.stage === 'warning') showBanner(t.warning(away), t.warningDetail, true);
+  else showBanner(t.predicted, t.predictedDetail, true);
 }
 
 /** The result of a finished match, with the score from GDD section 12. */

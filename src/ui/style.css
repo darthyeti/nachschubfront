@@ -456,6 +456,32 @@ button[hidden] {
   transform: translate(-50%, 0) rotate(-2deg);
 }
 
+/* The Koloss warning: a red plate under the words with a yellow hazard stripe
+   across the top, so it reads as a threat and not as any other announcement
+   (docs/ART.md, "Zielankündigung"). */
+.hud-banner.danger {
+  color: #fff3d6;
+  -webkit-text-stroke: 2px var(--ink);
+  background: rgba(120, 16, 10, 0.92);
+  border: 3px solid var(--ink);
+  border-radius: 4px;
+  padding: 14px 26px 10px;
+  box-shadow: 4px 4px 0 var(--ink);
+  text-shadow: 2px 2px 0 var(--ink);
+  background-image:
+    repeating-linear-gradient(
+      -45deg,
+      #e8b93a 0,
+      #e8b93a 8px,
+      var(--ink) 8px,
+      var(--ink) 16px
+    ),
+    linear-gradient(rgba(120, 16, 10, 0.92), rgba(120, 16, 10, 0.92));
+  background-size: 100% 8px, 100% 100%;
+  background-position: top left, 0 0;
+  background-repeat: no-repeat, no-repeat;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hud-banner {
     transition: none;

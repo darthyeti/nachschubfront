@@ -2,7 +2,7 @@
 
 import { iso } from './iso.js';
 import { applyCamera } from './camera.js';
-import { cellPath, comicText } from './draw.js';
+import { cellPath, comicText, ell } from './draw.js';
 import { C } from './palette.js';
 import {
   drawObstacleCell,
@@ -21,6 +21,7 @@ import { createBackdropLayer } from './backdrop.js';
 import { createAtmosphere } from './atmosphere.js';
 import { snapToAxis } from '../sim/commands.js';
 import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
+import { laneStart } from '../sim/koloss.js';
 import { drawTowerSprite, drawSpecialRing } from './towerSprites.js';
 import {
   createPodRenderer,
@@ -152,24 +153,60 @@ function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
  * once it is on the field. Deliberately unlike a landing zone — one is an offer,
  * this is a threat.
  */
-function drawKolossTarget(ctx, cell, t, reducedMotion, arrived) {
-  const pulse = reducedMotion ? 0.8 : 0.6 + 0.4 * Math.abs(Math.sin(t * (arrived ? 4 : 2)));
-  const rgb = arrived ? '255,58,42' : '255,154,74';
-  drawCellMarker(ctx, cell, `rgba(${rgb},${0.14 * pulse})`, `rgba(${rgb},${0.95 * pulse})`, arrived ? 4 : 3);
-  const [x, y] = iso(cell.x + 0.5, cell.y + 0.5);
-  // Crosshair arms, so the cell reads as aimed at and not merely marked.
-  ctx.strokeStyle = `rgba(${rgb},${0.9 * pulse})`;
-  ctx.lineWidth = 2.5;
-  for (const [dx, dy] of [
-    [-1, 0],
-    [1, 0],
-  ]) {
+function drawKolossTarget(ctx, map, run, t, reducedMotion) {
+  const { lane, target, swathe } = run;
+  const pulse = reducedMotion ? 0.7 : 0.5 + 0.5 * Math.abs(Math.sin(t * 8));
+  const RED = '#ff3a1a';
+
+  // The dashed drive line, from where it enters at the map edge to the end of
+  // the swathe (docs/ART.md, "Zielankündigung"). Without a lane it is walled in
+  // and only the target itself is marked.
+  if (lane) {
+    const start = laneStart(map, lane.index, lane);
+    const a = iso(start.x + 0.5 + lane.dx * 1.4, start.y + 0.5 + lane.dy * 1.4);
+    const last = swathe.length ? swathe[swathe.length - 1] : target;
+    const b = iso(last.x + 0.5, last.y + 0.5);
+    ctx.save();
+    ctx.setLineDash([10, 7]);
+    ctx.lineDashOffset = reducedMotion ? 0 : -t * 30;
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = RED;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(x + dx * 16, y + dy * 8);
-    ctx.lineTo(x + dx * 34, y + dy * 17);
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+
+    // The swathe cells pulsing red.
+    ctx.fillStyle = RED;
+    for (const c of swathe) {
+      ctx.globalAlpha = 0.18 + 0.14 * pulse;
+      cellPath(ctx, c.x, c.y, 0.04);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // The target ring: a hard ellipse that breathes, a soft inner one, and four
+  // segments turning around it.
+  const [cx, cy] = iso(target.x + 0.5, target.y + 0.5);
+  ctx.globalAlpha = 0.9;
+  ell(ctx, cx, cy, 34 + pulse * 6, 17 + pulse * 3, null, RED, 3.4);
+  ell(ctx, cx, cy, 22, 11, null, '#ffb0a0', 2);
+  ctx.strokeStyle = RED;
+  ctx.lineWidth = 4;
+  for (let q = 0; q < 4; q++) {
+    const a = (reducedMotion ? 0 : t * 2) + (q * Math.PI) / 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 44, 22, 0, a, a + 0.5);
     ctx.stroke();
   }
+  ctx.globalAlpha = 1;
 }
+
 
 /**
  * Everything the demolish mode could clear (GDD section 13). Rubble is marked in
@@ -302,7 +339,7 @@ export function createSceneRenderer(sprites) {
     // Where the Koloss is aimed (GDD section 9). Drawn during planning and while
     // it is on the field, so the player can see what it is driving at.
     if (state.koloss?.target && state.koloss.stage !== 'warning' && !state.koloss.breached) {
-      drawKolossTarget(ctx, state.koloss.target, t, ui.reducedMotion, state.koloss.stage === 'arrived');
+      drawKolossTarget(ctx, state.map, state.koloss, t, ui.reducedMotion);
     }
     // Cells cleared in demolish mode keep a faint ring until a capsule takes
     // them or the wave starts (docs/ART.md).

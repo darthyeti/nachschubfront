@@ -307,6 +307,7 @@ export function createHud(root, { debug, onAction }) {
         bannerText.nodeValue = v;
         banner.classList.toggle('show', v !== '');
       });
+      set('bannerDanger', ui.banner?.danger ? '1' : '', (v) => banner.classList.toggle('danger', v === '1'));
       set('bannerDetail', ui.banner?.detail ?? '', (v) => (bannerDetail.textContent = v));
     },
 
