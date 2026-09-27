@@ -1,7 +1,7 @@
 // What used to be painted into the concept art and is animated in code from M4 on:
 // the pilot light of the flame thrower, the lens of the laser, the aura and rings
 // of the psi shrine, the glow and the arcs of the tesla coil. Since M4d also the
-// muzzle flashes and flame bursts at the bunker's three ports.
+// muzzle flashes, casings and the flame jet at the weapon's muzzle.
 //
 // These belong to the emplacement itself (they are there without a shot being
 // fired), unlike the muzzle flashes and beams in effects.js.
@@ -12,9 +12,6 @@ import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 
 /** Where the hero's banner stands on the base and how big it is (SVG units). */
-/** How far the outer two ports aim off the firing direction (radians). */
-const PORT_SPREAD = 0.3;
-
 /** Arcs around the tesla sphere: idle it crackles, while firing it flares. */
 const ARC_IDLE = 1;
 const ARC_FIRING = 3;
@@ -77,18 +74,6 @@ export function drawWeaponGlow(ctx, tower, view) {
   }
 }
 
-/** A flame tongue out of an embrasure: a leaf along the firing direction. */
-function tongue(ctx, x, y, [dx, dy], length, width, fill) {
-  const [px, py] = [-dy * width, dx * width];
-  ctx.beginPath();
-  ctx.moveTo(x + px, y + py);
-  ctx.quadraticCurveTo(x + dx * length * 0.7 + px, y + dy * length * 0.7 + py, x + dx * length, y + dy * length);
-  ctx.quadraticCurveTo(x + dx * length * 0.7 - px, y + dy * length * 0.7 - py, x - px, y - py);
-  ctx.closePath();
-  ctx.fillStyle = fill;
-  ctx.fill();
-}
-
 /** A muzzle flash: the four-pointed star of the concept sheets. */
 function spark(ctx, x, y, radius, colour) {
   ctx.beginPath();
@@ -105,69 +90,41 @@ function spark(ctx, x, y, radius, colour) {
 }
 
 /**
- * The shared bunker has no barrel (docs/ART.md, "Gemeinsamer Bunker"): what tells
- * the two doctrines apart is the effect at the three ports. Both lean
- * towards the target, because nothing about the building turns.
- */
-function drawPortFire(ctx, tower, view) {
-  const { doctrine, ports, fire, shot, casings, scale, t, reducedMotion } = view;
-  const flicker = reducedMotion ? 1 : 0.8 + Math.sin(t * 22) * 0.2;
-
-  if (doctrine === 'flame') {
-    const aim = Math.atan2(fire[1], fire[0]);
-    ports.forEach(([x, y], i) => {
-      if (!tower.firing) {
-        // Idle: a blue pilot light, in the middle slit only (style test).
-        if (i === 1) ell(ctx, x, y, 2.2 * scale, 2.2 * scale, '#6fb7ff', null);
-        return;
-      }
-      // Fanned out around the firing direction: three tongues along the same
-      // line would overlap into one smear across the front.
-      const angle = aim + (i - 1) * PORT_SPREAD;
-      const out = [Math.cos(angle), Math.sin(angle)];
-      const wobble = reducedMotion ? 1 : 0.75 + Math.sin(t * 19 + i * 2.1) * 0.25;
-      const length = 12 * scale * wobble;
-      tongue(ctx, x, y, out, length, 3.4 * scale, '#ff8a2a');
-      tongue(ctx, x, y, out, length * 0.55, 2 * scale, '#ffd23f');
-    });
-    return;
-  }
-  // Autocannon: every port flashes on the same beat as the shot.
-  if (shot <= 0.05) return;
-  for (const [x, y] of ports) {
-    spark(ctx, x, y, 7 * scale * shot * flicker, '#f0e2b8');
-    spark(ctx, x, y, 3 * scale * shot, '#fff3d0');
-  }
-  if (casings) drawCasings(ctx, view);
-}
-
-/**
  * Spent cases tumbling out of a rapid-firing gun (style test). They live off the
  * shot's own decay instead of a particle system: the drum fire is over in a
  * fraction of a second, and nothing has to be kept between frames.
  */
-function drawCasings(ctx, { ports, shot, scale }) {
+/**
+ * Spent brass tumbling out of the muzzle while firing. Driven by the recoil
+ * phase (`view.shot`, 1 just fired, decaying to 0), so it animates per shot
+ * without a persistent particle. Two cases arc out to the side away from the
+ * line of fire, rise, then fall.
+ */
+function drawEjectedCasings(ctx, { muzzle, fire, shot, scale }) {
+  if (shot <= 0.05) return;
   const age = 1 - shot;
+  // Sideways from the barrel, on the screen-up side, plus a fall.
+  const side = [-fire[1], -Math.abs(fire[0]) - 0.4];
+  const len = Math.hypot(side[0], side[1]) || 1;
+  const ux = side[0] / len;
+  const uy = side[1] / len;
   ctx.fillStyle = '#e8c872';
   ctx.strokeStyle = C.ink;
   ctx.lineWidth = 0.8;
-  ports.forEach(([x, y], i) => {
-    for (let n = 0; n < 2; n++) {
-      // Fixed offsets per port and case, so the spray never jitters on a still frame.
-      const out = (1.4 + i * 0.35 + n * 0.8) * scale * 26 * age;
-      const rise = (1 - (age * 2 - 1) ** 2) * 14 * scale;
-      const cx = x + out;
-      const cy = y - rise + age * 10 * scale;
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(age * (6 + i) + n);
-      ctx.beginPath();
-      ctx.rect(-1.4 * scale, -0.9 * scale, 2.8 * scale, 1.8 * scale);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-    }
-  });
+  for (let n = 0; n < 2; n++) {
+    const out = (10 + n * 7) * scale * age;
+    const rise = (1 - (age * 2 - 1) ** 2) * 13 * scale;
+    const cx = muzzle[0] + ux * out;
+    const cy = muzzle[1] + uy * out - rise + age * age * 16 * scale;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(age * (7 + n * 2));
+    ctx.beginPath();
+    ctx.rect(-1.4 * scale, -0.9 * scale, 2.8 * scale, 1.8 * scale);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 
@@ -191,6 +148,14 @@ export function drawWeaponSpark(ctx, tower, view) {
     if (bowl) glow(ctx, fx, fy, (tower.firing ? 22 : 15) * scale, '#ff8a2a', tower.firing ? 0.5 : 0.3);
     ell(ctx, fx, fy, r, r, tower.firing || bowl ? '#ffd23f' : '#6fb7ff', null);
     if (bowl) ell(ctx, fx, fy - r * 0.5, r * 0.55, r * 0.7, '#fff3c4', null);
+  } else if (doctrine === 'autocannon') {
+    // A muzzle flash at the barrel while firing, and brass tumbling out of it.
+    if (tower.firing || view.shot > 0.05) {
+      const flare = Math.max(0.3, view.shot);
+      glow(ctx, muzzle[0], muzzle[1], 12 * scale * flare, '#ffd23f', 0.5 * flare);
+      spark(ctx, muzzle[0], muzzle[1], (4 + 3 * flare) * scale, '#fff3b0');
+    }
+    if (view.casings || doctrine === 'autocannon') drawEjectedCasings(ctx, view);
   } else if (doctrine === 'laser') {
     const pulse = reducedMotion ? 0.8 : 0.6 + Math.sin(t * 6) * 0.2;
     glow(ctx, muzzle[0], muzzle[1], 14 * scale, colour, firing ? 0.55 : 0.3);

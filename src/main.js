@@ -766,7 +766,7 @@ if (debug) {
       stress: state.stress,
       zones: state.zones.map(({ x, y }) => ({ x, y })),
       pods: state.pods.map(({ index, x, y, doctrine, rank, landed }) => ({ index, x, y, doctrine, rank, landed })),
-      towers: state.towers.map(({ id, x, y, doctrine, rank, special }) => ({ id, x, y, doctrine, rank, special })),
+      towers: state.towers.map(({ id, x, y, doctrine, rank, special, firing }) => ({ id, x, y, doctrine, rank, special, firing: Boolean(firing) })),
       supplyLevel: state.supplyLevel,
       requisition: state.requisition,
       commandPoints: state.commandPoints,

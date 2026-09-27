@@ -175,6 +175,17 @@ export function createEffects() {
     return best;
   }
 
+  /**
+   * Where a shot, beam or soul-strike leaves the figure on screen: the muzzle
+   * of the top, not the middle of the cell. The tops sit up on the roof and
+   * their barrels point off to the side, so the middle of the cell is visibly
+   * wrong (the effect appeared to start inside the housing).
+   */
+  function muzzleOrigin(state, event) {
+    const tower = towerById(state, event.towerId);
+    return tower ? towerAnchor(tower) : null;
+  }
+
   /** The muzzle a shell leaves from, when the emplacement has a tube worth the name. */
   function launchPoint(state, event) {
     const tower = towerById(state, event.towerId);
@@ -188,10 +199,10 @@ export function createEffects() {
       // The storm battery fires blue tracer, not the brass of the doctrine it
       // is built from (docs/ART.md, "Spezialstellungen").
       const shade = event.tracer ?? colour;
-      shots.push({ kind: 'shot', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour: shade, life: FLASH_SECONDS });
-      if (!reducedMotion) burst(event.x, event.y, 26, 'spark', 2, { speed: 40, size: 2, life: 0.25 });
+      const origin = muzzleOrigin(state, event);
+      shots.push({ kind: 'shot', x: event.x, y: event.y, tx: event.tx, ty: event.ty, origin, colour: shade, life: FLASH_SECONDS });
     } else if (event.type === 'beam') {
-      shots.push({ kind: 'beam', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: BEAM_SECONDS });
+      shots.push({ kind: 'beam', x: event.x, y: event.y, tx: event.tx, ty: event.ty, origin: muzzleOrigin(state, event), colour, life: BEAM_SECONDS });
     } else if (event.type === 'emberJump') {
       // A short ember arc from the one that is alight to the one catching fire.
       shots.push({
@@ -205,7 +216,7 @@ export function createEffects() {
     } else if (event.type === 'soulfire') {
       // The obelisk's judgement: one beam out of the eye at its tip to the one
       // thing it is passing judgement on (docs/ART.md).
-      shots.push({ kind: 'beam', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: BEAM_SECONDS * 2 });
+      shots.push({ kind: 'beam', x: event.x, y: event.y, tx: event.tx, ty: event.ty, origin: muzzleOrigin(state, event), colour, life: BEAM_SECONDS * 2 });
       if (!reducedMotion) burst(event.tx, event.ty, 14, 'warp', 10, { speed: 60, size: 3, life: 0.5, gravity: -40 });
     } else if (event.type === 'chain') {
       // The simulation starts the chain in the middle of the cell; the drawing
@@ -667,31 +678,49 @@ export function createEffects() {
     ctx.restore();
   }
 
+  /**
+   * A flame jet from the burner's muzzle along the aim. Since v5 the flame top
+   * has a real nozzle, so the fire leaves the muzzle as a narrow jet, not a
+   * flashlight cone from the middle of the cell (the old shared-bunker look).
+   * A few overlapping tongues that flare and shrink read as fire rather than a
+   * solid wedge.
+   */
   function drawCone(ctx, tower, t, reducedMotion) {
-    const from = project(tower.x + 0.5, tower.y + 0.5, 20);
+    const from = towerAnchor(tower);
     const to = project(tower.aim.x, tower.aim.y, 6);
     const dx = to[0] - from[0];
     const dy = to[1] - from[1];
     const length = Math.hypot(dx, dy) || 1;
     const ux = dx / length;
     const uy = dy / length;
-    const flicker = reducedMotion ? 1 : 0.85 + Math.sin(t * 24) * 0.15;
-    const reach = length * flicker;
-    const half = reach * 0.42;
-    const tip = [from[0] + ux * reach, from[1] + uy * reach];
-    const side = [-uy * half, ux * half];
-    const left = [tip[0] + side[0], tip[1] + side[1]];
-    const right = [tip[0] - side[0], tip[1] - side[1]];
-    ctx.globalAlpha = 0.75;
-    poly(ctx, [from, left, right], 'rgba(226,83,31,.55)', null);
-    poly(
-      ctx,
-      [from, [tip[0] + side[0] * 0.5, tip[1] + side[1] * 0.5], [tip[0] - side[0] * 0.5, tip[1] - side[1] * 0.5]],
-      'rgba(255,177,59,.8)',
-      null,
-    );
+    // A jet, not a cone: reach a little short of the target, stay narrow.
+    const flicker = reducedMotion ? 1 : 0.9 + Math.sin(t * 24) * 0.1;
+    const reach = Math.min(length, 96) * flicker;
+    ctx.globalAlpha = 0.85;
+    for (const [span, half, colour] of [
+      [1.0, 0.2, 'rgba(226,83,31,.6)'],
+      [0.82, 0.14, 'rgba(255,138,42,.75)'],
+      [0.6, 0.085, 'rgba(255,210,63,.9)'],
+    ]) {
+      const wob = reducedMotion ? 0 : Math.sin(t * 30 + span * 6) * 0.05;
+      const tip = [from[0] + ux * reach * span, from[1] + uy * reach * span];
+      const w = reach * (half + wob);
+      const side = [-uy * w, ux * w];
+      poly(
+        ctx,
+        [
+          [from[0] + side[0] * 0.5, from[1] + side[1] * 0.5],
+          [tip[0] + side[0] * 0.4, tip[1] + side[1] * 0.4],
+          [tip[0], tip[1]],
+          [tip[0] - side[0] * 0.4, tip[1] - side[1] * 0.4],
+          [from[0] - side[0] * 0.5, from[1] - side[1] * 0.5],
+        ],
+        colour,
+        null,
+      );
+    }
     ctx.globalAlpha = 1;
-    ell(ctx, from[0], from[1], 5 * flicker, 5 * flicker, '#fff3b0', null);
+    ell(ctx, from[0], from[1], 4 * flicker, 4 * flicker, '#fff3b0', null);
   }
 
   /** Shells, flashes, beams, particles and numbers, on top of everything. */
@@ -781,7 +810,7 @@ export function createEffects() {
   }
 
   function drawMuzzle(ctx, s, a) {
-    const from = project(s.x, s.y, 26);
+    const from = s.origin ?? project(s.x, s.y, 26);
     const to = project(s.tx, s.ty, 10);
     ctx.globalAlpha = a;
     ctx.strokeStyle = s.colour;
@@ -796,7 +825,7 @@ export function createEffects() {
   }
 
   function drawBeam(ctx, s, a) {
-    const from = project(s.x, s.y, 26);
+    const from = s.origin ?? project(s.x, s.y, 26);
     const to = project(s.tx, s.ty, 12);
     ctx.globalAlpha = a;
     ctx.lineCap = 'round';
