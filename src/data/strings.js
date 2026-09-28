@@ -450,11 +450,15 @@ export const STRINGS = {
     bulwarkTarget: 'Nur auf Trümmern',
     zoneAdded: 'Landezone',
     zoneRemoved: 'Zone gelöscht',
-    /** Markers on rubble that the last purchase put out of reach. */
+    /**
+     * Markers the last purchase invalidated: the demolition became unpayable, or
+     * the ground was built on. The cell itself says which (`placement.funds` or
+     * `placement.occupied`).
+     */
     zonesDropped: (n) =>
       n === 1
-        ? 'Eine Landezone auf Trümmern entfernt: Der Abriss ist nicht mehr bezahlbar.'
-        : `${n} Landezonen auf Trümmern entfernt: Der Abriss ist nicht mehr bezahlbar.`,
+        ? 'Eine Landezone entfernt: Das Feld ist nicht mehr bebaubar.'
+        : `${n} Landezonen entfernt: Die Felder sind nicht mehr bebaubar.`,
   },
 
   selection: {

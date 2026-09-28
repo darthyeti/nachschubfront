@@ -8,7 +8,7 @@ import { setBlocked } from './grid.js';
 import { computeRoute, routeExists } from './route.js';
 import { towerAt, removeTower } from './towers.js';
 import { rubbleIndexAt, bulwarkIndexAt, isRubble, raiseBulwark, nextRubbleCost } from './rubble.js';
-import { dropUnaffordableRubbleZones } from './zones.js';
+import { dropInvalidZones } from './zones.js';
 import { record } from './record.js';
 
 // The demolition price itself lives in rubble.js, so zones.js can read it
@@ -18,15 +18,16 @@ export { nextRubbleCost };
 
 /**
  * Pays for something out of the purse and then puts the landing zones back in
- * order. Every spend in the planning phase goes through this, because spending
- * can make a marker on rubble impossible to build on — the purse drops, and
- * demolishing or raising a bulwark also raises the price of the next heap. A
- * salvo whose every capsule stands on a heap nobody can clear cannot be chosen
- * at all, which used to leave the player stuck in the selection phase.
+ * order. Every spend in the planning phase goes through this, because what the
+ * player buys can pull the ground out from under a marker they set a moment
+ * before: the purse drops below the demolition, the price of the next heap goes
+ * up, or a bulwark takes the marked heap away altogether. `dropInvalidZones` in
+ * sim/zones.js lists the cases and says why the marker goes rather than the
+ * purchase being refused.
  */
 function spend(state, cost) {
   state.requisition -= cost;
-  dropUnaffordableRubbleZones(state);
+  dropInvalidZones(state);
 }
 
 /** Cost of the next supply level, or null at the top. */

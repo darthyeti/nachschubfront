@@ -13,15 +13,17 @@ import {
   zoneLimit,
   previewRoute,
   zoneAffordable,
-  dropUnaffordableRubbleZones,
+  dropInvalidZones,
+  zoneGroundOk,
 } from '../../src/sim/zones.js';
 import { routeExists, computeRoute } from '../../src/sim/route.js';
 import { createRng } from '../../src/core/random.js';
 import { createGameState } from '../../src/core/state.js';
 import { PODS } from '../../src/data/pods.js';
 import { setBlocked, isBlocked } from '../../src/sim/grid.js';
-import { addRubble, nextRubbleCost } from '../../src/sim/rubble.js';
+import { addRubble, isBulwark, nextRubbleCost } from '../../src/sim/rubble.js';
 import { buySupply, demolish, buildBulwark, nextSupplyCost, nextBulwarkCost } from '../../src/sim/economy.js';
+import { toggleObstacle } from '../../src/sim/actions.js';
 import { mapFromAscii, planningState } from './helpers.js';
 
 const OPEN = [
@@ -256,6 +258,45 @@ test('raising a bulwark drops a marker the same way', () => {
   assert.deepEqual(state.zones, [], 'the marker is gone');
 });
 
+test('a bulwark on the marked heap takes the marker with it', () => {
+  // Rubble takes a landing zone, a bulwark does not (route.js). Without this the
+  // marker stayed on the cell and the capsule came down on the bulwark.
+  const state = planningState(mapFromAscii(OPEN));
+  state.route = computeRoute(state.map);
+  const heap = { x: 3, y: 6 };
+  addRubble(state, heap);
+  state.route = computeRoute(state.map);
+  // Plenty of money, so it is the ground and not the purse that ends the marker.
+  state.requisition = 10_000;
+  assert.deepEqual(toggleZone(state, heap), { ok: true, action: 'added' });
+
+  assert.ok(buildBulwark(state, heap).ok);
+  assert.equal(isBulwark(state.map, heap), true);
+  assert.deepEqual(state.zones, [], 'the marker went with the heap');
+  assert.deepEqual(
+    state.events.filter((e) => e.type === 'zonesDropped').at(-1).cells,
+    [{ x: 3, y: 6, reason: 'occupied' }],
+    'and it says the ground was built on, not that the money ran out',
+  );
+  assert.equal(zoneGroundOk(state, heap), false);
+  assert.equal(canMarkZone(state, heap).reason, 'occupied', 'and it cannot be set again');
+});
+
+test('debug rubble on a marked free cell is weighed like any other heap', () => {
+  const state = planningState(mapFromAscii(OPEN));
+  state.route = computeRoute(state.map);
+  const cell = { x: 3, y: 6 };
+  assert.deepEqual(toggleZone(state, cell), { ok: true, action: 'added' });
+
+  state.requisition = 10_000;
+  assert.ok(toggleObstacle(state, cell).ok, 'a heap is dropped on the marker');
+  assert.deepEqual(state.zones, [cell], 'with money enough, the marker stays');
+
+  state.requisition = 0;
+  assert.ok(toggleObstacle(state, { x: 5, y: 6 }).ok);
+  assert.deepEqual(state.zones, [], 'broke, it goes');
+});
+
 test('dropping a marker is recorded, so a protocol replays the same way', () => {
   const state = planningState(mapFromAscii(OPEN));
   state.route = computeRoute(state.map);
@@ -266,7 +307,7 @@ test('dropping a marker is recorded, so a protocol replays the same way', () => 
   state.requisition = nextRubbleCost(state);
   toggleZone(state, heap);
   state.requisition = 0;
-  assert.deepEqual(dropUnaffordableRubbleZones(state), [{ x: 3, y: 6 }]);
+  assert.deepEqual(dropInvalidZones(state), [{ x: 3, y: 6, reason: 'funds' }]);
   assert.deepEqual(
     state.log.actions.map(({ a, x, y, on }) => ({ a, x, y, on })),
     [

@@ -6,7 +6,7 @@ import { setPhase } from '../core/phases.js';
 import { computeRoute, checkPlacement } from './route.js';
 import { setBlocked } from './grid.js';
 import { beginWave, totalWaves } from './waves.js';
-import { fillZones } from './zones.js';
+import { fillZones, dropInvalidZones } from './zones.js';
 import { createPods, salvoRng } from './pods.js';
 import { applySelection, forfeitSalvo, salvoBuildable } from './selection.js';
 import { addRubble } from './rubble.js';
@@ -115,5 +115,8 @@ export function toggleObstacle(state, cell) {
   addRubble(state, cell);
   refreshRoute(state);
   record(state, 'obstacle', { x: cell.x, y: cell.y, on: true });
+  // A heap dropped on a marked free cell turns that marker into one on rubble,
+  // which the purse may not cover.
+  dropInvalidZones(state);
   return { ok: true, action: 'added' };
 }

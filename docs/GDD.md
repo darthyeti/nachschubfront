@@ -46,6 +46,8 @@ Reicht die Requisition für den Abriss nicht, ist die Wahl dieser Kapsel nicht m
 
 Damit immer eine wählbare Kapsel übrig bleibt, gilt schon in der Planungsphase: **Eine Landezone auf Trümmern kann nur markiert werden, solange die Requisition den Abriss deckt.** Sinkt sie danach darunter — durch eine Nachschubstufe, einen Abriss oder ein Bollwerk, die alle auch den Preis des nächsten Haufens heben —, werden die betroffenen Markierungen mit Hinweis entfernt. Eine Markierung auf einem unbezahlbaren Haufen wäre ohnehin ein verschenkter Kapselplatz: Wird die Kapsel nicht gewählt, bleibt das Feld unverändert Trümmer.
 
+Dasselbe gilt, wenn auf dem markierten Trümmerfeld ein **Bollwerk** errichtet wird (Abschnitt 10): Ein Bollwerk nimmt keine Kapsel auf, die Markierung wird also mit dem Haufen entfernt. Der Bollwerkbau wird nicht verweigert — die spätere Entscheidung des Spielers gilt.
+
 Auf einer nahezu vollen Karte kann das zufällige Ergänzen trotzdem auf unbezahlbare Trümmer ausweichen müssen. Ist dann **keine** Kapsel der Salve bebaubar, kann die Salve in der Auswahlphase **verfallen** gelassen werden: Es entsteht keine Stellung, alle Kapseln werden wie üblich zu Trümmern, die Welle beginnt. Sonst wäre die Runde nicht fortsetzbar, denn Requisition kommt erst während einer Welle wieder herein.
 
 ### Salvengröße

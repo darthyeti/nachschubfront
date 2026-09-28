@@ -168,6 +168,12 @@ wurde. Die Begründungen stehen in den Commits.
   `sim/economy.js`. Sonst konnte eine Salve vollständig auf unbezahlbaren
   Trümmern landen und keine ihrer Kapseln war wählbar — eine Sackgasse, denn
   Abreißen, Bollwerk und Nachschubstufe gehören alle in die Planungsphase.
+- Allgemeiner: **eine Markierung, deren Feld keine Kapsel mehr aufnehmen kann,
+  wird entfernt, nicht die Handlung verweigert** (`dropInvalidZones`). Das gilt
+  auch für ein Bollwerk auf dem markierten Haufen — ein Bollwerk ist in
+  `checkPlacement` `occupied` — und für Debug-Trümmer auf einem markierten freien
+  Feld. Die spätere Entscheidung des Spielers gewinnt; ein Bollwerk, das aus
+  unsichtbarem Grund nicht hochgeht, wäre die schlechtere Bedienung.
 - Bleibt trotzdem keine bebaubare Kapsel (volle Karte, das Ergänzen muss
   ausweichen), kann die Salve verfallen gelassen werden: keine Stellung, alle
   Kapseln zu Trümmern, die Welle beginnt. Nur in diesem einen Fall angeboten.

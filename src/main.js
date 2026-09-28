@@ -715,10 +715,11 @@ function drainEvents() {
       if (prefs.values.rateWaves) rating.ask(ev.wave);
     }
     // Markers the last purchase made impossible to build on. Said out loud,
-    // because a landing zone that quietly disappears looks like a fault.
+    // because a landing zone that quietly disappears looks like a fault, and
+    // each cell says which of the two reasons it was.
     else if (ev.type === 'zonesDropped') {
       showBanner(STRINGS.placement.zonesDropped(ev.cells.length));
-      for (const cell of ev.cells) flash(cell, false, STRINGS.placement.funds);
+      for (const cell of ev.cells) flash(cell, false, STRINGS.placement[cell.reason]);
     }
     else if (ev.type === 'kolossArrived') showBanner(STRINGS.koloss.arrived, STRINGS.koloss.arrivedDetail);
     else if (ev.type === 'kolossBreach') {

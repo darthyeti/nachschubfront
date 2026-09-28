@@ -4,6 +4,7 @@
 
 import { PODS, salvoSize } from '../data/pods.js';
 import { checkPlacement, routeWith } from './route.js';
+import { isBlocked } from './grid.js';
 import { isRubble, nextRubbleCost } from './rubble.js';
 import { upcomingWave } from './pods.js';
 import { record } from './record.js';
@@ -48,6 +49,28 @@ export function zoneAffordable(state, cell) {
 }
 
 /**
+ * Whether a capsule may still come down on that cell: the one part of
+ * `checkPlacement`'s per-cell rule that can change while a marker is standing.
+ * Free ground and heaps of rubble take a capsule, nothing else does — a bulwark
+ * raised on the marked heap is the case this catches. Bounds and protected cells
+ * are fixed when the map is made.
+ *
+ * Why not `checkPlacement` itself: that also asks whether the route stays open,
+ * which is a question about the whole salvo rather than this one cell, and was
+ * answered when the marker went down. A cell that was blocked already — rubble —
+ * cannot have made it worse since.
+ */
+export function zoneGroundOk(state, cell) {
+  return !isBlocked(state.map.grid, cell.x, cell.y) || isRubble(state.map, cell);
+}
+
+/** Why a standing marker is no longer any good, or null while it still is. */
+export function zoneFault(state, cell) {
+  if (!zoneGroundOk(state, cell)) return 'occupied';
+  return zoneAffordable(state, cell) ? null : 'funds';
+}
+
+/**
  * Checks a cell against all zones marked so far: the whole salvo must leave the
  * chain of legs walkable, not each pod on its own.
  * @returns {{ok: true} | {ok: false, reason: 'phase' | 'full' | 'funds' | 'outside' | 'protected' | 'occupied' | 'blocks'}}
@@ -89,26 +112,38 @@ export function clearZones(state) {
 }
 
 /**
- * Drops the markers on rubble the player can no longer pay to clear, and returns
- * the cells it gave up. Called after every spend in the planning phase
- * (sim/economy.js): buying a supply level empties the purse, and demolishing or
- * raising a bulwark also pushes the price of the next heap up, so either can turn
- * a marker set a moment ago into a capsule nobody could build on.
+ * Drops the markers that are no longer any good and returns them with the reason.
+ * What the player does next in the planning phase can pull the ground out from
+ * under a marker set a moment before:
+ *
+ * - buying a supply level empties the purse below the demolition,
+ * - demolishing or raising a bulwark does that too, and pushes the price of the
+ *   next heap up as well,
+ * - raising a bulwark on the marked heap leaves a cell no capsule may land on,
+ * - and the debug obstacle tool can bury a marked free cell under rubble.
+ *
+ * The later action wins and the marker goes, which is the same way round as
+ * everywhere else here. Refusing the purchase instead would mean a bulwark that
+ * fails to go up for a reason nobody can see.
  *
  * Each removal is recorded like a marker the player took back, so a protocol
  * replays the same way (sim/replay.js reads `zone` actions).
+ * @returns {{x: number, y: number, reason: 'occupied' | 'funds'}[]}
  */
-export function dropUnaffordableRubbleZones(state) {
-  const dropped = state.zones.filter((zone) => !zoneAffordable(state, zone));
-  for (const zone of dropped) {
+export function dropInvalidZones(state) {
+  const dropped = [];
+  for (const zone of [...state.zones]) {
+    const reason = zoneFault(state, zone);
+    if (!reason) continue;
     const index = zoneIndexAt(state, zone);
     if (index < 0) continue;
     state.zones.splice(index, 1);
     record(state, 'zone', { x: zone.x, y: zone.y, on: false });
+    dropped.push({ x: zone.x, y: zone.y, reason });
   }
   if (dropped.length > 0) {
     refreshZonePreview(state);
-    state.events.push({ type: 'zonesDropped', cells: dropped.map(({ x, y }) => ({ x, y })) });
+    state.events.push({ type: 'zonesDropped', cells: dropped });
   }
   return dropped;
 }
