@@ -72,8 +72,37 @@ npm run playmatch -- BASTION --protocol balancing/protokolle/bot-BASTION.json
 Ein Bot setzt seine Zonen nach einer Regel und ist damit **keine Messung** — für
 das Werkzeug ist es aber eine echte Partie.
 
+## Bots, Eichung, Kraftkurve
+
+```
+npm run bots                                   20 Seeds, alle Strategien
+npm run bots -- --seeds 200 --strategy refine   viele Seeds, eine Strategie
+npm run calibrate                              Bots gegen deine Protokolle
+npm run powercurve                             Kraftkurve als Tabelle und HTML
+```
+
+**`npm run bots`** spielt viele Seeds mit einer Strategie und gibt Überlebensquote,
+Wellen, Durchbruchswellen und verschwendeten Schaden aus. Fünf Strategien:
+`maze` (verlängert die Route maximal), `firepower` (kompakte Todeszone),
+`recipes` (sammelt Zutaten), `refine` (mäßiges Labyrinth, dafür hohe Ränge) und
+`simple` (der Bot von vor M6, als Vergleichsmaß). Die Seeds kommen aus einem
+festen Zufallsstrom, zwei Läufe vergleichen also dieselben Karten.
+
+**`npm run calibrate`** stellt jede Strategie neben eine von Hand gespielte
+Partie auf demselben Seed und nennt den Abstand. Das ist der Punkt, an dem
+Bot-Zahlen überhaupt etwas bedeuten: Ohne Eichung sind sie Richtwerte.
+
+**`npm run powercurve`** rechnet ohne Kampf, was jede Welle mitbringt und was
+die Stellungen liefern können, und schreibt ein Diagramm nach
+`balancing/runden/kraftkurve.html`. Liegt ein Protokoll vor, prüft das Werkzeug
+sein eigenes Modell daran und sagt, wie weit es daneben liegt.
+
 ## `runden/`
 
 Eine Auswertung je Abstimmungsrunde (`runde-1.md`, `runde-2.md`, …): was
 geändert wurde, warum, die Kurven vorher und nachher, und die Bewertungen aus
 den Protokollen.
+
+Erzeugte CSV- und HTML-Dateien in `runden/` bleiben aus dem Repository heraus
+(`.gitignore`); sie sind in Sekunden wieder da. Was bleibt, sind die
+Auswertungen `runde-N.md`.

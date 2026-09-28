@@ -1,0 +1,181 @@
+// Puts the bots next to a match somebody played by hand (M6, part 1, step 3).
+//
+//   npm run calibrate
+//   npm run calibrate -- balancing/protokolle/nachschubfront-2026-09-28-8425CM-welle35.json
+//
+// Without arguments it takes every protocol in balancing/protokolle/ that is a
+// measurement — no debug levers in it — and for each one plays every strategy on
+// the same seed.
+//
+// Why this tool exists at all: the numbers a bot produces are worth only as much
+// as the resemblance between the bot and a player. A bot places its zones by a
+// rule, and that is a different thing from a person laying out a maze — that is
+// the standing decision of 23.09.2026, and this is the answer to it that did not
+// exist then. Until a strategy sits in the same range as the person on the same
+// map, its survival curves are a direction and not a measurement.
+//
+// The closeness is one number so the strategies can be ordered, and it is spelt
+// out below so nobody has to trust it: the distance in waves reached, the
+// average distance in route length, and the average distance in lives, each
+// divided by a scale that makes a full miss about 1.
+
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { parseProtocol } from '../../src/storage/protocol.js';
+import { isMeasurable } from '../../src/sim/record.js';
+import { replayMatch } from '../../src/sim/replay.js';
+import { STRATEGIES } from './bot-strategies.mjs';
+import { playBotMatch } from './bot-player.mjs';
+
+const FOLDER = 'balancing/protokolle';
+
+const given = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const files = given.length > 0 ? given : listProtocols();
+
+if (files.length === 0) {
+  console.error(`Keine Protokolle in ${FOLDER}/. Eine Partie spielen und über „Partie exportieren" ablegen.`);
+  process.exit(1);
+}
+
+for (const file of files) {
+  const parsed = parseProtocol(readFileSync(file, 'utf8'));
+  if (!parsed.ok) {
+    console.log(`${file}: kein Protokoll (${parsed.error}) — übersprungen.`);
+    continue;
+  }
+  const human = parsed.match;
+  if (!isMeasurable(human)) {
+    console.log(`${file}: Debug-Hebel benutzt (${human.tainted.join(', ')}) — keine Messung, übersprungen.`);
+    continue;
+  }
+
+  // The human's own match, replayed, so both sides come from the same place and
+  // a protocol from an older build is read the same way it is read everywhere.
+  const played = replayMatch(human);
+  const reference = summarise(played.waves);
+  console.log(`\n# ${file}`);
+  console.log(
+    `Seed ${human.seed} · von Hand: ${reference.waves} Wellen, ${reference.lives} Leben am Ende, ` +
+      `Route ${reference.route.toFixed(1)} im Mittel, Stellungen ${reference.ranks.join('/')}+${reference.specials}`,
+  );
+  const rated = human.waves.filter((w) => w.rating);
+  if (rated.length > 0) {
+    const counts = { easy: 0, fine: 0, hard: 0 };
+    for (const w of rated) counts[w.rating] = (counts[w.rating] ?? 0) + 1;
+    console.log(
+      `Sein Urteil: ${counts.easy}x zu leicht, ${counts.fine}x passt, ${counts.hard}x zu schwer ` +
+        `(${rated.length} von ${human.waves.length} Wellen bewertet)`,
+    );
+  }
+  console.log('');
+
+  const header = ['Strategie', 'Wellen', 'Leben', 'Route', 'Stellungen', 'ΔWellen', 'ΔRoute', 'ΔLeben', 'Abstand'];
+  const widths = [12, 6, 5, 6, 12, 7, 7, 7, 7];
+  console.log(header.map((h, i) => h.padStart(widths[i])).join(' '));
+  console.log('-'.repeat(widths.reduce((a, b) => a + b + 1, -1)));
+
+  const scored = [];
+  for (const strategy of STRATEGIES) {
+    const run = playBotMatch({ seed: human.seed, strategy: strategy.id });
+    const bot = summarise(run.waves);
+    const distance = closeness(played.waves, run.waves);
+    scored.push({ strategy, bot, distance });
+    const cells = [
+      strategy.id,
+      bot.waves,
+      bot.lives,
+      bot.route.toFixed(1),
+      `${bot.ranks.join('/')}+${bot.specials}`,
+      distance.waves,
+      distance.route.toFixed(1),
+      distance.lives.toFixed(1),
+      distance.total.toFixed(2),
+    ];
+    console.log(cells.map((c, i) => String(c).padStart(widths[i])).join(' '));
+  }
+
+  const best = [...scored].sort((a, b) => a.distance.total - b.distance.total)[0];
+  console.log('');
+  console.log(
+    `Am nächsten: ${best.strategy.title} (${best.strategy.id}), Abstand ${best.distance.total.toFixed(2)}.`,
+  );
+  console.log(verdict(best, reference));
+  console.log(
+    `Grundlage: ${files.length} ${files.length === 1 ? 'Protokoll' : 'Protokolle'}. ` +
+      (files.length < 3
+        ? 'Zu wenige, um eine Strategie daran festzuziehen — was hier passt, kann auf diese eine Partie zugeschnitten sein.'
+        : 'Eine Strategie, die über alle Protokolle nahe liegt, taugt als Richtwert.'),
+  );
+}
+
+/**
+ * The plan asks for a bot "in the same order of magnitude" as the player, which
+ * is a looser thing than playing like them, so both are said separately: the
+ * order of magnitude is the acceptance criterion, the resemblance is the goal.
+ */
+function verdict(best, reference) {
+  const share = best.bot.waves / Math.max(1, reference.waves);
+  const sameOrder = share >= 0.7 && share <= 1.3;
+  if (best.distance.total <= 0.35) {
+    return 'Das spielt wie er: mit dieser Strategie sind Bot-Läufe als Richtwert brauchbar.';
+  }
+  if (sameOrder) {
+    return (
+      `Das ist dieselbe Größenordnung (${best.bot.waves} gegen ${reference.waves} Wellen, ` +
+      `${Math.round(share * 100)} %) — das Abnahmekriterium ist damit erfüllt. Wie er spielt die Strategie aber nicht; ` +
+      'für einzelne Wellen sind ihre Zahlen kein Maß.'
+    );
+  }
+  return 'Das ist keine Eichung: keine Strategie kommt an ihn heran. Bot-Zahlen bleiben reine Richtwerte.';
+}
+
+function listProtocols() {
+  try {
+    return readdirSync(FOLDER)
+      .filter((name) => name.endsWith('.json'))
+      .map((name) => join(FOLDER, name));
+  } catch {
+    return [];
+  }
+}
+
+/** The few numbers a match is compared on. */
+function summarise(waves) {
+  const last = waves[waves.length - 1] ?? null;
+  const ranks = [0, 0, 0, 0, 0];
+  for (const line of waves) {
+    for (let i = 0; i < ranks.length; i++) ranks[i] = Math.max(ranks[i], line.byRank?.[i] ?? 0);
+  }
+  return {
+    waves: waves.length,
+    lives: last?.lives ?? 0,
+    route: waves.reduce((sum, w) => sum + w.route, 0) / Math.max(1, waves.length),
+    ranks,
+    specials: Math.max(0, ...waves.map((w) => w.specials ?? 0)),
+  };
+}
+
+/**
+ * How far a bot match is from a human one.
+ *
+ * Route length and lives are compared only over the waves both of them reached,
+ * because comparing a wave one of them never saw says nothing. The scales are
+ * chosen so that one whole unit is a full miss: ten waves apart, forty cells of
+ * route apart, ten lives apart. The three are added and divided by three, so a
+ * total near zero means "plays like him" and a total near one means "nothing
+ * like him".
+ */
+function closeness(human, bot) {
+  const shared = Math.min(human.length, bot.length);
+  let route = 0;
+  let lives = 0;
+  for (let i = 0; i < shared; i++) {
+    route += Math.abs(human[i].route - bot[i].route);
+    lives += Math.abs(human[i].lives - bot[i].lives);
+  }
+  route = shared > 0 ? route / shared : 0;
+  lives = shared > 0 ? lives / shared : 0;
+  const waves = Math.abs(human.length - bot.length);
+  const total = (Math.min(1, waves / 10) + Math.min(1, route / 40) + Math.min(1, lives / 10)) / 3;
+  return { waves, route, lives, total };
+}

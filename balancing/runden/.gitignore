@@ -1,0 +1,5 @@
+# Erzeugte Ausgaben der Werkzeuge: in Sekunden wieder da, und sie würden bei
+# jedem Lauf als Änderung auflaufen. Was bleibt, sind die Auswertungen je
+# Abstimmungsrunde (runde-N.md).
+*.csv
+*.html

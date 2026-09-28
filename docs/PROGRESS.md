@@ -39,6 +39,44 @@
 - **Die Debug-Hebel werden jetzt auch als Aktion aufgezeichnet**, nicht nur als `tainted` vermerkt. Aufgefallen ist es daran, dass eine im Test abgestützte Bastion im Nachspiel mit 19 statt 199 Leben dastand: Ein Hebel, der die Partie verändert und nicht im Protokoll steht, lässt das Nachspiel von der Partie abweichen — und dann kann niemand einen echten Unterschied von einem fehlenden unterscheiden. Betroffen sind Leben setzen, Welle anspringen, Requisition/KP geben, Kapselinhalt erzwingen und Unverwundbar.
 - **`npm run playmatch -- --protocol <datei>` schreibt Protokolle.** Damit ließ sich das Nachspielen bauen, ohne auf die ersten Partien zu warten. Nebenbei behoben: Der Bot warf bei abgelehnter Auswahl eine Ausnahme (Bauen auf Trümmern kostet den Abriss, und er gibt alles für Nachschubstufen aus) und riss auf manchen Seeds den ganzen Lauf mit; jetzt geht er die Vorschläge der Reihe nach durch.
 
+### Teil 1, Schritt 3: Bots, Eichung, Kraftkurve (28.09.2026)
+
+**Gebaut und geprüft.** Die Eichung läuft gegen Tills erstes Protokoll; das Abnahmekriterium („mindestens ein Bot in derselben Größenordnung") ist erfüllt, eine echte Eichung ist es noch nicht.
+
+- **`npm run bots`** (`tests/tools/bots.mjs`) spielt viele Seeds mit einer Strategie und gibt Überlebensquote je Welle, erreichte Wellen, Durchbruchswellen, Routenlänge, verschwendeten Schaden und übrige Requisition aus, dazu CSV und auf Wunsch die Protokolle. Die Seeds kommen aus einem festen Strom, zwei Läufe vergleichen also dieselben Karten. Läuft in Worker-Prozessen, weil der Labyrinth-Bauer allein rund 25 s je späte Partie braucht.
+- **Fünf Strategien** (`tests/tools/bot-strategies.mjs`), die sich nur in zwei Entscheidungen unterscheiden — wohin die Zonen und welche Kapsel: `maze` (verlängert die Route maximal), `firepower` (kompakte Todeszone an der dichtesten Stelle), `recipes` (sammelt Zutaten), `refine` (mäßiges Labyrinth, dafür Verschmelzen auf hohe Ränge) und `simple` (der Bot von vor M6, als Vergleichsmaß). Alles andere — Nachschub, Abriss, Bollwerke, Kommandos bei Bossen und beim Koloss — ist für alle gleich und steht in `bot-player.mjs`.
+- **`npm run calibrate`** (`tests/tools/calibrate.mjs`) stellt jede Strategie neben eine von Hand gespielte Partie auf demselben Seed: Wellen, Leben, Routenlänge, Stellungen nach Rang, und einen Abstand aus drei Teilen (Wellen, Route, Leben), dessen Formel im Kopf der Datei steht.
+- **`npm run powercurve`** (`tests/tools/powercurve.mjs`) rechnet ohne Kampf, was jede Welle mitbringt (Lebenspunkte und Schilde, geteilt durch den mittleren Schadensfaktor gegen ihre Rüstung, Heiler pauschal) gegen das, was die Stellungen liefern können (Anzahl, Rangmischung, Schaden pro Sekunde der Doktrinen mal Verweildauer in Reichweite). Tabelle plus Diagramm nach `balancing/runden/kraftkurve.html`, logarithmisch, weil die Lebenspunkte um 12 % je Welle wachsen und die interessante Spreizung sonst am unteren Rand klebt.
+- **Das Modell prüft sich selbst am Protokoll.** Die Lebenspunkte einer Welle stimmen auf **6 % im Mittel über 35 gemessene Wellen**. Die Schätzungen, auf denen der Schadensteil ruht (Streuung je Doktrin, gedeckte Routenzellen, Leerlauf), stehen als benannter `MODEL`-Block in einer Datei, damit man sie bestreiten kann, ohne sie zu suchen.
+- **Geprüft:** 401 Unit-Tests (8 neu für die Bots: jede Strategie setzt nur Zonen, die das Spiel annimmt, schließt nie den Weg, hat immer einen Rückfall, und eine Bot-Partie ist ein Protokoll, das identisch nachspielt).
+
+**Erste Ergebnisse, nicht bewertet.** 20 Seeds je Strategie, Median der erreichten Wellen: `refine` 28, `firepower` 23, `simple` 10, `recipes` 8. **Keine Strategie gewinnt eine Partie** (0 von 20 in allen fünf). Der Rezept-Jäger verliert in 13 von 20 Seeds schon Welle 1 — das Sammeln von Zutaten lässt die erste Welle unverteidigt.
+
+**Die Eichung an `8425CM` (35 Wellen von Hand):**
+
+| Strategie | Wellen | Route | Stellungen | Abstand |
+|---|---|---|---|---|
+| von Hand (Till) | 35 | 89,4 | 0/6/4/8/6+7 | — |
+| `refine` | 28 | 105,6 | 0/6/4/6/1+11 | **0,51** |
+| `maze` | 30 | 267,8 | 4/2/2/2/0+15 | 0,55 |
+| `recipes` | 10 | 45,6 | 2/2/2/0/0+3 | 0,60 |
+| `simple` | 15 | 46,7 | 3/2/1/1/0+6 | 0,69 |
+| `firepower` | 23 | 70,4 | 0/3/2/3/1+12 | 0,79 |
+
+`refine` erreicht 80 % seiner Wellen und trifft Veteranen und Elite auf die Stellung genau — das Abnahmekriterium ist damit erfüllt. Für einzelne Wellen taugen die Zahlen noch nicht: Er baut 11 Spezialstellungen, wo Till 7 hat, und alle Bots greifen häufiger zu Rezepten als er. **Ein Protokoll ist zu wenig, um eine Strategie daran festzuziehen** — was jetzt passt, kann auf diese eine Partie zugeschnitten sein. Das Werkzeug sagt das von selbst, solange weniger als drei Protokolle vorliegen.
+
+**Entscheidungen bei der Umsetzung:**
+
+- **`refine` ist aus dem Protokoll entstanden, nicht aus einer Idee.** Tills Rangverteilung (0 Rekruten, 6 Veteranen, 4 Elite, 8 Helden, 6 Legenden) ist eine Verschmelzungsleiter, und seine Route endet bei 108, wo der Labyrinth-Bauer 580 erreicht. Also verlängert diese Strategie nur bis etwa zum Doppelten der Grundroute und steckt danach alles ins Verschmelzen.
+- **Der Labyrinth-Bauer wägt jede Nachbarzelle der Route ab, ohne Deckel.** Ein Deckel auf 140 Kandidaten wurde versucht und kostete ihn 28 auf 10 Wellen: Wer je Salve die beste Zelle verliert, hat eine kürzere Route, tötet weniger, kann weniger bauen. Der Ring von **einer** Zelle statt zwei ist dabei nicht nur schneller, sondern besser (30 statt 28 Wellen) — nur ein Nachbar kann den Weg überhaupt verbiegen.
+- **Abweichung vom Auftrag, benannt:** „Trümmer abreißen, wenn es den Weg verlängert" kann nicht eintreten — ein geräumtes Feld ist ein Hindernis weniger, die Route wird dadurch nie länger. Die Bots räumen stattdessen Haufen, auf denen das Labyrinth nicht ruht (die Route bleibt gleich lang), und stecken den Überschuss ab Welle 30 in Bollwerke, die der Koloss nicht durchbricht.
+- **Der Abstand der Eichung ist eine offengelegte Formel**, kein Urteil: Abstand in Wellen, mittlerer Abstand der Routenlänge, mittlerer Abstand der Leben, jeweils durch einen Maßstab geteilt, bei dem ein voller Fehlschlag 1 ergibt. Über drei gemittelt.
+- **Das Abnahmekriterium und „spielt wie er" werden getrennt ausgegeben.** Der Auftrag verlangt „derselben Größenordnung", und das ist etwas anderes als Ähnlichkeit; das Werkzeug sagt beides für sich.
+
+**Was die Kraftkurve sagt, erste Rechnung:** Die Reserve — lieferbarer Schaden geteilt durch die wirksamen Lebenspunkte der Welle — liegt im Median bei **512 % in den Wellen 1 bis 10, 1199 % in den Wellen 5 bis 30 und 322 % in den Wellen 31 bis 50**. Die Stellungen können im Mittelspiel also das Zehnfache dessen austeilen, was die Welle zum Sterben braucht. Das ist Tills „ab Welle 3 bis 5 viel zu leicht" als Rechnung statt als Gefühl. Zwei Wellen fallen anders aus: **Welle 1 mit −9 %** (dort reicht es rechnerisch nicht, was zum bekannten Problem „ohne eigene Markierungen ist Welle 1 verloren" passt) und **Welle 50 mit −39 %**.
+
+**Grenze des Modells, gemessen:** Die Reserve sagt die Durchbrüche **nicht** vorher. Tills drei verlustreiche Wellen lagen bei 418 bis 1018 % Reserve, die 32 verlustfreien im Median bei 1061 %. Der Grund ist bekannt und liegt nicht in den Zahlen: Das Modell nimmt an, der Spieler habe alle sechs Doktrinen zu gleichen Teilen stehen. Wer ohne Luftabwehr baut, richtet gegen eine Fliegerwelle **null** Schaden an — genau das kostete Till in Welle 8 vierzehn von zwanzig Leben. Die Kurve taugt für die systematische Überkapazität, nicht für das Risiko einer einzelnen Welle.
+
 **Erste Beobachtung aus dem Werkzeug, nicht bewertet:** In den Bot-Partien liegt der verschwendete Schaden in den frühen Wellen über dem, der ankommt (Welle 1: 834 verschwendet, 750 angekommen). Eine Stellung, die einen Schwärmer mit einem Treffer zweimal tötet, ist nicht stark, sondern falsch eingestellt. Ob das an den Rangfaktoren, an der Zielauswahl oder an den Schwärmer-Lebenspunkten liegt, ist Thema von Teil 2 — der Wert steht jetzt in jeder Wellenzeile.
 
 Warum der Meilenstein neu gefasst wurde: Der alte M6 sah einen Simulationsmodus mit einfacher Bau-Strategie vor. Den gibt es als `npm run playmatch`, und er taugt nicht als Maßstab — er baut kein Labyrinth und verliert auf Seed BASTION in Welle 9, während Till aus echten Partien das Gegenteil meldet (ab Welle 3 bis 5 viel zu leicht, kaum Durchbrüche bis Welle 30). Der neue M6 stellt darum vier Quellen nebeneinander: echte Entscheidungen aus Tills Partien (Aufzeichnung und Nachspielen), an ihm geeichte Bots für die Menge, eine rechnerische Kraftkurve als Vorprüfung und kurze Testhäppchen für sein Gefühl. Zuerst die Werkzeuge, dann die Zahlen.

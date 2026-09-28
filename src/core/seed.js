@@ -1,7 +1,13 @@
 // Seeds shown to and typed by players.
 
-// No 0/O and 1/I, so seeds can be read out and typed without confusion.
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+/**
+ * No 0/O and 1/I, so seeds can be read out and typed without confusion.
+ * Exported since M6: the balancing tools draw their own set of seeds from a
+ * fixed stream, so two rounds compare the same maps, and they draw from the
+ * same alphabet the game hands out.
+ */
+export const SEED_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ALPHABET = SEED_ALPHABET;
 
 /**
  * Picks a fresh seed for a new match. Choosing the seed is not gameplay-relevant
