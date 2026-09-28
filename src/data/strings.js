@@ -472,6 +472,11 @@ export const STRINGS = {
     /** A capsule that came down on rubble: building there clears the heap. */
     onRubble: (cost) => `Trümmer · Abriss ${cost} R`,
     noFunds: (cost) => `Für den Abriss fehlen ${cost} R.`,
+    /** Every capsule of the salvo stands on rubble nobody can clear. */
+    allOnRubble: 'Keine Kapsel dieser Salve ist bebaubar.',
+    forfeit: 'Salve verfallen lassen',
+    forfeitNote: 'Keine Stellung, die Welle beginnt',
+    forfeited: 'Salve verfallen',
   },
 
   /** Comic words over the loudest moments; kept rare so they stay loud. */

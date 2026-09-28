@@ -4,7 +4,7 @@
 import { STRINGS } from '../data/strings.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { RECIPES } from '../data/recipes.js';
-import { selectionOptions, anchorCost, canAffordAnchor } from '../sim/selection.js';
+import { selectionOptions, anchorCost, canAffordAnchor, salvoBuildable } from '../sim/selection.js';
 import { rankMarks } from './badges.js';
 
 const T = STRINGS.selection;
@@ -57,8 +57,10 @@ export function badgeFor(options, index) {
  * @param {(index: number) => void} callbacks.onSelect
  * @param {(choice: object) => void} callbacks.onChoose
  * @param {(towerIds: number[]) => void} callbacks.onPreview  Emplacements a recipe would eat.
+ * @param {() => void} [callbacks.onForfeit]  Give the salvo up; offered only when
+ *   not one of its capsules can be paid for.
  */
-export function createSelectionPanel(root, { onSelect, onChoose, onPreview }) {
+export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onForfeit }) {
   const panel = el('div', 'selection interactive');
   panel.hidden = true;
   panel.setAttribute('role', 'group');
@@ -143,6 +145,18 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview }) {
       actions.append(button);
     }
     if (!affordable) actions.append(el('p', 'selection-warning', T.noFunds(cost - state.requisition)));
+    // Not one capsule of the salvo can be paid for: the round would have nowhere
+    // left to go, so it can be given up instead (GDD section 3).
+    if (!salvoBuildable(state)) {
+      const give = el('button', 'selection-forfeit');
+      give.type = 'button';
+      give.append(el('span', null, T.forfeit), el('span', 'selection-note', T.forfeitNote));
+      give.addEventListener('click', () => {
+        give.blur();
+        onForfeit?.();
+      });
+      actions.append(el('p', 'selection-warning', T.allOnRubble), give);
+    }
   }
 
   return {

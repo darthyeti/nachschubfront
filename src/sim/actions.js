@@ -8,7 +8,7 @@ import { setBlocked } from './grid.js';
 import { beginWave, totalWaves } from './waves.js';
 import { fillZones } from './zones.js';
 import { createPods, salvoRng } from './pods.js';
-import { applySelection } from './selection.js';
+import { applySelection, forfeitSalvo, salvoBuildable } from './selection.js';
 import { addRubble } from './rubble.js';
 import { record, taint } from './record.js';
 
@@ -48,6 +48,29 @@ export function chooseSelection(state, choice) {
     ...(choice.recipeId ? { recipeId: choice.recipeId } : {}),
     ...(choice.size ? { size: choice.size } : {}),
   });
+  setPhase(state, 'wave');
+  beginWave(state);
+  return result;
+}
+
+/**
+ * True while no capsule of the salvo can be built on and the only thing left is
+ * to give the salvo up. The one state in which the player is offered that.
+ */
+export function canForfeit(state) {
+  return state.phase === 'selection' && state.pods.length > 0 && !salvoBuildable(state);
+}
+
+/**
+ * Gives the salvo up and starts the wave all the same, so a round in which
+ * nothing could be built is not a round the game stops in.
+ * @param {{force?: boolean}} [options]  See `forfeitSalvo`; only the replay uses it.
+ * @returns {{ok: true, rubble: number} | {ok: false, reason: string}}
+ */
+export function giveUpSalvo(state, options) {
+  const result = forfeitSalvo(state, options);
+  if (!result.ok) return result;
+  record(state, 'forfeit');
   setPhase(state, 'wave');
   beginWave(state);
   return result;

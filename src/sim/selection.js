@@ -130,6 +130,17 @@ export function canAffordAnchor(state, anchorIndex) {
   return state.requisition >= anchorCost(state, anchorIndex);
 }
 
+/**
+ * True if at least one capsule of the salvo can be built on. A capsule on free
+ * ground always can, so this only ever comes out false when every one of them
+ * stands on a heap of rubble the purse cannot clear — which the marking rule
+ * prevents, except on a map so full that the random fill had nothing else left
+ * (sim/zones.js). Then the salvo can only be given up (sim/actions.js).
+ */
+export function salvoBuildable(state) {
+  return state.pods.some((_, index) => canAffordAnchor(state, index));
+}
+
 /** Looks up the option a choice refers to, or null if the choice is not offered. */
 export function findOption(state, choice) {
   const options = selectionOptions(state);
@@ -207,4 +218,37 @@ export function applySelection(state, choice) {
   state.builtByDoctrine[tower.doctrine] = (state.builtByDoctrine[tower.doctrine] ?? 0) + 1;
   state.events.push({ type: 'towerBuilt', tower, choice: option.type, cost });
   return { ok: true, tower, cost };
+}
+
+/**
+ * Gives the salvo up without building anything: the way out when not one capsule
+ * of it can be paid for. GDD section 3 says every capsule not used becomes
+ * rubble — here none is used, so all of them do, and the heaps the capsules came
+ * down on stay as they were.
+ *
+ * The round goes on from there. Nothing else can: the purse only refills during
+ * a wave, and every way of spending or clearing belongs to the planning phase.
+ *
+ * @param {{force?: boolean}} [options]  `force` skips the check that nothing can
+ *   be built. Only the replay passes it: a protocol that says the salvo was
+ *   given up is repeating a decision already made, and under changed numbers
+ *   something in that salvo may have become affordable again.
+ * @returns {{ok: true, rubble: number} | {ok: false, reason: 'phase' | 'buildable'}}
+ */
+export function forfeitSalvo(state, { force = false } = {}) {
+  if (state.phase !== 'selection') return { ok: false, reason: 'phase' };
+  // Only ever a last resort, never a way of turning a salvo into a maze.
+  if (!force && salvoBuildable(state)) return { ok: false, reason: 'buildable' };
+  let rubble = 0;
+  for (const pod of state.pods) {
+    if (isRubble(state.map, pod)) continue;
+    addRubble(state, pod);
+    rubble++;
+  }
+  state.pods = [];
+  clearZones(state);
+  state.route = computeRoute(state.map);
+  state.mapVersion += 1;
+  state.events.push({ type: 'salvoForfeited', rubble });
+  return { ok: true, rubble };
 }

@@ -11,6 +11,8 @@ import {
   findOption,
   anchorCost,
   canAffordAnchor,
+  salvoBuildable,
+  forfeitSalvo,
 } from '../../src/sim/selection.js';
 import { addRubble, isRubble } from '../../src/sim/rubble.js';
 import { nextRubbleCost } from '../../src/sim/economy.js';
@@ -444,6 +446,87 @@ test('a merge or a recipe on rubble is billed for its anchor, not per pod', () =
   assert.equal(state.demolished, 1);
   assert.equal(isRubble(state.map, CELLS[0]), false, 'the anchor was cleared');
   assert.equal(isRubble(state.map, CELLS[1]), true, 'the other heap stayed');
+});
+
+// ---------- The salvo nobody can build on ----------
+//
+// It used to be a dead end: every option was refused for want of funds, and
+// demolishing, raising a bulwark and buying supply all belong to the planning
+// phase. The marking rule in sim/zones.js keeps the player out of it; a nearly
+// full map can still force the random fill in, so there has to be a way on.
+
+/** Every capsule of the salvo on a heap of rubble, and an empty purse. */
+function stateWithEverythingOnRubble() {
+  const state = selectionState([
+    ['flame', 1],
+    ['flame', 1],
+    ['mortar', 1],
+    ['psi', 1],
+    ['tesla', 1],
+  ]);
+  for (const cell of CELLS) addRubble(state, cell);
+  state.requisition = 0;
+  return state;
+}
+
+test('a salvo entirely on unpayable rubble offers no option at all', () => {
+  const state = stateWithEverythingOnRubble();
+  assert.equal(salvoBuildable(state), false);
+  const options = selectionOptions(state);
+  const every = [
+    ...options.keep.map((o) => ({ type: 'keep', anchor: o.anchors[0] })),
+    ...options.merges.map((o) => ({ type: 'merge', size: o.size, anchor: o.anchors[0] })),
+    ...options.recipes.map((o) => ({ type: 'recipe', recipeId: o.recipeId, anchor: o.anchors[0] })),
+  ];
+  assert.ok(every.length > 0, 'options are still offered');
+  for (const choice of every) {
+    assert.deepEqual(applySelection(state, choice), { ok: false, reason: 'funds' }, JSON.stringify(choice));
+  }
+  assert.equal(state.towers.length, 0);
+});
+
+test('such a salvo can be given up: no tower, every capsule to rubble', () => {
+  const state = stateWithEverythingOnRubble();
+  // One capsule on free ground, to show it is the free ones that leave a heap.
+  state.map.obstacles = state.map.obstacles.filter(
+    (o) => !(o.cells[0].x === CELLS[2].x && o.cells[0].y === CELLS[2].y),
+  );
+  assert.equal(isRubble(state.map, CELLS[2]), false);
+  assert.equal(salvoBuildable(state), true, 'the free capsule is buildable');
+  assert.deepEqual(forfeitSalvo(state), { ok: false, reason: 'buildable' }, 'and so it may not be given up');
+
+  addRubble(state, CELLS[2]);
+  assert.equal(salvoBuildable(state), false);
+  const result = forfeitSalvo(state);
+  assert.equal(result.ok, true);
+  assert.equal(state.towers.length, 0, 'nothing was built');
+  assert.equal(state.requisition, 0, 'and nothing was billed');
+  assert.equal(state.demolished, 0);
+  assert.equal(state.pods.length, 0);
+  assert.equal(state.zones.length, 0);
+  for (const cell of CELLS) {
+    assert.equal(isRubble(state.map, cell), true, `${cell.x},${cell.y} is rubble`);
+    assert.ok(isBlocked(state.map.grid, cell.x, cell.y));
+  }
+  // The heaps the capsules came down on are not doubled up.
+  for (const cell of CELLS) {
+    const heaps = state.map.obstacles.filter((o) => o.cells.some((c) => c.x === cell.x && c.y === cell.y));
+    assert.equal(heaps.length, 1, `one heap on ${cell.x},${cell.y}`);
+  }
+});
+
+test('giving up outside the selection phase is refused', () => {
+  const state = stateWithEverythingOnRubble();
+  state.phase = 'planning';
+  assert.deepEqual(forfeitSalvo(state), { ok: false, reason: 'phase' });
+});
+
+test('the replay may force a salvo to be given up, the player may not', () => {
+  const state = stateWithEverythingOnRubble();
+  state.requisition = 1000;
+  assert.equal(salvoBuildable(state), true);
+  assert.deepEqual(forfeitSalvo(state), { ok: false, reason: 'buildable' });
+  assert.equal(forfeitSalvo(state, { force: true }).ok, true);
 });
 
 test('a zone may be marked on rubble, and the route never changes for it', () => {

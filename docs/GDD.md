@@ -44,6 +44,10 @@ Eine Landezone darf auch auf einem Trümmerfeld liegen. Wird die dort gelandete 
 
 Reicht die Requisition für den Abriss nicht, ist die Wahl dieser Kapsel nicht möglich; die übrigen Kapseln der Salve bleiben wählbar.
 
+Damit immer eine wählbare Kapsel übrig bleibt, gilt schon in der Planungsphase: **Eine Landezone auf Trümmern kann nur markiert werden, solange die Requisition den Abriss deckt.** Sinkt sie danach darunter — durch eine Nachschubstufe, einen Abriss oder ein Bollwerk, die alle auch den Preis des nächsten Haufens heben —, werden die betroffenen Markierungen mit Hinweis entfernt. Eine Markierung auf einem unbezahlbaren Haufen wäre ohnehin ein verschenkter Kapselplatz: Wird die Kapsel nicht gewählt, bleibt das Feld unverändert Trümmer.
+
+Auf einer nahezu vollen Karte kann das zufällige Ergänzen trotzdem auf unbezahlbare Trümmer ausweichen müssen. Ist dann **keine** Kapsel der Salve bebaubar, kann die Salve in der Auswahlphase **verfallen** gelassen werden: Es entsteht keine Stellung, alle Kapseln werden wie üblich zu Trümmern, die Welle beginnt. Sonst wäre die Runde nicht fortsetzbar, denn Requisition kommt erst während einer Welle wieder herein.
+
 ### Salvengröße
 
 Die Anzahl der Kapseln pro Salve hängt von der Welle ab:

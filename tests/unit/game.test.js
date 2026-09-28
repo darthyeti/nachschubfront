@@ -10,7 +10,11 @@ import {
   setSpeed,
   toggleObstacle,
   canRequestSalvo,
+  canForfeit,
+  giveUpSalvo,
 } from '../../src/sim/actions.js';
+import { replayMatch } from '../../src/sim/replay.js';
+import { startLog } from '../../src/sim/record.js';
 import { buildSpawns, totalWaves } from '../../src/sim/waves.js';
 import { spawnEnemy, updateEnemies } from '../../src/sim/enemies.js';
 import { groundPolyline, flyerPolyline, computeRoute, checkPlacement } from '../../src/sim/route.js';
@@ -593,4 +597,81 @@ test('a capsule may not land on a bulwark', () => {
   assert.equal(checkPlacement(state.map, [cells[0]]).ok, true, 'rubble takes a landing zone');
   assert.ok(buildBulwark(state, cells[0]).ok);
   assert.equal(checkPlacement(state.map, [cells[0]]).reason, 'occupied', 'the bulwark does not');
+});
+
+// ---------- A salvo nobody can build on does not stop the round ----------
+
+/**
+ * A real match brought to the state the deadlock needed: every capsule of the
+ * salvo on a heap of rubble, and a purse that cannot clear one. Built by filling
+ * the map until only the rubble is left for the salvo to fall on.
+ */
+function stateWithHopelessSalvo() {
+  const state = createGameState('STUCK');
+  state.route = computeRoute(state.map);
+  state.requisition = 10_000;
+  // Rubble over the whole map, as far as the route allows. What is left free is
+  // the corridor the enemies walk, and that is protected from landing zones.
+  for (let y = 0; y < state.map.size; y++) {
+    for (let x = 0; x < state.map.size; x++) {
+      if (checkPlacement(state.map, [{ x, y }]).ok) toggleObstacle(state, { x, y });
+    }
+  }
+  state.requisition = 0;
+  assert.ok(requestSalvo(state), 'the salvo still goes out');
+  runUntil(state, (s) => s.phase === 'selection');
+  assert.equal(state.phase, 'selection');
+  assert.ok(state.pods.length > 0);
+  return state;
+}
+
+test('every capsule on unpayable rubble: the salvo can be given up and the wave starts', () => {
+  const state = stateWithHopelessSalvo();
+  for (const pod of state.pods) {
+    assert.ok(isRubble(state.map, pod), `capsule ${pod.index} came down on rubble`);
+  }
+  // This is the dead end: not one option can be taken.
+  for (const option of selectionOptions(state).keep) {
+    assert.equal(chooseSelection(state, { type: 'keep', anchor: option.anchors[0] }).ok, false);
+  }
+  assert.equal(state.phase, 'selection', 'and nothing moved it on');
+
+  assert.equal(canForfeit(state), true);
+  const result = giveUpSalvo(state);
+  assert.equal(result.ok, true);
+  assert.equal(state.phase, 'wave', 'the round goes on');
+  assert.equal(state.towers.length, 0, 'without a tower');
+  assert.equal(state.requisition, 0, 'and without a bill');
+  assert.equal(canForfeit(state), false, 'and only ever in that one spot');
+});
+
+test('giving up is recorded and played back', () => {
+  const state = stateWithHopelessSalvo();
+  state.log = null;
+  startLog(state, RULESET_VERSION, 'give-up');
+  assert.ok(giveUpSalvo(state).ok);
+  assert.deepEqual(
+    state.log.actions.map((a) => a.a),
+    ['forfeit'],
+  );
+});
+
+test('a recorded choice that has become impossible does not strand the replay', () => {
+  // Anchor 99 is not a capsule of the salvo, so the choice is refused the way a
+  // recipe would be whose minimum rank moved under new data. The replay has to
+  // carry the round on all the same: the selection is what starts the wave.
+  const protocol = {
+    seed: 'REPLAY',
+    ruleset: RULESET_VERSION,
+    actions: [
+      { t: 0, w: 0, p: 'planning', pt: 0, a: 'salvo', zones: [] },
+      { t: 1, w: 0, p: 'selection', pt: 0, a: 'select', type: 'keep', anchor: 99 },
+    ],
+  };
+  const result = replayMatch(protocol, { untilWave: 1 });
+  assert.notEqual(result.stopped, 'step limit', `stopped: ${result.stopped}`);
+  const note = result.skipped.find((s) => s.a === 'select');
+  assert.ok(note, 'the substitution is reported, not hidden');
+  assert.match(note.why, /was kept instead/);
+  assert.ok(result.state.towers.length === 1, 'one emplacement stands');
 });

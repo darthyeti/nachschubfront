@@ -764,6 +764,17 @@ button[hidden] {
   opacity: 0.8;
 }
 
+/* Giving the salvo up: the way out when not one capsule can be paid for. Drawn
+   as a plain button, not a primary one — it is a last resort, not an offer. */
+.selection-forfeit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  line-height: 1.1;
+  background: var(--btn-alt);
+}
+
 .selection-hint {
   margin: 0;
   font-size: 13px;

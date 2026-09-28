@@ -7,7 +7,14 @@ import { createFixedStepper } from './core/loop.js';
 import { createGameState } from './core/state.js';
 import { randomSeed, normalizeSeed } from './core/seed.js';
 import { stepSimulation } from './sim/step.js';
-import { requestSalvo, canRequestSalvo, chooseSelection, setSpeed, toggleObstacle } from './sim/actions.js';
+import {
+  requestSalvo,
+  canRequestSalvo,
+  chooseSelection,
+  giveUpSalvo,
+  setSpeed,
+  toggleObstacle,
+} from './sim/actions.js';
 import { toggleZone } from './sim/zones.js';
 import { buySupply, demolish, canDemolish, buildBulwark, canBuildBulwark } from './sim/economy.js';
 import { useCommand, canUseCommand } from './sim/commands.js';
@@ -377,6 +384,15 @@ function applyChoice(choice) {
   showBanner(STRINGS.selection.built(name));
 }
 
+/**
+ * Gives the salvo up. Only reachable while not one of its capsules can be paid
+ * for, and the only way on from there (GDD section 3).
+ */
+function giveUpChoice() {
+  const result = giveUpSalvo(state);
+  if (result.ok) showBanner(STRINGS.selection.forfeited, STRINGS.selection.allOnRubble);
+}
+
 function onCellTap(cell, pointerType) {
   if (ui.commandTarget) applyCommand(cell, pointerType);
   else if (ui.obstacleMode) applyObstacle(cell);
@@ -487,6 +503,7 @@ const selectionPanel = createSelectionPanel(document.getElementById('hud'), {
     ui.podSelected = index;
   },
   onChoose: applyChoice,
+  onForfeit: giveUpChoice,
   onPreview: (towerIds) => {
     ui.recipePreview = towerIds;
   },

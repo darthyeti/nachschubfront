@@ -23,7 +23,7 @@ import { createGameState } from '../core/state.js';
 import { stepSimulation } from './step.js';
 import { SIM_STEP } from '../data/settings.js';
 import { MIN_SUPPLY_LEVEL } from '../data/supply.js';
-import { requestSalvo, chooseSelection, toggleObstacle } from './actions.js';
+import { requestSalvo, chooseSelection, toggleObstacle, giveUpSalvo } from './actions.js';
 import { toggleZone, zoneIndexAt } from './zones.js';
 import { buySupply, demolish, buildBulwark } from './economy.js';
 import { useCommand } from './commands.js';
@@ -207,7 +207,35 @@ function apply(state, action) {
         recipeId: action.recipeId,
         size: action.size,
       });
-      return result.ok ? true : `selection refused: ${result.reason}`;
+      if (result.ok) return true;
+      // This is the one action that cannot simply be skipped: it is what starts
+      // the wave, so leaving it out would keep the replay in the selection phase
+      // until the step limit and lose the rest of the protocol. Under changed
+      // numbers the recorded choice really can become impossible — a capsule on
+      // a heap the purse no longer covers, a recipe whose minimum rank moved.
+      // So the round is carried on as close to the decision as it still can be:
+      // keep the capsule the player picked, else keep whichever one is payable,
+      // else give the salvo up.
+      const fallbacks = [
+        action.anchor,
+        ...state.pods.map((_, index) => index).filter((index) => index !== action.anchor),
+      ];
+      for (const anchor of fallbacks) {
+        if (chooseSelection(state, { type: 'keep', anchor }).ok) {
+          return `selection refused (${result.reason}), capsule ${anchor + 1} was kept instead`;
+        }
+      }
+      if (giveUpSalvo(state, { force: true }).ok) {
+        return `selection refused (${result.reason}), the salvo was given up`;
+      }
+      return `selection refused: ${result.reason}`;
+    }
+    case 'forfeit': {
+      // Forced: the player gave this salvo up, and under changed numbers one of
+      // its capsules may have become affordable again. Repeating the decision is
+      // closer to the match than building something nobody chose.
+      const result = giveUpSalvo(state, { force: true });
+      return result.ok ? true : `the salvo could not be given up: ${result.reason}`;
     }
     case 'supply': {
       const result = buySupply(state);
