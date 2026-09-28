@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.9.0**. Alle Inhalts-Meilensteine sind abgenommen. Offen ist nur noch
+Version **0.9.1**. Alle Inhalts-Meilensteine sind abgenommen. Offen ist nur noch
 **M6 Balancing**, der Abschluss des Projekts.
 
 | | | abgenommen |
@@ -162,6 +162,19 @@ wurde. Die Begründungen stehen in den Commits.
   Bildrate. Sonst wäre eine Partie nicht Schritt für Schritt wiederholbar.
 - Zonen werden immer als ganze Menge geprüft, nie einzeln. Darum kann eine Salve
   den Weg nie schließen.
+- **Eine Landezone auf Trümmern nur, solange die Requisition den Abriss deckt.**
+  Sinkt sie danach darunter, werden die betroffenen Markierungen entfernt und das
+  gemeldet; jede Ausgabe in der Planung läuft dafür über `spend` in
+  `sim/economy.js`. Sonst konnte eine Salve vollständig auf unbezahlbaren
+  Trümmern landen und keine ihrer Kapseln war wählbar — eine Sackgasse, denn
+  Abreißen, Bollwerk und Nachschubstufe gehören alle in die Planungsphase.
+- Bleibt trotzdem keine bebaubare Kapsel (volle Karte, das Ergänzen muss
+  ausweichen), kann die Salve verfallen gelassen werden: keine Stellung, alle
+  Kapseln zu Trümmern, die Welle beginnt. Nur in diesem einen Fall angeboten.
+- Der Nachspieler darf ein `select` nicht einfach überspringen — es startet die
+  Welle. Ist die aufgezeichnete Wahl unter neuen Zahlen unmöglich, behält er die
+  gewählte Kapsel, sonst eine bezahlbare, sonst lässt er die Salve verfallen, und
+  vermerkt es. Vorher lief er in diesem Fall in die Schrittgrenze.
 - Verschmelzen endet bei Legende; für die Viererverschmelzung ist Elite der
   höchste Ausgangsrang.
 - Deckt eine Rezept-Zutat sowohl eine Kapsel als auch eine stehende Stellung, wird
@@ -202,6 +215,17 @@ wurde. Die Begründungen stehen in den Commits.
   `[hidden] { display: none }`-Regel — eine Autorenregel schlägt sonst das
   `display: none` des Browsers.
 - Der Ton wird synthetisiert, nicht aus Dateien geladen.
+
+**Eingabe**
+
+- Was auf Touch nicht rückholbar ist, braucht zwei Tipper: der erste zeigt und
+  merkt vor, der zweite führt aus. So arbeiten Abreißen, Bollwerk und seit 0.9.1
+  Rezepte, die Stellungen verbrauchen — dort zeigt der erste Tipp die Vorschau
+  und lässt sie stehen. Mit der Maus reicht ein Klick, dort sind Zeigen (Hover)
+  und Auslösen (Klick) schon zwei verschiedene Dinge.
+- Welche Art Druck es war, kommt vom `pointerdown` vor dem Klick. Der
+  `pointerType` am Klickereignis selbst ist bei Tastaturbedienung leer und wird
+  nicht von jeder Engine gleich gemeldet.
 
 **Balancing (M6, Entscheidung 7)**
 

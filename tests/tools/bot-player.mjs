@@ -14,7 +14,7 @@
 import { createGameState } from '../../src/core/state.js';
 import { stepSimulation } from '../../src/sim/step.js';
 import { SIM_STEP } from '../../src/data/settings.js';
-import { requestSalvo, chooseSelection } from '../../src/sim/actions.js';
+import { requestSalvo, chooseSelection, giveUpSalvo } from '../../src/sim/actions.js';
 import { toggleZone } from '../../src/sim/zones.js';
 import { zoneLimit } from '../../src/sim/zones.js';
 import { selectionOptions } from '../../src/sim/selection.js';
@@ -178,7 +178,10 @@ function pick(state, how) {
   for (let i = 0; i < state.pods.length; i++) {
     if (chooseSelection(state, { type: 'keep', anchor: i }).ok) return true;
   }
-  return false;
+  // And if even that fails, the whole salvo came down on rubble the purse cannot
+  // clear. The player is offered the same way out, so the bot takes it rather
+  // than ending a run of fifty waves in round nine.
+  return giveUpSalvo(state).ok;
 }
 
 /**
