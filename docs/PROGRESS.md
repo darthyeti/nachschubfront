@@ -1,531 +1,212 @@
 # Fortschritt
 
-## Aktueller Meilenstein
-
-**M6 Balancing und Feinschliff** ist der letzte Meilenstein und in Arbeit. Der Auftrag `M6-neufassung-auftrag.md` ist in `docs/meilensteine/M6-balancing.md` eingearbeitet und die Auftragsdatei danach gelöscht; der Meilenstein-Ordner ist wieder die einzige Quelle. Der Plan ist am 27.09.2026 freigegeben, mit sieben Entscheidungen (siehe unten).
-
-### Teil 1, Schritt 1: Aufzeichnen und exportieren (27.09.2026, Version 0.9.0)
-
-**Fertig und geprüft. Dieser Schritt geht fertig an Till** — er ist der Übergabepunkt des Plans: Drei der sechs Abnahmekriterien von Teil 1 brauchen ein Protokoll aus einer echten Partie, und das entsteht erst hier.
-
-- **Partie-Aufzeichnung** (`src/sim/record.js`). Jede Partie schreibt Seed, Regelversion und jede angenommene Spieleraktion mit dem Simulationsschritt, auf dem sie lag: Zonen, Salve (mit der ganzen Zonenliste nach dem Auffüllen), Auswahl, Nachschub, Abriss, Bollwerk, Kommandos. Mitgeschrieben wird in `sim/`, nicht in der UI — eine Partie mit der Maus, mit dem Finger oder von einem Bot zeichnet gleich auf. Abgelehnte Versuche kommen nicht hinein.
-- **Eine Zeile pro Welle** (Gegner, Abschüsse, Durchbrüche, Leben, Requisition, KP, Stellungen, Nachschubstufe, Routenlänge), gesetzt an der einen Stelle, durch die jede Welle endet (`core/phases.js`). Dazu `end` mit Phase, Welle, Leben und Abschüssen.
-- **Debug-Hebel färben das Protokoll** (`tainted`): Welle anspringen, Requisition geben, Unverwundbar, Leben setzen, Hindernis-Modus, Belastungstest. Die Partie bleibt nachspielbar, gilt aber nicht als Messung. Der Hindernis-Modus wird zusätzlich als Aktion aufgezeichnet, damit ein Nachspiel ihm folgen kann.
-- **Speicherung** als eigenes Dokument (`src/storage/protocol.js`), nicht im Profil-Export: Der ist seit M5 die Bestenliste-Übertragung. Gespeichert wird nach jeder Welle, damit auch eine abgebrochene Partie auf der Platte liegt; die letzten fünf Partien bleiben.
-- **Bewertungszeile nach jeder Welle** (`src/ui/rating.js`): „Zu leicht / Passt / Zu schwer", über der unteren Leiste, in Daumenreichweite, Trefferflächen über 44 px. Freiwillig — die nächste Salve nimmt die Frage herunter, und eine unbeantwortete Welle behält `rating: null`. Schalter in den Einstellungen („Wellen bewerten"), Standard an, solange `RULESET_TESTING` in `src/data/rules.js` gesetzt ist.
-- **Exportknopf „Partie exportieren"** im Pausenmenü und auf dem Ende-Bildschirm. Datei heißt `nachschubfront-JAHR-MONAT-TAG-SEED-welleN.json`, darunter eine Zeile, die Dateiname, Seed, Wellen und Anzahl der Bewertungen nennt und warnt, wenn Debug-Hebel im Spiel waren. Auf iPadOS fällt der Export auf die Zwischenablage zurück, wie die Bestenliste es auch tut.
-- **Ablageort** für Till: `balancing/protokolle/` mit einer `balancing/README.md`, die erklärt, was in einer Datei steht und was `tainted` bedeutet.
-- **Der Determinismus-Test** (`tests/unit/determinism.test.js`) ist die Zusage, auf der M6 aufbaut: Änderungen an Doktrinschaden, Reichweite, Schadensmatrix, Gegnerleben, Tempo, Belohnung, Bossleben, Spezialstellungen, Rangleiter, Trümmer- und Bollwerkpreis, Wellenbonus, Startleben und Koloss verschieben über fünf Seeds und alle 50 Wellen **weder Karte noch Kapselinhalte**. Die Nachschub-Prozente sind das benannte Gegenbeispiel: Sie sind Eingabe der Ziehung und sollen die Kapseln verändern.
-- **Behobener Fehler beim Prüfen im Browser gefunden:** Die Bewertungszeile stand von Anfang an da, auch vor der ersten Welle. Ursache: `.hud-rating { display: flex }` schlägt das `display: none`, das der Browser dem `hidden`-Attribut gibt. Jedes verborgene Element im Projekt hat dafür eine eigene `[hidden]`-Regel; diese fehlte. Jetzt vorhanden.
-- **Geprüft:** 372 Unit-Tests grün (12 neu für den Rekorder, 11 für das Speicherformat, 3 für den Determinismus). 58 Browser-Checks grün in Chromium **und** WebKit, drei davon neu: die Bewertungszeile fragt nach der Welle und landet im Protokoll, der Schalter hält sie unten, und der Exportknopf gibt die richtige Datei heraus (der Download wird abgefangen statt behalten). Screenshots ohne Konsolenfehler.
-
-**Was Till jetzt tun kann:** Partien spielen — auch kurze —, die Wellen bewerten, und die Protokolle über „Partie exportieren" nach `balancing/protokolle/` legen. Damit sind Schritt 2 (Nachspielen) und Schritt 3 (Eichung, Kraftkurve) überhaupt abnehmbar.
-
-### Teil 1, Schritt 2: Nachspielen ohne Grafik (27.09.2026)
-
-**Gebaut und geprüft, parallel zu Schritt 1.** Die Abnahme („eine von Till gespielte Partie ergibt exakt dasselbe Ergebnis") braucht ein Protokoll von Till und steht noch aus; gegen sechs Bot-Partien ist sie erbracht.
-
-- **`npm run replay -- <protokoll.json>`** (`tests/tools/replay.mjs`, Kern in `src/sim/replay.js`). Eine Zeile je Welle: Gegner, Abschüsse, Durchbrüche, Leben, Lebenspunkte der Welle, Schaden der Stellungen, Schaden der Kommandos, verschwendeter Schaden, Routenlänge, Requisition, KP, Stellungen nach Rang plus Spezialstellungen, Bewertung. Ohne Datenänderung prüft der Lauf am Ende selbst, dass dasselbe herauskommt wie in der Partie, und endet sonst mit Fehlercode. Zusätzlich `--csv <datei>`.
-- **`--data <aenderungen.json>`** (`tests/tools/data-override.mjs`) legt Werte über `src/data/`, ohne die Dateien anzufassen, und nimmt sie danach wieder weg. Was es ablehnt, sagt es: unbekannte Tabelle, ein Wert, den es nicht gibt, ein Index außerhalb der Liste, ein falscher Typ, eine Liste anderer Länge.
-- **Die Wellenregeln sind jetzt ein Modul** (`tests/tools/wave-rules.mjs`, Entscheidung 2 des Plans). Gegnerzahl, das Wachstum 1,12 pro Welle, Freischaltwellen, Frühstart-Abschlag und Bosswellen standen als Konstanten im Generator und waren damit für `--data` unerreichbar — genau Tills Hauptverdacht. Generator und Override lesen dieselbe Quelle; ein Test hält `src/data/waves.js` und die Regeln zusammen (die 50 Einträge sind bei der Umstellung unverändert geblieben, nur der Dateikopf nennt jetzt das Modul).
-- **Formänderungen lehnt das Werkzeug ab** (Entscheidung 3): `MAX_SALVO_SIZE`, `MAX_SUPPLY_LEVEL`, `MAX_RANK`, `IMPACT_SECONDS` und die Id-Listen entstehen beim Import und würden eine zusätzliche Zeile nicht bemerken. Eine neunte Nachschubstufe ist eine Codeänderung, kein Lauf des Werkzeugs.
-- **Neue Messwerte in der Wellenstatistik**: Lebenspunkte der Welle (beim Spawn gezählt, damit geschlüpfte Schwärmer mitzählen), Schaden der Stellungen, Schaden der Kommandos, Stellungen nach Rang und Spezialstellungen getrennt, und **verschwendeter Schaden**: Die Simulation deckelt einen Treffer auf die verbleibenden Lebenspunkte, damit die Statistik nichts ausweist, was es nicht gab — jetzt wird gezählt, was der Deckel wegnimmt. Sie stehen auch in den Protokollen.
-- **Geprüft:** 392 Unit-Tests (10 neu für das Nachspielen, 10 für die Overrides), 58 Browser-Checks, `npm run test:battle` über 12 Wellen, Leistung unverändert (60 fps, 2,2 ms Rechenzeit je Bild). Sechs Bot-Partien auf sechs Seeds spielen Welle für Welle identisch nach, die längste über **33 Wellen und 459 Aktionen**.
-
-**Entscheidungen bei der Umsetzung:**
-
-- **Eine Aktion hängt an ihrer Runde und Phase, nicht am Simulationsschritt.** Das war zuerst anders und fiel im Test auf: Mit geänderten Werten dauert eine Welle länger, danach liegen alle späteren Aktionen in der falschen Phase und gehen verloren — das Nachspiel kam über zwei Wellen nicht hinaus. Jetzt wird jede Aktion in der Runde und Phase wiederholt, in der sie gefallen ist. Damit läuft dasselbe Protokoll auch mit deutlich anderen Zahlen bis zum Ende durch, und das ist der Sinn des Werkzeugs.
-- **Innerhalb einer Welle zählt die Sekunde.** Ein Orbitalschlag in der vierten Sekunde ist eine andere Entscheidung als derselbe Schlag in der zwanzigsten, also wird für Aktionen in der Wellenphase zusätzlich die Zeit seit Wellenbeginn mitgeschrieben und eingehalten. Die Planungsphasen warten ohnehin auf den Spieler, dort wird sie ignoriert.
-- **Die Debug-Hebel werden jetzt auch als Aktion aufgezeichnet**, nicht nur als `tainted` vermerkt. Aufgefallen ist es daran, dass eine im Test abgestützte Bastion im Nachspiel mit 19 statt 199 Leben dastand: Ein Hebel, der die Partie verändert und nicht im Protokoll steht, lässt das Nachspiel von der Partie abweichen — und dann kann niemand einen echten Unterschied von einem fehlenden unterscheiden. Betroffen sind Leben setzen, Welle anspringen, Requisition/KP geben, Kapselinhalt erzwingen und Unverwundbar.
-- **`npm run playmatch -- --protocol <datei>` schreibt Protokolle.** Damit ließ sich das Nachspielen bauen, ohne auf die ersten Partien zu warten. Nebenbei behoben: Der Bot warf bei abgelehnter Auswahl eine Ausnahme (Bauen auf Trümmern kostet den Abriss, und er gibt alles für Nachschubstufen aus) und riss auf manchen Seeds den ganzen Lauf mit; jetzt geht er die Vorschläge der Reihe nach durch.
-
-### Teil 1, Schritt 3: Bots, Eichung, Kraftkurve (28.09.2026)
-
-**Gebaut und geprüft.** Die Eichung läuft gegen Tills erstes Protokoll; das Abnahmekriterium („mindestens ein Bot in derselben Größenordnung") ist erfüllt, eine echte Eichung ist es noch nicht.
-
-- **`npm run bots`** (`tests/tools/bots.mjs`) spielt viele Seeds mit einer Strategie und gibt Überlebensquote je Welle, erreichte Wellen, Durchbruchswellen, Routenlänge, verschwendeten Schaden und übrige Requisition aus, dazu CSV und auf Wunsch die Protokolle. Die Seeds kommen aus einem festen Strom, zwei Läufe vergleichen also dieselben Karten. Läuft in Worker-Prozessen, weil der Labyrinth-Bauer allein rund 25 s je späte Partie braucht.
-- **Fünf Strategien** (`tests/tools/bot-strategies.mjs`), die sich nur in zwei Entscheidungen unterscheiden — wohin die Zonen und welche Kapsel: `maze` (verlängert die Route maximal), `firepower` (kompakte Todeszone an der dichtesten Stelle), `recipes` (sammelt Zutaten), `refine` (mäßiges Labyrinth, dafür Verschmelzen auf hohe Ränge) und `simple` (der Bot von vor M6, als Vergleichsmaß). Alles andere — Nachschub, Abriss, Bollwerke, Kommandos bei Bossen und beim Koloss — ist für alle gleich und steht in `bot-player.mjs`.
-- **`npm run calibrate`** (`tests/tools/calibrate.mjs`) stellt jede Strategie neben eine von Hand gespielte Partie auf demselben Seed: Wellen, Leben, Routenlänge, Stellungen nach Rang, und einen Abstand aus drei Teilen (Wellen, Route, Leben), dessen Formel im Kopf der Datei steht.
-- **`npm run powercurve`** (`tests/tools/powercurve.mjs`) rechnet ohne Kampf, was jede Welle mitbringt (Lebenspunkte und Schilde, geteilt durch den mittleren Schadensfaktor gegen ihre Rüstung, Heiler pauschal) gegen das, was die Stellungen liefern können (Anzahl, Rangmischung, Schaden pro Sekunde der Doktrinen mal Verweildauer in Reichweite). Tabelle plus Diagramm nach `balancing/runden/kraftkurve.html`, logarithmisch, weil die Lebenspunkte um 12 % je Welle wachsen und die interessante Spreizung sonst am unteren Rand klebt.
-- **Das Modell prüft sich selbst am Protokoll.** Die Lebenspunkte einer Welle stimmen auf **6 % im Mittel über 35 gemessene Wellen**. Die Schätzungen, auf denen der Schadensteil ruht (Streuung je Doktrin, gedeckte Routenzellen, Leerlauf), stehen als benannter `MODEL`-Block in einer Datei, damit man sie bestreiten kann, ohne sie zu suchen.
-- **Geprüft:** 401 Unit-Tests (8 neu für die Bots: jede Strategie setzt nur Zonen, die das Spiel annimmt, schließt nie den Weg, hat immer einen Rückfall, und eine Bot-Partie ist ein Protokoll, das identisch nachspielt).
-
-**Erste Ergebnisse, nicht bewertet.** 20 Seeds je Strategie, Median der erreichten Wellen: `refine` 28, `firepower` 23, `simple` 10, `recipes` 8. **Keine Strategie gewinnt eine Partie** (0 von 20 in allen fünf). Der Rezept-Jäger verliert in 13 von 20 Seeds schon Welle 1 — das Sammeln von Zutaten lässt die erste Welle unverteidigt.
-
-**Die Eichung an `8425CM` (35 Wellen von Hand):**
-
-| Strategie | Wellen | Route | Stellungen | Abstand |
-|---|---|---|---|---|
-| von Hand (Till) | 35 | 89,4 | 0/6/4/8/6+7 | — |
-| `refine` | 28 | 105,6 | 0/6/4/6/1+11 | **0,51** |
-| `maze` | 30 | 267,8 | 4/2/2/2/0+15 | 0,55 |
-| `recipes` | 10 | 45,6 | 2/2/2/0/0+3 | 0,60 |
-| `simple` | 15 | 46,7 | 3/2/1/1/0+6 | 0,69 |
-| `firepower` | 23 | 70,4 | 0/3/2/3/1+12 | 0,79 |
-
-`refine` erreicht 80 % seiner Wellen und trifft Veteranen und Elite auf die Stellung genau — das Abnahmekriterium ist damit erfüllt. Für einzelne Wellen taugen die Zahlen noch nicht: Er baut 11 Spezialstellungen, wo Till 7 hat, und alle Bots greifen häufiger zu Rezepten als er. **Ein Protokoll ist zu wenig, um eine Strategie daran festzuziehen** — was jetzt passt, kann auf diese eine Partie zugeschnitten sein. Das Werkzeug sagt das von selbst, solange weniger als drei Protokolle vorliegen.
-
-**Entscheidungen bei der Umsetzung:**
-
-- **`refine` ist aus dem Protokoll entstanden, nicht aus einer Idee.** Tills Rangverteilung (0 Rekruten, 6 Veteranen, 4 Elite, 8 Helden, 6 Legenden) ist eine Verschmelzungsleiter, und seine Route endet bei 108, wo der Labyrinth-Bauer 580 erreicht. Also verlängert diese Strategie nur bis etwa zum Doppelten der Grundroute und steckt danach alles ins Verschmelzen.
-- **Der Labyrinth-Bauer wägt jede Nachbarzelle der Route ab, ohne Deckel.** Ein Deckel auf 140 Kandidaten wurde versucht und kostete ihn 28 auf 10 Wellen: Wer je Salve die beste Zelle verliert, hat eine kürzere Route, tötet weniger, kann weniger bauen. Der Ring von **einer** Zelle statt zwei ist dabei nicht nur schneller, sondern besser (30 statt 28 Wellen) — nur ein Nachbar kann den Weg überhaupt verbiegen.
-- **Abweichung vom Auftrag, benannt:** „Trümmer abreißen, wenn es den Weg verlängert" kann nicht eintreten — ein geräumtes Feld ist ein Hindernis weniger, die Route wird dadurch nie länger. Die Bots räumen stattdessen Haufen, auf denen das Labyrinth nicht ruht (die Route bleibt gleich lang), und stecken den Überschuss ab Welle 30 in Bollwerke, die der Koloss nicht durchbricht.
-- **Der Abstand der Eichung ist eine offengelegte Formel**, kein Urteil: Abstand in Wellen, mittlerer Abstand der Routenlänge, mittlerer Abstand der Leben, jeweils durch einen Maßstab geteilt, bei dem ein voller Fehlschlag 1 ergibt. Über drei gemittelt.
-- **Das Abnahmekriterium und „spielt wie er" werden getrennt ausgegeben.** Der Auftrag verlangt „derselben Größenordnung", und das ist etwas anderes als Ähnlichkeit; das Werkzeug sagt beides für sich.
-
-**Was die Kraftkurve sagt, erste Rechnung:** Die Reserve — lieferbarer Schaden geteilt durch die wirksamen Lebenspunkte der Welle — liegt im Median bei **512 % in den Wellen 1 bis 10, 1199 % in den Wellen 5 bis 30 und 322 % in den Wellen 31 bis 50**. Die Stellungen können im Mittelspiel also das Zehnfache dessen austeilen, was die Welle zum Sterben braucht. Das ist Tills „ab Welle 3 bis 5 viel zu leicht" als Rechnung statt als Gefühl. Zwei Wellen fallen anders aus: **Welle 1 mit −9 %** (dort reicht es rechnerisch nicht, was zum bekannten Problem „ohne eigene Markierungen ist Welle 1 verloren" passt) und **Welle 50 mit −39 %**.
-
-**Grenze des Modells, gemessen:** Die Reserve sagt die Durchbrüche **nicht** vorher. Tills drei verlustreiche Wellen lagen bei 418 bis 1018 % Reserve, die 32 verlustfreien im Median bei 1061 %. Der Grund ist bekannt und liegt nicht in den Zahlen: Das Modell nimmt an, der Spieler habe alle sechs Doktrinen zu gleichen Teilen stehen. Wer ohne Luftabwehr baut, richtet gegen eine Fliegerwelle **null** Schaden an — genau das kostete Till in Welle 8 vierzehn von zwanzig Leben. Die Kurve taugt für die systematische Überkapazität, nicht für das Risiko einer einzelnen Welle.
-
-**Erste Beobachtung aus dem Werkzeug, nicht bewertet:** In den Bot-Partien liegt der verschwendete Schaden in den frühen Wellen über dem, der ankommt (Welle 1: 834 verschwendet, 750 angekommen). Eine Stellung, die einen Schwärmer mit einem Treffer zweimal tötet, ist nicht stark, sondern falsch eingestellt. Ob das an den Rangfaktoren, an der Zielauswahl oder an den Schwärmer-Lebenspunkten liegt, ist Thema von Teil 2 — der Wert steht jetzt in jeder Wellenzeile.
-
-Warum der Meilenstein neu gefasst wurde: Der alte M6 sah einen Simulationsmodus mit einfacher Bau-Strategie vor. Den gibt es als `npm run playmatch`, und er taugt nicht als Maßstab — er baut kein Labyrinth und verliert auf Seed BASTION in Welle 9, während Till aus echten Partien das Gegenteil meldet (ab Welle 3 bis 5 viel zu leicht, kaum Durchbrüche bis Welle 30). Der neue M6 stellt darum vier Quellen nebeneinander: echte Entscheidungen aus Tills Partien (Aufzeichnung und Nachspielen), an ihm geeichte Bots für die Menge, eine rechnerische Kraftkurve als Vorprüfung und kurze Testhäppchen für sein Gefühl. Zuerst die Werkzeuge, dann die Zahlen.
-
-### Abgeschlossen: M5d, früher „M7" (Update 7)
-
-**Umbenannt am 27.09.2026, nach der Abnahme.** Das Paket kam als „M7" herein und sagte in seiner zweiten Zeile „kommt nach M6". Beides war irreführend: Definiert sind sieben Meilensteine, M0 bis M6, und M6 ist der Abschluss — nach ihm kommt keiner mehr. Update 7 ist wie die fünf Updates davor ein Einschub und heißt darum M5d (Update 2 → M4b, 3 → M4c, 4 → M4d, 5 → M5b, 6 → M5c, 7 → M5d). Umbenannt wurde erst nach der Abnahme, damit die Umstellung keine laufende Arbeit stört.
-
-M5d Koloss-Verhalten, Stellungsgrafik, Gunship und die letzten Platzhalter ist umgesetzt und **am 27.09.2026 auf dem iPad abgenommen**, Version 0.8.0. Der Plan war am 26.09.2026 freigegeben, aufgeteilt in Block A (Koloss-Logik), B (Luftschlag und Bossdeckel) und C (Grafik), mit drei Entscheidungen:
-
-- **M5d wird vor M6 eingeschoben**, wie die sechs Einschübe davor auch. Der Arbeitsauftrag sagt „kommt nach M6", das ist eine Annahme des Pakets über den Einspielzeitpunkt. Sachlich hängt M5d an nichts aus M6, und M6 stimmt Zahlen ab, die M5d ohnehin ersetzt: die komplette Wirkungstabelle der Spezialstellungen, dazu das Verhalten von Koloss und Obelisk. Wer vorher balanciert, tariert Werte aus, die danach überschrieben sind. M6 bleibt der Abschluss und balanciert die endgültige Mechanik.
-- **Die Konzept-PNGs werden verkleinert.** Die zehn Blätter kamen mit 2560 px Breite und 8 MB ins Paket; `reference/` war vorher 1,4 MB und rein SVG. Sie liegen jetzt mit 1280 px und indizierter Palette bei zusammen rund 1 MB. Verbindlich sind ohnehin die Studien, die PNGs sind Standbilder daraus.
-- **Die SVG-Regel bleibt, mit einer benannten Ausnahme.** Bunker und Aufsätze werden aus dem Zeichencode der Studie einmalig nach SVG exportiert und laufen danach durch dieselbe Pipeline wie jede andere Figur. Koloss und Gunship nicht: Sie müssen in vier Achsrichtungen stimmen, und ein SVG kennt keine Normalen — vier Standbilder würden die richtungsabhängige Schattierung verlieren und müssten bei jeder Änderung viermal nachgezogen werden. Für sie gilt das drehbare Modellmodul. Festgeschrieben in `docs/ART.md` („Drehbare Modelle") und `CLAUDE.md`.
-
-Die Vorarbeit ist erledigt: `GDD-update-v4.md` ist in `docs/GDD.md` eingearbeitet (Stand jetzt „Grundlagen v4": Koloss-Abschnitt mit Fahrlinie, Schneise und eigener Wegfindung neu, Luftschlag mit Achseneinrastung, Wirkungsspalte in Abschnitt 8 ersetzt), `ART-update-v5.md` in `docs/ART.md` (Stand jetzt v5: Bunker als gemeinsame Grundform aller sechs Doktrinen, neue Rangleiter ohne Fahne, Spezialbasis statt sechs Einzelbauwerke, neue Abschnitte „Gunship" und „Drehbare Modelle"). Beide Einzeldateien sind danach gelöscht worden, GDD und ART sind wieder die einzigen Quellen. Der Arbeitsauftrag liegt unter `docs/meilensteine/M5d-koloss-und-stellungen.md`, die Studien in `reference/studien/`, die Standbilder in `reference/konzept/koloss/` und `stellungen/`.
-
-**Gemeldete Auffälligkeit, nicht eigenmächtig geändert:** Die neuen Startwerte der Spezialstellungen sind deutlich kleiner als die bisher hergeleiteten (Sturmbatterie 5 statt 14 Schaden, Glutkessel 6 statt 90, Gewitterturm 14 statt 110). Sie werden wie geschrieben übernommen, dürften gegen die Lebenspunkte ab Welle 35 aber zu schwach sein. Zwischen M5d und M6 ist mit spürbar schwächeren Spezialstellungen zu rechnen; das ist Thema von M6, kein Fehler.
-
-Alle drei Blöcke sind abgeschlossen. Die iPad-Effektschwächen (Flammenkegel, fehlende Autokanonen-Hülsen, Mündungsursprung) sind vor der Abnahme behoben. Was M5d für M6 vorgemerkt hat, steht weiter unten.
-
-**Block A, Koloss-Logik:** Auftritt am Kartenrand der Riss-Seite, Fahrlinienwahl nach der geringsten Feuerkraft über dem ersten blockierenden Feld, Schneise von 5 Feldern beim Überfahren zermalmt, Stopp mit 3 s Betäubung an Bollwerk und Stellung, danach eigene Vier-Achsen-Wegfindung ohne Signalfeuer mit Trümmerkosten 6, Rammen mit 8-s-Countdown bei Einschluss, Drehung auf der Stelle. Gegner hinter ihm werden nach jeder Zerstörung auf die neue Route gesetzt, ohne zu springen. `findPath` hat zwei Optionen bekommen (nur Achsen, Kosten für eigentlich blockierte Felder). Der verwaiste lila Effekt ist grundsätzlich behoben: Das Verlassen der Wellenphase stellt jede Stellung ab, `removeTower` gibt frei, was auf eine Stellung zeigt.
-
-**Block B, Luftschlag und Obelisk:** Linie rastet auf die nähere Achse ein, Vorschau zeigt die eingerastete Linie. 1,1 s Vorwarnung mit gelber gestrichelter Linie und acht Einschlagmarken, dann das Gunship-Modell die Linie ab, Bomben fallen einzeln über 3,4 s. Der Anteil ist das Budget des ganzen Einsatzes, deckelt wie bisher. Obelisk auf Einzelstrahl alle 1,6 s mit 22 % und 5 % gegen Bosse. Neues HUD-Symbol (Gunship von oben).
-
-**Block C, Grafik:** Umwandler von Studien-Zeichencode nach SVG (`npm run studies`), Bunker-Baukasten mit allen fünf Rängen und zwölf Aufsätzen, Spezialbasis, alte Sockel-/Fahnen-/Chevron-Logik entfernt, Spezialstellungen auf ihre v4-Rollen (überspringender Brand des Glutkessels). Drehbares Modellmodul (`src/render/model.js`), Koloss (`src/render/koloss.js`) und Gunship (`src/render/gunship.js`) als Modelle in allen vier Richtungen. Neue rote Zielankündigung (Fahrlinie, Schneisenfelder, Zielring mit Segmenten, rotes Warnbanner mit Streifen). Bollwerk in der Studienform (Steinblock, Streben, Warnband). Kommando-Effekte durchgesehen (Stasis-Kristalle konturiert).
-
-**iPad-Rückmeldung 27.09.2026 (behoben):** Nach dem Bunker-Umbau hatten die Feuereffekte drei Regressionen — die Flamme zeichnete einen Flashlight-Kegel aus der Feldmitte, die Autokanone verlor ihre fliegenden Hülsen, und Schüsse/Strahlen starteten in der Waffenmitte statt am Lauf. Alle drei behoben: Flamme als Strahl aus der Mündung, Hülsenauswurf und Mündungsblitz am Laufende, Schuss-/Strahl-/Seelenfeuer-Ursprung über den Aufsatz-Anker (`towerAnchor`). Der tote Scharten-Code aus M4d ist mit raus. Koloss, Ankündigung, Luftschlag und Stellungen waren auf dem iPad in Ordnung.
-
-**Abnahme-Material (Stand 27.09.2026):** Screenshots aller vier Koloss-Fahrtrichtungen und der Sprite-Galerie mit beiden Stellungsmodi in 1180 x 820 erstellt und geprüft, alle vier Richtungen korrekt (Geschütz und Räumschild richtig, Laufrollen auf der Kameraseite, keine durchscheinenden Flächen). 349 Unit-Tests grün, 55 Browser-Checks grün, 60 fps auf Desktop und Tablet. Version auf 0.8.0.
-
-**Gemeldete Auffälligkeiten, Werte unverändert übernommen (für M6):**
-
-- Der **Belagerungsmörser** reicht mit 6,6 kürzer als jeder Mörser seiner Doktrin (Rekrut 7,0, Legende 8,4) — die kurzreichweitigste Mörserstellung im Spiel.
-- **Reinigungsschrein** 11 Schaden/s, **Glutkessel** 6 und **Gewitterturm** 14 liegen je Ziel unter einer einzelnen Stellung ihrer Ausgangsdoktrin auf Mindestrang. Über alle Ziele trägt es, einzeln nicht. Der Datentest prüft die Rolle, nicht die Schadenszahl.
-- Der **Obelisk** macht gegen normale Gegner 22 % pro Strahl statt bisher 3 % pro Sekunde.
-- **Abgeleitet:** Der Glutkessel-Brand springt nicht weiter (eine Kette ohne Ende zündet mit einem Geschoss eine ganze Welle an). Der Koloss zermalmt auch Gelände, nicht nur Trümmer (sonst könnte sein Zielfeld ein unbeseitigbares Hindernis sein).
-
-Reihenfolge: M1 → … → M5c → **M5d** → M6 (Abschluss)
-
-M5c HUD, Menüs und die letzten vier Spezialstellungen ist umgesetzt und am 28.09.2026 abgenommen (vor allem auf dem iPad: die Runenscheiben mit dem Finger, langes Drücken ohne versehentliches Auslösen, die rechte Kommandoleiste im Querformat und die Seed-Eingabe mit der Bildschirmtastatur). Der Plan ist am 25.09.2026 freigegeben, mit vier Entscheidungen (Reinigungsschrein behält seine Aura, „Fortsetzen" bleibt ohne laufende Partie ausgegraut, Seed und Phase wandern aus der Statusleiste ins Pausenmenü, Rezepte und Menü werden Plattenknöpfe am rechten Ende der oberen Leiste). Die Vorarbeit ist erledigt: `ART-update-v4.md` ist in `docs/ART.md` eingearbeitet (Stand jetzt v4: neue Abschnitte „HUD" und „Menüs außerhalb der Partie", der Abschnitt „Spezialstellungen" komplett neu mit Wirkungsanker-Spalte), die Einzeldatei ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik. Der Arbeitsauftrag liegt unter `docs/meilensteine/M5c-hud-menues-spezialstellungen.md`, die neuen Blätter in `reference/konzept/hud/`, `menues/` und `spezialstellungen/`.
-
-M5b Späte Bedrohung und Ressourcen-Senken ist umgesetzt und am 28.09.2026 abgenommen. Der Plan ist am 24.09.2026 freigegeben, mit drei Entscheidungen (Koloss in Welle 35 und 45 statt 30/40/50, Salve wird ruhiger statt doppelt so lang, Koloss und Bollwerk zeichne ich selbst) und einer vierten unterwegs: „Ausreichend verstärkt" hängt an Bollwerken, nicht an einer unsichtbaren Feuerkraftschwelle.
-
-M5 Speichern und PWA ist umgesetzt und am 28.09.2026 abgenommen (vor allem auf dem iPad: Export und Import mit dem Finger, der Installationshinweis in Safari, und ob das Spiel nach dem Ablegen auf dem Home-Bildschirm im Flugmodus startet). Der Plan ist am 24.09.2026 freigegeben, mit drei Entscheidungen: Der Import **ersetzt** mit Bestätigung statt zusammenzuführen, die Einstellungen bleiben ein eigenes Dokument und gehen nicht in den Export, und eine neue Version meldet sich als Zeile im Menü statt selbst neu zu laden. Dazu kam auf Wunsch eine sichtbare Versionsnummer unten links.
-
-M4d Feinschliff-Sprint 2 ist umgesetzt und am 28.09.2026 abgenommen. Der Plan ist am 23.09.2026 freigegeben, mit drei Entscheidungen: Die Sterne im Legende-Abzeichen dürfen im Blatt enger gesetzt werden, die Rezept-Vorschau zeigt immer den gerade berührten Vorschlag, und die Rangabzeichen kommen als eingebettetes SVG in den Auswahldialog statt als Canvas-Sprite. Alle fünf Schritte sind umgesetzt; M4d ist am 28.09.2026 auf dem iPad abgenommen.
-
-Die Vorarbeit: Die Vorarbeit ist erledigt: Die Ergänzung zum Grafikleitfaden steht in `docs/ART.md` (gemeinsamer Bunker für Flamme und Autokanone, kleinerer Laser, Rangabzeichen, neuer geöffneter Kapselzustand, Spezialstellungen als Fahrzeuge, dazu der neue Abschnitt "Verhalten in der Planungsphase"), die Einzeldatei `ART-update-v2.md` ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik. Neue Konzeptblätter liegen in `reference/konzept/spezialstellungen/` und `reference/konzept/ui/`, überarbeitet wurden `stellungen/autokanone.svg`, `flamme.svg`, `laser.svg` und `kapsel/kapsel-geoeffnet.svg`.
-
-M4c Neue Kapselform ist umgesetzt und am 28.09.2026 abgenommen (die Kapsel im Spiel auf dem iPad, besonders der Aufbruch bei 1x). Die Vorarbeit dazu: Die Ergänzung zur Kapsel steht als Abschnitt "Nachschubkapsel" in `docs/ART.md`, die Einzeldatei ist danach gelöscht worden. `docs/ART.md` ist wieder die einzige Quelle für die Grafik.
-
-M4b Designanpassungen aus Spieltest 1 ist umgesetzt und am 28.09.2026 abgenommen (besonders der Abbruchmodus und der Nachschub-Knopf auf dem iPad). Die Vorarbeit dazu: Das Update v2 ist in `docs/GDD.md` eingearbeitet (Stand jetzt "Grundlagen v2"), die Einzeldatei ist danach gelöscht worden. Das GDD ist wieder die einzige Quelle.
-
-M4 Präsentation ist umgesetzt und am 28.09.2026 auf dem iPad abgenommen (Ton und Mehrfinger-Gesten lassen sich nur dort wirklich beurteilen). M3 ist ebenfalls am 28.09.2026 abgenommen. M1 und M1b sind abgenommen (22.09.2026), M2 ist umgesetzt und wurde mit der Freigabe des M3-Plans fortgeführt.
-
-Reihenfolge: M1 → M1b → M2 → M3 → M4 → M4b → M4c → M4d → M5 → M5b → M5c → **M5d** → M6 (Abschluss)
-
-## Erledigt
-- Game-Design-Grundlagen (docs/GDD.md)
-- Speicherformat, Export/Import und Offline-Betrieb (docs/SPEICHER.md)
-- Stiltest (reference/stiltest.html)
-- M0 Projektgerüst, abgenommen am 22.09.2026. Läuft unter https://darthyeti.github.io/nachschubfront/.
-- M1 Spielkern (22.09.2026, auf dem iPad abgenommen):
-  - Wegfindung (`src/sim/pathfinding.js`): A* in acht Richtungen, gerade Schritte kosten 1, diagonale √2, kein Eckenschneiden, feste Reihenfolge bei Gleichstand (gleiche Karte, gleicher Weg).
-  - Route (`src/sim/route.js`): Kette Riss → Signalfeuer → Bastion (damals vier Signalfeuer, seit M4b zwei). Die Blockadeprüfung für ein Feld braucht etwa 0,15 ms. Flieger fliegen gerade von Punkt zu Punkt.
-  - Kartengenerator (`src/sim/mapgen.js`, Werte in `src/data/map.js`): 24 × 24, Riss und Bastion an gegenüberliegenden Kanten, ein Signalfeuer pro Viertel (seit M4b zwei, je Kartenhälfte eines), 12 bis 20 Ruinen, Krater und Mauerreste, geschützte Ringe. Über 500 Seeds geprüft.
-  - Kamera (`src/render/camera.js`): Startansicht mit der ganzen Karte, Felder mindestens 40 px breit. Zoom um den Zeiger oder die Fingermitte, Begrenzung auf die Karte.
-  - Eingabe (`src/input/`): Gestenerkennung ohne DOM mit Unit-Tests. Tippen und Ziehen werden über 8 px Schwelle unterschieden, dazu langes Drücken (für M3 vorbereitet), Pinch, Mausrad und Trackpad-Pinch, Pfeiltasten und Tastenkürzel.
-  - Phasenautomat (`src/core/phases.js`): Planung → Salve → Auswahl → Welle → Auswertung → Planung, dazu Niederlage und Sieg. Salve und Auswahl liefen in M1 noch ohne Inhalt durch.
-  - Gegner laufen die bei Wellenstart festgeschriebene Route. Durchbrüche kosten Leben, bei 0 Leben ist die Partie verloren.
-  - Fünf Testwellen in `src/data/waves.js`, Gegnertabelle aus dem GDD in `src/data/enemies.js`, Regeln in `src/data/rules.js`.
-  - Platzhaltergrafik im Stil des Stiltests: Boden im Offscreen-Cache, Riss, Signalfeuer, Bastion, Ruinen, Krater, Mauern, Trümmer und vier Gegnerformen. Die Routenvorschau ist eine laufende gestrichelte Linie, bei `prefers-reduced-motion` steht sie still.
-  - HUD: Welle, Leben, Phase, Routenlänge, Seed, Pause/1x/2x/3x, „Welle starten“, „Neue Partie“, Banner nach Wellen und bei Niederlage oder Sieg.
-  - Debug-Werkzeug: Taste `H` oder mit `?debug` der Hindernis-Modus. Abgelehnte Felder blinken rot mit Grund.
-  - Tests: 91 Unit-Tests. Dazu `npm run test:input` mit 13 Prüfungen im Browser (Touch-Wischen, Tippen, Pinch, Maus, Tastatur, Welle auf 3x, Niederlage und neue Partie).
-- M1b Grafik-Pipeline (22.09.2026, auf dem iPad abgenommen: Belastungstest mit 200 Gegnern läuft dort mit 60 fps):
-  - Import (`npm run sprites`, `tests/tools/import-sprites.mjs`): Die Konzept-SVGs werden zusammengeführt, jede Figur wird im Browser vermessen. Das Ergebnis liegt als Module in `src/render/sprites/enemies.js` und `towers.js`. Welche Figur zu welchem Typ gehört und in welcher Größe, steht in `src/render/sprites/manifest.js`.
-  - Rasterizer (`src/render/sprites/rasterizer.js`): Jede Figur wird einmal pro Stufe gerastert (0,5 / 1 / 2 / 2,5 mal DPR), mit vorgerenderter heller Treffer-Variante. Fehlende Stufen entstehen im Hintergrund, bis dahin wird die nächste vorhandene Stufe skaliert. Eine Ladeanzeige läuft beim Start.
-  - Gegner aus den Sprites: Schatten, Wippen, Spiegeln je nach Laufrichtung mit Totzone. Flieger schweben über ihrem Schatten.
-  - Stellungen: Sockel, Waffe, ab Veteran Sandsackring, Winkel für den Rang auf der linken Sockelseite (Legende in Gold). Im Spiel kommen sie erst mit M2 vor, zu sehen sind sie in der Sprite-Galerie `tests/sprites.html`.
-  - Debug: Umschalter Sprites/Platzhalter (`G`, Knopf, `?art=placeholder`), Belastungstest mit 200 Gegnern, Rechenzeit pro Frame in der Debug-Anzeige.
-  - Leistung (Playwright, Apple M2 mit GPU): 200 Gegner bei Start- und Maximalzoom konstant 60 fps, reine Rechenzeit 0,6 bis 1,3 ms pro Frame, im Betrieb 0 Rasterungen (`npm run test:perf`).
-  - Tests: 100 Unit-Tests. Dazu 17 Eingabeprüfungen im Browser, jetzt auch Sprite-Galerie, Grafik-Umschalter und Leertaste nach Knopfklick.
-  - WebKit (Safari-Engine) über Playwright: Alle 17 Eingabeprüfungen bestehen, alle Sprites werden fehlerfrei gerastert und sind bei maximalem Zoom scharf. Die Leistungsmessung mit 200 Gegnern ergibt etwa 17 ms pro Frame (WebKit rundet auf ganze Millisekunden), die Rechenzeit liegt bei 1,4 ms. `npm run test:webkit` führt alles aus.
-  - Behobener iPad-Fehler, gefunden mit WebKit: HUD-Knöpfe reagierten nicht auf Touch. Ursache war `preventDefault()` auf `pointerdown` der Knöpfe; WebKit löst danach kein `click` aus. Jetzt geben die Knöpfe nach dem Klick den Fokus ab, damit die Leertaste weiter pausiert.
-
-- M2 Kapselmechanik (22.09.2026, Abnahme offen):
-  - Datentabellen aus dem GDD: Doktrinen mit Kampfwerten und Leitfarben (`src/data/doctrines.js`), Ränge (`ranks.js`), Nachschubstufen (`supply.js`), Rezepte (`recipes.js`), Kapselzeiten (`pods.js`). Das Sprite-Manifest bezieht Farben und Rangzahl von dort, damit die Tabellen nicht auseinanderlaufen.
-  - Landezonen (`src/sim/zones.js`): bis zu fünf Markierungen (seit M4b wellenabhängig), Tippen setzt und löscht, ungültige Felder blinken rot mit Grund. Geprüft wird immer die ganze Menge, nicht das einzelne Feld, darum kann eine Salve den Weg nie schließen. Fehlende Zonen ergänzt „Salve anfordern“ aus einer geseedeten Mischung aller Felder, bevorzugt mit zwei Feldern Abstand.
-  - Routenvorschau: Sobald eine Zone markiert ist, zeigt die gestrichelte Linie den Weg, den die Gegner nach der Salve nehmen werden (`zonePreview`), und die Längenangabe im HUD gehört dazu. Die echte Route ändert sich erst beim Einschlag.
-  - Kapseln (`src/sim/pods.js`): Inhalt aus Doktrin und Rang nach Nachschubstufe. Der Zufallsstrom hängt nur an Seed und Wellennummer (`fork('pods').fork(welle)`), also ändern weder Markierungen noch frühere Entscheidungen den Inhalt. Die Kapseln schlagen gestaffelt ein und blockieren ihr Feld beim Aufschlag.
-  - Auswahl (`src/sim/selection.js`): Behalten, Verschmelzen von zwei oder vier gleichen, Rezept erfüllen. Das Ergebnis steht auf dem Feld der gewählten Kapsel, alle übrigen Kapseln werden zu Trümmern. Jede Salve hinterlässt damit genau eine Stellung, der Rest wird zu Trümmern (damals vier, seit M4b je nach Welle drei bis fünf).
-  - Auswahldialog (`src/ui/selection.js`): fünf Kapselkarten mit Leitfarbe, Name, Rang und einem Abzeichen, wenn mehr als Behalten möglich ist. Darunter die Aktionen für die gewählte Kapsel. Auswahl per Karte oder durch Antippen der Kapsel auf der Karte, erkennbar am goldenen Ring.
-  - Nachschlagewerk (`src/ui/codex.js`): alle sechs Rezepte mit Zutaten, Mindestrang und Wirkung. Knopf „Rezepte“, Taste `R`, schließt mit Escape oder Tippen daneben.
-  - Kapselgrafik nach Stiltest (`src/render/pods.js`): Zielmarkierung, Sturz mit Glutschweif und Bremsflamme, Aufschlag, öffnende Luken, Hologramm mit Leitfarbe und Rang-Winkeln. Eine Salve dauert bei 1x etwa 3,2 Sekunden (`SALVO_SECONDS` in `src/data/pods.js`), bei 3x gut eine Sekunde.
-  - HUD: „Salve anfordern“ statt „Welle starten“, Zonenzähler, Nachschubstufe. Die untere Leiste ist jetzt eine Spalte, damit der Auswahldialog sie nie überdeckt.
-  - Debug: Nachschubstufe umschalten (`N` oder `?supply=`), Belastungstest zeichnet zusätzlich 40 Stellungen aller Doktrinen und Ränge.
-  - Leistung (Playwright, Apple M2 mit GPU): 200 Gegner und 40 Stellungen bei Start- und Maximalzoom konstant 60 fps, Rechenzeit 1,3 bis 1,6 ms pro Frame, 0 Rasterungen im Betrieb. WebKit: 17 ms pro Frame, Rechenzeit 2,0 bis 2,3 ms.
-  - Tests: 136 Unit-Tests (dazu Tabellen, Zonen, Kapselinhalte, Verschmelzen, Rezepte, eine ganze Partie mit Prüfung der Invarianten und der Wiederholbarkeit) und 21 Eingabeprüfungen im Browser, in Chromium und WebKit.
-  - Behobener Fehler aus M1b: In `main.js` lag ein doppelter Block in `frame()`, der pro Bild einen Ladebildschirm anlegte und `sprites.preload()` aufrief. Gemessen nach zwei Sekunden: vorher 18 Überlagerungen über dem Canvas, jetzt 0.
-
-- M3 Kampf und Inhalte (22.09.2026, Abnahme offen):
-  - Datentabellen: Schadensmatrix und Rüstungsarten (`src/data/combat.js`), Gegner mit Sonderfähigkeiten und die fünf Bosse (`enemies.js`), Wirtschaft (`economy.js`), Spezialkommandos (`commands.js`), Werte der Spezialstellungen (`specials.js`).
-  - Wellenliste: alle 50 Wellen ausgeschrieben in `src/data/waves.js`, erzeugt mit `npm run waves` aus den Regeln des GDD (Fünferzyklus, jede zehnte Welle Boss mit Begleitung, Leben mal 1,12 hoch Welle minus eins). Handänderungen in der Datei überschreibt der nächste Lauf; für M6 ändert man die Regeln im Werkzeug.
-  - Kampfkern (`src/sim/combat.js`, `targeting.js`, `damage.js`): Ziel ist der Gegner, der den größten Teil seiner Route hinter sich hat, bei Gleichstand die kleinere ID. Der Anteil statt der reinen Strecke, weil Flieger eine kürzere Luftlinie fliegen und sonst nie an die Reihe kämen. Nachladen, Schadensmatrix, Warp-Schild vor dem Fleisch darunter, Belohnung pro Abschuss, Schadenszähler pro Stellung für die Wellenstatistik.
-  - Doktrinen: Flamme brennt einen Kegel und setzt in Brand, Autokanone einzeln, Laser durchschlägt die Linie, Mörser führt sein Ziel vor und braucht eine Sekunde Flugzeit, Psi schädigt und verlangsamt im Ring, Tesla springt über vier Ziele mit minus 20 % je Sprung. Dazu Statuseffekte (Brand, Verlangsamung, Betäubung) in `effects.js` und Geschosse in `projectiles.js`.
-  - Spezialstellungen: alle sechs Rezepte wirken (`src/data/specials.js`). Jede behält die Doktrin ihrer ersten Zutat, die über Schadensmatrix und Leitfarbe entscheidet.
-  - Gegner: Heiler heilen 8/s im Radius 1,5, Zerplatzer setzen vier Schwärmer frei, Warp-Schilde regenerieren nach zwei ruhigen Sekunden. Bosse: Brutmutter setzt unterwegs Schwärmer frei, Warp-Herold springt drei Felder vor, Dämonenprinz wechselt alle vier Sekunden die Rüstungsart.
-  - Wirtschaft (`src/sim/economy.js`): Requisition aus Abschüssen und Wellenbonus (10 plus Wellennummer), Kommandopunkte aus Bossen und durchbruchsfreien Wellen. Ausgeben: Nachschubstufe ausbauen und Trümmer abreißen (15, danach je 5 mehr), beides mit Preis auf dem Knopf.
-  - Spezialkommandos (`src/sim/commands.js`, `src/ui/commands.js`): Orbitalschlag, Stasisfeld, Priorisierter Nachschub, Heiliges Banner mit Freischaltwelle, Kosten und Abklingzeit in Wellen. Gezielte Kommandos zeigen ihren Radius unter dem Zeiger, Escape bricht ab.
-  - Darstellung (`src/render/effects.js`): Mündungsblitze, Laserstrahlen, Tesla-Blitze, Granaten im Bogen, Explosionen mit Brandflecken, Todesausbrüche, Schadenszahlen und Lebensbalken über verletzten Gegnern. Alles mit Obergrenzen, alles nur lesend auf dem Zustand.
-  - Infoanzeige (`src/ui/info.js`): langes Drücken oder Mauszeiger zeigt Stellung, Gegner oder Gelände mit Werten und Zustand.
-  - Punkte nach GDD Abschnitt 12 im Banner bei Sieg und Niederlage.
-  - Debug-Panel (`?debug`): Welle anspringen, Requisition und Kommandopunkte geben, Kapselinhalt erzwingen, Unverwundbarkeit, Wellenstatistik mit den drei stärksten Stellungen.
-  - Werkzeuge: `npm run playmatch` spielt eine ganze Partie ohne Browser und schreibt eine Zeile pro Welle, `npm run test:battle` spielt eine echte Partie im Browser bei 3x und scheitert an jedem Konsolenfehler.
-  - Leistung (Playwright, Apple M2 mit GPU): Der Belastungstest kämpft jetzt mit. 200 Gegner und 40 feuernde Stellungen mit allen Effekten bleiben bei 60 fps, Rechenzeit 1,3 bis 2,0 ms pro Frame, 0 Rasterungen im Betrieb. WebKit: 17 ms pro Frame, Rechenzeit 2,0 bis 2,6 ms.
-  - Browser: `npm run test:battle` hat 17 Wellen bei 3x am Stück gespielt (Zonen neben der Route, Boss in Welle 10, Orbitalschlag in Welle 15), ohne Durchbruch und ohne Konsolenfehler.
-  - Tests: 222 Unit-Tests (Kampf, Doktrinen, Spezialstellungen, Fähigkeiten, Kommandos, Wirtschaft, Infoanzeige, Wellentabelle), darunter eine ganze Partie über 50 Wellen mit Prüfung der Invarianten und der Wiederholbarkeit. Dazu 23 Eingabeprüfungen im Browser, in Chromium und WebKit, jetzt auch Infoanzeige per langem Drücken, Punkte im Banner und Trümmer abreißen.
-
-- M4 Präsentation, Schritt 1 von 8: Diorama und Atmosphäre (23.09.2026):
-  - Hintergrund (`src/render/backdrop.js`): Himmelsverlauf, Glutschein am Horizont und zwei Reihen Turmruinen wie im Stiltest, einmal pro Bildgröße in eine Offscreen-Schicht gezeichnet. Sie folgt der Kamera nur zu 14 % waagerecht und 7 % senkrecht, dadurch steht die Karte als Platte in einer Landschaft. Gezeichnet wird nur der Ausschnitt unter dem Bildfenster, der Rand ringsum ist die Reserve für die Verschiebung. Aussehen hängt am Seed.
-  - Asche und Glut (`src/render/atmosphere.js`): Flocken fallen, Glutpunkte steigen, beides im Bildschirmraum vor der Kamera, Anzahl aus der Bildfläche mit Ober- und Untergrenze (30 bis 120 Flocken, 6 bis 26 Glutpunkte). Rein optisch, daher `Math.random`.
-  - Bildschirmwackeln und Weißblitz (`src/render/effects.js`): gespeist aus Ereignissen (Kapseleinschlag am stärksten, dann Bossabschuss, Durchbruch, Explosion je nach Radius), schnelle Abklingkurve. Gewackelt wird nicht die Kamera, sondern nur das gezeichnete Bild.
-  - `prefers-reduced-motion`: kein Wackeln, Blitz auf ein Viertel, Asche und Glut stehen still. Im Browser geprüft.
-  - Tests: 226 Unit-Tests (neu: die Begrenzung der Parallaxe), 23 Eingabeprüfungen, Screenshots ohne Konsolenfehler.
-
-- M4 Schritt 2 von 8: Bewegliche Teile (23.09.2026):
-  - Zerlegung der Konzept-SVGs in Teile mit zwei einmaligen Werkzeugen (`tests/tools/split-towers.py`, `split-enemies.py`). Die Teile stehen in `docs/ART.md`.
-  - Stellungen: Die Waffe ist ein eigenes Sprite, dreht sich zum Ziel, wird gespiegelt, wenn das Ziel rechts steht, und federt nach dem Schuss zurück. Der Mörser neigt sein Rohr nur (22 % des Winkels), statt flach zu zielen. Ein Schuss wird daran erkannt, dass der Nachladezähler wieder hochspringt; die Simulation musste dafür nichts liefern.
-  - Aus den SVGs entfernte Effekte werden jetzt gezeichnet (`src/render/towerFx.js`): Zündflamme, Laserlinse, Psi-Ringe mit Aura, Tesla-Glühen und Blitze.
-  - Gegner: Beine schwingen im Gegentakt um ihre Hüften, Flügel klappen durch die Körperebene. Betäubte Gegner und `prefers-reduced-motion` halten still.
-  - Sichtbarkeitsprüfung im Szenenrenderer: Was weit außerhalb des Bildfensters steht, wird nicht mehr gezeichnet. Bei Maximalzoom mit 200 Gegnern senkt das die Rechenzeit von 5,8 auf 2,3 ms pro Frame.
-  - Sprite-Schlüssel kommen jetzt aus den Teilen statt aus Doktrin und Rang: Gleich aussehende Ebenen teilen sich eine Rasterung (38 statt 81 Rasterungen für alle Stellungen).
-  - Leistung (Apple M2 mit GPU, 200 Gegner und 40 Stellungen): 2,3 bis 3,6 ms Rechenzeit pro Frame, 0 Rasterungen im Betrieb. Vor der Zerlegung waren es 1,7 bis 2,1 ms; die drei Zeichenaufrufe pro Figur kosten also gut eine halbe Millisekunde.
-  - Tests: 227 Unit-Tests (neu: Teileaufteilung, Drehpunkte innerhalb der Waffenumrisse, geteilte Rasterungen, keine Effekte mehr im SVG), 23 Eingabeprüfungen, eine volle Partie über 12 Wellen ohne Konsolenfehler.
-
-- M4 Schritt 3 von 8: Ränge und Sonderzeichen (23.09.2026):
-  - Elite-Panzerplatten, Helden-Banner, Goldkante und Halo der Legende. Was sich bewegt (Banner, Halo), ist Code, der Rest erzeugtes SVG im Sprite. Die Tabelle in `docs/ART.md` sagt jetzt pro Rang, wie das Detail entsteht.
-  - Veteran-Detail für Autokanone und Mörser festgelegt: eine Munitionskiste. Sie wird mit `tests/tools/add-crate.py` einmalig aus der Mörser-Zeichnung gelöst (`crate`, gespiegelt `crate-l`), weil der Mörser rechts schon eine hat.
-  - Der Dämonenprinz zeigt seine Rüstung: Bodenring und Schild auf dem Leib in der Farbe der Rüstung, dazu ein auslaufender Ring beim Wechsel.
-  - Sprite-Galerie: Beschriftung jeder Figur und ein Silhouetten-Schalter (Canvas-Filter, nur im Werkzeug) für die Regel „Silhouette vor Detail". Geprüft: Mit Silhouetten bleibt kein farbiger Bildpunkt übrig.
-  - Der Rasterschlüssel enthält jetzt einen Hash der erzeugten Zusatzgrafik statt ihrer Länge, damit zwei verschiedene Ranggrafiken sich nie eine Rasterung teilen können.
-  - Tests: 228 Unit-Tests (neu: Rangdetails erscheinen genau ab dem Rang aus ART.md und bleiben, Kiste statt Ring bei Autokanone und Mörser), 23 Eingabeprüfungen.
-
-- M4 Schritt 4 von 8: Spezialstellungen und Bosse (23.09.2026):
-  - Elf neue Figuren im Stil der Konzeptskizzen, gezeichnet von zwei Werkzeugen (`tests/tools/add-specials.py`, `add-bosses.py`) auf einer gemeinsamen kleinen Zeichenbibliothek (`tests/tools/draw.py`: Iso-Kasten, Zylinder, Balken, Palette). Die Werkzeuge lassen sich erneut laufen, sie ersetzen ihre eigenen Symbole. Für jede Figur liegt ein Blatt in `reference/konzept/`.
-  - Sechs Rezept-Stellungen mit eigener Grundform (Tabelle in `docs/ART.md`). Sturmbatterie und Belagerungsmörser haben eine bewegliche Waffe, der Rest wirkt über seine Effekte. Der Platzhalter (Sprite der ersten Zutat mit Halo) ist weg; geblieben ist der goldene Bodenring.
-  - Fünf Bosse mit eigener Figur, jeweils mit dem Merkmal aus ART.md. Beine und Flügel bewegen sich wie bei den normalen Gegnern, der Warp-Herold schwebt als ein Stück.
-  - Die Größenfaktoren in `src/data/enemies.js` beziehen sich jetzt auf die eigene Zeichnung (1,55x bis 2,0x statt 2,2x bis 2,6x). Sie sind so gewählt, dass jeder Boss so groß bleibt wie vorher. Der Faktor ist reiner Grafikwert, die Simulation liest ihn nicht.
-  - Galerie: Rezept-Stellungen in einer eigenen Reihe, Bosse in einer eigenen Reihe mit mehr Abstand.
-  - Tests: 229 Unit-Tests (neu: jede Rezept-Stellung hat eine eigene, größere Silhouette mit Goldkante und ohne Rangwinkel; jeder Boss hat eine eigene Figur und überragt seinen Verwandten um mindestens die Hälfte), 23 Eingabeprüfungen, eine volle Partie ohne Konsolenfehler.
-
-- M4 Schritt 5 von 8: Kapselsequenz und Kommandos (23.09.2026):
-  - Die Kapsel schlägt jetzt vollständig ein: Druckwelle, Staubwolke, Trümmer, Feuer, Krater und ein Comic-Wort. Danach fliegen die Sprengbolzen ab, jede Luke wirft beim Aufschlagen Staub auf, und die heiße Hülle lässt zu beiden Seiten Dampf ab.
-  - Comic-Wörter bleiben selten, damit sie laut bleiben: nur die erste Kapsel einer Salve ruft „KRACH!", und der Orbitalschlag ruft „EINSCHLAG!". Normale Explosionen bleiben stumm.
-  - Kommandos haben eine eigene Inszenierung: Der Orbitalschlag kommt als Lichtsäule mit weiter Druckwelle und hellem Blitz herunter, das Stasisfeld liegt als kalte Scheibe mit langsam drehendem Kristallgitter über seinem Bereich, das Heilige Banner steht als Fahne mit Totenschädel in seinem goldenen Ring, und der Priorisierte Nachschub geht als Funkenring von der Bastion aus.
-  - Neue Partikelarten (Staub, Trümmer, Dampf, Bolzen) und Druckwellenringe, alles mit Obergrenzen.
-  - Behobener Fehler aus M2/M3: Partikel bekamen eine zufällige Lebensdauer, aber die feste als Bezugsgröße. Wer länger lebte als vorgesehen, wuchs über seine eigene Größe hinaus und bekam einen negativen Radius; Canvas hat das als Fehler gemeldet. Jetzt ist beides derselbe Wert.
-  - Leistung (Apple M2 mit GPU): 200 Gegner und 40 Stellungen, Start- und Maximalzoom, Desktop und Tablet: alles 60 fps, 1,9 bis 3,0 ms Rechenzeit, 0 Rasterungen. Die Auffälligkeit aus Schritt 1 (p95 33 ms bei Tablet/Maximalzoom) ist weg; sie kam von der ausgelasteten Maschine, nicht vom Spiel.
-
-- M4 Schritt 6 von 8: HUD und Menüs (23.09.2026):
-  - Vier Bildschirme im Spielstil (`src/ui/menu.js`): Hauptmenü mit Titel, Seed-Feld und Würfeln-Knopf, Pausenmenü, Einstellungen und Ende-Bildschirm mit der Wertung aus GDD 12. Alle liegen über dem laufenden Bild, alle pausieren die Partie, alle haben 44-px-Trefferflächen und Safe-Area-Abstände.
-  - Die Partie startet jetzt hinter dem Titelbildschirm: Die Karte ist schon erzeugt und zu sehen, „Feldzug beginnen" spielt genau diese Karte, ein geänderter Seed erzeugt eine neue.
-  - Escape arbeitet sich von innen nach außen: erst das Zielen abbrechen, dann das Nachschlagewerk schließen, dann das Menü öffnen. Dazu ein Knopf „Menü" in der Leiste.
-  - Spielereinstellungen (`src/core/prefs.js`): drei Lautstärken (für Schritt 7 vorbereitet) und die Bewegung (Wie das System / Voll / Reduziert). Gespeichert wird über die Speicherschicht; ein Browser ohne Speicher zeigt einen Hinweis und spielt trotzdem.
-  - Reichweitenkreis: Was der Spieler ansieht (Infoanzeige) und die gewählte Kapsel in der Auswahl zeigen, wie weit sie reichen. Damit ist eine Stellung ohne Ziel sofort zu erkennen (bekanntes Problem aus M3).
-  - Der Auswahldialog rückt auf breiten Bildschirmen an den rechten Rand und stapelt die Kapselkarten. Die Vorderkante der Karte bleibt frei, jede Kapsel ist antippbar (bekanntes Problem aus M2).
-  - Tests: 25 Eingabeprüfungen im Browser (neu: Ende-Bildschirm statt Banner, Pausenmenü mit Escape, Einstellungen werden gespeichert), 229 Unit-Tests. Die Browser-Werkzeuge verlassen den Titelbildschirm jetzt über denselben Knopf wie ein Spieler (`startMatch` in `tests/tools/server.mjs`), die Screenshots halten ihn zusätzlich fest.
-
-- M4 Schritt 7 von 8: Ton (23.09.2026):
-  - Alle Geräusche sind synthetisiert (Entscheidung zum M4-Plan): keine Audiodateien im Repository, keine Lizenzfragen, offline-fähig. Die Rezepte stehen als Daten in `src/data/audio.js`, der Synthesizer (`src/audio/synth.js`) baut daraus Oszillatoren und gefiltertes Rauschen mit Hüllkurve.
-  - Zwanzig Klänge: Autokanone, Laser, Tesla, Mörser, Flamme, Explosion, Abschuss, Bossabschuss, Durchbruch, Kapseleinschlag, Luken, Stellung gebaut, Wellenstart, Welle abgewehrt, Kommando, Sieg, Niederlage, Knopfdruck, Ablehnung.
-  - Musik: eine tiefe Drone aus drei Stimmen, dazu eine Trommel auf jedem Takt, solange eine Welle läuft, und alle vier Takte eine Glocke. Die Ereignisse werden gut eine Sekunde im Voraus eingeplant, damit der Browser dazwischen schlafen kann. In der Planung ist die Musik leiser als im Gefecht.
-  - Der Ton startet erst nach der ersten Berührung oder Taste (Safari), die Lautstärkeregler aus Schritt 6 wirken sofort, ein Hintergrund-Tab wird stummgeschaltet. Obergrenze von 18 gleichzeitigen Stimmen, dazu eine Mindestpause je Klang, damit 200 Gegner den Ton nicht zumauern.
-  - Tests: 232 Unit-Tests (neu: jedes Klangrezept ist abspielbar, die häufigen haben eine Mindestpause, die Musikzeiten sind stimmig) und 27 Eingabeprüfungen. Zwei davon prüfen den Ton im Browser: Der Kontext läuft nach dem ersten Klick, und jeder der zwanzig Klänge wird in einem OfflineAudioContext gerendert — keiner ist still, keiner übersteuert. Das läuft auch ohne Lautsprecher, in Chromium und in WebKit.
-
-- M4 Schritt 8 von 8: Abnahme (23.09.2026):
-  - Leistungsziel: `npm run test:perf` läuft in Chromium und WebKit durch. 200 Gegner und 40 Stellungen, Desktop und Tablet, Start- und Maximalzoom: 60 fps, 2,0 bis 2,9 ms Rechenzeit pro Frame, 0 Rasterungen im Betrieb. Auf dem iPad steht die Messung noch aus.
-  - Unterscheidbarkeit: In der Galerie stehen alle 30 Rang-Stellungen, die 6 Rezept-Stellungen, die 7 Gegner und die 5 Bosse nebeneinander. Bei Zoom 0,5 (kleinste Stufe) sind sie an Form und Farbe auseinanderzuhalten, der Silhouetten-Schalter zeigt, dass auch die reinen Schattenrisse verschieden sind.
-  - `prefers-reduced-motion`: zwei volle Wellen mit Kapseln, Kampf, Effekten und Ton ohne Konsolenfehler; kein Wackeln, gedämpfter Blitz, ruhige Asche, stillstehende Beine.
-  - Gesamtstand der Prüfungen: 232 Unit-Tests, 27 Eingabeprüfungen in Chromium und WebKit, eine Partie über 16 Wellen im Browser, Screenshots für Desktop und Tablet (jetzt auch vom Titelbildschirm).
-
-- M4b Designanpassungen aus Spieltest 1 (23.09.2026, Abnahme offen):
-  - **Zwei Signalfeuer** (`src/sim/mapgen.js`, Regeln in `src/data/map.js`): eines je Kartenhälfte links und rechts der Riss-Bastion-Achse, mindestens 10 Felder auseinander und je 8 zu Riss und Bastion, gemessen in Königsschritten (passend zur Bewegung in acht Richtungen). Die Kandidaten werden pro Hälfte aufgezählt und dann gezogen, damit in einem Durchgang immer ein gültiges Paar herauskommt. Über 500 Seeds geprüft.
-  - **Salvengröße nach Welle** (`src/data/pods.js`): 6 bis Welle 15, 5 bis 35, danach 4, ab Welle 36 kein Rekrut mehr. Der Mindestrang wird nach dem Wurf geklemmt, der Zufallsstrom bleibt also unberührt. `upcomingWave()` hält das „+1" an einer Stelle, weil `state.wave` die bereits gespielten Wellen zählt.
-  - **Sanfterer Einstieg** (`tests/tools/make-waves.mjs`): Wellen 1 bis 5 mit 30 Prozent weniger Gegnern, Brecher ab Welle 4, Flieger ab Welle 6. Ein Zyklusplatz, dessen Leitgegner noch gesperrt ist, gibt dessen Anteil an die verfügbaren Typen ab, sonst wären die Wellen 2 und 3 nur noch eine Handvoll Nachzügler.
-  - **Abreißen eigener Stellungen** (`src/sim/economy.js`): Stellung kostet das Dreifache des aktuellen Trümmerpreises und gibt nichts zurück; jeder Abriss verteuert den nächsten, egal welcher Art. Ruinen, Krater und Mauerreste bleiben — sie sind Gelände.
-  - **Abbruchmodus** (`src/render/scene.js`, `src/main.js`): Im aktiven Modus sind alle räumbaren Felder umrandet, Gold für Trümmer, Rot für eigene Stellungen, gedämpft wenn zu teuer, mit dem Preis **im** Feld. Im Feld, nicht darüber: Felder kacheln den Boden überschneidungsfrei, schwebende Schilder benachbarter Felder lagen sonst übereinander. Auf Touch schärft der erste Tipp das Feld, der zweite reißt ab (Rückfrage im Banner), mit der Maus genügt ein Klick. Der Modus bleibt an.
-  - **Nachschub-Knopf** (`src/ui/hud.js`): „Nachschubstufe 1 auf 2 · 20" plus fünf kleine Balken in den Rangfarben für die Chancen der Zielstufe. Die Erklärung hängt für die Maus am `title` und für Touch an einem langen Druck, der sie samt Prozentwerten ins Banner legt — nichts ist nur per Hover erreichbar.
-  - **Regelversion** (`src/data/rules.js`): `RULESET_VERSION = 2`, und `scoreEntry()` schreibt sie an jedes Ergebnis. M5 speichert damit alte und neue Partien getrennt.
-  - Messungen: Der Grundweg einer frischen Karte ist über 500 Seeds im Median 45 Felder lang statt 78 (min 32, max 75; vorher 62 bis 96) — 43 Prozent kürzer. Er wächst über die Partie weiter: drei Seeds kamen von 40/44/50 in Welle 1 auf 77/103/91 in Welle 15 und 142/174/130 in Welle 30, also kein Deckel mehr.
-  - Tests: 244 Unit-Tests, 28 Eingabeprüfungen in Chromium und WebKit (neu: der Abbruchmodus räumt mehrere Felder nacheinander per Touch, und der Nachschub-Knopf erklärt sich auf langen Druck).
-
-- M4d Feinschliff-Sprint 2, Schritt 1 von 5: Pipeline, Bunker, Laser, Kapselform (24.09.2026):
-  - **Bibliothek wieder zusammengesetzt** (`tests/tools/split-bunkers.py`, einmaliger Eingriff wie die anderen `split-*.py`): Die drei neuen Blätter aus Update 4 waren Exporte ohne die M4-Zerlegung und passten nicht mehr zu den übrigen Blättern im selben Ordner. Aus `bunker2-mg` und `bunker2-flame` sind `t-ac-back` und `t-flame-back` geworden, die drei Mündungsblitze und Flammenstöße daraus sind weg und jetzt Code. `t-ac-gun`, `t-ac-front`, `t-flame-gun` und `crate` sind weggefallen.
-  - **Laser** (`t-laser-s`): Das neue Blatt verkleinert den Laser nur, es zeichnet ihn nicht neu. Die vorhandenen Teile stecken deshalb in derselben Transformation (`translate(0,-16) scale(0.68)`), und Drehpunkt, Mündung und Rückstoß im Manifest sind mit demselben Faktor umgerechnet statt neu geraten.
-  - **Kapsel** (`tests/tools/split-pod-open.py`): Der neue geöffnete Zustand ist in Kern (jetzt mit Dach und Bremsdüsen) und vier Klappen zerlegt. Die Scharnierberechnung aus M4c traf bei den kleineren Klappen die falsche Kante — sie nahm den Mittelpunkt zwischen den zwei Ecken, die der Mitte am nächsten liegen. Jetzt wird die Kante selbst gemessen; für die alte Grafik kommt dasselbe heraus (−13,4 / −6 gegen −12,5 / −5,6).
-  - **Feldgröße unverändert**: Eine Stellung blockiert in `src/sim/towers.js` immer genau ihre eigene Zelle, unabhängig von der Grafik. Der Bunker ändert nur die gezeichnete Silhouette (74 × 65 statt hoch aufragend), nicht die Kollisionsfläche. Für Bau und Zielwahl folgt daraus nichts.
-  - **Keine zielende Waffe mehr**: Flamme und Autokanone haben in `TOWER_WEAPONS` statt Drehpunkt, Ruhewinkel und Mündung nur noch drei Schartenpunkte. Die Rückstoßbuchhaltung läuft für sie weiter, damit der Mündungsblitz auf denselben Takt fällt wie der Schuss. `src/render/towerFx.js` zeichnet daraus drei Blitze (Autokanone) oder drei Flammenzungen (Flamme), beide zum Ziel geneigt und um 0,3 rad aufgefächert — ohne den Fächer legen sich die drei Zungen zu einem Streifen übereinander.
-  - **Rangdetails nachgezogen**: Die Autokanone hat mit dem Bunker ihren eigenen Sandsackring und den Munitionskasten verloren und bekommt ab Veteran den geteilten Ring wie alle anderen. Die Elite-Platte liegt bei beiden Bunkern flach an der linken Vorderseite unter den Scharten; senkrecht auf dem Dach sah sie aus wie ein Schornstein.
-  - Geprüft: 252 Unit-Tests, `npm run sprites` läuft wieder durch, Galerie und Spiel ohne Konsolenfehler, beide Bunker im Gefecht mit Schaden und sichtbarem Effekt.
-
-- M4d Schritt 2 von 5: Fahrzeuge, Obelisk und die beiden neuen Quellordner (24.09.2026):
-  - **Zwei neue Quellen** (`tests/tools/import-sprites.mjs`): Eine Quelle darf jetzt mehrere Ordner lesen. `reference/konzept/spezialstellungen/` fließt in `TOWER_SPRITES` — dieselbe Bibliothek, derselbe Sockel, dieselbe Rasterung. `reference/konzept/ui/` bekommt ein eigenes Modul `src/render/sprites/badges.js`, weil Abzeichen in fester Größe im DOM gezeichnet werden und nicht auf der Karte. Dateien heißen in einer Mehrordner-Quelle nach ihrem Ordner, weil es `sturmbatterie.svg` in zweien gab.
-  - **Zerlegung** (`tests/tools/split-vehicles.py`): `t-storm-back` (Ketten, Wanne, Turm, vier Läufe, Kisten), `t-obelisk-back` (Block, Schaft, Runen, Kappe) und `t-obelisk-gun` (das schwebende Auge). Die Platzhalter aus M4 sind mitsamt ihren zwei Blättern aus der Stellungs-Bibliothek verschwunden; die vier noch unfertigen Rezepte behalten ihre.
-  - **Sockel statt freier Boden**: Die Skizzen zeigen die Fahrzeuge frei stehend mit eigenem Schlagschatten. Im Spiel stehen sie auf dem gemeinsamen Sockel, jede Figur um die Höhe ihres eigenen Schattens angehoben (Batterie 16, Obelisk 6 Einheiten), damit Ketten und Fuß aufsetzen. Begründung steht in `docs/ART.md`.
-  - **Feld `ports` statt `embrasures`**: Dieselbe Mechanik trägt jetzt die drei Scharten des Bunkers und die vier Laufmündungen der Batterie. Der Vierlingsturm dreht sich nicht — die Skizze zeigt ihn nach oben gerichtet, und die Beschreibung nennt nur gleichzeitige Mündungsblitze.
-  - **Hülsen ohne Partikelsystem**: Die Patronenhülsen leben vom Abklingen des Schusses selbst, mit festen Versätzen je Mündung. Trommelfeuer ist in Sekundenbruchteilen vorbei, da muss nichts zwischen den Bildern aufgehoben werden.
-  - **Obelisk-Effekte im Code** (`src/render/towerFx.js`): Flammen am Fuß, Blitze von der Spitze zum Auge. Das Auge ist ein Sprite und schwebt wie der Psi-Kristall (`float`), sein Leuchten und der Ring kommen aus der vorhandenen Psi-Behandlung, weil seine Leitfarbe Psi ist.
-  - **Höhe geprüft** (Frage aus dem Arbeitsauftrag): Der Obelisk misst 240 SVG-Einheiten, also etwa 152 Weltpixel über dem Bodenpunkt. Der Renderer hält 260 Pixel über dem Bodenpunkt frei, das reicht. Die Tiefensortierung nach `x + y` stellt ihn richtig vor alles, was hinter ihm steht; in der Galerie steht er sauber vor Psi 5 und Tesla 5. Ein Objekt davor verdeckt nur seinen Fuß, was richtig ist. **Kein Rendering-Problem.**
-  - Geprüft: 254 Unit-Tests, 29 Eingabeprüfungen, 60 fps bei 2,0 ms, keine Konsolenfehler.
-
-- M4d Schritt 3 von 5: Rangabzeichen im Auswahldialog (24.09.2026):
-  - **Blatt korrigiert** (`tests/tools/fit-badges.py`, einmalig, freigegeben): Die Plakette hat vier Sternplätze, von denen der Rang die ersten beleuchtet. Die Reihe stand links neben der Mitte und war breiter als das Sechseck — bei Legende hing der äußere Stern heraus. Sie ist jetzt in einer Transformation verkleinert und mittig gesetzt; gezeichnet wurde nichts neu.
-  - **Als eingebettetes SVG** (`src/ui/badges.js`): Der Auswahldialog ist DOM, das Abzeichen wird nicht pro Bild erzeugt, und als SVG bleibt es bei jeder Anzeigeskalierung scharf. Das ist die freigegebene Abweichung von "SVG ist nur Quelle, Canvas die Ausgabe", die sich auf das Zeichnen pro Bild bezieht. Die Gruppe wird ohne ihre id aus der Bibliothek geschnitten, damit fünf Karten gleichzeitig eine tragen können, und das Ergebnis je Rang und Doktrin gemerkt.
-  - **Farbe**: Das Blatt zeichnet Plakettenrand und leuchtende Sterne in Creme; bis Held wird diese Farbe durch die Leitfarbe der Doktrin ersetzt, bei Legende bleibt das Gold des Blatts stehen.
-  - **Größe 28 px**: Bei 22 px lassen sich die vier Sterne in der 48 Einheiten breiten Plakette nicht mehr zählen. Die Karte ist mindestens 46 px hoch, 28 px passen hinein.
-  - Geprüft: 255 Unit-Tests (darunter Sternzahl je Rang, Farbe je Doktrin, keine doppelten ids), 29 Eingabeprüfungen, Dialog am Desktop und mit Touch-Emulation bei 1180 × 820.
-
-- M4d Schritt 4 von 5: Rezept-Vorschau (24.09.2026):
-  - **Auslöser**: Der Vorschlag, der gerade berührt wird, und nur der (Entscheidung vom 24.09.2026). Am Zeiger über `pointerenter`, am Finger über `pointerdown` — auf dem Tablet zeigt sich die Vorschau also, solange der Knopf gehalten wird, und das ist genau der Moment vor dem Loslassen. Sie erlischt beim Verlassen, Loslassen oder Abbrechen und wenn der Dialog seine Knöpfe neu baut.
-  - **Zeichnen** (`src/render/scene.js`): nach dem tiefensortierten Durchgang ein Schleier über die ganze Ansicht, danach die betroffenen Stellungen noch einmal darüber, jede in einem pulsierenden Goldring. Gemessen: Ein Bodenpixel geht von [89,73,58] auf [56,45,36], also etwa 37 Prozent dunkler, und danach wieder zurück.
-  - Die Stellungen werden beim zweiten Mal mit `dt = 0` gezeichnet. Ihre Waffen sind in diesem Bild schon bewegt worden; ein zweiter Durchlauf mit echter Zeit hätte den Rückstoß doppelt so schnell abgebaut.
-  - **Kapseln bleiben hell**: Der Schleier liegt unter Hologrammen und Kapselringen. Das ist beabsichtigt — die Salve ist ja das, wozwischen gewählt wird. Falls es auf dem iPad zu unruhig wirkt, wäre das Umhängen eine Zeile.
-  - Geprüft: 256 Unit-Tests (darunter: nur Rezept-Aktionen tragen die Vorschau-Liste), 29 Eingabeprüfungen, 60 fps, im Spiel mit einer echten Sturmbatterie über zwei Stellungen ausgelöst.
-
-- M4d Schritt 5 von 5: Geräumte Felder markieren (24.09.2026):
-  - Ein im Abbruchmodus geräumtes Feld bekommt denselben gestrichelten Goldring wie eine Landezone, nur ohne Nummer und mit knapp halber Deckkraft. Er bleibt über das Anfordern der Salve hinaus stehen, bis eine Kapsel auf dem Feld landet oder die Welle losgeht — das ist der Zweck: das freigeräumte Feld beim Setzen der nächsten Zonen wiederfinden.
-  - Die Regel steht als reine Funktion `keepClearedCells` in `src/render/pods.js`, nicht in `main.js`, damit sie geprüft werden kann. `PLANNING_PHASES` ist dabei von `src/render/scene.js` nach `src/core/phases.js` gewandert, wo die Phasen ohnehin beschrieben sind; vorher hätte es die Menge an zwei Stellen gegeben.
-  - Geprüft: 257 Unit-Tests, 29 Eingabeprüfungen, 60 fps. Im Spiel mit Touch: zwei Felder abgerissen, beide Marken stehen noch, als die Kapseln fallen.
-
-- M4d, Abnahmekriterien gegengeprüft (24.09.2026):
-  - **"Beide Bunkerarten nur über Farbe und Mündungseffekt unterscheidbar"**: Ein Test vergleicht jetzt die beiden Symbole selbst, jeweils mit herausgerechneter Akzentfarbe — sie sind Zeichen für Zeichen gleich, und keines trägt die Farbe des anderen. Der erste Anlauf verglich die fertigen SVG-Dokumente und schlug fehl: Jedes Sprite bettet die ganze Bibliothek ein, also stand die Akzentfarbe des jeweils anderen Bunkers mit drin. Die Grafik war richtig, der Vergleich falsch.
-  - **"Rezept-Vorschau … auch per Touch"**: Mit einem gehaltenen Finger auf dem Rezept-Knopf geprüft (`pointerdown` ohne Klick, Tablet-Kontext mit `hasTouch`): Bodenhelligkeit 89 ruhig, 56 gehalten, 89 nach dem Loslassen, Phase bleibt `selection`. Ein erster Versuch meldete fälschlich "nein" — der Test hatte vorher auf denselben Knopf getippt und damit das Rezept ausgelöst.
-  - Nicht automatisiert: Die Vorschau per Touch hängt an einem laufenden Spiel mit passenden Zutaten (zwei Wellen Vorlauf) und steht deshalb nicht in `npm run test:input`. Der Abbruchmodus per Touch ist dort schon abgedeckt.
-  - Offen für das iPad: ob die geöffnete Kapsel wie ein Bauwerk wirkt, ob die Kapseln in der Rezept-Vorschau hell bleiben sollen, und die Lesbarkeit der Abzeichen in der Hand.
-
-- M4c Neue Kapselform (23.09.2026, Abnahme offen):
-  - **Zerlegung** (`tests/tools/split-pod.py`, einmaliger Eingriff wie bei Stellungen und Gegnern): Die geschlossene Kapsel bleibt ein Stück — von vorn zeigt sie drei Facetten einer Hülle, und nichts daran bewegt sich. Die geöffnete zerfällt in `pod-core` und vier Segmente (`pod-petal-bl/br/fr/fl`), benannt nach der Richtung, in die sie fallen. Schlagschatten, Kern-Leuchten und Lichtsäule sind aus der Grafik heraus und im Code, weil sie die Leitfarbe der Doktrin tragen.
-  - **Import** (`npm run sprites` → `src/render/sprites/pods.js`): Die Quelle `reference/konzept/kapsel` ist in `tests/tools/import-sprites.mjs` aufgenommen. Die beiden verworfenen Entwürfe `pod-a` und `pod-c` und die reinen Hüllgruppen `pod-b`/`pod-open` werden beim Import verworfen, sodass nur die sechs tatsächlich gezeichneten Teile im Modul landen.
-  - **Maßstab** (`src/render/sprites/manifest.js`): `SPRITE_SCALE.pod` so, dass der Hitzeschild 90 Prozent einer Zelle einnimmt, wie der Sockel einer Stellung. Geschlossen misst die Kapsel damit 66 × 78 Weltpixel. Die geöffnete Darstellung wird mit `POD_OPEN_SCALE = 0.85` gezeichnet und spannt dann etwa 1,6 Zellen.
-  - **Zeichnen** (`src/render/pods.js`): `createPodRenderer(cache)` wie bei den Gegnern. Geschlossen ein `drawImage`, ab den Sprengbolzen Kern plus vier Segmente, jedes an seinem Scharnier wachsend, mit der Staffelung aus M4. Die Hitze des Wiedereintritts legt die helle Sprite-Variante über die kalte, mit der Hitze als Deckkraft — ein Umschalten zwischen beiden ließ die Kapsel weiß aufblitzen und wieder grau werden.
-  - **Übergang**: Hülle und stehender Kern sind zwei verschiedene Zeichnungen, kein Aufklappen der einen in die andere. Die Hülle wird deshalb über die ersten 35 Prozent der Öffnungszeit ausgeblendet, während die Segmente herauswachsen. Ohne das verschwand die breite Hülle in einem Bild und ließ den schmalen Kern stehen.
-  - Galerie (`tests/sprites.html`): eine Reihe Kapseln in fünf Stufen von geschlossen bis ganz offen, kalt gezeichnet — es gibt keinen Zeitpunkt, an dem die Kapsel geschlossen und abgekühlt ist, und die Galerie soll die Grafik beurteilen, nicht das Glühen.
-  - Geprüft: Bei Zoom 0,5 bleiben Warnband, rotes Band und Emblem lesbar, und im Silhouetten-Modus ist die geschlossene Kapsel (gedrungener Kegelstumpf auf rundem Hitzeschild) nicht mit einer Stellung (hoch, auf Rautensockel) zu verwechseln. `npm run test:perf`: 60 fps, 1,6 bis 2,2 ms Rechenzeit, 0 Rasterungen im Betrieb.
-  - Tests: 250 Unit-Tests, 29 Eingabeprüfungen in Chromium und WebKit.
-
-- M5 Speichern und PWA (24.09.2026, Abnahme offen):
-  - **Versionsnummer** (`src/data/version.js`): eine Quelle für drei Verwender — die blasse Zeile unten links im HUD, das `meta` des Profils und der Cache-Name des Service Workers. Stand `0.5.0`.
-  - **Zwei Dokumente statt einem** (Entscheidung, siehe unten): `nachschubfront:prefs` gehört dem Gerät (Lautstärken, Bewegung, weggeklickte Hinweise), `nachschubfront:profile` dem Spieler (Bestwerte, Statistik). Nur das zweite wird exportiert. Alles beschrieben in `docs/SPEICHER.md`, samt der Stellen, an denen ein Online-Backend ansetzen müsste.
-  - **Profil** (`src/storage/profile.js`): Format 1 mit Sanitizer und Migrationspfad (`MIGRATIONS[n]`). Alles außer dem Store ist eine reine Funktion und damit ohne Browser prüfbar. Ein kaputtes oder fremdes Dokument liest sich als leeres Profil, nie als Fehler.
-  - **Bestwerte je Seed und je Regelversion**: eine Liste pro `RULESET_VERSION`, ein Eintrag pro Seed, nach Punkten sortiert, höchstens 50 je Version. Die Liste ist damit beides — Bestwert je Seed und Bestenliste. Ein zweiter Lauf auf demselben Seed behält den besseren Punktestand und zählt trotzdem als Lauf mit.
-  - **Statistik**: Partien, Siege, Abschüsse, weiteste Welle, Spielzeit und die liebste Doktrin. Letztere zählt nur Stellungen, die der Spieler im Auswahldialog gewählt hat (`state.builtByDoctrine`, gesetzt in `src/sim/selection.js`) — was der Belastungstest aufstellt, zählt nicht.
-  - **Ein Profil aus einer neueren Version wird nicht überschrieben.** `migrateProfile()` meldet es, der Store schaltet auf `locked`, zeigt eine Warnung und schreibt nichts mehr. Sonst löscht ein älterer Build Bestwerte, die er nur nicht lesen kann. Ein Import hebt die Sperre auf.
-  - **Bestenliste** (`src/ui/records.js`): eigener Bildschirm aus Hauptmenü und Ende-Bildschirm. Top 10 mit Seed, Datum, Welle, Punkten und Läufen, dazu der Statistikblock. Ein Tipp auf einen Seed trägt ihn ins Hauptmenü. Ältere Regelversionen erscheinen nur als Zahl darunter.
-  - **Export und Import**: Export als `nachschubfront-profil-JJJJ-MM-TT.json` oder in die Zwischenablage; Import über Dateiauswahl **und** Einfügefeld, weil iPadOS Dateien aus fremden Apps nicht zuverlässig durchreicht. Geprüft wird Kennung, Version und Schema; abgelehnt wird mit Grund (`parse`, `magic`, `future`, `empty`), ohne irgendetwas anzufassen. Ersetzt wird erst nach einer Bestätigung, die beide Stände nebeneinander zeigt.
-  - **Service Worker** (`sw.js`, klassisch statt Modul wegen iPadOS): Precache-Liste erzeugt `npm run precache`. Der Cache heißt `nachschubfront-<Version>-<Build>`, wobei `Build` ein Hash über Namen und Inhalte aller ausgelieferten Dateien ist. Ein geändertes Byte ergibt einen neuen Cache, der alte fliegt beim `activate` weg. Navigationen landen immer auf der einen Seite, ein `?seed=` überlebt das also.
-  - **Updates unterbrechen keine Partie**: kein `skipWaiting` beim Installieren. Ein fertiger Build meldet sich als Zeile im Haupt- und Pausenmenü, erst „Neu laden" lässt ihn ans Ruder (`src/core/updates.js`).
-  - **Installationshinweis**: in Safari der Wortlaut (Teilen → Zum Home-Bildschirm), in Chrome ein Knopf über `beforeinstallprompt`. Weggeklickt wird pro Gerät gemerkt — in den Einstellungen, nicht im Profil, damit ein Import ihn nicht zurückholt.
-  - **Prüfung**: 283 Unit-Tests (neu: 19 zum Profil, 6 zur Precache-Liste, darunter ein Lauf über den echten Importgraphen ab `src/main.js`), 40 Eingabeprüfungen in Chromium und WebKit (neu: Bestenliste, Export und Import mit dem Finger und mit der Maus, 44-px-Trefferflächen auf dem neuen Bildschirm, Installationshinweis unter iPad-Kennung), dazu `npm run test:offline` mit 6 Prüfungen in beiden Engines.
-  - **Der Offline-Test zieht wirklich den Stecker**: Der Testserver wird beendet und seine offenen Verbindungen werden gekappt, statt den Offline-Schalter des Browsers zu benutzen. Playwright bricht mit WebKit ab, sobald man beides — Service Worker und Offline-Schalter — gleichzeitig verlangt; abgeschaltet ist ohnehin ehrlicher und heißt in beiden Engines dasselbe.
-  - Leistung unverändert: 60 fps, 1,9 bis 2,2 ms Rechenzeit, 0 Rasterungen im Betrieb.
-
-- M5c HUD, Menüs und die letzten vier Spezialstellungen (25.09.2026, Abnahme offen):
-  - **Vorarbeit**: `ART-update-v4.md` ist in `docs/ART.md` eingearbeitet (Stand v4), die Einzeldatei danach gelöscht. Der Abschnitt „Spezialstellungen" ist komplett neu — die Fahrgestell-Fassung aus v2 ist verworfen —, dazu die neuen Abschnitte „HUD" und „Menüs außerhalb der Partie".
-  - **Runenscheibe** (`src/ui/runeButton.js`, `icons.js`, `controls.js`): eine Komponente für alle Icon-Knöpfe, drei Zustände (bereit, Tortenausschnitt mit Restwellen, abgedunkelt mit Schloss und Wellen-Badge). Klick löst aus, langes Drücken oder Hover öffnet eine Sprechblase und schluckt den folgenden Klick. Eine neu freigeschaltete Scheibe nennt einmal ihren Namen. Die Symbole sind Inline-SVG nach der Skizze, weil das HUD-Blatt eine flache Ansichtszeichnung ohne IDs ist. `tests/ui.html` zeigt alle Scheiben und Symbole auf einmal.
-  - **Untere Leiste**: Nachschub, Abriss und Bollwerk als Scheiben mit Preis darunter und Stufe als Badge, mittig der runde goldene Salve-Knopf mit dem Zonenzähler, rechts die Tempo-Quadrate mit goldenem Aktiv-Zustand (Rot bleibt die Farbe eines laufenden Modus). Die Rangchancen des Nachschubs stehen in der Sprechblase statt als Balkenreihe auf dem Knopf; die beiden Banner-Hinweise in `main.js` sind damit weg.
-  - **Rechte Kommandoleiste** (`src/ui/commands.js`): senkrecht am Rand, nach Freischaltwelle sortiert, ab zu vielen Einträgen scrollbar. Zwei Kommandos derselben Welle behalten die Reihenfolge der Datentabelle.
-  - **Obere Statusleiste** (`src/ui/hud.js`): eine durchgehende Leiste mit genieteten Platten. Links Titel, Welle, Bastion-Leben (die Zahl warnt erst orange, dann rot), rechts Nachschubstufe, Requisition, Kommandopunkte, Routenlänge und zuletzt zwei Plattenknöpfe für Rezepte und Menü. Seed und Phase stehen jetzt im Pausenmenü, der Zonenzähler auf dem Salve-Knopf.
-  - **Fünf Menü-Bildschirme** (`src/ui/menu.js`): Hauptmenü als Stapel, eigener Seed-Dialog mit Prüfung (`validateSeed` in `core/seed.js`: Leerzeichen und Bindestriche fallen weg, Buchstaben und Ziffern gelten, alles andere wird benannt und abgelehnt), Pause mit Statuszeile, Einstellungen mit Sprache und Spielstand, Ende-Bildschirm mit eigener Titelfarbe je Ausgang. Neue Textknopf-Fassung mit Runenstrichen in den Ecken.
-  - **Die letzten vier Spezialstellungen** (`tests/tools/split-shrines.py`): Reinigungsschrein, Glutkessel, Belagerungsmörser und Gewitterturm sind zerlegt, um die Höhe ihres eigenen Schlagschattens auf den Sockel gehoben und um alles erleichtert, was der Code zeichnet. Der Belagerungsmörser ist die erste Rezept-Stellung mit einem `-front`-Teil. Die M4-Platzhalter und die beiden nackten Fahrgestelle sind samt Blättern zurückgezogen — damit sind alle sechs fertig.
-  - **Wirkungsanker** (`src/render/sprites/manifest.js`, `towerSprites.js`, `towerFx.js`, `effects.js`): Jede Rezept-Stellung nennt, wo ihre Wirkung ansetzt. Die Simulation feuert weiter aus der Feldmitte; nur die Darstellung beginnt am Anker. Feuer in Schale und Kessel, Blitze von der nächstgelegenen der vier Elektroden, Kette und Ruhe-Blitze von der Spule, Rauch und Granate an der Mündung samt roter Ziellinie des Zielfernrohrs, Strahlen vom Auge des Obelisken auf bis zu vier Gegner in der Aura.
-  - **Behobener Fehler, gefunden bei der Abnahme in WebKit**: Der Knopf „Neu laden" im Update-Hinweis tat nichts, wenn der neue Service Worker beim Drücken noch installierte. `apply()` hielt den Worker fest, den es beim Erscheinen des Hinweises bekommen hatte, und schickte ihm `skipWaiting`; ein Worker im Zustand `installing` kann darauf nicht reagieren, die Nachricht fiel weg, es gab kein `controllerchange` und damit kein Neuladen. Jetzt wird der Worker erst beim Drücken nachgeschlagen und, falls er noch installiert, gefragt, sobald er fertig ist. Sichtbar wurde es erst durch M5c, weil die neuen Dateien den Einbau verlängern und das Zeitfenster damit vergrößern — es traf etwa jeden dritten Lauf, nach der Behebung sechs von sechs sauber. Für den Spieler war es der schlimmste Fall: ein toter Knopf, genau bei langsamer Leitung.
-  - **Prüfung**: 331 Unit-Tests (neu: 10 zu Scheibenzuständen, Leistenreihenfolge und Seed-Prüfung, 7 zu den Ankern), 55 Eingabeprüfungen und 6 Offline-Prüfungen in Chromium **und** WebKit, `test:battle` über 12 Wellen bei 3x ohne Konsolenfehler, Screenshots für Desktop und Tablet. Leistung unverändert: 60 fps, 2,1 bis 2,3 ms Rechenzeit in Chromium, 2,7 bis 2,8 ms in WebKit, 0 Rasterungen im Betrieb.
-
-- M5b Späte Bedrohung und Ressourcen-Senken (25.09.2026, Abnahme offen):
-  - **Vorarbeit**: `GDD-update-v3.md` und `ART-update-v3.md` sind in `docs/GDD.md` (Stand „Grundlagen v3") und `docs/ART.md` (Stand v3) eingearbeitet, die Einzeldateien danach gelöscht. Der Arbeitsauftrag liegt unter `docs/meilensteine/M5b-spaete-bedrohung.md`.
-  - **Sockel-Ring** (`src/render/towerSprites.js`): Der goldene Ring einer Rezept-Stellung lag im tiefensortierten Durchgang. Seine Ellipse ist 30 × 15 groß, der Bodenrhombus einer Zelle 32 × 16 — an den Diagonalen steht sie über und landete damit auf den Sockeln der beiden Nachbarn, die schon gezeichnet waren. Der Ring gehört jetzt in den Bodendurchgang, wie ein Schatten. Geprüft bei Zoom 0,6, 1,6 und 2,5 über alle sechs Rezept-Stellungen mit dem neuen `npm run ringcheck`.
-  - **Abbruchmodus** (`src/ui/hud.js`, `src/main.js`): Der Knopf, der den Modus verlässt, wurde von genau der Bedingung gesperrt, die das Verlassen nötig macht. Requisition bewacht jetzt nur noch das *Betreten*; Escape verlässt den Modus, und das Ende der Planungsphase wirft ihn ab.
-  - **Ränge als Striche** (`src/ui/badges.js`): null bis vier kurze Striche neben dem Rangnamen, bei Legende in Gold. Die sechseckige Plakette aus v2, das erzeugte Modul `render/sprites/badges.js` und `tests/tools/fit-badges.py` sind weg.
-  - **Kapsel kleiner und langsamer** (`src/data/pods.js`, `manifest.js`): 20 Prozent kleiner, Fall von 0,55 auf 1,15 s, übrige Sequenz proportional. Eine Salve mit sechs Kapseln dauert **5,25 s statt 3,40 s**. Dazu eine Zugabe: Die Hologramme schrumpfen mit und schweben auf vier Höhen, hergeleitet aus dem Feld, sonst schrieben Kapseln auf benachbarten Feldern ihre Beschriftung übereinander — die Verkleinerung allein löste den Fall nicht, für den sie gedacht war.
-  - **Kapseln auf Trümmer** (`src/sim/route.js`, `selection.js`): `checkPlacement` nimmt Trümmer als Landezone und lehnt alles andere Blockierende weiter ab. Abgerechnet wird in `applySelection`, und nur für die Kapsel, die gebaut wird. Zwei Fälle, die der Auftrag nicht nennt: Eine nicht gewählte Kapsel auf Trümmern stapelt keinen zweiten Haufen, und wer den Abriss nicht zahlen kann, wird mit `funds` abgelehnt statt ins Minus geschoben. Die automatische Zonen-Ergänzung bevorzugt freie Felder, damit das Spiel keine Rechnung aufmacht, die niemand bestellt hat.
-  - **Bollwerk** (`src/sim/rubble.js`, `economy.js`, `render/objects.js`): eigener Hindernistyp aus Trümmern, eigener Modus neben „Abreißen", gleicher Zwei-Tipp-Ablauf auf Touch. Im Code gezeichnet wie Trümmer und Ruinen, nicht als SVG-Sprite — Hindernisse waren immer Code, und die flache Krone gegen die verstreuten Brocken macht den Unterschied auf einen Blick.
-  - **Luftschlag** (`src/data/commands.js`, `sim/commands.js`): erstes Kommando mit Linienziel. Streifen zwei Felder breit, Schaden als Anteil der maximalen Lebenspunkte (fest wäre in Welle 50 wertlos), anderthalbfach gegen Panzer, gegen Bosse und Koloss bei 30 % gedeckelt. Dazu die drei Zahlenänderungen: Orbitalschlag Radius 3, Stasisfeld 2,5, Priorisierter Nachschub zwei Ränge ab Nachschubstufe 6.
-  - **Koloss** (`src/sim/koloss.js`): Ankündigung in drei Stufen, Zielvorhersage über die Feuerkraft auf der Route, Rammstoß, danach der kürzeste Weg zur Bastion. Eigene Figur (`tests/tools/add-koloss.py`), Blatt in `reference/konzept/gegner/koloss.svg`.
-  - **Prüfung**: 314 Unit-Tests (neu: 14 zum Koloss, 5 zum Bollwerk, 6 zur Kapsel auf Trümmern, 6 zum Luftschlag und den geänderten Kommandos, dazu Ränge, Hologramm-Höhen und die Koloss-Daten), 55 Eingabeprüfungen in Chromium und WebKit, 6 Offline-Prüfungen, `playmatch` und `test:battle` ohne Konsolenfehler. Version auf `0.6.0`.
-  - Leistung unverändert: 60 fps, 1,9 bis 2,0 ms Rechenzeit, 0 Rasterungen im Betrieb. Eine Zielvorhersage auf einer vollen späten Karte (40 Stellungen, 41 Routenfelder) kostet **etwa 0,08 ms** — die Sorge aus dem Auftrag, dass jede Bauaktion eine Neuberechnung auslöst, trägt nicht. Zusätzlich rechnet sie nur, wenn sich `mapVersion` geändert hat.
+Kurzfassung des Stands. Was hier nicht steht, steht in der Historie: `git log`
+erzählt jeden Meilenstein ausführlich, jede Entscheidung mit Begründung. Am
+28.09.2026 auf diesen Umfang eingekürzt — die Datei war auf 531 Zeilen
+gewachsen und wird vor jeder Aufgabe mitgelesen.
+
+## Stand
+
+Version **0.9.0**. Alle Inhalts-Meilensteine sind abgenommen. Offen ist nur noch
+**M6 Balancing**, der Abschluss des Projekts.
+
+| | | abgenommen |
+|---|---|---|
+| M0 | Projektgerüst | 22.09.2026 |
+| M1 · M1b | Spielkern, Grafik-Pipeline | 22.09.2026 |
+| M2 … M5c | Kapseln, Kampf, Präsentation, Speichern, HUD | 28.09.2026 |
+| M5d | Koloss, Stellungsgrafik, Gunship (Update 7) | 27.09.2026 |
+| **M6** | **Balancing und Feinschliff** | **in Arbeit** |
+
+Die Updates 2 bis 7 waren Einschübe, keine Meilensteine: 2 → M4b, 3 → M4c,
+4 → M4d, 5 → M5b, 6 → M5c, 7 → M5d. Nach M6 kommt keiner mehr.
+
+## M6: wo wir stehen
+
+Plan freigegeben am 27.09.2026, Auftrag in
+[`docs/meilensteine/M6-balancing.md`](meilensteine/M6-balancing.md) mit sieben
+dort benannten Entscheidungen. Teil 1 sind die Werkzeuge, Teil 2 die Abstimmung
+der Zahlen; **Teil 2 hat noch keine Freigabe.**
+
+- **Schritt 1 ✓** (27.09.) Aufzeichnung jeder Partie (`src/sim/record.js`),
+  eigenes Speicherdokument (`src/storage/protocol.js`), Bewertungszeile nach
+  jeder Welle (`src/ui/rating.js`), Exportknopf im Pausenmenü und auf dem
+  Ende-Bildschirm. Debug-Hebel färben das Protokoll als `tainted`.
+- **Schritt 2 ✓** (27.09.) Nachspielen ohne Grafik (`src/sim/replay.js`,
+  `npm run replay`), Werte überschreiben ohne `src/data/` anzufassen (`--data`),
+  Wellenregeln als Modul (`tests/tools/wave-rules.mjs`). **Abgenommen an Tills
+  erster Partie:** 35 Wellen, 331 Aktionen, Welle für Welle identisch.
+- **Schritt 3 ✓** (28.09.) Fünf Bot-Strategien (`npm run bots`), Eichung an
+  gespielten Partien (`npm run calibrate`), Kraftkurve (`npm run powercurve`).
+- **Schritt 4 offen:** Testeinstieg ab Welle 10, 20, 30 und 35. Braucht den
+  Nachspieler im Browser; er ist dafür schon DOM-frei gebaut.
+
+**Stand der Eichung:** `refine` liegt Till am nächsten (28 von 35 Wellen, Route
+105,6 gegen 89,4, Abstand 0,51). Das Abnahmekriterium „dieselbe Größenordnung"
+ist erfüllt, eine echte Eichung ist es nicht. **Ein Protokoll ist zu wenig** —
+das Werkzeug sagt das selbst, solange weniger als drei vorliegen.
+
+**Was die Kraftkurve rechnet:** Reserve (lieferbarer Schaden geteilt durch die
+wirksamen Lebenspunkte der Welle) im Median 512 % in W1–W10, **1199 % in
+W5–W30**, 322 % in W31–W50. Welle 1 liegt bei −9 %, Welle 50 bei −39 %. Die
+Lebenspunkte des Modells stimmen auf 6 % über 35 gemessene Wellen. Die Reserve
+sagt **keinen** Durchbruch vorher: Tills drei verlustreiche Wellen lagen bei 418
+bis 1018 %, die 32 verlustfreien im Median bei 1061 %. Grund ist die Annahme des
+Modells, der Spieler habe alle sechs Doktrinen stehen — wer ohne Luftabwehr
+baut, richtet gegen Flieger null Schaden an.
+
+**Erste Beobachtung, unbewertet:** In frühen Wellen wird mehr Schaden
+verschwendet als ankommt (Tills Welle 1: 1329 vergeudet, 750 angekommen). Eine
+Stellung, die einen Schwärmer zweimal tötet, ist nicht stark, sondern falsch
+eingestellt.
+
+## Werkzeuge
+
+| Befehl | Zweck |
+|---|---|
+| `npm test` | Unit-Tests (401) |
+| `npm run test:input` | 58 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
+| `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
+| `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |
+| `npm run test:offline` · `test:webkit` | Service Worker · alles in WebKit |
+| `npm run replay -- <protokoll>` | Partie ohne Grafik nachspielen, `--data` mit geänderten Werten |
+| `npm run bots` · `calibrate` · `powercurve` | Bots über viele Seeds · Eichung · Kraftkurve |
+| `npm run playmatch -- <seed> --protocol <datei>` | eine Bot-Partie als Protokoll |
+| `npm run waves` · `sprites` · `studies` · `icons` | erzeugte Dateien neu schreiben |
+| `npm run precache` | `sw.js` neu schreiben — **vor jeder Veröffentlichung** |
+
+Einzelheiten zu den Balancing-Werkzeugen: [`balancing/README.md`](../balancing/README.md).
 
 ## Offen
-**Die für M6 gemeldeten Punkte aus dieser Liste sind im Plan aufgefangen** (`docs/meilensteine/M6-balancing.md`, Teil 2, Punkt 12): Requisitions- und KP-Stau, Flieger ohne Luftabwehr, Welle 2, die Bedienführung von Welle 1, die Koloss-Häufigkeit, die im GDD fehlenden Zahlen und der hergeleitete Bollwerk-Preis. Sie bleiben hier offen stehen, bis sie in einer Runde entschieden sind.
 
-- **Drei Beobachtungen an den Blättern der Spezialstellungen sind zurückgestellt** (26.09.2026): Es kommen neue Grafiksets, die sie ohnehin ablösen. Festgehalten, damit sie beim nächsten Satz nicht wieder auflaufen:
-  - Die vier Tesla-Elektroden des Glutkessels sitzen alle auf der **rechten** Kesselhälfte statt rings um den Rand, wie `docs/ART.md` sie beschreibt. Ändert sich das Blatt, zieht die Ankerliste `CAULDRON_ELECTRODES` in `manifest.js` nach.
-  - Der Gittermast des Gewitterturms ist die schwächste Silhouette der sechs: 3 Einheiten dünne Streben in dunklem Grau verschwinden auf der kleinsten Zoomstufe, während die anderen fünf als Schattenriss stehen („Silhouette vor Detail").
-  - Der Glutkessel ist deutlich kleiner als die übrigen fünf; auffällig neben Obelisk und Gewitterturm.
-- **Was ein neues Blatt mitbringen muss, damit es ohne Codeänderung einrastet** (aus M5c gelernt, siehe `tests/tools/split-shrines.py`):
-  - Die Figur steht frei auf dem Boden mit eigenem Schlagschatten; das Werkzeug hebt sie um dessen Höhe auf den gemeinsamen Sockel und wirft den Schatten weg.
-  - Was der Code zeichnet, gehört **nicht** ins Blatt: Feuer, Glut, Leuchten, Ringe, Blitze, Mündungsblitze, Hülsen.
-  - Eine Waffe, die zielt, ruht **nach links**. Der Renderer spiegelt sie, wenn das Ziel rechts steht; ein nach rechts gezeichnetes Rohr schwenkt sonst durch die eigene Lafette (so geschehen beim Belagerungsmörser).
-  - Der viewBox braucht Luft über der Figur, sonst schneidet das Blatt an, was nach dem Anheben oben übersteht.
-  - Teile heißen `-back`, `-gun` (dreht oder schwebt) und `-front` (steht vor der Waffe). Der Wirkungsanker kommt nicht aus dem Blatt, sondern in `manifest.js`.
-- **Der Ende-Bildschirm hat vier Knöpfe, die Skizze nennt zwei.** „Nochmal" und „Hauptmenü" stehen dort; „Gleicher Seed" und „Bestenliste" sind aus M5 geblieben, weil sie direkt nach einer Partie hingehören und sonst keinen Platz hätten. Falls die Skizze wörtlich gemeint ist, fallen die beiden weg.
-- **Rückmeldung zum Koloss, wie der Auftrag sie erbittet.** Gemessen mit `npm run playmatch` (Seed MATCH, Zonen nach fester Regel, **keine Kommandos**): In Welle 35 fielen alle 84 regulären Gegner, der Koloss kam durch und kostete 15 der 20 Leben. Mit 29 Stellungen und rund 20 Sekunden Anfahrt reichte die Feuerkraft nicht. Das trifft die Auslegung des GDD genau („unverstärkte Stellungen stoppen ihn in der Regel nicht rechtzeitig, Kommandos sind nötig") — der automatische Spieler setzt keine ein und verliert entsprechend. Zum Vergleich: Ohne Koloss kam derselbe Lauf bis Welle 43, mit ihm endet er in Welle 40.
-  Die Zahlen: 9000 Grundleben, in Welle 35 rund 424 000 Lebenspunkte. Orbitalschlag (25 %) und Luftschlag (30 %) nehmen ihm zusammen 55 %, den Rest müssen Stellungen schaffen. **Ob er sich zu hart oder zu unfair anfühlt, sagt erst der Spieltest** — `playmatch` ist eine Regressionsprüfung, keine Balancing-Messung (Entscheidung vom 23.09.2026). Alle Werte stehen in `KOLOSS` und `KOLOSS_RUN`.
-- **Der Koloss tritt nur zweimal pro Partie auf** (Welle 35 und 45), Folge der versetzten Wellen. Falls das zu dünn wirkt, ist `KOLOSS_RUN.waves` der Hebel.
-- Der Spieltest von M5 auf dem iPad steht aus: Export und Import mit dem Finger, der Installationshinweis in Safari, und ob das Spiel nach „Zum Home-Bildschirm" im Flugmodus startet. Im Browser ist beides geprüft, aber iPadOS reicht Dateien aus fremden Apps eigenwillig durch — dafür gibt es das Einfügefeld.
-- Die Versionsnummer wird von Hand gepflegt (`src/data/version.js`). Vor einer Veröffentlichung gehört sie erhöht und `npm run precache` gelaufen; der Unit-Test erinnert an das zweite, nicht an das erste.
-- **Die Skizze hält ihren eigenen Richtwert nicht ein.** `docs/ART.md` nennt für die Kapsel "Höhe etwa doppelte Fußbreite"; die Zeichnung `pod-b` ist 79,5 zu 66 Einheiten, also etwa das 1,2-fache. Umgesetzt ist die Zeichnung, weil M4c die Skizzen für verbindlich erklärt. Falls die Kapsel im Spiel zu gedrungen wirkt, ist das eine Änderung am Blatt, nicht am Maßstab.
-- **Beobachtung aus der Probepartie (M4b, drei Seeds bis Welle 15).** Requisition und Leben bleiben in einem plausiblen Rahmen: Der kürzere Grundweg kostet früh kaum Beschuss, Nachschubstufe 7 oder 8 ist bis Welle 15 erreicht, am Ende liegen 138 bis 482 Requisition da. Zwei der drei Seeds kamen ohne oder mit einem Durchbruch durch. Der dritte verlor in **Welle 2** zehn Leben auf einen Schlag: Welle 2 ist jetzt eine reine Kriegerwelle (die Brecher kommen erst ab Welle 4), und zehn Krieger in einer Gruppe laufen geschlossen durch, wenn keine Stellung die Route erreicht. Vorher war es eine Panzerwelle mit langsameren, weniger Gegnern. Keine Balancing-Zahl geändert; falls das zu hart ist, wäre der kleinste Eingriff, den Anteil der Welle 2 auch auf Schwärmer zu verteilen statt nur auf Krieger. Die Zahlen stammen aus `npm run playmatch`, setzen die Zonen also nach fester Regel — sie sagen nichts über die Schwierigkeit für einen Menschen (Entscheidung vom 23.09.2026).
-- Der Spieltest auf dem iPad steht noch aus: Abbruchmodus mit dem Finger (Schärfen und Bestätigen), langer Druck auf den Nachschub-Knopf, und ob die Preise im Feld bei der Standard-Zoomstufe groß genug sind.
-- Der Ton ist nur maschinell geprüft (jeder Klang erzeugt ein Signal, nichts übersteuert). Wie er sich anhört, muss auf dem iPad beurteilt werden — besonders die Lautstärkeverhältnisse zwischen Musik, Waffen und Kapseleinschlag.
-- Wirtschaft, Kampf und Kommandos sind da; offen bleibt das Feinjustieren in M6.
-- **Abgelöst am 27.09.2026 durch die Neufassung von M6** (dort Entscheidung 7): Balancing wird **nicht** mit den automatischen Werkzeugen beurteilt (Entscheidung vom 23.09.2026): Wo die Stellungen stehen, entscheidet im Spiel immer der Spieler, und daran hängt das Ergebnis mehr als an jedem Tabellenwert. `npm run playmatch` und `npm run test:battle` setzen die Zonen nach einer festen Regel und sind darum Regressionsprüfungen („läuft eine ganze Partie fehlerfrei durch"), keine Balancing-Messung. Ihre Wellenzahlen sagen nichts über die Schwierigkeit für einen Menschen. **Was sich geändert hat:** Der Einwand von damals bleibt richtig — ein Bot, der kein Labyrinth baut, ist kein Maßstab. Die Antwort darauf gab es damals nicht: Bots, die an Tills aufgezeichneten Partien geeicht sind, und Tills eigene Partien als Anker. Ungeeichte Bot-Zahlen bleiben auch künftig nur Richtwerte.
-- Beobachtung, die davon unberührt bleibt: Flieger überfliegen das Labyrinth, und nur Autokanone, Laser, Psi und Tesla treffen sie. Wer ohne Luftabwehr baut, verliert an einer Flieger-Welle, egal wie gut das Labyrinth ist. Für M6 zu entscheiden, ob das so gewollt ist oder ob das Spiel darauf hinweist.
-- Requisition staut sich: Ab Nachschubstufe 8 (etwa Welle 20) gibt es nur noch Trümmer abreißen als Ausgabe, am Ende liegen über 4000 ungenutzt herum. Kommandopunkte ebenso (50 KP bei vier Kommandos mit Abklingzeit). Beides ist ein Thema für M6, kein Fehler.
-- Die Spezialstellungen, die Boss-Werte und die Kegel-, Strahl- und Sprungweiten der Doktrinen stehen nicht im GDD. Die eingetragenen Zahlen sind hergeleitet (siehe Entscheidungen) und gehören in M6 auf den Prüfstand.
+**Für M6 vorgemerkt** (im Auftrag als Teil 2, Punkt 11 und 12 aufgefangen):
+Requisitions- und KP-Stau, Flieger ohne Luftabwehr, Welle 2 als reine
+Kriegerwelle, die Bedienführung von Welle 1, die Koloss-Häufigkeit
+(`KOLOSS_RUN.waves` — er tritt nur in Welle 35 und 45 auf), der hergeleitete
+Bollwerk-Preis, und die Zahlen, die das GDD offen lässt (Spezialstellungen,
+Boss-Werte, Kegel-, Strahl- und Sprungweiten).
+
+**Was ein neues Grafikblatt mitbringen muss**, damit es ohne Codeänderung
+einrastet (aus M5c gelernt, Werkzeug `tests/tools/split-shrines.py`):
+
+- Die Figur steht frei auf dem Boden mit eigenem Schlagschatten. Das Werkzeug
+  hebt sie um dessen Höhe auf den gemeinsamen Sockel und wirft den Schatten weg.
+- Was der Code zeichnet, gehört **nicht** ins Blatt: Feuer, Glut, Leuchten,
+  Ringe, Blitze, Mündungsblitze, Hülsen.
+- Eine Waffe, die zielt, ruht **nach links**; der Renderer spiegelt sie, wenn das
+  Ziel rechts steht. Ein nach rechts gezeichnetes Rohr schwenkt sonst durch die
+  eigene Lafette (so geschehen beim Belagerungsmörser).
+- Der viewBox braucht Luft über der Figur, sonst schneidet das Blatt an, was nach
+  dem Anheben übersteht.
+- Teile heißen `-back`, `-gun` (dreht oder schwebt) und `-front`. Der
+  Wirkungsanker kommt aus `manifest.js`, nicht aus dem Blatt.
+
+**Drei Beobachtungen an den Blättern der Spezialstellungen**, zurückgestellt bis
+zum nächsten Grafiksatz: Die vier Tesla-Elektroden des Glutkessels sitzen alle
+auf der rechten Kesselhälfte statt rings um den Rand (Ankerliste
+`CAULDRON_ELECTRODES`); der Gittermast des Gewitterturms ist die schwächste
+Silhouette der sechs; der Glutkessel ist deutlich kleiner als die übrigen fünf.
+
+**Kleinere offene Fragen:**
+
+- Der Ende-Bildschirm hat vier Knöpfe, die Skizze nennt zwei. „Gleicher Seed"
+  und „Bestenliste" sind aus M5 geblieben; falls die Skizze wörtlich gemeint ist,
+  fallen sie weg.
+- `docs/ART.md` nennt für die Kapsel „Höhe etwa doppelte Fußbreite", die
+  Zeichnung `pod-b` ist das 1,2-fache. Umgesetzt ist die Zeichnung, weil M4c die
+  Skizzen für verbindlich erklärt.
+- Die Versionsnummer wird von Hand gepflegt (`src/data/version.js`). Der
+  Unit-Test erinnert an `npm run precache`, nicht an die Erhöhung.
 
 ## Bekannte Probleme
-- **`npm run test:input` ist unter Last unzuverlässig.** Eine Prüfung wartet in echten Sekunden darauf, dass eine Welle bei 1x durchläuft (180 s Grenze). Die Simulation hängt an der Bildrate, und wenn nebenher weitere Playwright-Browser laufen, reicht die Zeit nicht: zweimal gescheitert, allein laufend jedes Mal bestanden. Kein Fehler im Spiel, aber beim Prüfen nichts anderes nebenher starten.
-- Hinweis zu `npm run test:battle`: Der Durchlauf stützt die Bastion seit dem 24.09.2026 mit dem "Unverwundbar"-Hebel ab. Ohne ihn verlor er Welle 1 mit 20 Durchbrüchen und lief seit M4b nie wieder durch — er setzt die Zonen nach fester Regel und nimmt den letzten Vorschlag des Auswahldialogs, der vier Kapseln zu einer einzigen Stellung verschmilzt, und eine Stellung hält Welle 1 nicht mehr auf. Die Prüfung fragt, ob eine lange Partie fehlerfrei durchläuft, nicht ob sie zu gewinnen ist; Balancing wird hier grundsätzlich nicht beurteilt (Entscheidung vom 23.09.2026). Freigegeben am 24.09.2026. Aktueller Lauf: 12 Wellen, 10 bis 81 Abschüsse je Welle, keine Konsolenfehler.
-- **Bestwerte und Seeds aus der Zeit vor M4b sind nicht mehr vergleichbar.** Zwei Signalfeuer statt vier, eine andere Salvengröße und entschärfte erste Wellen ergeben aus demselben Seed eine andere Partie. Seit M5 ist das gelöst: An jedem Ergebnis steht die `RULESET_VERSION`, und Läufe verschiedener Versionen landen in getrennten Listen. Wer die Regeln wieder so ändert, muss die Zahl erhöhen.
-- **Ohne eigene Markierungen ist Welle 1 verloren.** Wer nur „Salve anfordern" drückt, bekommt fünf zufällig verteilte Kapseln; die Stellung daraus steht oft außer Reichweite der Route und feuert die ganze Welle nicht. Gemessen: 30 Durchbrüche, Niederlage nach 55 Sekunden. Das ist eine Frage der Bedienführung, nicht des Balancings — das Spiel sollte deutlich machen, dass die Zonen gesetzt werden wollen. Die Browser-Prüfung stützt die Bastion deshalb mit dem Debug-Hebel ab.
-- Das Ergänzen fehlender Landezonen prüft im schlimmsten Fall alle freien Felder (etwa 75 ms in einem sehr engen Labyrinth). Das passiert einmal pro Salve, fällt also nur als kurzer Hänger auf.
-- Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld der Wegpunkt ist. Kann mit der finalen Grafik gelöst werden (z. B. Feuerschale neben dem Wegpunkt oder Säule als Torbogen).
-- Der Boden-Cache ist auf 12 Megapixel begrenzt (Speichergrenze von Safari). Bei maximalem Zoom auf dem iPad kann der Boden leicht unscharf werden, Objekte und Gegner bleiben scharf.
-- Der Auswahldialog liegt auf breiten Bildschirmen am rechten Rand und kann dort das Debug-Panel überdecken. Nur im Debug-Modus, darum belassen.
-- Headless-Chromium mit Software-Rendering schafft nur etwa 30 bis 60 fps. Mit GPU (Apple M2) stabil 60 fps, auch mit 200 Sprite-Gegnern. Auf dem iPad bestätigt: Belastungstest mit 200 Gegnern läuft mit 60 fps. WebKit (Safari-Engine) wird automatisch getestet. Das ersetzt aber nicht den Test auf dem echten iPad, besonders nicht für Touch-Gesten mit mehreren Fingern: Die werden in WebKit als synthetische PointerEvents erzeugt, weil Playwright dort keine echten Mehrfinger-Berührungen senden kann.
-- Im Belastungstest liegen die 200 Gegner sehr dicht auf der Route (bewusst, als Worst Case).
-- Hinweis: iPadOS ignoriert `display: fullscreen` im Manifest und nutzt `standalone`.
 
-## Entscheidungen
-- **M6, Neufassung vorgelegt am 27.09.2026 — noch nicht freigegeben.** Der Auftrag `M6-neufassung-auftrag.md` ist in `docs/meilensteine/M6-balancing.md` eingearbeitet, die Auftragsdatei gelöscht. Sieben Stellen, an denen der Auftrag offen war oder an vorhandenen Code stößt, stehen dort als Vorschlag und werden mit der Freigabe entschieden:
-  - **Teil 1 wird in vier Schritte geteilt, mit einer Übergabe nach Schritt 1.** Drei der sechs Abnahmekriterien brauchen ein Protokoll von Till, und das entsteht erst durch Schritt 1. Die Bewertungszeile rutscht dafür nach vorn: käme sie später, tragen genau die Partien keine Bewertung, an denen danach geeicht wird.
-  - **Der Wellengenerator wird ein importierbares Modul.** `--data` erreicht nur, was zur Laufzeit aus `src/data/` kommt; die Gegnerzahl und das Wachstum 1,12 pro Welle stehen aber als Konstanten in `tests/tools/make-waves.mjs` — und genau die sind Tills Hauptverdacht.
-  - **`--data` ändert Zahlen in Zeilen, nicht die Form der Tabellen.** Abgeleitete Konstanten (`MAX_SALVO_SIZE`, `MAX_SUPPLY_LEVEL`, `MAX_RANK`, `IMPACT_SECONDS`, die Id-Listen) entstehen beim Import und bemerken eine zusätzliche Zeile nicht. Das Werkzeug lehnt Formänderungen ab, statt still Falsches zu rechnen.
-  - **Ein Baum für die Balancing-Daten:** `balancing/protokolle/` und `balancing/runden/`. Der Auftrag nannte zwei gleichnamige Ordner an zwei Orten. Für die PWA unbedenklich, `make-precache` läuft über eine Positivliste.
-  - **Protokolle bekommen einen eigenen Exportknopf**, nicht den Profil-Export — der ist seit M5 die Bestenliste-Übertragung.
-  - **Die Regelversion braucht ein zweites Feld.** „Solange die Regelversion als Testversion markiert ist" setzt ein Kennzeichen voraus, das `src/data/rules.js` noch nicht hat. Dazu: Die Bestenliste zerfällt über die Runden in viele Listen; zum Abschluss muss eine Zahl stehenbleiben.
-  - **Die Entscheidung vom 23.09.2026 („kein Balancing mit automatischen Werkzeugen") wird abgelöst, nicht übergangen.** Ihr Einwand bleibt richtig; die Eichung an Tills Protokollen ist die Antwort, die es damals nicht gab. In der Liste „Offen" ist sie entsprechend gekennzeichnet.
-  - Dazu ein Umsetzungshinweis, der im Plan steht: Der Labyrinth-Bauer braucht eine auf die Route beschränkte Suche. Greedy über alle freien Felder wäre bei 200 Seeds knapp eine Stunde pro Strategie statt rund zwölf Minuten.
-- **Update 7 heißt M5d, nicht M7** (27.09.2026, nach der Abnahme). Definiert sind sieben Meilensteine, M0 bis M6; M6 ist der Abschluss, nach ihm kommt keiner. Die Updates sind Einschübe: 2 → M4b, 3 → M4c, 4 → M4d, 5 → M5b, 6 → M5c, 7 → M5d. Der Name „M7" kam daher, dass das Paket selbst „kommt nach M6" sagt — eine Annahme des Pakets über den Einspielzeitpunkt, kein Meilenstein.
-- M5c, Umsetzung — Stellen, an denen der Auftrag offen war und ich entschieden habe:
-  - **„Partie verlassen" lässt die Partie stehen.** Der Knopf führt ins Hauptmenü, die laufende Partie bleibt im Speicher, und „Fortsetzen" erreicht sie weiter. Sie wegzuwerfen wäre ohne Zwischenspeicher endgültig, und der Wortlaut verlangt es nicht.
-  - **„Neue Partie" spielt die Karte hinter dem Titelbildschirm nur, solange auf ihr nichts gekämpft wurde.** Sonst hätte der Knopf eine angespielte Partie stillschweigend fortgesetzt statt eine neue zu beginnen. „Unberührt" ist dabei eine Aussage über die Karte (Welle 0, keine Stellungen, noch in der Planung), nicht darüber, ob das Menü schon einmal offen war.
-  - **Der Seed nimmt Buchstaben und Ziffern, nicht nur das Seed-Alphabet.** Ein Seed wird nur gehasht, jede Zeichenkette ergibt eine Karte; das eingeschränkte Alphabet sorgt dafür, dass *ausgegebene* Seeds unverwechselbar sind, nicht dafür, was ein Spieler mitbringen darf. Abgelehnt wird, was fast sicher ein Versehen ist: nichts, zu lang, oder Zeichen, die in keinen Seed gehören.
-  - **Der Psi-Splitter des Schreins und der Psi-Kern des Gewitterturms sind Sprites, die schweben**, wie der Psi-Kristall und das Auge des Obelisken — nicht Code. Ringe und Leuchten um sie herum bleiben Code. Dafür kann eine Waffe jetzt ihren eigenen Halo tragen, sonst hätte der Schrein als Flammen-Bauwerk orange Ringe um einen violetten Splitter bekommen.
-  - **Die Kommandopunkte tragen den Stern der Skizze**, nicht den Blitz-Chevron, den der Text der Ergänzung nennt. Für die Optik gilt das Blatt.
-  - **Das Rohr des Belagerungsmörsers ist gespiegelt.** In der Bibliothek ruht jede Waffe nach links, und der Renderer spiegelt sie, wenn das Ziel rechts steht; die Skizze zeichnet das Rohr nach rechts. Ungespiegelt wäre es bei jedem Ziel einmal durch die eigene Lafette geschwenkt.
-  - **Exportieren und Importieren bleiben auf der Bestenliste.** Die Einstellungen bekommen die Tür dorthin, wie das Blatt es verlangt, aber die Tabelle und die Übertragung gehören zusammen; sie zu verdoppeln hätte zwei Wege zu demselben Dokument ergeben.
-- M5c-Plan freigegeben (25.09.2026), mit vier Entscheidungen:
-  - **Der Reinigungsschrein behält seine Aura.** Die Ergänzung v4 beschreibt ihn als Mörser, dessen Flammenring am Zielort entsteht. Das wäre Spiellogik und Balancing, und M5c ist ausdrücklich reine Präsentation. Der Wirkungsanker liegt darum auf der Feuerschale, das eingelassene Rohr bleibt Detail der Zeichnung. Der Umbau ist ein Thema für M6.
-  - **„Fortsetzen" ist ausgegraut, solange keine Partie läuft.** Einen Spielstand mitten im Feldzug gibt es nicht (`docs/SPEICHER.md` schließt ihn aus); der Knopf führt in die laufende Partie zurück, auf dem kalten Titelbildschirm hat er kein Ziel.
-  - **Seed und Phase verlassen die Statusleiste.** Die Ergänzung nennt sechs Felder, heute stehen dort zehn. Seed und Phase stehen künftig im Pausenmenü, der Zonenzähler auf dem Salve-Knopf, die Koloss-Ankündigung bleibt situativ wie Sieg und Niederlage.
-  - **Rezepte und Menü werden Plattenknöpfe am rechten Ende der oberen Leiste.** In der Skizze der unteren Leiste kommen sie nicht vor; sie gehören zur Verwaltung, nicht zur Handlung der Runde.
-- M5b-Plan freigegeben (24.09.2026), mit vier Entscheidungen:
-  - **Koloss in Welle 35 und 45** statt „ab 30, alle 10 Wellen". 30, 40 und 50 tragen schon einen Boss; nebeneinander nehmen sich die beiden die Wirkung, und der Spieler kann seine Kommandos nicht gezielt für einen von beiden aufsparen. Folge, die im Blick bleiben muss: Der Koloss tritt damit nur **zweimal** pro Partie auf. Wenn das zu dünn wirkt, ist die Frequenz der Hebel, nicht der Startpunkt.
-  - **Salve wird ruhiger, nicht doppelt so lang.** Fall, Öffnen und Hologramm auf gut das Doppelte, die Staffelung zwischen zwei Kapseln nur leicht hoch. 5,25 s statt 3,40 s bei sechs Kapseln; wortgetreue Proportionalität hätte 7,1 s ergeben.
-  - **Koloss und Bollwerk selbst gezeichnet**, im Stil der vorhandenen Blätter, austauschbar sobald es Skizzen gibt.
-  - **„Ausreichend verstärkt" hängt an Bollwerken** (nachgefragt am 24.09.2026). Der Rammstoß kommt immer; die Schneise endet an einem Bollwerk. Eine unsichtbare Feuerkraftschwelle wäre näher am Wortlaut gewesen, aber der Spieler sähe sie nicht und erführe erst hinterher, ob es gereicht hat.
-- M5b, Umsetzung — Stellen, an denen der Auftrag offen war und ich entschieden habe:
-  - **Das Ziel friert beim Wellenstart ein, nicht schon in der Planung davor.** „Die Welle des Auftritts" meint die Welle; die Planungsphase davor ist die letzte Gelegenheit zu reagieren, und die gehört dem Spieler.
-  - **Die Vorhersage überspringt geschützte Felder.** Sonst zielt der Koloss auf die Bastion selbst — eine Drohung, auf die niemand antworten darf.
-  - **Nach dem Rammstoß nimmt er den kürzesten Weg zur Bastion**, nicht die Signalfeuer-Kette. Eine Maschine, die gerade durchgebrochen ist, macht keinen Rundgang.
-  - **Die Schneise zerstört nur Trümmer** und endet an Bollwerken *und* Stellungen, ohne sie zu beschädigen. Der Auftrag nennt nur Trümmer und Bollwerke; Stellungen einfach zu verschonen und zugleich durchlässig zu machen wäre widersprüchlich gewesen.
-  - **Der Luftschlag bekommt auf Touch einen dritten Tipp.** Ein Finger hat keinen Hover: Mit zwei Tipps hätte der zweite vier Kommandopunkte auf einen Streifen verwettet, den der Spieler nie gesehen hat. Zweiter Tipp zeichnet, dritter feuert — dasselbe Muster wie beim Abreißen (GDD 13). Mit der Maus bleibt es bei zwei Klicks.
-  - **Hergeleitete Preise und Zahlen für M6**: Bollwerk kostet das Doppelte des Abrisspreises (Räumen 1×, eigene Stellung 3×) und zählt selbst als Abriss, damit es eine Senke bleibt und keine Pauschale; ein Bollwerk wieder abzureißen kostet den einfachen Trümmerpreis; Luftschlag 50 % der maximalen Lebenspunkte, 1,5× gegen Panzer; Koloss 9000 Grundleben, Tempo 0,35, Belohnung 80; ein Bollwerk in der Nähe zählt für die Vorhersage wie 40 Feuerkraft.
-- M5-Plan freigegeben (24.09.2026), mit drei Entscheidungen und einem Zusatz:
-  - **Import ersetzt, er führt nicht zusammen.** Zusammenführen klingt freundlicher, zählt aber Partien und Abschüsse doppelt, wenn dieselbe Datei zweimal ankommt, und das merkt niemand. Ersetzen ist vorhersehbar; die Bestätigung zeigt beide Stände nebeneinander.
-  - **Einstellungen bleiben ein eigenes Dokument** und gehen nicht in den Export. Wer ein fremdes Profil einspielt, soll nicht plötzlich mit fremder Lautstärke spielen. Preis dafür: zwei Dokumente und ein Gerätewechsel überträgt die Einstellungen nicht.
-  - **Eine neue Version meldet sich, sie übernimmt nicht.** Der Service Worker installiert im Hintergrund und wartet; erst „Neu laden" im Menü lässt ihn ans Ruder. Ein Update darf keine laufende Partie abbrechen.
-  - **Sichtbare Versionsnummer** unten links (Wunsch vom 24.09.2026): blass, ohne Eingabefläche, aber jederzeit ablesbar — damit eine Fehlermeldung sagen kann, um welchen Stand es geht.
-- M5, Umsetzung:
-  - **Der Build-Hash ist der Wächter, nicht die Versionsnummer.** Der Cache-Name trägt einen Hash über Namen und Inhalte aller ausgelieferten Dateien, und ein Unit-Test lässt `sw.js` und die Dateien nicht auseinanderlaufen. Eine vergessene Versionserhöhung kann so kein altes Spiel im Cache festhalten.
-  - **Die liebste Doktrin wird in `applySelection` gezählt, nicht in `addTower`.** Nur eine Stellung, die der Spieler gewählt hat, sagt etwas über seinen Geschmack; der Belastungstest baut ohne zu wählen.
-  - **Die Bestenliste ist ein eigenes Modul.** Tabelle, Statistik und Übertragen hätten `src/ui/menu.js` gesprengt; die Überlagerung, der Fokus und das Tippen daneben bleiben trotzdem dort.
-- M4-Plan freigegeben (23.09.2026), mit zwei Entscheidungen dazu:
-  - **Eigene Grafik statt Warten**: Die elf fehlenden Figuren (sechs Rezept-Stellungen, fünf Bosse) sind im Stil der Konzeptskizzen selbst gezeichnet und liegen als Blätter in `reference/konzept/`. Einzelne können später ersetzt werden, ohne dass sich am Spiel etwas ändert.
-  - **Ton wird synthetisiert**, nicht aus Dateien geladen: keine Lizenzfragen, keine Megabytes, offline-fähig, passt zu „kein Build-Schritt, keine Laufzeit-Abhängigkeiten".
-- M4, Umsetzung:
-  - Die Konzept-SVGs sind einmalig zerlegt worden (`tests/tools/split-*.py`, `add-*.py`). Sie bleiben die Grafikquelle; `npm run sprites` erzeugt daraus weiterhin die Module.
-  - Der Rasterschlüssel kommt aus den Teilen einer Ebene, nicht aus Doktrin und Rang. Gleich aussehende Ebenen teilen sich damit automatisch eine Rasterung.
-  - Bewegung wird aus dem Zustand abgelesen, nicht gemeldet: Ein Schuss ist daran zu erkennen, dass der Nachladezähler hochspringt, ein Rüstungswechsel daran, dass das Feld sich geändert hat. Die Simulation musste dafür nichts Neues liefern.
-  - Der Szenenrenderer zeichnet nur noch, was in der Nähe des Bildfensters steht. Das ist die Gegenfinanzierung für die drei Zeichenaufrufe pro Figur.
-  - Comic-Wörter bleiben selten: nur Kapseleinschlag und Orbitalschlag. Bei jeder Mörsergranate wäre der Bildschirm voller Text.
-  - Spielereinstellungen liegen in `src/core/prefs.js` und gehen über die Speicherschicht. `src/data/settings.js` bleibt für Werte, die niemand im Spiel ändert.
-  - Die Partie startet hinter dem Titelbildschirm. Die Karte dahinter ist schon erzeugt, „Feldzug beginnen" spielt genau diese.
-- M3-Plan freigegeben (22.09.2026). Die Zahlen, die der GDD offen lässt, sind hergeleitet und stehen als Daten für M6 bereit:
-  - **Boss-Werte** (`src/data/enemies.js`): Leben etwa anderthalb normale Wellen derselben Welle (Brutmutter 1800, Kolossbrecher 3500, Warp-Herold 3000 plus 1500 Schild, Schwarmkönigin 3500, Dämonenprinz 5000, jeweils mal dem Wellenfaktor), Tempo unter dem der Begleitung, Belohnung 50. Durchbruch kostet 5 Leben wie im GDD.
-  - **Spezialstellungen** (`src/data/specials.js`): Jede ist etwa so stark wie ihre führende Doktrin einen Rang über dem Mindestrang des Rezepts und gibt den Rest ihres Budgets für das Besondere aus (Ring statt Kegel, drei Ziele, acht Sprünge, Betäubung). Ein Test hält fest, dass keine Spezialstellung schwächer ist als ihre Zutat.
-  - **Seelenfeuer-Obelisk**: 3 % der maximalen Lebenspunkte pro Sekunde zusätzlich zum festen Schaden. Das ist die Waffe gegen Bosse, ohne dass eine Zahl im Spiel je zu klein wird.
-  - **Orbitalschlag**: nimmt normalen Gegnern die vollen Lebenspunkte und Bossen ein Viertel (GDD-Obergrenze), als Anteil statt als feste Zahl, damit er in Welle 15 und in Welle 50 gleich viel wert ist. Er geht an der Schadensmatrix vorbei, weil er keine Doktrin ist.
-  - **Form der Doktrinen** (`src/data/doctrines.js`): Kegelwinkel der Flamme 0,7 rad zu jeder Seite, Strahlbreite des Lasers 0,5 Felder, Sprungweite des Teslas 2,5 Felder. Der GDD nennt nur Kegel, Linie und Kette.
-  - **Start-Requisition 0**: Die erste Welle bezahlt die erste Nachschubstufe.
-  - Endlosmodus und Bestwerte bleiben vertagt: Punkte werden in M3 berechnet und angezeigt, gespeichert wird in M5 über die Speicherschicht.
-- M3, Umsetzung:
-  - Die Wellentabelle wird erzeugt, nicht zur Laufzeit gerechnet: `npm run waves` schreibt alle 50 Wellen aus. So ist jede Welle einzeln les- und änderbar, wie es der GDD verlangt, und die Regeln stehen an einer Stelle.
-  - Der Warp-Schild verschluckt einen zu großen Treffer nicht: Was über den Schild hinausgeht, wird zurückgerechnet und trifft das Fleisch darunter mit dessen Faktor.
-  - Schaden wird auf den tatsächlich verbleibenden Lebenspunkten gedeckelt, damit die Wellenstatistik keine Überschüsse ausweist.
-  - Brandschaden wird der Stellung angerechnet, die das Feuer gelegt hat.
-  - Die Doktrin einer Spezialstellung ist ihre erste Zutat. Der Glutkessel ist deshalb eine Flammen-Waffe mit Blitzen und zielt nicht auf Flieger, gegen die Flamme nichts ausrichtet.
-  - Eine Welle endet erst, wenn auch die letzte Granate eingeschlagen ist.
-  - Der Belastungstest kämpft mit: Die Gegner werden jeden Schritt wieder geheilt, damit die Messung die Last einer vollen Welle abbildet statt eines leeren Feldes.
-  - Kommandos zählen in der Planung gegen die Welle, die die Salve vorbereitet. „Ab Welle 25" heißt also: in der Planung vor Welle 25 nutzbar.
-  - Die Infoanzeige folgt am Desktop dem Mauszeiger und wird auf dem Tablet mit langem Drücken festgesetzt. Nichts ist nur über Hover erreichbar.
-  - Das Debug-Panel ist Werkzeug, kein Spielerbildschirm: Seine Knöpfe sind kleiner als die 44 Pixel, die für alles andere gelten.
-- M2-Plan freigegeben (22.09.2026):
-  - Nachschubstufe bleibt ohne Wirtschaft auf 1, dazu ein Debug-Schalter (`N`, `?supply=`), damit Verschmelzen und Rezepte prüfbar sind.
-  - Spezialstellungen bekommen in M2 nur eine Platzhaltergrafik, eigene Silhouetten kommen in M4.
-  - Verschmelzen endet bei Legende: zwei Legenden lassen sich nicht verschmelzen, für die Viererverschmelzung ist Elite der höchste Ausgangsrang. Das steht so nicht im GDD, folgt aber aus der Rangtabelle.
-  - Erfüllen mehrere stehende Stellungen eine Zutat, wird die mit dem niedrigsten ausreichenden Rang verbraucht, bei Gleichstand die zuerst gebaute.
-  - Trümmer abreißen gehört zur Wirtschaft und damit zu M3.
-- M2, Umsetzung:
-  - Kapseln werden Kapseln vorgezogen: Deckt eine Zutat sowohl eine Kapsel der Salve als auch eine stehende Stellung ab, wird die Kapsel genommen. Nicht genutzte Kapseln werden ohnehin zu Trümmern, eine verbrauchte Stellung ist ein echter Verlust.
-  - Welche Kapseln beim Verschmelzen als „benutzt“ gelten, ist gleichgültig: Alles außer der gewählten Kapsel wird zu Trümmern. Entscheidend ist allein, auf welchem Feld das Ergebnis steht.
-  - Der Auswahldialog braucht zwei Tipper (Kapsel, dann Aktion). Ein Tipp auf die Kapsel auf der Karte wählt sie aus, löst aber nichts aus, damit nichts versehentlich festgelegt wird.
-  - Kapselfelder werden beim Aufschlag blockiert, nicht schon beim Anfordern. So schließt sich das Labyrinth sichtbar, und die Route wird nach jedem Einschlag neu berechnet.
-  - Der Zufall der Salve wird in zwei Zweige geteilt: `fork('zones')` für das Ergänzen der Zonen, `fork('contents')` für die Inhalte. Damit hängt der Kapselinhalt nicht davon ab, wie viele Zonen der Spieler markiert hat.
-  - Der Belastungstest stellt zusätzlich 40 Stellungen auf und räumt sie beim Beenden wieder weg, damit die Messung die Last einer späten Partie abbildet.
-  - Nach dem ersten Durchspielen gekürzt und verschlankt: Die Kapselsequenz läuft in 3,2 statt 5,4 Sekunden (Vorwarnung, Sturz und Öffnen gestrafft, die Reihenfolge aus dem Stiltest bleibt). Der Auswahldialog ist auf 620 px begrenzt, die Kapselkarten sind zweizeilig, damit möglichst wenig Karte verdeckt wird.
-- Grafik-Konzept (22.09.2026): Gegner sind eine insektoide Brut (`docs/ART.md`). Umbenennung in der GDD: Mutant heißt jetzt Krieger, Warp-Geist heißt jetzt Warp-Seher. M1b wird als Grafik-Pipeline vor M2 eingeschoben.
-- M1b-Plan freigegeben (22.09.2026):
-  - Autokanone und Mörser haben den Sandsackring schon in der Grundform. Beim Veteran zeigen sie in M1b nur den zweiten Winkel, ein eigenes Veteran-Detail wird später festgelegt (z. B. zusätzliche Munitionskisten).
-  - Eingebaute Effekte in den SVGs (Flammenstrahl, Mündungsbögen, Rauch, Blitze, Leuchten) bleiben in M1b im Sprite. In M4 werden sie aus den SVGs entfernt und per Code animiert.
-  - GDD Abschnitt 1: „Mutanten“ und „Mutantenhorden“ durch „Schwarmbrut“ ersetzt.
-- M1b, Umsetzung:
-  - Kennungen im Code folgen der GDD: `warrior` (Krieger) und `warpseer` (Warp-Seher). Die Symbolnamen im SVG bleiben `e-mutant` und `e-ghost`, die Zuordnung steht im Manifest.
-  - Maßstab: Die Sockel-Oberseite deckt 90 % der Feldbreite ab. Gegner werden einheitlich mit 0,42 Weltpixeln pro SVG-Einheit gezeichnet, so bleiben die Größenverhältnisse der Skizzen erhalten (Krieger etwa 48 px hoch, Brecher knapp feldbreit).
-  - Der Warp-Seher schwebt laut Skizze leicht über dem Boden, die Heiler-Aura reicht unter die Füße. Beides bleibt so.
-  - Winkel liegen im Band oberhalb des Warnstreifens, gezeichnet nach Waffe und Sandsäcken, damit nichts sie verdeckt.
-  - Die Treffer-Variante ist ein warmweißer Überzug mit 65 % Deckkraft. So bleiben Silhouette und Tuschelinien erkennbar.
-  - Browser-Tests laufen in Chromium und WebKit. Schalter `--browser webkit`, Standard ist Chromium.
-  - SVG-Bilder werden über das `load`-Ereignis geladen, nicht über `img.decode()`, weil Safari das bei SVG teils ablehnt. Die SVGs bekommen eine feste Pixelgröße, weil Safari sonst in ihrer Eigengröße rastert und das Bild unscharf wird.
-- Plattform: Desktop und Tablet gleichwertig, Tablet ist der Haupteinsatz.
-- Hosting: GitHub Pages, PWA. Speichern lokal, Speicherschicht für spätere Online-Bestenliste vorbereitet.
-- Kapseln nur in der Planungsphase. Spezialkommandos auch während der Welle.
-- Fortschritt über mehrere Partien: vertagt bis nach den ersten Tests.
-- Schriften werden selbst ausgeliefert statt über Google Fonts (offline-fähig, Datenschutz).
-- Zufallsgenerator mulberry32. Seeds dürfen Text sein (FNV-1a-Hash). Karte und Kapseln bekommen eigene Zweige über `fork('map')` und `fork('pods')`. Ein Test hält die Zahlenfolge fest, damit geteilte Seeds über Versionen gleich bleiben.
-- Nach einer langen Unterbrechung (Hintergrund-Tab) holt die Simulation nicht auf, sondern verwirft den Rückstand.
-- Die Speicherschicht speichert JSON. `set` meldet mit `false`, wenn nicht dauerhaft gespeichert werden konnte.
-- Das Screenshot-Skript startet einen eigenen kleinen Node-Server (`tests/tools/server.mjs`).
-- M1, freigegeben am 22.09.2026:
-  - Signalfeuer-Reihenfolge vom Riss aus: nahes Viertel links → fernes rechts → fernes links → nahes rechts. Die Teilstrecken 1 → 2 und 3 → 4 kreuzen sich in der Mitte.
-  - Der Seed wählt die Kante des Risses, die Bastion liegt gegenüber, die Position entlang der Kante ist zufällig (mindestens 6 Felder von den Ecken).
-  - Ruinen und Krater belegen 1 Feld, Mauerreste 2 bis 3 Felder in einer Linie. 12 bis 20 zählt Objekte.
-  - Ziehen mit der linken Maustaste verschiebt die Karte ebenfalls (ab 8 px), ein Klick bleibt Auswahl.
-  - Routenlänge: echte Weglänge, eine Diagonale zählt √2, gerundet angezeigt.
-  - Die Auswertung läuft nach 2 s von selbst weiter (`RULES.evaluationSeconds`).
-- Seeds für neue Partien bestehen aus 6 Zeichen ohne verwechselbare Zeichen (kein 0/O, 1/I). Eingaben werden in Großbuchstaben umgewandelt. „Neue Partie“ schreibt den Seed in die Adresse, damit man die Karte teilen kann.
-- Signalfeuer sind begehbare Wegpunkte, Riss und Bastion auch. Gegner laufen durch ihre Mitte.
-- Debug-Hindernisse sind Trümmer (`kind: 'rubble'`). Diese Grafik nutzt M2 für die nicht gewählten Kapseln weiter. Das Entfernen per Debug löscht das ganze Hindernisobjekt, also bei Mauerresten alle Felder.
-- Tiefensortierung: Objekte auf einem Feld nach `x + y + 1`, Gegner nach `x + y`. Der seitliche Versatz der Gegner in der Kolonne ist rein optisch und hängt an der Gegner-ID.
+- **`npm run test:input` ist unter Last unzuverlässig.** Eine Prüfung wartet in
+  echten Sekunden darauf, dass eine Welle bei 1x durchläuft (180 s Grenze). Die
+  Simulation hängt an der Bildrate; laufen daneben weitere Playwright-Browser,
+  reicht die Zeit nicht. Kein Fehler im Spiel — beim Prüfen nichts nebenher.
+- **`npm run test:battle` stützt die Bastion** mit dem Unverwundbar-Hebel ab.
+  Ohne ihn verliert der Lauf Welle 1. Die Prüfung fragt, ob eine lange Partie
+  fehlerfrei durchläuft, nicht ob sie zu gewinnen ist.
+- **Ohne eigene Markierungen ist Welle 1 verloren** (gemessen: 30 Durchbrüche,
+  Niederlage nach 55 s). Bedienführung, nicht Balancing — das Spiel sagt
+  nirgends, dass die Zonen gesetzt werden wollen. Thema von M6.
+- **Bestwerte sind nur innerhalb einer `RULESET_VERSION` vergleichbar.** Wer
+  Kartenaufbau, Salvengröße oder Wellen ändert, muss die Zahl erhöhen.
+- Das Ergänzen fehlender Landezonen prüft im schlimmsten Fall alle freien Felder
+  (~75 ms in einem sehr engen Labyrinth), einmal pro Salve.
+- Gegner laufen optisch durch die Signalfeuer-Säulen, weil das Signalfeuerfeld
+  der Wegpunkt ist. Mit finaler Grafik lösbar (Feuerschale neben dem Wegpunkt).
+- Der Boden-Cache ist auf 12 Megapixel begrenzt (Safari). Bei maximalem Zoom auf
+  dem iPad kann der Boden leicht unscharf werden; Objekte bleiben scharf.
+- Der Auswahldialog kann auf breiten Bildschirmen das Debug-Panel überdecken.
+  Nur im Debug-Modus, darum belassen.
+- Headless-Chromium mit Software-Rendering schafft nur 30 bis 60 fps; mit GPU und
+  auf dem iPad stabil 60. WebKit erzeugt Mehrfinger-Gesten synthetisch — das
+  ersetzt den echten iPad nicht.
+- iPadOS ignoriert `display: fullscreen` im Manifest und nutzt `standalone`.
+
+## Regeln, die weiter gelten
+
+Was nicht aus GDD, ART oder SPEICHER folgt, sondern in der Umsetzung entschieden
+wurde. Die Begründungen stehen in den Commits.
+
+**Simulation**
+
+- Aller spielrelevante Zufall kommt aus dem geseedeten Generator;
+  `Math.random()` nur für rein optische Effekte. Ein Test hält die Zahlenfolge
+  fest, damit geteilte Seeds über Versionen gleich bleiben.
+- Karte und Kapselinhalte hängen nur an Seed und Wellennummer (`fork('map')`,
+  `fork('pods').fork(welle)`). Ein Test belegt, dass Balancing-Änderungen beide
+  nicht verschieben — darauf ruht das Nachspielen.
+- Keine Echtzeit in `src/sim/` und `src/core/`: kein `Date.now`, keine
+  Bildrate. Sonst wäre eine Partie nicht Schritt für Schritt wiederholbar.
+- Zonen werden immer als ganze Menge geprüft, nie einzeln. Darum kann eine Salve
+  den Weg nie schließen.
+- Verschmelzen endet bei Legende; für die Viererverschmelzung ist Elite der
+  höchste Ausgangsrang.
+- Deckt eine Rezept-Zutat sowohl eine Kapsel als auch eine stehende Stellung, wird
+  die Kapsel verbraucht — sie würde sonst ohnehin zu Trümmern.
+- Die Doktrin einer Spezialstellung ist ihre erste Zutat; sie entscheidet über
+  Schadensmatrix und Leitfarbe.
+- Schaden wird auf den verbleibenden Lebenspunkten gedeckelt, damit die Statistik
+  nichts ausweist, was es nicht gab. Seit M6 wird gezählt, was der Deckel
+  wegnimmt (`waveStats.overkill`).
+- Kommandos zählen in der Planung gegen die Welle, die die Salve vorbereitet.
+- Nach einer langen Unterbrechung holt die Simulation nicht auf, sie verwirft den
+  Rückstand.
+
+**Speicher**
+
+- Drei getrennte Dokumente: Profil (Bestwerte, Statistik), Einstellungen und
+  Partie-Protokolle. Die Einstellungen gehören dem Gerät und reisen nie in einem
+  Export mit.
+- Der Import **ersetzt** mit Bestätigung, er führt nicht zusammen.
+- Der Service Worker übernimmt nie von selbst (kein `skipWaiting`); erst „Neu
+  laden" im Menü lässt ihn ans Ruder. Wächter ist der Build-Hash über alle
+  ausgelieferten Dateien, nicht die Versionsnummer.
+- Jeder Zugriff in try/catch. Das Spiel startet mit leerem oder kaputtem Speicher
+  korrekt.
+
+**Grafik**
+
+- SVG ist nur die Quelle, Canvas die Ausgabe: einmal beim Start rastern, danach
+  nur `drawImage`. Erzeugte Dateien in `src/render/sprites/` nicht von Hand
+  ändern.
+- Ausnahme sind drehbare Modelle (Koloss, Gunship): aus Körpern im Code
+  aufgebaut, weil ein SVG keine Normalen kennt. Regeln in `docs/ART.md`,
+  Abschnitt „Drehbare Modelle".
+- Gegner sind nach links gezeichnet und werden je nach Laufrichtung gespiegelt.
+- Bewegung wird aus dem Zustand abgelesen, nicht gemeldet: Ein Schuss ist daran
+  zu erkennen, dass der Nachladezähler hochspringt.
+- Ein Element, das der Code verbirgt, braucht eine eigene
+  `[hidden] { display: none }`-Regel — eine Autorenregel schlägt sonst das
+  `display: none` des Browsers.
+- Der Ton wird synthetisiert, nicht aus Dateien geladen.
+
+**Balancing (M6, Entscheidung 7)**
+
+Beurteilt wird mit an echten Partien geeichten Bots und den Protokollen selbst.
+Der alte Einwand bleibt richtig — ein Bot, der kein Labyrinth baut, ist kein
+Maßstab —, aber die Antwort darauf gab es vorher nicht. **Ungeeichte Bot-Zahlen
+sind Richtwerte, keine Messung.** Werte ändern sich nur in `src/data/` und in den
+Wellenregeln, nie verstreut im Code.

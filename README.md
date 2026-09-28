@@ -25,17 +25,21 @@ Danach <http://localhost:8000> öffnen.
 - `?art=placeholder` startet mit den einfachen Formen.
 - Sprite-Galerie: `tests/sprites.html` zeigt alle Stellungen in allen Rängen und alle Gegner in beiden Blickrichtungen, mit Zoomstufen und Treffer-Variante (auch auf GitHub Pages unter `/nachschubfront/tests/sprites.html`).
 
-## Bedienung (Stand M1)
+## Bedienung
 
 | Aktion | Maus und Tastatur | Touch |
 |---|---|---|
-| Karte verschieben | Ziehen (links, rechts oder mittlere Taste), Pfeiltasten | Mit einem Finger ziehen |
+| Landezone markieren oder entfernen | Linksklick | Tippen |
+| Karte verschieben | Ziehen, Pfeiltasten | Mit einem Finger ziehen |
 | Zoomen | Mausrad, Trackpad-Pinch, `+` und `-` | Zwei Finger |
-| Feld wählen | Mauszeiger darüber, Klick | Tippen |
-| Welle starten | Knopf oder Enter | Knopf |
+| Infos zu Stellung, Gegner, Feld | Mauszeiger darüber | Langes Drücken |
+| Salve anfordern | Knopf oder Enter | Knopf |
 | Pause, Geschwindigkeit | Leertaste, `1`, `2`, `3` | Knöpfe unten |
-| Debug-Hindernis setzen oder entfernen | `H` über dem Feld | Hindernis-Modus, dann tippen |
-| Debug: Sprites oder Platzhalter | `G` | Knopf „Grafik“ |
+| Rezepte, Menü | `R`, Escape | Knöpfe oben rechts |
+| Abreißen, Bollwerk, Kommandos | Knopf, dann Ziel | Knopf, dann Ziel (mit Bestätigung) |
+| Debug: Hindernis setzen · Grafik umschalten | `H` über dem Feld · `G` | Knöpfe im Debug-Modus |
+
+Vollständig in `docs/GDD.md`, Abschnitt 13.
 
 ## Entwicklung
 
@@ -51,14 +55,33 @@ Alle Browser-Skripte laufen standardmäßig in Chromium. Mit `-- --browser webki
 | Befehl | Zweck |
 |---|---|
 | `npm test` | Unit-Tests (`node:test`) |
-| `npm run screenshots` | Screenshots Desktop 1440 × 900 und Tablet 1180 × 820 mit Touch nach `tests/output/`, bricht bei Konsolenfehlern ab |
-| `npm run screenshots -- --query debug` | wie oben, mit Debug-Anzeige |
-| `npm run test:input` | Eingabetests im Browser: Touch (Wischen, Tippen, Pinch), Maus, Tastatur, eine Welle auf 3x, Niederlage, Sprite-Galerie |
-| `npm run test:perf` | Belastungstest mit 200 Gegnern bei Start- und Maximalzoom, Desktop und Tablet: prüft 60 fps (nur mit echter GPU) und dass im Betrieb kein SVG gerastert wird |
+| `npm run test:input` | Browser-Prüfungen: Touch, Maus, Tastatur, ganze Wellen, Menüs, Bestenliste |
+| `npm run test:perf` | Belastungstest mit 200 Gegnern: prüft 60 fps und dass im Betrieb nichts gerastert wird |
+| `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |
+| `npm run test:offline` | prüft, dass das Spiel ohne Netz startet |
 | `npm run test:webkit` | Eingabetests, Screenshots und Leistungsmessung in WebKit |
-| `npm run sprites` | Konzeptgrafiken aus `reference/konzept/` neu nach `src/render/sprites/` übernehmen (nach jeder Änderung an den SVGs) |
-| `npm run icons` | Platzhalter-Icons neu erzeugen |
+| `npm run screenshots` | Screenshots Desktop 1440 × 900 und Tablet 1180 × 820 nach `tests/output/` |
 | `npm run serve` | lokaler Server auf Port 8000 |
+
+Erzeugte Dateien neu schreiben (die Ausgaben nicht von Hand ändern):
+
+| Befehl | Erzeugt |
+|---|---|
+| `npm run sprites` | `src/render/sprites/` aus den Konzept-SVGs |
+| `npm run studies` | SVGs aus dem Zeichencode der Studien |
+| `npm run waves` | `src/data/waves.js` aus `tests/tools/wave-rules.mjs` |
+| `npm run icons` | Platzhalter-Icons |
+| `npm run precache` | `sw.js` — **vor jeder Veröffentlichung** |
+
+Balancing (M6, Einzelheiten in [balancing/README.md](balancing/README.md)):
+
+| Befehl | Zweck |
+|---|---|
+| `npm run replay -- <protokoll>` | aufgezeichnete Partie ohne Grafik nachspielen, `--data` mit geänderten Werten |
+| `npm run bots` | viele Seeds mit einer Bot-Strategie, Überlebensquote je Welle |
+| `npm run calibrate` | Bots gegen von Hand gespielte Partien stellen |
+| `npm run powercurve` | Kraftkurve als Tabelle und HTML-Diagramm |
+| `npm run playmatch` | eine Bot-Partie, auf Wunsch als Protokoll |
 
 ## Veröffentlichen auf GitHub Pages
 
