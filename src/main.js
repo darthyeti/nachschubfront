@@ -58,6 +58,7 @@ import {
 import { startLog, recordRating, isMeasurable } from './sim/record.js';
 import { RULESET_VERSION } from './data/rules.js';
 import { createRatingRow } from './ui/rating.js';
+import { prepareTestEntry } from './sim/testentry.js';
 import { registerServiceWorker } from './core/updates.js';
 
 const FLASH_SECONDS = 0.9;
@@ -167,12 +168,16 @@ function applyObstacle(cell) {
   else if (t[result.reason]) flash(cell, false, t[result.reason]);
 }
 
-function newGame(seed = null) {
-  state = createGameState(normalizeSeed(seed) ?? randomSeed());
-  state.supplyLevel = startSupply;
-  // A fresh protocol per match. The id tells two matches on the same seed apart,
-  // so saving the same one again replaces it instead of piling up (M6).
-  startLog(state, RULESET_VERSION, Date.now());
+/**
+ * Takes a state over as the match being played: everything the render side keeps
+ * about the old one has to go, or a flash, an effect or the Koloss banner from
+ * the previous match arrives in this one.
+ *
+ * Shared by a new match and by the test entry (M6, step 4), which brings a state
+ * that was replayed rather than created.
+ */
+function adoptState(next) {
+  state = next;
   rating?.hide();
   bounds = mapBounds(state.map.size);
   stepper.reset();
@@ -183,6 +188,31 @@ function newGame(seed = null) {
   const url = new URL(location.href);
   url.searchParams.set('seed', state.seed);
   history.replaceState(null, '', url);
+}
+
+function newGame(seed = null) {
+  const next = createGameState(normalizeSeed(seed) ?? randomSeed());
+  next.supplyLevel = startSupply;
+  // A fresh protocol per match. The id tells two matches on the same seed apart,
+  // so saving the same one again replaces it instead of piling up (M6).
+  startLog(next, RULESET_VERSION, Date.now());
+  adoptState(next);
+}
+
+/**
+ * Starts a match at one of the test waves from a recorded protocol (M6, step 4).
+ * The replay does the work and marks the log as no measurement; here it is only
+ * hung into the running page.
+ */
+function startTestEntry(protocol, wave) {
+  const entry = prepareTestEntry(protocol, wave);
+  if (!entry.ok) return entry;
+  adoptState(entry.state);
+  matchRunning = true;
+  lastSpeed = 1;
+  setSpeed(state, lastSpeed);
+  showBanner(STRINGS.menu.testEntryTitle, STRINGS.menu.testEntryReady(entry.about));
+  return entry;
 }
 
 /**
@@ -691,6 +721,11 @@ const menus = createMenus(document.body, {
     matchRunning = false;
     menus.setSeed(state.seed);
   },
+  // The developer door of step 4. Only built with ?debug; a player never sees it.
+  testEntry: debug,
+  onTestEntry: (protocol, wave) => startTestEntry(protocol, wave),
+  /** Newest first, because the last match played is the one most likely wanted. */
+  onTestProtocols: () => [...protocols.values.matches].reverse(),
 });
 
 const keyboard = attachKeyboard({ onAction });
@@ -920,6 +955,19 @@ if (debug) {
     }),
     /** The recorded match, for the browser checks of the protocol (M6). */
     log: () => (state.log ? JSON.parse(JSON.stringify(state.log)) : null),
+    /**
+     * Enters a match at one of the test waves without going through the file
+     * picker, so a browser check can do what the menu does (M6, step 4).
+     */
+    testEntry: (protocol, wave) => {
+      const result = startTestEntry(protocol, wave);
+      // Same as the menu does: the screen only gets out of the way once there is
+      // something to play.
+      if (result.ok) menus.close();
+      return result.ok
+        ? { ok: true, about: result.about }
+        : { ok: false, reason: result.reason, about: result.about };
+    },
     /** Debug actions; the visible debug panel uses the same simulation calls. */
     debug: {
       setLives: (n) => setLives(state, n),

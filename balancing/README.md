@@ -107,6 +107,20 @@ die Stellungen liefern können, und schreibt ein Diagramm nach
 `balancing/runden/kraftkurve.html`. Liegt ein Protokoll vor, prüft das Werkzeug
 sein eigenes Modell daran und sagt, wie weit es daneben liegt.
 
+## Testeinstieg
+
+Im Spiel, nur mit `?debug`: **Hauptmenü → Testeinstieg**. Ein Protokoll wählen —
+eines aus diesem Browser oder eine Datei von hier aus `protokolle/` — und Welle
+10, 20, 30 oder 35 antippen. Die Partie wird bis zur Welle davor nachgespielt und
+übergeben; die gewählte Welle steht dann noch bevor, „ab Welle 35" heißt also, den
+Koloss selbst zu spielen.
+
+Das Nachspielen dauert ein paar Sekunden (beim ersten Mal auf einem Gerät
+länger), eine Zeile im Menü sagt das solange. Die Partie ist danach als
+`testEntry` gefärbt: sie taucht in keiner Messung auf, auch wenn sie exportiert
+wird. Ein Protokoll plus Wellennummer ist der ganze Spielstand — es gibt hierfür
+keine Speicherdatei.
+
 ## `runden/`
 
 Eine Auswertung je Abstimmungsrunde (`runde-1.md`, `runde-2.md`, …): was

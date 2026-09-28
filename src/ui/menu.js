@@ -6,6 +6,8 @@
 // time; the game is paused while any of them is up.
 
 import { STRINGS } from '../data/strings.js';
+import { parseProtocol, describeProtocol } from '../storage/protocol.js';
+import { TEST_WAVES } from '../sim/testentry.js';
 import { validateSeed, randomSeed } from '../core/seed.js';
 import { PREF_DEFAULTS } from '../core/prefs.js';
 import { createRecordsScreen } from './records.js';
@@ -92,6 +94,9 @@ export function createMenus(root, {
   onApplyUpdate,
   onExportMatch = null,
   canStore = true,
+  testEntry = false,
+  onTestEntry = null,
+  onTestProtocols = null,
 }) {
   /** @type {'main'|'seed'|'pause'|'settings'|'records'|'end'|null} */
   let open = null;
@@ -130,6 +135,7 @@ export function createMenus(root, {
     button(T.records, 'alt', () => show('records', 'main')),
     button(T.settings, 'alt', () => show('settings', 'main')),
   );
+  if (testEntry) mainActions.append(button(T.testEntry, 'alt', () => show('testEntry')));
   main.panel.append(mainActions);
   main.panel.append(el('p', 'menu-howto', T.howTo));
   main.panel.append(el('p', 'menu-hint', T.hint));
@@ -193,6 +199,129 @@ export function createMenus(root, {
     button(T.back, 'alt', () => show('main')),
   );
   seedScreen.panel.append(seedActions);
+
+  // ---------- Test entry (M6, Teil 1, Schritt 4) ----------
+  // A developer door, built only with ?debug: replay a recorded match to just
+  // before a wave and go on playing from there. The screen exists so that the
+  // late waves can be looked at again and again during the tuning rounds, which
+  // nobody does by playing thirty waves first.
+  //
+  // It keeps no saved position of its own — a protocol plus a wave number is the
+  // position (src/sim/testentry.js). What the screen has to offer, therefore, is
+  // a choice of protocol: the ones this browser has recorded, or a file from
+  // balancing/protokolle/.
+  const testScreen = testEntry ? createOverlay(root, 'test-entry', T.testEntryTitle) : null;
+  /**
+   * What the list offers, as {label, match}. The select is the only place the
+   * choice lives: a loaded file is put in front of the recorded matches rather
+   * than kept beside them, so what is shown and what would be played can never
+   * drift apart.
+   */
+  let testOptions = [];
+  /** A file that was loaded, kept across openings of the screen. */
+  let testFile = null;
+  let testSay = null;
+  let testSelect = null;
+
+  function sayTest(text, bad = false) {
+    if (!testSay) return;
+    testSay.textContent = text;
+    testSay.classList.toggle('menu-warning', bad);
+  }
+
+  /** The protocol the wave buttons would use, or null while the list is empty. */
+  function testPick() {
+    return testOptions[Number(testSelect?.value)]?.match ?? null;
+  }
+
+  /** Refills the list; called every time the screen opens. */
+  function refreshTestEntry() {
+    if (!testSelect) return;
+    const stored = onTestProtocols?.() ?? [];
+    testOptions = [
+      ...(testFile ? [{ label: T.testEntryFileOption(describeProtocol(testFile)), match: testFile }] : []),
+      ...stored.map((match) => ({ label: T.testEntryOption(describeProtocol(match)), match })),
+    ];
+    testSelect.replaceChildren();
+    testSelect.disabled = testOptions.length === 0;
+    if (testOptions.length === 0) {
+      testSelect.append(new Option(T.testEntryNone, ''));
+      return;
+    }
+    testOptions.forEach(({ label }, index) => testSelect.append(new Option(label, String(index))));
+    testSelect.value = '0';
+  }
+
+  if (testScreen) {
+    testScreen.panel.append(el('h2', 'menu-title', T.testEntryTitle));
+    testScreen.panel.append(el('p', 'menu-subtitle', T.testEntryIntro));
+
+    testSelect = el('select', 'menu-test-input');
+    testSelect.setAttribute('aria-label', T.testEntryPick);
+    testSelect.addEventListener('change', () => sayTest(''));
+
+    // A file rather than a fetch: the protocols live in the repository, and the
+    // game may be opened from anywhere, including offline from the cache.
+    const fileInput = el('input', 'menu-test-input');
+    fileInput.type = 'file';
+    fileInput.accept = 'application/json,.json';
+    fileInput.setAttribute('aria-label', T.testEntryFile);
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      const parsed = parseProtocol(await file.text());
+      if (!parsed.ok) {
+        sayTest(T.testEntryErrors.file(), true);
+        return;
+      }
+      testFile = parsed.match;
+      refreshTestEntry();
+      sayTest('');
+    });
+
+    const pickRow = el('div', 'menu-seed');
+    pickRow.append(el('span', 'menu-seed-label', T.testEntryPick), testSelect);
+    const fileRow = el('div', 'menu-seed');
+    fileRow.append(el('span', 'menu-seed-label', T.testEntryFile), fileInput);
+
+    testSay = el('p', 'menu-hint');
+    const backRow = el('div', 'menu-actions');
+    backRow.append(button(T.back, 'alt', () => show('main')));
+
+    const waveRow = el('div', 'menu-actions');
+    for (const wave of TEST_WAVES) {
+      waveRow.append(
+        button(String(wave), wave === TEST_WAVES[0] ? 'primary menu-primary' : 'alt', () => {
+          const picked = testPick();
+          if (!picked) {
+            sayTest(T.testEntryNone, true);
+            return;
+          }
+          // Replaying a long protocol takes seconds and blocks the frame, so the
+          // line is painted first and the work handed to the next turn.
+          sayTest(T.testEntryWorking(wave));
+          setTimeout(() => {
+            const result = onTestEntry?.(picked, wave) ?? { ok: false, reason: 'stuck', about: { wave } };
+            if (!result.ok) {
+              sayTest(T.testEntryErrors[result.reason]?.(result.about ?? { wave }) ?? '', true);
+              return;
+            }
+            close();
+          }, 0);
+        }),
+      );
+    }
+
+    testScreen.panel.append(
+      pickRow,
+      fileRow,
+      el('p', 'menu-section', T.testEntryWave),
+      waveRow,
+      testSay,
+      el('p', 'menu-hint', T.testEntryTainted),
+      backRow,
+    );
+  }
 
   // ---------- Exporting the running match (M6, Teil 1) ----------
   // Recorded matches are the measurement M6 works from, so the way out of the
@@ -432,6 +561,7 @@ export function createMenus(root, {
   syncInstall();
 
   const screens = { main, seed: seedScreen, pause, settings, records, end };
+  if (testScreen) screens.testEntry = testScreen;
 
   function show(name, from) {
     if (from) {
@@ -439,6 +569,7 @@ export function createMenus(root, {
       else settingsReturn = from;
     }
     if (name === 'records') recordsScreen.refresh();
+    if (name === 'testEntry') refreshTestEntry();
     for (const [key, screen] of Object.entries(screens)) screen.overlay.hidden = key !== name;
     const wasOpen = open !== null;
     open = name;
@@ -466,7 +597,7 @@ export function createMenus(root, {
         show(settingsReturn);
       } else if (name === 'records') {
         show(recordsReturn);
-      } else if (name === 'seed') {
+      } else if (name === 'seed' || name === 'testEntry') {
         show('main');
       }
     });

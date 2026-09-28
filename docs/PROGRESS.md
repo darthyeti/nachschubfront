@@ -39,8 +39,13 @@ der Zahlen; **Teil 2 hat noch keine Freigabe.**
 - **Schritt 3 ✓** (28.09.) Fünf Bot-Strategien (`npm run bots`), Eichung an
   gespielten Partien (`npm run calibrate`), Kraftkurve (`npm run powercurve`),
   Versionsprüfung vor jedem Maßstab (`tests/tools/reference.mjs`).
-- **Schritt 4 offen:** Testeinstieg ab Welle 10, 20, 30 und 35. Braucht den
-  Nachspieler im Browser; er ist dafür schon DOM-frei gebaut.
+- **Schritt 4 ✓** (28.09.) Testeinstieg ab Welle 10, 20, 30 und 35
+  (`src/sim/testentry.js`), Menüpunkt nur mit `?debug`. Die gewählte Welle steht
+  noch bevor: „ab Welle 35" heißt, den Koloss zu spielen, nicht nach ihm
+  anzukommen. Kein eigenes Speicherformat — ein Protokoll plus Wellennummer ist
+  der Stand. Die Partie wird als `testEntry` gefärbt und damit von keinem
+  Werkzeug für eine Messung gehalten. Quelle ist ein aufgezeichnetes Spiel aus
+  diesem Browser oder eine Datei aus `balancing/protokolle/`.
 
 **Stand der Eichung (4 Protokolle, 28.09.):** Keine Strategie eicht. Die beste
 wechselt von Protokoll zu Protokoll — `simple` (0,49), `refine` (0,51),
@@ -105,7 +110,7 @@ Absicht ist.
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (426) |
+| `npm test` | Unit-Tests (436) |
 | `npm run test:input` | 58 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |

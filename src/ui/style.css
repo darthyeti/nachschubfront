@@ -1200,6 +1200,24 @@ button[hidden] {
   text-transform: uppercase;
 }
 
+.menu-test-input {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 16px;
+  /* Both controls sit in a .menu-seed row, so they follow its width, and a long
+     protocol line must shorten rather than push the panel wider. */
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 22em;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  color: #1a1410;
+  background: var(--btn-alt);
+  border: 2px solid var(--ink);
+  border-radius: 3px;
+}
+
 .menu-actions {
   display: flex;
   flex-wrap: wrap;

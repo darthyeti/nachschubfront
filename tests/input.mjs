@@ -10,6 +10,8 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ROOT, startServer, watchProblems, browserName, launchBrowser, startMatch } from './tools/server.mjs';
+import { RULESET_VERSION } from '../src/data/rules.js';
+import { playBotMatch } from './tools/bot-player.mjs';
 
 const OUT = join(ROOT, 'tests', 'output');
 const SEED = 'BASTION';
@@ -756,8 +758,23 @@ try {
     };
     let rubbleCell = null;
 
-    await check('a landing zone may be marked on a heap of rubble', async () => {
+    await check('a heap of rubble takes no landing zone the purse cannot clear', async () => {
+      // Since 88fc725 a marker on rubble carries the demolition with it, so an
+      // empty purse refuses it. This check used to mark one here and pass,
+      // because the rule was unconditional when it was written (24.09).
       const cell = await makeRubble();
+      assert.equal((await game(page)).requisition, 0, 'the purse has to be empty for this');
+      await tapCell(cell);
+      assert.ok(
+        !(await game(page)).zones.some((z) => z.x === cell.x && z.y === cell.y),
+        'the zone was refused',
+      );
+      rubbleCell = cell;
+    });
+
+    await check('a landing zone may be marked on a heap of rubble that is payable', async () => {
+      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
+      const cell = rubbleCell;
       const routeBefore = (await game(page)).route;
       await tapCell(cell);
       const state = await game(page);
@@ -766,11 +783,9 @@ try {
         'the zone was accepted',
       );
       assert.equal(state.route, routeBefore, 'the route cannot change: the cell was blocked already');
-      rubbleCell = cell;
     });
 
     await check('the card names the demolition, and building pays it once', async () => {
-      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
       await page.getByRole('button', { name: 'Salve anfordern' }).click();
       await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
 
@@ -1049,6 +1064,75 @@ try {
     await context.close();
   }
 
+  // ---------- Test entry (M6, step 4) ----------
+  // A developer door, so it is checked for what it promises and not for looks:
+  // the wave chosen is still ahead of the player, and the match it produces is
+  // marked as no measurement.
+  console.log('test entry (tablet, touch)');
+  {
+    const { context, page } = await openGame({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+
+    await check('the door is shut without ?debug, and open with it', async () => {
+      // Both on their own pages: openGame starts a match, and the entry sits in
+      // the main menu, which is gone by then.
+      const plain = await context.newPage();
+      await plain.goto(`${server.url}?seed=${SEED}`, { waitUntil: 'networkidle' });
+      await plain.waitForSelector('body[data-ready]');
+      assert.equal(await plain.getByRole('button', { name: 'Testeinstieg' }).count(), 0);
+      await plain.close();
+
+      const dev = await context.newPage();
+      await dev.goto(`${server.url}?seed=${SEED}&debug`, { waitUntil: 'networkidle' });
+      await dev.waitForSelector('body[data-ready]');
+      await dev.getByRole('button', { name: 'Testeinstieg' }).tap();
+      const screen = dev.locator('.menu[data-menu="test-entry"]');
+      await screen.waitFor({ state: 'visible' });
+      for (const wave of [10, 20, 30, 35]) {
+        const box = await screen.getByRole('button', { name: String(wave), exact: true }).boundingBox();
+        assert.ok(box.width >= 44 && box.height >= 44, `wave ${wave} is ${box.width}x${box.height}`);
+      }
+      await dev.close();
+    });
+
+    await check('a protocol that stops short is refused, with the reason', async () => {
+      // A one-wave match: nothing to enter at wave 10 from.
+      const short = await page.evaluate(() => {
+        const log = { version: 1, id: 1, seed: 'KURZ', supplyStart: 4, tainted: [], actions: [], waves: [{ w: 1, lives: 20 }], end: null };
+        return window.__nachschub.testEntry(log, 10);
+      });
+      assert.equal(short.ok, false);
+      assert.equal(short.reason, 'short');
+    });
+
+    await check('the chosen wave is still ahead, and the match is no measurement', async () => {
+      // The protocol is played here in node and handed over, rather than loaded
+      // from a file: a file in the repository would tie this check to one
+      // recorded match, and playing a bot inside the page costs seconds.
+      const botLog = playBotMatch({ seed: 'EINSTIEG', strategy: 'refine' }).log;
+      const entry = await page.evaluate((protocol) => window.__nachschub.testEntry(protocol, 10), botLog);
+      assert.ok(entry.ok, entry.reason);
+      assert.equal(entry.about.wave, 10);
+
+      const state = await game(page);
+      assert.equal(state.wave, 9, 'nine waves fought, the tenth to come');
+      assert.equal(state.phase, 'planning', 'and the player is where he decides');
+      assert.ok(state.towers.length > 0, 'the emplacements of those nine waves stand');
+
+      const log = await page.evaluate(() => window.__nachschub.log());
+      assert.ok(log.tainted.includes('testEntry'), 'prepared, not played');
+      assert.equal(log.waves.length, 9);
+
+      assert.ok(state.speed > 0, 'the match runs');
+    });
+
+    await context.close();
+  }
+
   // ---------- Records, export and import ----------
   // Tablet with touch: export and import have to be usable with a finger, and
   // the paste box is the fallback for exactly that device.
@@ -1101,8 +1185,11 @@ try {
       const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:profile')));
       assert.equal(stored.stats.matches, 1, 'the match is on disk, not only on screen');
       assert.equal(stored.stats.victories, 0);
-      assert.ok(stored.best['2']?.length === 1, 'filed under the current ruleset version');
-      assert.equal(stored.best['2'][0].seed, SEED);
+      assert.ok(
+        stored.best[String(RULESET_VERSION)]?.length === 1,
+        'filed under the current ruleset version',
+      );
+      assert.equal(stored.best[String(RULESET_VERSION)][0].seed, SEED);
 
       await page.getByRole('button', { name: 'Bestenliste' }).tap();
       await page.waitForSelector('.menu[data-menu="records"]:not([hidden])');
@@ -1156,7 +1243,9 @@ try {
       const file = JSON.stringify({
         magic: 'nachschubfront.profile',
         version: 1,
-        best: { 2: [{ seed: 'IMPORT', wave: 44, kills: 900, lives: 3, score: 45500, victory: false, date: 1, runs: 2 }] },
+        // Keyed on the current ruleset: a record filed under an older one is
+        // hidden on purpose, and this check is about importing, not about that.
+        best: { [RULESET_VERSION]: [{ seed: 'IMPORT', wave: 44, kills: 900, lives: 3, score: 45500, victory: false, date: 1, runs: 2 }] },
         stats: { matches: 7, victories: 1, kills: 900, bestWave: 44, seconds: 3700, doctrines: { tesla: 12 } },
       });
       await page.fill('.records-paste', file);
@@ -1240,7 +1329,7 @@ try {
       const file = JSON.stringify({
         magic: 'nachschubfront.profile',
         version: 1,
-        best: { 2: [{ seed: 'MAUS', wave: 9, kills: 12, lives: 4, score: 9812, date: 1, runs: 1 }] },
+        best: { [RULESET_VERSION]: [{ seed: 'MAUS', wave: 9, kills: 12, lives: 4, score: 9812, date: 1, runs: 1 }] },
         stats: { matches: 2, victories: 0, kills: 12, bestWave: 9, seconds: 90, doctrines: { laser: 1 } },
       });
       await page.fill('.records-paste', file);

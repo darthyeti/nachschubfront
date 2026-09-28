@@ -98,6 +98,36 @@ export const STRINGS = {
     exportMatchTainted: 'Achtung: In dieser Partie wurden Debug-Hebel benutzt.',
     exportMatchAbout: ({ seed, wave, waves, ratings }) =>
       `Seed ${seed}, ${waves} ${waves === 1 ? 'Welle' : 'Wellen'} bis Welle ${wave}, ${ratings} bewertet.`,
+    // The test entry (M6, step 4). Only reachable with ?debug, so the wording may
+    // name protocols and waves the way the balancing work does.
+    testEntry: 'Testeinstieg',
+    testEntryTitle: 'Testeinstieg',
+    testEntryIntro:
+      'Eine aufgezeichnete Partie bis kurz vor eine Welle nachspielen und von dort weiterspielen. ' +
+      'Die Welle, die du wählst, steht dir noch bevor.',
+    testEntryPick: 'Protokoll',
+    testEntryNone:
+      'Kein Protokoll vorhanden. Spiele eine Partie, oder lade eine Protokolldatei aus balancing/protokolle/.',
+    testEntryFile: 'Datei laden',
+    testEntryWave: 'Ab Welle',
+    testEntryOption: ({ seed, wave, waves }) =>
+      `Seed ${seed} · ${waves} ${waves === 1 ? 'Welle' : 'Wellen'} bis ${wave}`,
+    testEntryFileOption: ({ seed, wave, waves }) =>
+      `Datei: Seed ${seed} · ${waves} ${waves === 1 ? 'Welle' : 'Wellen'} bis ${wave}`,
+    testEntryWorking: (wave) => `Welle 1 bis ${wave - 1} wird nachgespielt …`,
+    // Kept short: it goes into the banner over the board, which clips a long
+    // line, and the status bar already shows the route and the requisition.
+    testEntryReady: ({ wave, lives, towers }) =>
+      `Welle ${wave} steht bevor: ${lives} Leben, ${towers} Stellungen.`,
+    testEntryTainted: 'Diese Partie zählt nicht als Messung — sie ist gestellt, nicht gespielt.',
+    testEntryErrors: {
+      short: ({ wave, reached }) =>
+        `Das Protokoll kommt nur bis Welle ${reached}, für Welle ${wave} müsste es bis ${wave - 1} reichen.`,
+      over: ({ wave }) => `Die Partie ist vor Welle ${wave} verloren — von dort ist nichts weiterzuspielen.`,
+      stuck: () => 'Das Nachspielen bleibt hängen. Ein anderes Protokoll oder eine andere Welle wählen.',
+      first: () => 'Welle 1 ist eine neue Partie, dafür braucht es keinen Einstieg.',
+      file: () => 'Das ist kein Protokoll.',
+    },
     pauseTitle: 'Pausiert',
     pauseStatus: (wave, total, lives, requisition) =>
       `Welle ${wave}/${total} · Leben ${lives} · Requisition ${requisition}`,
