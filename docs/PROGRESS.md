@@ -55,9 +55,13 @@ diese Niederlage stillschweigend als Maßstab genommen. Seither prüft
 `tests/tools/reference.mjs` vor jeder Verwendung, ob das Nachspielen die
 aufgezeichnete Partie noch ergibt; `calibrate` und `powercurve` überspringen
 sonst das Protokoll, `npm run replay` sagt, ob die Version oder der Determinismus
-schuld ist. **`RULESET_VERSION` steht noch auf 2, obwohl `88fc725` die
-Platzierungsregeln geändert hat** — nach der Regel in `src/data/rules.js` müsste
-sie auf 3.
+schuld ist. **`RULESET_VERSION` steht seit dem 28.09. auf 3**, weil `88fc725` und
+`b4bba94` die Platzierungsregeln geändert haben. Bestwerte aus Regelversion 2
+liegen dadurch in einer eigenen Liste; die Menüzeile sagt, wie viele es sind.
+
+Tills vier Protokolle sind unter Regelversion 2 aufgezeichnet. Drei spielen sich
+trotzdem unverändert nach und bleiben damit Maßstab — geprüft wird das
+Nachspielen, nicht der Stempel. Nur MZGGZJ ist verloren.
 
 **Was die Kraftkurve rechnet:** Reserve (lieferbarer Schaden geteilt durch die
 wirksamen Lebenspunkte der Welle) im Median 512 % in W1–W10, **1199 % in

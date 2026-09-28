@@ -9,6 +9,7 @@ import { reference } from '../../tests/tools/reference.mjs';
 import { playBotMatch } from '../../tests/tools/bot-player.mjs';
 import { exportProtocol, parseProtocol } from '../../src/storage/protocol.js';
 import { APP_VERSION } from '../../src/data/version.js';
+import { RULESET_VERSION } from '../../src/data/rules.js';
 
 test('a protocol that still replays is accepted as a reference', () => {
   const run = playBotMatch({ seed: 'REFOK', strategy: 'simple' });
@@ -32,19 +33,25 @@ test('a protocol whose waves no longer come back is refused', () => {
   assert.match(check.why, /Welle 1/);
 });
 
-test('the reason names the build, because that decides what went wrong', () => {
+test('the reason separates the three causes, which are not equally bad', () => {
   const run = playBotMatch({ seed: 'REFVERSION', strategy: 'simple' });
   const tampered = structuredClone(run.log);
   tampered.waves[0].killed += 1;
 
-  // An older build: a rule may have changed, and the protocol is the suspect.
+  // Another rule version: the protocol simply belongs to rules that are gone.
+  const oldRules = structuredClone(tampered);
+  oldRules.ruleset = RULESET_VERSION - 1;
+  assert.match(reference(oldRules, APP_VERSION).why, /Regelversion/);
+  assert.match(reference(oldRules, APP_VERSION).why, /nicht mehr gelten/);
+
+  // Same rule version, older build: a rule changed and nobody raised the
+  // version. That is the case that has to be pointed at, not swallowed.
   const older = reference(tampered, '0.0.1');
   assert.match(older.why, /0\.0\.1/);
-  assert.match(older.why, /Regel geändert/);
   assert.match(older.why, /RULESET_VERSION/);
 
-  // The same build: then the simulation is not deterministic, which is a fault
-  // in the game and must not be blamed on the protocol.
+  // Same build and same rules: then the simulation is not deterministic, which
+  // is a fault in the game and must not be blamed on the protocol.
   const same = reference(tampered, APP_VERSION);
   assert.match(same.why, /nicht deterministisch/);
   assert.doesNotMatch(same.why, /RULESET_VERSION/);

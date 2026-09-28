@@ -19,6 +19,7 @@
 
 import { replayMatch, compareWaves } from '../../src/sim/replay.js';
 import { APP_VERSION } from '../../src/data/version.js';
+import { RULESET_VERSION } from '../../src/data/rules.js';
 
 /** The fields that decide whether it is the same match. */
 const FIELDS = ['lives', 'spawned', 'killed', 'leaked'];
@@ -35,7 +36,6 @@ export function reference(match, app = null) {
   if (diff.length === 0) return { ok: true, played, diff, why: null };
 
   const first = diff[0];
-  const stale = app && app !== APP_VERSION;
   return {
     ok: false,
     played,
@@ -44,10 +44,37 @@ export function reference(match, app = null) {
       `Das Nachspielen ergibt diese Partie nicht mehr: ${match.waves.length} Wellen aufgezeichnet, ` +
       `${played.waves.length} nachgespielt, erste Abweichung Welle ${first.wave} ` +
       `(${first.field} ${first.now} statt ${first.was}). ` +
-      (stale
-        ? `Aufgezeichnet mit Version ${app}, hier läuft ${APP_VERSION} — sehr wahrscheinlich hat sich eine Regel ` +
-          'geändert. Dann ist das Protokoll kein Maßstab mehr und RULESET_VERSION müsste erhöht worden sein.'
-        : `Aufgezeichnet mit derselben Version (${app ?? 'unbekannt'}) — dann ist die Simulation nicht ` +
-          'deterministisch, und das ist ein Fehler im Spiel, nicht im Protokoll.'),
+      explain(match, app),
   };
+}
+
+/**
+ * Why it came apart. Three cases, and they are not equally bad:
+ *
+ * - **Another rule version.** Said so outright at the recording, so there is
+ *   nothing to suspect: the protocol belongs to rules that no longer apply.
+ * - **Another build, same rule version.** Either a rule changed without the
+ *   version being raised, or something outside the rules moved. Both are worth
+ *   looking at, and the version is the thing to fix first.
+ * - **Same build.** Then the simulation is not reproducible, which is a broken
+ *   promise of the architecture (CLAUDE.md, principle 2) and a fault in the
+ *   game — never the protocol's doing.
+ */
+function explain(match, app) {
+  if (match.ruleset !== undefined && match.ruleset !== RULESET_VERSION) {
+    return (
+      `Gespielt unter Regelversion ${match.ruleset}, hier gilt ${RULESET_VERSION}: Das Protokoll gehört zu ` +
+      'Regeln, die nicht mehr gelten, und ist kein Maßstab für die heutigen Zahlen.'
+    );
+  }
+  if (app && app !== APP_VERSION) {
+    return (
+      `Regelversion ${match.ruleset} wie hier, aber aufgezeichnet mit Version ${app} statt ${APP_VERSION}: ` +
+      'Dann hat sich eine Regel geändert, ohne dass RULESET_VERSION erhöht wurde — das gehört nachgetragen.'
+    );
+  }
+  return (
+    `Dieselbe Version (${app ?? 'unbekannt'}) und dieselbe Regelversion (${match.ruleset}): Dann läuft die ` +
+    'Simulation nicht deterministisch, und das ist ein Fehler im Spiel, nicht im Protokoll.'
+  );
 }

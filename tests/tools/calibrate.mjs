@@ -24,6 +24,7 @@ import { join } from 'node:path';
 import { parseProtocol } from '../../src/storage/protocol.js';
 import { isMeasurable } from '../../src/sim/record.js';
 import { reference } from './reference.mjs';
+import { RULESET_VERSION } from '../../src/data/rules.js';
 import { STRATEGIES } from './bot-strategies.mjs';
 import { playBotMatch } from './bot-player.mjs';
 
@@ -66,7 +67,9 @@ for (const file of files) {
   const target = summarise(played.waves);
   console.log(`\n# ${file}`);
   console.log(
-    `Seed ${human.seed} · Version ${parsed.app ?? 'unbekannt'} · von Hand: ${target.waves} Wellen, ` +
+    `Seed ${human.seed} · Version ${parsed.app ?? 'unbekannt'} · Regelversion ${human.ruleset}` +
+      `${human.ruleset === RULESET_VERSION ? '' : ` (heute ${RULESET_VERSION}, spielt sich aber noch nach)`} · ` +
+      `von Hand: ${target.waves} Wellen, ` +
       `${target.lives} Leben am Ende, Route ${target.route.toFixed(1)} im Mittel, ` +
       `Stellungen ${target.ranks.join('/')}+${target.specials}`,
   );

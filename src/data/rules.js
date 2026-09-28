@@ -6,8 +6,15 @@
  * before it says nothing about one after it, not even on the same seed. Best
  * scores are stored with this number (M5) so the two never end up in one list.
  * Raise it whenever a change makes old results incomparable.
+ *
+ * 3 since 28.09.2026: the placement rules were tightened twice on that day. A
+ * landing zone may no longer stand on rubble nobody can pay to clear (88fc725),
+ * and a marker whose ground gets built on is dropped (b4bba94). Both change which
+ * mazes can be built at all, and it showed: a match recorded an hour before the
+ * first fix replayed to a defeat in wave 35 where the player had won in wave 50.
+ * Matches from 2 are therefore neither comparable nor replayable here.
  */
-export const RULESET_VERSION = 2;
+export const RULESET_VERSION = 3;
 
 /**
  * True while the numbers are still being tuned (M6). It turns on what only a

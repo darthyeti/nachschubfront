@@ -68,7 +68,7 @@ test('sanitize drops what it does not understand and keeps the rest', () => {
     version: 1,
     nonsense: 'weg damit',
     best: {
-      2: [run({ score: 100 }), { seed: 42 }, null, { seed: 'X', score: -5, wave: 1.7 }],
+      [RULESET_VERSION]: [run({ score: 100 }), { seed: 42 }, null, { seed: 'X', score: -5, wave: 1.7 }],
       'not-a-version': [run()],
     },
     stats: { matches: 3, victories: 9, kills: -1, doctrines: { flame: 4, erfunden: 99 } },
@@ -77,7 +77,11 @@ test('sanitize drops what it does not understand and keeps the rest', () => {
   assert.equal(bestList(p).length, 2, 'the two unusable rows are gone');
   assert.equal(bestForSeed(p, 'X').score, 0, 'a negative score reads as zero');
   assert.equal(bestForSeed(p, 'X').wave, 1, 'fractions are floored');
-  assert.deepEqual(Object.keys(p.best), ['2'], 'a key that is not a ruleset version is dropped');
+  assert.deepEqual(
+    Object.keys(p.best),
+    [String(RULESET_VERSION)],
+    'a key that is not a ruleset version is dropped',
+  );
   assert.equal(p.stats.victories, 3, 'more wins than matches is impossible');
   assert.equal(p.stats.kills, 0);
   assert.equal(p.stats.doctrines.flame, 4);
@@ -86,7 +90,7 @@ test('sanitize drops what it does not understand and keeps the rest', () => {
 });
 
 test('the same seed twice in one list keeps only the better run', () => {
-  const p = sanitizeProfile({ best: { 2: [run({ score: 500 }), run({ score: 900 })] } });
+  const p = sanitizeProfile({ best: { [RULESET_VERSION]: [run({ score: 500 }), run({ score: 900 })] } });
   assert.equal(bestList(p).length, 1);
   assert.equal(bestForSeed(p, 'BASTION').score, 900);
 });
@@ -109,14 +113,20 @@ test('an entry without a usable seed is refused', () => {
 // ---------- Migration ----------
 
 test('a document without a version is read as the oldest one and lifted', () => {
-  const { profile, future } = migrateProfile({ best: { 2: [run()] }, stats: { matches: 1 } });
+  const { profile, future } = migrateProfile({
+    best: { [RULESET_VERSION]: [run()] },
+    stats: { matches: 1 },
+  });
   assert.equal(future, false);
   assert.equal(profile.version, PROFILE_VERSION);
   assert.equal(bestList(profile).length, 1);
 });
 
 test('a profile from a newer build is reported and left alone', () => {
-  const { profile, future } = migrateProfile({ version: PROFILE_VERSION + 1, best: { 2: [run()] } });
+  const { profile, future } = migrateProfile({
+    version: PROFILE_VERSION + 1,
+    best: { [RULESET_VERSION]: [run()] },
+  });
   assert.equal(future, true);
   assert.deepEqual(profile.best, {}, 'nothing from it is shown');
 });
