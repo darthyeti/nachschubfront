@@ -12,12 +12,16 @@ import {
   zoneIndexAt,
   zoneLimit,
   previewRoute,
+  zoneAffordable,
+  dropUnaffordableRubbleZones,
 } from '../../src/sim/zones.js';
 import { routeExists, computeRoute } from '../../src/sim/route.js';
 import { createRng } from '../../src/core/random.js';
 import { createGameState } from '../../src/core/state.js';
 import { PODS } from '../../src/data/pods.js';
 import { setBlocked, isBlocked } from '../../src/sim/grid.js';
+import { addRubble, nextRubbleCost } from '../../src/sim/rubble.js';
+import { buySupply, demolish, buildBulwark, nextSupplyCost, nextBulwarkCost } from '../../src/sim/economy.js';
 import { mapFromAscii, planningState } from './helpers.js';
 
 const OPEN = [
@@ -175,4 +179,132 @@ test('fillZones and clearZones keep the preview in step', () => {
   }
   clearZones(state);
   assert.equal(state.zonePreview, null);
+});
+
+// ---------- Zones on rubble need the demolition to be payable ----------
+//
+// Without this rule a whole salvo could come down on heaps nobody can clear.
+// Every capsule of it would then be unbuildable and the selection phase had no
+// way out at all (see also `forfeitSalvo` in game.test.js).
+
+test('a zone on rubble is refused while the demolition is out of reach', () => {
+  const state = planningState(mapFromAscii(OPEN));
+  state.route = computeRoute(state.map);
+  const heap = { x: 3, y: 6 };
+  addRubble(state, heap);
+
+  state.requisition = nextRubbleCost(state) - 1;
+  assert.equal(zoneAffordable(state, heap), false);
+  assert.deepEqual(canMarkZone(state, heap), { ok: false, reason: 'funds' });
+  assert.deepEqual(toggleZone(state, heap), { ok: false, reason: 'funds' });
+  assert.equal(state.zones.length, 0, 'nothing was marked');
+  assert.deepEqual(canMarkZone(state, { x: 5, y: 6 }), { ok: true }, 'free ground is unaffected');
+
+  state.requisition = nextRubbleCost(state);
+  assert.equal(zoneAffordable(state, heap), true);
+  assert.deepEqual(toggleZone(state, heap), { ok: true, action: 'added' });
+});
+
+test('buying a supply level drops the markers it puts out of reach', () => {
+  const state = planningState(mapFromAscii(OPEN));
+  state.route = computeRoute(state.map);
+  const heap = { x: 3, y: 6 };
+  const free = { x: 6, y: 6 };
+  addRubble(state, heap);
+  state.requisition = nextSupplyCost(state) + nextRubbleCost(state);
+  assert.deepEqual(toggleZone(state, heap), { ok: true, action: 'added' });
+  assert.deepEqual(toggleZone(state, free), { ok: true, action: 'added' });
+
+  // The purse now covers the level or the heap, not both.
+  state.requisition = nextSupplyCost(state) + nextRubbleCost(state) - 1;
+  assert.ok(buySupply(state).ok);
+  assert.deepEqual(state.zones, [free], 'the heap marker is gone, the free one stays');
+  assert.ok(
+    state.events.some((e) => e.type === 'zonesDropped' && e.cells.length === 1),
+    'the drop is announced',
+  );
+});
+
+test('a demolition drops a marker by raising the price of the next heap', () => {
+  const state = planningState(mapFromAscii(OPEN));
+  state.route = computeRoute(state.map);
+  const kept = { x: 3, y: 6 };
+  const torn = { x: 6, y: 2 };
+  addRubble(state, kept);
+  addRubble(state, torn);
+  state.route = computeRoute(state.map);
+  // Enough for exactly one demolition at today's price, and the marker is set
+  // while that still covers the heap under it.
+  state.requisition = nextRubbleCost(state);
+  assert.deepEqual(toggleZone(state, kept), { ok: true, action: 'added' });
+  assert.ok(demolish(state, torn).ok);
+  assert.equal(state.requisition, 0);
+  assert.deepEqual(state.zones, [], 'the marker went with the money');
+});
+
+test('raising a bulwark drops a marker the same way', () => {
+  const state = planningState(mapFromAscii(OPEN));
+  state.route = computeRoute(state.map);
+  const marked = { x: 3, y: 6 };
+  const raised = { x: 6, y: 2 };
+  addRubble(state, marked);
+  addRubble(state, raised);
+  state.route = computeRoute(state.map);
+  state.requisition = nextBulwarkCost(state) + nextRubbleCost(state) - 1;
+  assert.deepEqual(toggleZone(state, marked), { ok: true, action: 'added' });
+  assert.ok(buildBulwark(state, raised).ok);
+  assert.deepEqual(state.zones, [], 'the marker is gone');
+});
+
+test('dropping a marker is recorded, so a protocol replays the same way', () => {
+  const state = planningState(mapFromAscii(OPEN));
+  state.route = computeRoute(state.map);
+  state.tick = 0;
+  state.log = { actions: [], waves: [] };
+  const heap = { x: 3, y: 6 };
+  addRubble(state, heap);
+  state.requisition = nextRubbleCost(state);
+  toggleZone(state, heap);
+  state.requisition = 0;
+  assert.deepEqual(dropUnaffordableRubbleZones(state), [{ x: 3, y: 6 }]);
+  assert.deepEqual(
+    state.log.actions.map(({ a, x, y, on }) => ({ a, x, y, on })),
+    [
+      { a: 'zone', x: 3, y: 6, on: true },
+      { a: 'zone', x: 3, y: 6, on: false },
+    ],
+  );
+});
+
+test('fillZones prefers heaps it can pay for, and only then ones it cannot', () => {
+  // A map whose only free cells are the four beacons' surroundings would make
+  // this fiddly, so the salvo is squeezed instead: every cell but a handful is
+  // rubble, which is what a late match looks like.
+  const state = planningState(mapFromAscii(OPEN));
+  state.route = computeRoute(state.map);
+  const free = [
+    { x: 5, y: 5 },
+    { x: 7, y: 5 },
+  ];
+  for (let y = 0; y < state.map.size; y++) {
+    for (let x = 0; x < state.map.size; x++) {
+      if (canMarkZone(state, { x, y }).ok && !free.some((f) => f.x === x && f.y === y)) {
+        addRubble(state, { x, y });
+      }
+    }
+  }
+  state.route = computeRoute(state.map);
+  state.requisition = 0;
+
+  const added = fillZones(state, createRng('BROKE'));
+  assert.equal(added, state.zones.length);
+  assert.equal(state.zones.length, zoneLimit(state), 'the salvo is still filled');
+  for (const cell of free) {
+    assert.ok(zoneIndexAt(state, cell) >= 0, `the free cell ${cell.x},${cell.y} was taken first`);
+  }
+  assert.equal(
+    state.zones.filter((z) => zoneAffordable(state, z)).length,
+    free.length,
+    'the rest had to fall on heaps nobody can clear',
+  );
 });

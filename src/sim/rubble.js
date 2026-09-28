@@ -4,7 +4,21 @@
 // blocks its cell exactly like rubble; the one difference is that a Koloss
 // cannot ram through it.
 
+import { rubbleCost } from '../data/economy.js';
 import { setBlocked } from './grid.js';
+
+/**
+ * Cost of the next demolition of rubble; every one in a match makes them dearer.
+ *
+ * It lives here rather than in economy.js because three modules need it and one
+ * of them is zones.js: a landing zone on rubble is only allowed while the player
+ * can pay for the heap under it, and economy.js in turn has to drop such a
+ * marker when the purse drops below the price. Keeping the price with the rubble
+ * keeps that dependency one-way.
+ */
+export function nextRubbleCost(state) {
+  return rubbleCost(state.demolished);
+}
 
 /** Purely visual variation, derived from the cell so it never needs randomness. */
 export function rubbleVariant(x, y) {

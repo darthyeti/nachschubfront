@@ -450,6 +450,11 @@ export const STRINGS = {
     bulwarkTarget: 'Nur auf Trümmern',
     zoneAdded: 'Landezone',
     zoneRemoved: 'Zone gelöscht',
+    /** Markers on rubble that the last purchase put out of reach. */
+    zonesDropped: (n) =>
+      n === 1
+        ? 'Eine Landezone auf Trümmern entfernt: Der Abriss ist nicht mehr bezahlbar.'
+        : `${n} Landezonen auf Trümmern entfernt: Der Abriss ist nicht mehr bezahlbar.`,
   },
 
   selection: {

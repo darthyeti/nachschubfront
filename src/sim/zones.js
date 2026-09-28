@@ -4,7 +4,7 @@
 
 import { PODS, salvoSize } from '../data/pods.js';
 import { checkPlacement, routeWith } from './route.js';
-import { isRubble } from './rubble.js';
+import { isRubble, nextRubbleCost } from './rubble.js';
 import { upcomingWave } from './pods.js';
 import { record } from './record.js';
 
@@ -36,13 +36,29 @@ export function zonesFull(state) {
 }
 
 /**
+ * Whether a capsule that came down on this cell could be built on at all. A zone
+ * on a free cell always can; one on a heap of rubble only while the purse covers
+ * the demolition, because that is what building there costs (GDD section 3).
+ *
+ * Nothing is earned between the planning phase and the selection, so what this
+ * says while the marker is set still holds when the capsule opens.
+ */
+export function zoneAffordable(state, cell) {
+  return !isRubble(state.map, cell) || state.requisition >= nextRubbleCost(state);
+}
+
+/**
  * Checks a cell against all zones marked so far: the whole salvo must leave the
  * chain of legs walkable, not each pod on its own.
- * @returns {{ok: true} | {ok: false, reason: 'phase' | 'full' | 'outside' | 'protected' | 'occupied' | 'blocks'}}
+ * @returns {{ok: true} | {ok: false, reason: 'phase' | 'full' | 'funds' | 'outside' | 'protected' | 'occupied' | 'blocks'}}
  */
 export function canMarkZone(state, cell) {
   if (state.phase !== 'planning' || state.stress) return { ok: false, reason: 'phase' };
   if (zonesFull(state)) return { ok: false, reason: 'full' };
+  // A heap nobody can clear makes the capsule on it unbuildable, and a marker
+  // there would be a wasted slot rather than a choice: an unchosen capsule
+  // leaves the heap exactly as it was, so it does not even add an obstacle.
+  if (!zoneAffordable(state, cell)) return { ok: false, reason: 'funds' };
   return checkPlacement(state.map, [...state.zones, cell]);
 }
 
@@ -72,6 +88,31 @@ export function clearZones(state) {
   refreshZonePreview(state);
 }
 
+/**
+ * Drops the markers on rubble the player can no longer pay to clear, and returns
+ * the cells it gave up. Called after every spend in the planning phase
+ * (sim/economy.js): buying a supply level empties the purse, and demolishing or
+ * raising a bulwark also pushes the price of the next heap up, so either can turn
+ * a marker set a moment ago into a capsule nobody could build on.
+ *
+ * Each removal is recorded like a marker the player took back, so a protocol
+ * replays the same way (sim/replay.js reads `zone` actions).
+ */
+export function dropUnaffordableRubbleZones(state) {
+  const dropped = state.zones.filter((zone) => !zoneAffordable(state, zone));
+  for (const zone of dropped) {
+    const index = zoneIndexAt(state, zone);
+    if (index < 0) continue;
+    state.zones.splice(index, 1);
+    record(state, 'zone', { x: zone.x, y: zone.y, on: false });
+  }
+  if (dropped.length > 0) {
+    refreshZonePreview(state);
+    state.events.push({ type: 'zonesDropped', cells: dropped.map(({ x, y }) => ({ x, y })) });
+  }
+  return dropped;
+}
+
 function manhattan(a, b) {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
@@ -94,7 +135,11 @@ function allCells(size) {
  *
  * Free cells come before heaps of rubble. A zone on rubble is allowed since v3,
  * but building there costs the demolition, and the game must not run up a bill
- * the player never asked for — so rubble is only used when nothing else fits.
+ * the player never asked for — so rubble is only used when nothing else fits,
+ * and a heap the player could not clear only when nothing else is left at all.
+ * That last round can hand out a capsule nobody can build on; the selection
+ * phase lets the salvo be given up rather than sit on an impossible choice
+ * (sim/actions.js, `forfeitSalvo`).
  * @param {ReturnType<import('../core/random.js').createRng>} rng
  * @returns {number} Number of zones added.
  */
@@ -103,18 +148,20 @@ export function fillZones(state, rng) {
   if (missing <= 0) return 0;
   const candidates = rng.shuffle(allCells(state.map.size));
   let added = 0;
-  // Three rounds, each looser than the one before: spread and free, close and
-  // free, then anything that is allowed at all.
-  for (const [spread, freeOnly] of [
-    [true, true],
-    [false, true],
-    [false, false],
+  // Four rounds, each looser than the one before: spread and free, close and
+  // free, then affordable rubble, then anything that is allowed at all.
+  for (const [spread, freeOnly, affordableOnly] of [
+    [true, true, true],
+    [false, true, true],
+    [false, false, true],
+    [false, false, false],
   ]) {
     for (const cell of candidates) {
       if (zonesFull(state)) break;
       if (zoneIndexAt(state, cell) >= 0) continue;
       if (spread && state.zones.some((z) => manhattan(z, cell) < PODS.minRandomDistance)) continue;
       if (freeOnly && isRubble(state.map, cell)) continue;
+      if (affordableOnly && !zoneAffordable(state, cell)) continue;
       if (!checkPlacement(state.map, [...state.zones, cell]).ok) continue;
       state.zones.push({ x: cell.x, y: cell.y });
       added++;

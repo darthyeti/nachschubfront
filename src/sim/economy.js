@@ -2,13 +2,32 @@
 // clearing waves, command points from bosses and from waves without a single
 // breakthrough.
 
-import { ECONOMY, waveBonus, rubbleCost, towerCost, bulwarkCost } from '../data/economy.js';
+import { ECONOMY, waveBonus, towerCost, bulwarkCost } from '../data/economy.js';
 import { supplyCost, MAX_SUPPLY_LEVEL } from '../data/supply.js';
 import { setBlocked } from './grid.js';
 import { computeRoute, routeExists } from './route.js';
 import { towerAt, removeTower } from './towers.js';
-import { rubbleIndexAt, bulwarkIndexAt, isRubble, raiseBulwark } from './rubble.js';
+import { rubbleIndexAt, bulwarkIndexAt, isRubble, raiseBulwark, nextRubbleCost } from './rubble.js';
+import { dropUnaffordableRubbleZones } from './zones.js';
 import { record } from './record.js';
+
+// The demolition price itself lives in rubble.js, so zones.js can read it
+// without importing this module back. Handed on from here because this is where
+// every other price is asked for.
+export { nextRubbleCost };
+
+/**
+ * Pays for something out of the purse and then puts the landing zones back in
+ * order. Every spend in the planning phase goes through this, because spending
+ * can make a marker on rubble impossible to build on — the purse drops, and
+ * demolishing or raising a bulwark also raises the price of the next heap. A
+ * salvo whose every capsule stands on a heap nobody can clear cannot be chosen
+ * at all, which used to leave the player stuck in the selection phase.
+ */
+function spend(state, cost) {
+  state.requisition -= cost;
+  dropUnaffordableRubbleZones(state);
+}
 
 /** Cost of the next supply level, or null at the top. */
 export function nextSupplyCost(state) {
@@ -30,16 +49,11 @@ export function canBuySupply(state) {
 export function buySupply(state) {
   const check = canBuySupply(state);
   if (!check.ok) return check;
-  state.requisition -= check.cost;
   state.supplyLevel += 1;
-  state.events.push({ type: 'supply', level: state.supplyLevel, cost: check.cost });
   record(state, 'supply');
+  spend(state, check.cost);
+  state.events.push({ type: 'supply', level: state.supplyLevel, cost: check.cost });
   return check;
-}
-
-/** Cost of the next demolition of rubble; every one in a match makes them dearer. */
-export function nextRubbleCost(state) {
-  return rubbleCost(state.demolished);
 }
 
 /** Cost of tearing down one of your own positions: three times that. */
@@ -105,12 +119,14 @@ export function demolish(state, cell) {
     const [obstacle] = state.map.obstacles.splice(target.index, 1);
     for (const c of obstacle.cells) setBlocked(state.map.grid, c.x, c.y, false);
   }
-  state.requisition -= check.cost;
+  record(state, 'demolish', { x: cell.x, y: cell.y });
+  // The count goes up before the purse is charged, so the markers are weighed
+  // against the price that holds from now on, not the one just paid.
   state.demolished += 1;
+  spend(state, check.cost);
   state.route = computeRoute(state.map);
   state.mapVersion += 1;
   state.events.push({ type: 'demolish', x: cell.x, y: cell.y, cost: check.cost, kind: target.kind });
-  record(state, 'demolish', { x: cell.x, y: cell.y });
   return check;
 }
 
@@ -142,11 +158,13 @@ export function buildBulwark(state, cell) {
   const check = canBuildBulwark(state, cell);
   if (!check.ok) return check;
   raiseBulwark(state, cell);
-  state.requisition -= check.cost;
+  record(state, 'bulwark', { x: cell.x, y: cell.y });
+  // As with the demolition: the count first, then the purse, so the markers are
+  // weighed against the price that holds from now on.
   state.demolished += 1;
+  spend(state, check.cost);
   state.mapVersion += 1;
   state.events.push({ type: 'bulwark', x: cell.x, y: cell.y, cost: check.cost });
-  record(state, 'bulwark', { x: cell.x, y: cell.y });
   return check;
 }
 

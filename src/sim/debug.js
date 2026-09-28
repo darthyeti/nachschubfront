@@ -9,6 +9,7 @@ import { groundPolyline, flyerPolyline, positionAt, computeRoute } from './route
 import { isBlocked, setBlocked } from './grid.js';
 import { spawnEnemy } from './enemies.js';
 import { addTower, removeTower } from './towers.js';
+import { dropUnaffordableRubbleZones } from './zones.js';
 import { record, taint } from './record.js';
 
 // Every lever here marks the protocol as tainted (sim/record.js) and is written
@@ -52,6 +53,10 @@ export function grant(state, { requisition = 0, commandPoints = 0 }) {
   state.requisition = Math.max(0, state.requisition + requisition);
   state.commandPoints = Math.max(0, state.commandPoints + commandPoints);
   record(state, 'grant', { requisition, commandPoints });
+  // A negative grant can take the purse below the demolition price, the same as
+  // a purchase does (sim/economy.js). Recorded after this action, so the
+  // protocol reads cause before effect.
+  dropUnaffordableRubbleZones(state);
 }
 
 /**

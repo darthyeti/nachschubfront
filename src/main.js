@@ -668,6 +668,12 @@ function drainEvents() {
       // or not, and the next salvo takes the question down again.
       if (prefs.values.rateWaves) rating.ask(ev.wave);
     }
+    // Markers the last purchase made impossible to build on. Said out loud,
+    // because a landing zone that quietly disappears looks like a fault.
+    else if (ev.type === 'zonesDropped') {
+      showBanner(STRINGS.placement.zonesDropped(ev.cells.length));
+      for (const cell of ev.cells) flash(cell, false, STRINGS.placement.funds);
+    }
     else if (ev.type === 'kolossArrived') showBanner(STRINGS.koloss.arrived, STRINGS.koloss.arrivedDetail);
     else if (ev.type === 'kolossBreach') {
       const t = STRINGS.koloss;
