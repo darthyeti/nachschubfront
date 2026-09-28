@@ -223,7 +223,7 @@ Name im Spiel: **Koloss**. Nicht „Titan" — das ist im Grimdark-Sci-Fi-Genre 
 
 „Ausreichend verstärkt" heißt also: mit Bollwerken abgeriegelt (Entscheidung vom 24.09.2026). Feuerkraft verhindert den Rammstoß nicht, sie verhindert, dass er überhaupt ankommt.
 
-**Welle und Bastion:** Die Welle gilt nicht als beendet, solange der Koloss lebt. Erreicht er die Bastion, kostet das 15 Leben statt der 5 eines normalen Bosses (Startwert, im Balancing zu justieren).
+**Welle und Bastion:** Die Welle gilt nicht als beendet, solange der Koloss lebt. Erreicht er die Bastion, kostet das 8 Leben statt der 5 eines normalen Bosses. Der Startwert war 15; Balancing-Runde 1 (28.09.2026) hat ihn gesenkt, weil 15 von 20 Startleben bedeuteten, dass ein einzelner Gegner die Partie entscheidet. Bei 8 ist ein Durchbruch schwer zu verkraften, zwei — also beide Kolosse einer Partie — beenden sie weiterhin.
 
 **Stärke:** Der Koloss ist so ausgelegt, dass unverstärkte Stellungen ihn in der Regel nicht rechtzeitig stoppen. Der gezielte Einsatz von Spezialkommandos, besonders des Luftschlags, ist meist nötig, um Durchbruch oder das Erreichen der Bastion zu verhindern. Jeder Schadensdeckel gegen Bosse (Orbitalschlag, Luftschlag, Seelenfeuer-Obelisk) gilt gegen den Koloss genauso; kein Kommando darf ihn in einem Einsatz töten können.
 
@@ -269,7 +269,7 @@ Einsatz jederzeit während einer Welle, außer wo anders angegeben. Sie setzen k
 
 ## 12. Sieg, Niederlage, Wertung
 
-- Die Bastion hat 20 Leben. Normale Gegner kosten beim Durchbruch 1, Bosse 5, der Koloss 15. Bei 0 ist die Partie verloren.
+- Die Bastion hat 20 Leben. Normale Gegner kosten beim Durchbruch 1, Bosse 5, der Koloss 8 (Abschnitt 11). Bei 0 ist die Partie verloren.
 - Nach Welle 50 ist die Partie gewonnen, optional geht es im Endlosmodus weiter.
 - Punkte: erreichte Welle x 1000 plus Abschüsse plus verbleibende Leben x 200. Gespeichert werden Bestwerte pro Seed und insgesamt.
 

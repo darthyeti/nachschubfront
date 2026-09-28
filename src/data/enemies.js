@@ -90,14 +90,30 @@ export const BOSSES = {
     armorBelow: 'flesh',
     health: 3000,
     shield: 1500,
-    shieldRegen: 120,
+    /**
+     * 40/s since balancing round 1 (28.09.2026), down from 120. Over a route of
+     * 57 cells the shield was regenerating 5262 hit points — more than the health
+     * and the shield on this card put together, so the numbers here said nothing
+     * about what the boss actually took to kill. Slowing it down made that worse
+     * rather than better: the longer it is under fire, the more it heals.
+     */
+    shieldRegen: 40,
     speed: 0.8,
     reward: 50,
     flying: false,
     sprite: 'warpseer',
     scale: 2,
-    /** Jumps this many cells forward along the route now and then. */
-    warpJump: { cells: 3, intervalSeconds: 6 },
+    /**
+     * Jumps this many cells forward along the route now and then.
+     *
+     * 1 since balancing round 1, down from 3. At 3 cells every 6 seconds the jump
+     * was worth +0.5 cells/s, so the boss travelled at 1.30 instead of its printed
+     * 0.8 — faster than a warrior, and it got through in every match on every
+     * route length. Mazing did not touch it, which is the one thing this game asks
+     * the player to do. At 1 cell it moves at 0.97, the speed of the warpseers it
+     * leads: a long maze holds it, a short route still pays.
+     */
+    warpJump: { cells: 1, intervalSeconds: 6 },
   },
   swarmqueen: {
     boss: true,

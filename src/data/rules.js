@@ -7,14 +7,18 @@
  * scores are stored with this number (M5) so the two never end up in one list.
  * Raise it whenever a change makes old results incomparable.
  *
- * 3 since 28.09.2026: the placement rules were tightened twice on that day. A
+ * 4 since 28.09.2026: balancing round 1 changed the wave-30 boss and the price of
+ * a Koloss breakthrough. Every round of part 2 raises this, so scores stay in
+ * lists that can be compared with each other.
+ *
+ * 3 on the same day: the placement rules were tightened twice. A
  * landing zone may no longer stand on rubble nobody can pay to clear (88fc725),
  * and a marker whose ground gets built on is dropped (b4bba94). Both change which
  * mazes can be built at all, and it showed: a match recorded an hour before the
  * first fix replayed to a defeat in wave 35 where the player had won in wave 50.
  * Matches from 2 are therefore neither comparable nor replayable here.
  */
-export const RULESET_VERSION = 3;
+export const RULESET_VERSION = 4;
 
 /**
  * True while the numbers are still being tuned (M6). It turns on what only a
@@ -32,8 +36,17 @@ export const RULES = {
   leakCost: 1,
   /** Lives lost when a boss reaches the bastion. */
   bossLeakCost: 5,
-  /** Lives lost when the Koloss reaches the bastion (GDD section 12, v3). */
-  kolossLeakCost: 15,
+  /**
+   * Lives lost when the Koloss reaches the bastion (GDD section 12).
+   *
+   * 8 since balancing round 1 (28.09.2026), down from 15. 15 of 20 starting lives
+   * meant one creature decided the whole match, and the arithmetic fell out
+   * exactly: the wave-30 boss took 5 from everyone, so everyone stood at 15 when
+   * the Koloss arrived in wave 35. A one-percent change anywhere else was enough
+   * to end a run there and say nothing about the other 49 waves. At 8 a
+   * breakthrough is heavy and two of them — both Kolosse of a run — still end it.
+   */
+  kolossLeakCost: 8,
   /** Seconds the evaluation banner stays before planning resumes. */
   evaluationSeconds: 2,
 

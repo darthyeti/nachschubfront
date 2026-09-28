@@ -1,11 +1,10 @@
 {
   "bosses": {
     "warpherald": {
-      "warpJump": { "cells": 0 },
+      "warpJump": { "cells": 1 },
       "shieldRegen": 40
     }
   },
   "rules": {
-    "kolossLeakCost": 8
-  }
+    "kolossLeakCost": 8 }
 }

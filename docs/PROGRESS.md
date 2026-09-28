@@ -108,15 +108,27 @@ Absicht ist.
 
 ## M6 Teil 2: Abstimmung
 
-**Runde 1 liegt zur Entscheidung vor:**
-[`balancing/runden/runde-1.md`](../balancing/runden/runde-1.md). Sie dreht nicht
-an der Schwierigkeit, sondern räumt drei Klippen weg — vorher lässt sich keine
-Schwierigkeitsänderung messen, weil jede noch so kleine in Welle 35 endet.
-Vorgeschlagen: Warpsprung des Warpherolds aus, Schildregeneration 120→40,
-`kolossLeakCost` 15→8. Nichts davon ist umgesetzt.
+**Runde 1 ist entschieden und umgesetzt** (28.09., Regelversion 4):
+[`balancing/runden/runde-1.md`](../balancing/runden/runde-1.md). Sie hat nicht an
+der Schwierigkeit gedreht, sondern drei Klippen weggeräumt — vorher endete jede
+noch so kleine Änderung in Welle 35 und sagte nichts über die anderen 49 Wellen.
 
-Drei Fragen liegen bei Till: ob der Warpsprung ganz weg soll oder nur kleiner, ob
-der Koloss die Partie entscheiden darf, und was mit Welle 8 geschieht.
+| Wert | vorher | jetzt |
+|---|---|---|
+| `warpherald.warpJump.cells` | 3 | 1 |
+| `warpherald.shieldRegen` | 120 | 40 |
+| `RULES.kolossLeakCost` | 15 | 8 |
+
+Entschieden von Till: Der Warpsprung wird kleiner statt abgeschaltet, damit
+Welle 30 das Labyrinth belohnt (Route 108 hält den Boss jetzt, Route 57 zahlt
+weiter 5 Leben). Der Koloss darf keine Partie entscheiden. **Welle 8 bleibt, wie
+sie ist** — die teure Fliegerwelle ohne Luftabwehr ist als Lernkurve gewollt und
+damit keine offene Baustelle mehr.
+
+**Für Runde 2 fehlen Partien.** Von den vier Protokollen spielen sich nur noch
+7CT7LQ und EFDXE8 nach; 8425CM und MZGGZJ gehören zu Regeln, die nicht mehr
+gelten, und werden von den Werkzeugen von allein ausgelassen. Zwei bis drei neue
+Partien unter Regelversion 4, dazu Testeinstiege bei Welle 30 und 35.
 
 ## Werkzeuge
 

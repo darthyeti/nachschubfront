@@ -1,8 +1,16 @@
 # Runde 1 — die drei Klippen
 
-**Stand:** Vorschlag, nichts geändert. Die Werte unten liegen als
-`runde-1/vorschlag.json` bereit und sind über `npm run replay -- … --data`
-nachvollziehbar, aber nicht in `src/data/`.
+**Stand: entschieden und umgesetzt am 28.09.2026, Regelversion 4.**
+
+Till hat die drei offenen Fragen beantwortet:
+
+1. **Der Warpsprung wird kleiner, nicht abgeschaltet** — Welle 30 belohnt damit
+   ausdrücklich das Labyrinth.
+2. **Der Koloss soll keine Partie entscheiden** — sein Preis sinkt.
+3. **Welle 8 bleibt, wie sie ist.** Das ist eine Lernkurve: „Den Fehler ohne
+   Luftabwehr macht man nur einmal." Damit ist sie keine offene Baustelle mehr,
+   sondern eine Entscheidung, und gehört nicht ohne neuen Anlass wieder auf die
+   Liste.
 
 **Grundlage:** vier von Till gespielte Partien vom 28.09.2026, 147 bewertete
 Wellen, keine Debug-Hebel. Drei davon sind verwertbar; MZGGZJ fällt weg, weil das
@@ -114,49 +122,79 @@ Ein Rangschritt ist etwa 7 bis 8 Wellen Gegnerwachstum wert (×2,2 bis ×2,5 geg
 
 ---
 
-## Vorschlag für Runde 1
+## Was geändert wurde
 
 **Runde 1 dreht nicht an der Schwierigkeit, sondern räumt die Klippen weg** —
 weil man die Schwierigkeit erst danach messen kann.
 
-```json
-{
-  "bosses": {
-    "warpherald": { "warpJump": { "cells": 0 }, "shieldRegen": 40 }
-  },
-  "rules": { "kolossLeakCost": 8 }
-}
-```
-
-**1. Warpsprung aus (3 → 0 Felder).** Der Warpherold läuft dann mit seinem
-angeschriebenen Tempo 0,8 und steht die volle Zeit unter Feuer. Er behält Schild
-und Warprüstung, also seinen Charakter; was wegfällt, ist die Fähigkeit, die die
-Routenlänge wertlos macht.
-
-**2. Schildregeneration 120 → 40/s.** 120/s über eine lange Strecke sind mehr
-Lebenspunkte, als in der Tabelle stehen. Bei 40/s bleibt der Schild eine Hürde,
-die ein langes Labyrinth aufzehren kann — das ist der Weg, auf dem Mazing gegen
-diesen Boss überhaupt etwas bewirkt.
-
-**3. `kolossLeakCost` 15 → 8.** 15 von 20 Startleben sind 75 %: ein einzelner
-Gegner entscheidet die ganze Partie in einem Augenblick. Bei 8 ist ein
-Durchbruch schwer zu verkraften und zweimal tödlich — ein Gefälle statt eines
-Schalters.
-
-### Was der Vorschlag misst
-
-| | Wellen | Leben am Ende | Durchbrüche |
+| Wert | vorher | jetzt | Datei |
 |---|---|---|---|
-| unverändert | 50 | 15, Sieg | W30 |
-| **Vorschlag** | 50 | **20, Sieg** | **keine** |
-| Vorschlag + `healthGrowth` 1,13 | 50 | 2, Sieg | W30, W35, W40 |
-| Vorschlag + `healthGrowth` 1,14 | 48 | 0, verloren | W30, W35, W40, W48 |
-| Vorschlag + `countPerWave` 1,5 | 50 | 12, Sieg | W35 |
+| `warpherald.warpJump.cells` | 3 | **1** | `src/data/enemies.js` |
+| `warpherald.shieldRegen` | 120 | **40** | `src/data/enemies.js` |
+| `RULES.kolossLeakCost` | 15 | **8** | `src/data/rules.js` |
+| `RULESET_VERSION` | 3 | **4** | `src/data/rules.js` |
+| `APP_VERSION` | 0.9.1 | **0.9.2** | `src/data/version.js` |
 
-**Der Vorschlag macht das Spiel zunächst leichter**, und das ist beabsichtigt: er
-nimmt die beiden Stellen weg, die bisher als einzige etwas gekostet haben. Dafür
-verhalten sich die Schwierigkeitshebel danach wie Hebel — die untere Hälfte der
-Tabelle ist ein Verlauf und keine Klippe mehr. Das ist die Grundlage für Runde 2.
+**1. Warpsprung 3 → 1 Feld.** Damit läuft der Warpherold wirksam 0,97 statt 1,30
+Felder je Sekunde — das Tempo der Warpseher, die er anführt, statt schneller als
+ein Krieger. Der Sprung bleibt als Fähigkeit erhalten, er entscheidet die Welle
+nur nicht mehr allein.
+
+Gemessen an Welle 30 heißt „kleiner statt aus" genau das, was Till gewählt hat:
+
+| | Route 57 (ohne Labyrinth) | Route 108 (Labyrinth) |
+|---|---|---|
+| vorher | 1 durch, −5 Leben | 1 durch, −5 Leben |
+| **jetzt** | 1 durch, −5 Leben | **0 durch, keine Kosten** |
+
+Das Labyrinth hält den Boss, der kurze Weg zahlt. Welle 30 ist damit die Welle,
+die Mazing beibringt — so wie Welle 8 die Luftabwehr beibringt.
+
+**2. Schildregeneration 120 → 40/s.** Nicht kosmetisch, sondern nötig, damit die
+erste Änderung sich nicht selbst aufhebt: Ein langsamerer Boss steht **länger**
+unter Feuer und regeneriert deshalb **mehr**. Bei Sprung 1 und 120/s wären es
+7076 zusätzliche Lebenspunkte über 57 Felder — mehr als vorher. Bei 40/s sind es
+2359, also etwa ein zweiter Schild statt vier weiterer.
+
+**3. `kolossLeakCost` 15 → 8.** 15 von 20 Startleben hießen: ein einzelner Gegner
+entscheidet die Partie in einem Augenblick. Bei 8 ist ein Durchbruch schwer zu
+verkraften, und zwei — also beide Kolosse einer Partie — beenden sie weiterhin.
+Im GDD stand 15 als „Startwert, im Balancing zu justieren"; die beiden Stellen
+dort sind mitgezogen.
+
+### Was die Änderung bewirkt
+
+Tills gewonnene Partie (EFDXE8, Route 57) endet unverändert bei 50 Wellen und 15
+Leben — sie zahlt Welle 30 weiter, weil sie kein Labyrinth gebaut hat. Die
+Labyrinth-Partie (8425CM) verliert ihren Durchbruch in Welle 30.
+
+Der Unterschied zeigt sich erst, wenn man danach an der Schwierigkeit dreht:
+
+| | vorher | **nach Runde 1** |
+|---|---|---|
+| `healthGrowth` 1,13 | verloren in W35 | **Sieg mit 2 Leben** |
+| `healthGrowth` 1,14 | verloren in W35 | verloren in W48 |
+| `countPerWave` 1,5 | verloren in W35 | Sieg mit 12 Leben |
+| Ränge 1/2/4/8/16 | verloren in W35 | Sieg mit 2 Leben |
+
+**Vorher endete jede Änderung in Welle 35 und sagte nichts.** Jetzt ist die
+untere Hälfte ein Verlauf. Das ist der eigentliche Ertrag dieser Runde und die
+Grundlage für Runde 2.
+
+### Was das für die vorhandenen Protokolle heißt
+
+Regelversion 4 macht die vier Protokolle nicht pauschal wertlos — geprüft wird,
+ob sie sich noch nachspielen lassen, nicht der Stempel. Das Ergebnis:
+
+| Protokoll | | |
+|---|---|---|
+| 7CT7LQ | spielt sich unverändert nach | bleibt Maßstab |
+| EFDXE8 | spielt sich unverändert nach | bleibt Maßstab |
+| 8425CM | weicht ab W30 ab (Labyrinth hält jetzt) | fällt weg |
+| MZGGZJ | weicht ab W35 ab | fällt weg |
+
+`calibrate` und `powercurve` lassen die beiden von allein aus. Für Runde 2
+braucht es neue Partien unter Regelversion 4.
 
 > **Einschränkung, die für jede Zeile hier gilt:** Nachgespielt werden Tills
 > eigene Züge. Ein Mensch passt sich an, ein Protokoll nicht. Die Zahlen sind
@@ -165,35 +203,34 @@ Tabelle ist ein Verlauf und keine Klippe mehr. Das ist die Grundlage für Runde 
 
 ---
 
-## Was Till entscheiden muss
+## Welle 8 bleibt — als Entscheidung
 
-1. **Warpsprung ganz weg oder nur kleiner?** Ganz weg ist die einzige Variante,
-   die auch dem kurzen Weg hilft. Kleiner (1 Feld) belohnt nur das lange
-   Labyrinth — was auch eine Haltung sein kann: „Wer nicht mazet, zahlt hier."
-2. **Ist der Koloss als Partie-Entscheider gewollt?** 15 von 20 Leben sind eine
-   Ansage. Wenn ja, bleibt 15 und stattdessen braucht Welle 35 eine Warnung, die
-   der Spieler versteht. Wenn nein, ist 8 der Vorschlag.
-3. **Welle 8 ist die dritte Klippe und hier nicht behandelt.** 14 von 20 Leben an
-   eine Fliegerwelle, weil vier von sechs Doktrinen Flieger überhaupt treffen und
-   der Bau zufällig keine davon hatte. Das ist keine Zahlenfrage: Entweder das
-   Spiel sagt vorher, dass Luftabwehr fehlt, oder Flieger dürfen nicht so viel
-   kosten. Gehört nach Runde 2 oder in die Bedienführung.
+14 von 20 Leben an eine Fliegerwelle, weil nur vier von sechs Doktrinen Flieger
+treffen und der Bau zufällig keine davon hatte. Tills Entscheidung: so gewollt,
+den Fehler macht man nur einmal.
+
+Damit ist Welle 8 **keine offene Baustelle mehr**. Sie steht hier, damit sie nicht
+beim nächsten Durchsehen der Zahlen wieder als Ausreißer auffällt und
+„repariert" wird. Falls sie doch noch etwas braucht, dann Bedienführung — ein
+Hinweis vor der Welle — und keine Zahl.
 
 ---
 
 ## Wie es weitergeht
 
-1. Till entscheidet über die drei Punkte oben.
-2. Werte nach `src/data/` und in die Wellenregeln, `RULESET_VERSION` auf 4.
-3. Till spielt zwei bis drei **Testeinstiege** — Welle 30 und Welle 35 sind die
-   auffälligen — und bewertet.
-4. Auswertung als `runde-2.md`, dann geht es an die Schwierigkeit: die 1396 %
-   Reserve im Mittelspiel und der verschwendete Schaden in den ersten zehn Wellen.
+1. **Till spielt Testeinstiege bei Welle 30 und 35** (Hauptmenü → Testeinstieg,
+   nur mit `?debug`) und bewertet. Welle 30 ist der Prüfstein: Hält ein Labyrinth
+   den Warpherold jetzt, und zahlt der kurze Weg spürbar?
+2. Zwei bis drei neue Partien unter Regelversion 4 — die alten tragen Runde 2
+   nur noch zur Hälfte.
+3. Dann Runde 2, und dort geht es an die Schwierigkeit: die 1414 % Reserve im
+   Mittelspiel und die bis zu 90 % verschwendeter Schaden in den ersten zehn
+   Wellen.
 
 ## Dateien
 
 | Datei | Inhalt |
 |---|---|
-| `runde-1/vorschlag.json` | die drei Werte oben, für `npm run replay -- … --data` |
-| `runde-1/vergleich-schwierigkeit.json` | derselbe Vorschlag plus `healthGrowth` 1,13, als Ausblick auf Runde 2 |
+| `runde-1/vorschlag.json` | die drei Werte, wie sie beschlossen wurden — inzwischen in `src/data/`, hier als Beleg |
+| `runde-1/vergleich-schwierigkeit.json` | dieselben Werte plus `healthGrowth` 1,13, der Ausblick auf Runde 2 |
 | `kraftkurve.html` | Reserve je Welle, Modell gegen die gemessenen Partien |
