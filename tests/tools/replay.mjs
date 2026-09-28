@@ -19,6 +19,7 @@ import { replayMatch, compareWaves } from '../../src/sim/replay.js';
 import { isMeasurable } from '../../src/sim/record.js';
 import { applyOverride } from './data-override.mjs';
 import { STRINGS } from '../../src/data/strings.js';
+import { APP_VERSION } from '../../src/data/version.js';
 import { WAVES } from '../../src/data/waves.js';
 
 const args = process.argv.slice(2);
@@ -50,7 +51,9 @@ if (dataFile) {
 
 console.log(`Protokoll ${file}`);
 console.log(
-  `Seed ${about.seed} · Regelversion ${protocol.ruleset} · ${about.waves} Wellen bis Welle ${about.wave} · ` +
+  `Seed ${about.seed} · Regelversion ${protocol.ruleset} · Version ${parsed.app ?? 'unbekannt'}` +
+    `${parsed.app && parsed.app !== APP_VERSION ? ` (hier läuft ${APP_VERSION})` : ''} · ` +
+    `${about.waves} Wellen bis Welle ${about.wave} · ` +
     `${about.actions} Aktionen · ${about.ratings} bewertet · ` +
     (isMeasurable(protocol) ? 'saubere Partie' : `Debug-Hebel: ${protocol.tainted.join(', ')}`),
 );
@@ -120,6 +123,20 @@ if (!dataFile) {
   } else {
     console.log(`ABWEICHUNG ohne Datenänderung — ${diff.length} Unterschiede:`);
     for (const d of diff) console.log(`  Welle ${d.wave} ${d.field}: ${d.was} → ${d.now}`);
+    // Which of the two it is matters: a changed rule makes the protocol useless
+    // as a measurement, a same-build divergence is a fault in the simulation.
+    console.log('');
+    if (parsed.app && parsed.app !== APP_VERSION) {
+      console.log(
+        `Aufgezeichnet mit Version ${parsed.app}, hier läuft ${APP_VERSION}: sehr wahrscheinlich hat sich eine ` +
+          'Regel geändert. Das Protokoll ist dann kein Maßstab mehr, und RULESET_VERSION müsste erhöht worden sein.',
+      );
+    } else {
+      console.log(
+        `Aufgezeichnet mit derselben Version (${parsed.app ?? 'unbekannt'}): dann läuft die Simulation nicht ` +
+          'deterministisch, und das ist ein Fehler im Spiel.',
+      );
+    }
     process.exitCode = 1;
   }
 } else if (diff.length === 0) {

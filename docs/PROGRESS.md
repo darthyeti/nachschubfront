@@ -37,14 +37,27 @@ der Zahlen; **Teil 2 hat noch keine Freigabe.**
   Wellenregeln als Modul (`tests/tools/wave-rules.mjs`). **Abgenommen an Tills
   erster Partie:** 35 Wellen, 331 Aktionen, Welle für Welle identisch.
 - **Schritt 3 ✓** (28.09.) Fünf Bot-Strategien (`npm run bots`), Eichung an
-  gespielten Partien (`npm run calibrate`), Kraftkurve (`npm run powercurve`).
+  gespielten Partien (`npm run calibrate`), Kraftkurve (`npm run powercurve`),
+  Versionsprüfung vor jedem Maßstab (`tests/tools/reference.mjs`).
 - **Schritt 4 offen:** Testeinstieg ab Welle 10, 20, 30 und 35. Braucht den
   Nachspieler im Browser; er ist dafür schon DOM-frei gebaut.
 
-**Stand der Eichung:** `refine` liegt Till am nächsten (28 von 35 Wellen, Route
-105,6 gegen 89,4, Abstand 0,51). Das Abnahmekriterium „dieselbe Größenordnung"
-ist erfüllt, eine echte Eichung ist es nicht. **Ein Protokoll ist zu wenig** —
-das Werkzeug sagt das selbst, solange weniger als drei vorliegen.
+**Stand der Eichung (4 Protokolle, 28.09.):** Keine Strategie eicht. Die beste
+wechselt von Protokoll zu Protokoll — `simple` (0,49), `refine` (0,51),
+`firepower` (0,54) — und **jeder Bot endet mit 0 Leben, Till mit 15 bis 20.**
+Zwei von drei verwertbaren Protokollen erfüllen „dieselbe Größenordnung", eines
+nicht. Bot-Zahlen bleiben damit Richtwerte, wie in Punkt 12 des Auftrags gefordert.
+
+**Protokolle sind an eine Version gebunden.** Ein Protokoll vom 28.09. 14:23 ließ
+sich nach dem Platzierungsfix `88fc725` nicht mehr nachspielen: aus einem Sieg in
+Welle 50 mit 15 Leben wurde eine Niederlage in Welle 35. `npm run calibrate` hat
+diese Niederlage stillschweigend als Maßstab genommen. Seither prüft
+`tests/tools/reference.mjs` vor jeder Verwendung, ob das Nachspielen die
+aufgezeichnete Partie noch ergibt; `calibrate` und `powercurve` überspringen
+sonst das Protokoll, `npm run replay` sagt, ob die Version oder der Determinismus
+schuld ist. **`RULESET_VERSION` steht noch auf 2, obwohl `88fc725` die
+Platzierungsregeln geändert hat** — nach der Regel in `src/data/rules.js` müsste
+sie auf 3.
 
 **Was die Kraftkurve rechnet:** Reserve (lieferbarer Schaden geteilt durch die
 wirksamen Lebenspunkte der Welle) im Median 512 % in W1–W10, **1199 % in
@@ -55,16 +68,40 @@ bis 1018 %, die 32 verlustfreien im Median bei 1061 %. Grund ist die Annahme des
 Modells, der Spieler habe alle sechs Doktrinen stehen — wer ohne Luftabwehr
 baut, richtet gegen Flieger null Schaden an.
 
-**Erste Beobachtung, unbewertet:** In frühen Wellen wird mehr Schaden
-verschwendet als ankommt (Tills Welle 1: 1329 vergeudet, 750 angekommen). Eine
-Stellung, die einen Schwärmer zweimal tötet, ist nicht stark, sondern falsch
-eingestellt.
+## Was die vier Protokolle sagen (Befunde, nichts geändert)
+
+Grundlage: 4 Partien von Till, 28.09.2026, alle ohne Debug-Hebel, 147 bewertete
+Wellen. Zwei Stile: einmal Labyrinth (8425CM, Route bis 108), dreimal „an der
+Strecke entlang" (Route 43 bis 60).
+
+1. **87 % aller Wellen sind „zu leicht"** (128 von 147), 11 % „passt", 2 % „zu
+   schwer". Nur drei Wellen wurden je als zu schwer bewertet: W1, W8, W30.
+2. **Leben gehen an genau einer Stelle verloren: Welle 30.** In allen drei
+   Partien, die so weit kamen, kostet der Boss dort 5 Leben — und sonst passiert
+   über 50 Wellen nichts. Die zwei Siege enden mit 15 von 20 Leben, beide mit
+   demselben Verlust an derselben Welle.
+3. **Labyrinth zahlt sich nicht aus, es bestraft.** Die eine Labyrinth-Partie
+   (Route 108) verlor in Welle 35; die drei Partien, die nur an der Strecke
+   bauten (Route 57 bis 60), gewannen zweimal. In Welle 35 fällt die Route von
+   108,1 auf 60,7 — der Koloss räumt das Labyrinth weg, und die Partie, die am
+   meisten hineingesteckt hatte, verliert am meisten.
+4. **Geld verliert ab Welle 20 seine Bedeutung.** Requisition am Ende: 2625 und
+   2074. Von W25 an liegt die Reserve über 1000, ohne dass sie gebraucht wird.
+5. **Verschwendeter Schaden früh, kaum noch spät.** In W1–W10 bis zu 90 % des
+   angekommenen Schadens (EFDXE8), in W41–W50 nur 3 bis 4 %. Eine Stellung, die
+   einen Schwärmer zweimal tötet, ist nicht stark, sondern falsch eingestellt.
+6. **Kommandos tragen 14 bis 21 % des Schadens** in den langen Partien, in der
+   kurzen 0 %.
+
+Was diese Befunde nicht beantworten: ob W1 und W8 die richtigen harten Wellen
+sind (jede kam nur in einer Partie vor) und ob Welle 30 als einzige Hürde
+Absicht ist.
 
 ## Werkzeuge
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (401) |
+| `npm test` | Unit-Tests (426) |
 | `npm run test:input` | 58 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |

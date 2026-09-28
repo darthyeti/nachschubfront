@@ -63,8 +63,14 @@ export function exportProtocol(log, now = Date.now()) {
 /**
  * Reads a protocol file back, for the replay tool and for a later import.
  * Never throws.
+ *
+ * `app` is the build that recorded the match, handed back beside it because the
+ * tools need it: a match played under an older build may have been played under
+ * different rules, and that is the first thing to suspect when a replay does not
+ * reproduce it. It is null for a bare match, which carries no wrapper.
  * @param {string|object} input  File text, or an already parsed object.
- * @returns {{ok: true, match: object} | {ok: false, error: 'parse' | 'magic' | 'empty'}}
+ * @returns {{ok: true, match: object, app: string|null, exported: number|null}
+ *   | {ok: false, error: 'parse' | 'magic' | 'empty'}}
  */
 export function parseProtocol(input) {
   let raw = input;
@@ -81,7 +87,12 @@ export function parseProtocol(input) {
   const match = raw.match ?? raw;
   if (raw.magic !== undefined && raw.magic !== PROTOCOL_MAGIC) return { ok: false, error: 'magic' };
   if (!isMatch(match)) return { ok: false, error: 'empty' };
-  return { ok: true, match };
+  return {
+    ok: true,
+    match,
+    app: typeof raw.app === 'string' ? raw.app : null,
+    exported: typeof raw.exported === 'number' ? raw.exported : null,
+  };
 }
 
 /**

@@ -31,7 +31,7 @@ import { DAMAGE_MATRIX } from '../../src/data/combat.js';
 import { RANKS } from '../../src/data/ranks.js';
 import { parseProtocol } from '../../src/storage/protocol.js';
 import { isMeasurable } from '../../src/sim/record.js';
-import { replayMatch } from '../../src/sim/replay.js';
+import { reference } from './reference.mjs';
 import { playBotMatch } from './bot-player.mjs';
 
 /**
@@ -72,12 +72,21 @@ const given = option('protocol');
 const protocols = given ? [given] : listProtocols();
 
 const measured = [];
+const unusable = [];
 for (const file of protocols) {
   const parsed = parseProtocol(readFileSync(file, 'utf8'));
   if (!parsed.ok || !isMeasurable(parsed.match)) continue;
-  const run = replayMatch(parsed.match);
-  measured.push({ file, seed: parsed.match.seed, waves: run.waves });
+  // Only a replay that still produces the recorded match may feed the model; a
+  // rule changed under an older protocol otherwise passes for measured reality
+  // (reference.mjs).
+  const check = reference(parsed.match, parsed.app);
+  if (!check.ok) {
+    unusable.push({ file, why: check.why });
+    continue;
+  }
+  measured.push({ file, seed: parsed.match.seed, waves: check.played.waves });
 }
+for (const { file, why } of unusable) console.log(`${file} übersprungen. ${why}\n`);
 
 let typical;
 let source;

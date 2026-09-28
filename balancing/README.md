@@ -92,6 +92,16 @@ festen Zufallsstrom, zwei Läufe vergleichen also dieselben Karten.
 Partie auf demselben Seed und nennt den Abstand. Das ist der Punkt, an dem
 Bot-Zahlen überhaupt etwas bedeuten: Ohne Eichung sind sie Richtwerte.
 
+**Ein Protokoll gilt nur, solange es sich nachspielen lässt.** Ändert sich eine
+Regel, ergibt dieselbe Aufzeichnung eine andere Partie — am 28.09.2026 wurde aus
+einem Sieg in Welle 50 eine Niederlage in Welle 35, und `calibrate` nahm diese
+Niederlage als Maßstab. `calibrate` und `powercurve` prüfen deshalb vor jeder
+Verwendung nach (`tests/tools/reference.mjs`) und überspringen das Protokoll,
+wenn das Nachspielen die Partie nicht mehr ergibt. Steht in der Meldung eine
+andere Version als die laufende, hat sich sehr wahrscheinlich eine Regel
+geändert; steht dieselbe, ist die Simulation nicht mehr deterministisch — das
+ist dann ein Fehler im Spiel.
+
 **`npm run powercurve`** rechnet ohne Kampf, was jede Welle mitbringt und was
 die Stellungen liefern können, und schreibt ein Diagramm nach
 `balancing/runden/kraftkurve.html`. Liegt ein Protokoll vor, prüft das Werkzeug

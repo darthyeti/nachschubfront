@@ -23,12 +23,13 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseProtocol } from '../../src/storage/protocol.js';
 import { isMeasurable } from '../../src/sim/record.js';
-import { replayMatch } from '../../src/sim/replay.js';
+import { reference } from './reference.mjs';
 import { STRATEGIES } from './bot-strategies.mjs';
 import { playBotMatch } from './bot-player.mjs';
 
 const FOLDER = 'balancing/protokolle';
 
+const skipped = [];
 const given = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const files = given.length > 0 ? given : listProtocols();
 
@@ -50,13 +51,24 @@ for (const file of files) {
   }
 
   // The human's own match, replayed, so both sides come from the same place and
-  // a protocol from an older build is read the same way it is read everywhere.
-  const played = replayMatch(human);
-  const reference = summarise(played.waves);
+  // a protocol from an older build is read the same way it is read everywhere —
+  // but only while the replay still produces that match. If it does not, ranking
+  // bots against it would be ranking them against a match nobody played, which
+  // is worse than having no reference at all (reference.mjs).
+  const check = reference(human, parsed.app);
+  if (!check.ok) {
+    console.log(`\n# ${file}`);
+    console.log(`Übersprungen. ${check.why}`);
+    skipped.push(file);
+    continue;
+  }
+  const played = check.played;
+  const target = summarise(played.waves);
   console.log(`\n# ${file}`);
   console.log(
-    `Seed ${human.seed} · von Hand: ${reference.waves} Wellen, ${reference.lives} Leben am Ende, ` +
-      `Route ${reference.route.toFixed(1)} im Mittel, Stellungen ${reference.ranks.join('/')}+${reference.specials}`,
+    `Seed ${human.seed} · Version ${parsed.app ?? 'unbekannt'} · von Hand: ${target.waves} Wellen, ` +
+      `${target.lives} Leben am Ende, Route ${target.route.toFixed(1)} im Mittel, ` +
+      `Stellungen ${target.ranks.join('/')}+${target.specials}`,
   );
   const rated = human.waves.filter((w) => w.rating);
   if (rated.length > 0) {
@@ -99,13 +111,28 @@ for (const file of files) {
   console.log(
     `Am nächsten: ${best.strategy.title} (${best.strategy.id}), Abstand ${best.distance.total.toFixed(2)}.`,
   );
-  console.log(verdict(best, reference));
+  console.log(verdict(best, target));
+}
+
+// Said once, at the end: how much ground the whole run stands on. Before, this
+// line was printed under every protocol, where it could only ever count the
+// protocols read so far.
+const usable = files.length - skipped.length;
+console.log('');
+console.log(
+  `Grundlage: ${usable} von ${files.length} ${files.length === 1 ? 'Protokoll' : 'Protokollen'}. ` +
+    (usable < 3
+      ? 'Zu wenige, um eine Strategie daran festzuziehen — was hier passt, kann auf diese eine Partie zugeschnitten sein.'
+      : 'Eine Strategie, die über alle Protokolle nahe liegt, taugt als Richtwert.'),
+);
+
+if (skipped.length > 0) {
+  console.log('');
   console.log(
-    `Grundlage: ${files.length} ${files.length === 1 ? 'Protokoll' : 'Protokolle'}. ` +
-      (files.length < 3
-        ? 'Zu wenige, um eine Strategie daran festzuziehen — was hier passt, kann auf diese eine Partie zugeschnitten sein.'
-        : 'Eine Strategie, die über alle Protokolle nahe liegt, taugt als Richtwert.'),
+    `${skipped.length} ${skipped.length === 1 ? 'Protokoll' : 'Protokolle'} nicht verwendet, weil das ` +
+      'Nachspielen die Partie nicht mehr ergibt:',
   );
+  for (const file of skipped) console.log(`  ${file}`);
 }
 
 /**
@@ -113,15 +140,15 @@ for (const file of files) {
  * is a looser thing than playing like them, so both are said separately: the
  * order of magnitude is the acceptance criterion, the resemblance is the goal.
  */
-function verdict(best, reference) {
-  const share = best.bot.waves / Math.max(1, reference.waves);
+function verdict(best, target) {
+  const share = best.bot.waves / Math.max(1, target.waves);
   const sameOrder = share >= 0.7 && share <= 1.3;
   if (best.distance.total <= 0.35) {
     return 'Das spielt wie er: mit dieser Strategie sind Bot-Läufe als Richtwert brauchbar.';
   }
   if (sameOrder) {
     return (
-      `Das ist dieselbe Größenordnung (${best.bot.waves} gegen ${reference.waves} Wellen, ` +
+      `Das ist dieselbe Größenordnung (${best.bot.waves} gegen ${target.waves} Wellen, ` +
       `${Math.round(share * 100)} %) — das Abnahmekriterium ist damit erfüllt. Wie er spielt die Strategie aber nicht; ` +
       'für einzelne Wellen sind ihre Zahlen kein Maß.'
     );
