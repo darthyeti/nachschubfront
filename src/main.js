@@ -33,7 +33,7 @@ import { installPageGuards } from './input/guards.js';
 import { attachPointerInput } from './input/pointer.js';
 import { attachKeyboard } from './input/keyboard.js';
 import { createHud } from './ui/hud.js';
-import { createSelectionPanel } from './ui/selection.js';
+import { createSelectionPanel, pressAction } from './ui/selection.js';
 import { createCodex } from './ui/codex.js';
 import { createCommandBar } from './ui/commands.js';
 import { createInfoPanel } from './ui/info.js';
@@ -126,8 +126,14 @@ const ui = {
   /** Pod indices highlighted during the selection, and the pod the player picked. */
   podHighlights: [],
   podSelected: 0,
-  /** Emplacements the recipe under the finger would eat (docs/ART.md). */
+  /** Emplacements the recipe being looked at would eat (docs/ART.md). */
   recipePreview: [],
+  /**
+   * The recipe waiting for its second tap on a touch screen, like
+   * `demolishArmed` for the demolition. Null with a mouse, which needs no
+   * confirmation.
+   */
+  recipeArmed: null,
   /** Cells just cleared in demolish mode, marked until a capsule takes them. */
   clearedCells: [],
 };
@@ -367,13 +373,27 @@ function pickCommand(id) {
 
 /** During the selection a tap on a pod picks it; the panel then offers the actions. */
 function applyPodTap(cell) {
+  // A tap on the map is a look elsewhere, so an armed recipe is taken back.
+  cancelRecipeArmed();
   if (!cell) return;
   const pod = podAt(state, cell);
   if (pod) ui.podSelected = pod.index;
 }
 
-/** Applies a choice from the selection panel and starts the wave. */
-function applyChoice(choice) {
+/**
+ * Applies a choice from the selection panel and starts the wave — or arms it and
+ * waits for a second tap, which is what a recipe does on a touch screen
+ * (`pressAction` in ui/selection.js says which).
+ */
+function applyChoice(choice, press = {}) {
+  const next = pressAction(ui.recipeArmed, choice, press);
+  if (next.do === 'arm') {
+    ui.recipeArmed = choice;
+    ui.recipePreview = next.towerIds;
+    showBanner(STRINGS.selection.confirmBanner(next.towerIds.length));
+    return;
+  }
+  ui.recipeArmed = null;
   const result = chooseSelection(state, choice);
   if (!result.ok) return;
   const { tower } = result;
@@ -389,8 +409,15 @@ function applyChoice(choice) {
  * for, and the only way on from there (GDD section 3).
  */
 function giveUpChoice() {
+  cancelRecipeArmed();
   const result = giveUpSalvo(state);
   if (result.ok) showBanner(STRINGS.selection.forfeited, STRINGS.selection.allOnRubble);
+}
+
+/** Takes an armed recipe back, and the preview with it. */
+function cancelRecipeArmed() {
+  ui.recipeArmed = null;
+  ui.recipePreview = [];
 }
 
 function onCellTap(cell, pointerType) {
@@ -500,6 +527,8 @@ const infoPanel = createInfoPanel(document.getElementById('hud'), {
 // because a transformed ancestor is what `position: fixed` measures against.
 const selectionPanel = createSelectionPanel(document.getElementById('hud'), {
   onSelect: (index) => {
+    // Another capsule means other actions, so an armed recipe is taken back.
+    if (index !== ui.podSelected) cancelRecipeArmed();
     ui.podSelected = index;
   },
   onChoose: applyChoice,
@@ -794,7 +823,7 @@ function frame(now) {
   }
 
   ui.podHighlights = state.phase === 'selection' ? state.pods.map((p) => p.index) : [];
-  if (state.phase !== 'selection') ui.recipePreview = [];
+  if (state.phase !== 'selection') cancelRecipeArmed();
   ui.clearedCells = keepClearedCells(state.phase, state.pods, ui.clearedCells);
   const aimed = ui.commandTarget ? commandById(ui.commandTarget) : null;
   ui.commandRadius = aimed?.radius ?? 0;

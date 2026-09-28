@@ -32,6 +32,9 @@
   --btn: #e8c872;
   --btn-alt: #cbbd9f;
   --accent: #c9462a;
+  /* The gold the renderer marks things with (C.gold in render/palette.js), so a
+     button and the rings it points at are the same colour. */
+  --gold: #f2c14e;
   --ink: #000;
   --font-body: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
   --font-title: 'Pirata One', Georgia, 'Times New Roman', serif;
@@ -762,6 +765,13 @@ button[hidden] {
   font-size: 13px;
   font-weight: 500;
   opacity: 0.8;
+}
+
+/* A recipe waiting for its second tap: marked, because the tap after it builds.
+   Gold like the rings around the emplacements it would eat. */
+.selection-actions button.armed {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
 }
 
 /* Giving the salvo up: the way out when not one capsule can be paid for. Drawn

@@ -21,7 +21,7 @@ import { isBlocked } from '../../src/sim/grid.js';
 import { checkPlacement } from '../../src/sim/route.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
 import { mapFromAscii, planningState } from './helpers.js';
-import { actionsFor } from '../../src/ui/selection.js';
+import { actionsFor, pressAction, sameChoice } from '../../src/ui/selection.js';
 
 const OPEN = [
   '..........',
@@ -536,4 +536,50 @@ test('a zone may be marked on rubble, and the route never changes for it', () =>
   const check = checkPlacement(state.map, [{ x: 5, y: 5 }]);
   assert.equal(check.ok, true);
   assert.ok(isBlocked(state.map.grid, 5, 5), 'and it is still blocked afterwards');
+});
+
+// ---------- Two taps for a recipe on a touch screen ----------
+//
+// A long press on a recipe button used to show the preview and buy the recipe on
+// release, so there was no way to look at what it would eat. `pressAction` is
+// the decision behind the two-tap rule; the panel and main.js only carry it out.
+
+const RECIPE = { type: 'recipe', recipeId: 'emberCauldron', anchor: 1 };
+
+test('with a mouse one press builds, whatever the recipe eats', () => {
+  const press = { pointerType: 'mouse', towerIds: [7, 9] };
+  assert.deepEqual(pressAction(null, RECIPE, press), { do: 'build' });
+  // Keyboard presses arrive without a pointer type and count as a mouse: a press
+  // on a focused button is deliberate already.
+  assert.deepEqual(pressAction(null, RECIPE, { towerIds: [7] }), { do: 'build' });
+});
+
+test('on touch a recipe that eats emplacements waits for a second tap', () => {
+  const press = { pointerType: 'touch', towerIds: [7, 9] };
+  assert.deepEqual(pressAction(null, RECIPE, press), { do: 'arm', towerIds: [7, 9] });
+  // The second tap on the same button is the one that builds.
+  assert.deepEqual(pressAction(RECIPE, RECIPE, press), { do: 'build' });
+  // A different action is a new question, not a confirmation.
+  const other = { type: 'recipe', recipeId: 'thunderTower', anchor: 1 };
+  assert.deepEqual(pressAction(RECIPE, other, press), { do: 'arm', towerIds: [7, 9] });
+  assert.deepEqual(pressAction(RECIPE, { ...RECIPE, anchor: 2 }, press), { do: 'arm', towerIds: [7, 9] });
+});
+
+test('keeping and merging stay one tap, and so does a recipe with nothing to show', () => {
+  const press = { pointerType: 'touch', towerIds: [] };
+  assert.deepEqual(pressAction(null, { type: 'keep', anchor: 0 }, press), { do: 'build' });
+  assert.deepEqual(pressAction(null, { type: 'merge', size: 2, anchor: 0 }, press), { do: 'build' });
+  // A recipe whose every ingredient came out of this salvo eats nothing.
+  assert.deepEqual(pressAction(null, RECIPE, press), { do: 'build' });
+});
+
+test('two choices count as the same one only if every part matches', () => {
+  assert.equal(sameChoice(RECIPE, { ...RECIPE }), true);
+  assert.equal(sameChoice(RECIPE, { ...RECIPE, anchor: 0 }), false);
+  assert.equal(sameChoice(RECIPE, { ...RECIPE, recipeId: 'thunderTower' }), false);
+  assert.equal(
+    sameChoice({ type: 'merge', size: 2, anchor: 0 }, { type: 'merge', size: 4, anchor: 0 }),
+    false,
+  );
+  assert.equal(sameChoice(null, RECIPE), false, 'nothing armed is not a match');
 });

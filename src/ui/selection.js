@@ -18,6 +18,43 @@ function el(tag, className, text) {
 
 const recipeName = (id) => STRINGS.recipes[id].name;
 
+/**
+ * What a press on an action button does: build at once, or arm the recipe and
+ * wait for a second press.
+ *
+ * A recipe that eats standing emplacements needs two taps on a touch screen, the
+ * rule the demolition already follows (GDD section 13). The first tap puts the
+ * preview up and leaves it up, so the marked emplacements can be looked at with
+ * no finger on the glass; the second one builds. Holding the button used to do
+ * both at once — it showed the preview and bought the recipe on release.
+ *
+ * Only recipes with something to show need it. "Behalten" and "Verschmelzen"
+ * have nothing to look at, and a tablet player should not pay an extra tap in
+ * every one of fifty rounds. A mouse press, and a press from the keyboard, build
+ * straight away.
+ *
+ * @param {object|null} armed  The choice waiting for its second press, if any.
+ * @param {object} choice  The choice that was just pressed.
+ * @returns {{do: 'build'} | {do: 'arm', towerIds: number[]}}
+ */
+export function pressAction(armed, choice, { pointerType = 'mouse', towerIds = [] } = {}) {
+  const needsConfirm = pointerType !== 'mouse' && towerIds.length > 0;
+  if (needsConfirm && !sameChoice(armed, choice)) return { do: 'arm', towerIds };
+  return { do: 'build' };
+}
+
+/** Whether two choices mean the same action on the same capsule. */
+export function sameChoice(a, b) {
+  return (
+    Boolean(a) &&
+    Boolean(b) &&
+    a.type === b.type &&
+    a.anchor === b.anchor &&
+    a.size === b.size &&
+    a.recipeId === b.recipeId
+  );
+}
+
 /** Actions offered for the pod the player picked, in a fixed order. */
 export function actionsFor(options, anchor) {
   const actions = [];
@@ -73,6 +110,13 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onFo
 
   /** Rebuilt whenever the salvo or the pick changes; cheap enough at five pods. */
   let key = '';
+  /**
+   * How the last press came in. A click event's own `pointerType` is empty when
+   * the keyboard triggered it and is not reported alike by every engine, so the
+   * pointerdown before it is what the panel goes by. Nothing means keyboard,
+   * which counts as a mouse: a press on a focused button is deliberate already.
+   */
+  let lastPointerType = '';
 
   function renderCards(state, selected) {
     cards.replaceChildren();
@@ -112,9 +156,10 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onFo
     return options;
   }
 
-  function renderActions(state, options, selected) {
-    // The buttons are about to be replaced; whatever they were previewing goes.
-    onPreview?.([]);
+  function renderActions(state, options, selected, armed) {
+    // The buttons are about to be replaced; whatever they were previewing goes,
+    // unless one of the new ones is the armed recipe and puts it back up.
+    if (!armed) onPreview?.([]);
     actions.replaceChildren();
     // Standing on rubble the player cannot clear makes every action on this
     // capsule impossible; the others stay open.
@@ -124,24 +169,38 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onFo
       const button = el('button', 'primary');
       button.type = 'button';
       button.disabled = !affordable;
+      // A recipe that eats standing emplacements takes two taps on a touch
+      // screen: the first one shows what it would eat, the second one builds.
+      // Armed is that in-between state (see `onChoose` in main.js).
+      const isArmed = Boolean(armed) && sameChoice(armed, action.choice);
+      button.classList.toggle('armed', isArmed);
+      button.setAttribute('aria-pressed', String(isArmed));
       button.append(el('span', null, action.label));
-      if (action.note) button.append(el('span', 'selection-note', action.note));
+      const note = isArmed ? T.confirm : action.note;
+      if (note) button.append(el('span', 'selection-note', note));
+      button.addEventListener('pointerdown', (event) => {
+        lastPointerType = event.pointerType ?? '';
+      });
       button.addEventListener('click', () => {
         button.blur();
-        onChoose(action.choice);
+        onChoose(action.choice, { pointerType: lastPointerType || 'mouse', towerIds: action.towerIds ?? [] });
+        lastPointerType = '';
       });
-      // The preview follows the button under the finger or the pointer, and
-      // only that one (decision M4d). On a tablet it shows while the button is
-      // held down, which is also the moment before it is let go and taken.
+      // With a mouse the preview follows the pointer over the button, and only
+      // that one (decision M4d). On a touch screen it is put up by the first tap
+      // and stays there, so the map can be looked at with no finger on the
+      // glass — holding the button used to show it and buy it on release.
       if (action.towerIds?.length) {
-        const show = () => onPreview?.(action.towerIds);
-        const hide = () => onPreview?.([]);
-        button.addEventListener('pointerenter', show);
-        button.addEventListener('pointerdown', show);
-        for (const type of ['pointerleave', 'pointerup', 'pointercancel']) {
-          button.addEventListener(type, hide);
+        button.addEventListener('pointerenter', (event) => {
+          if ((event.pointerType ?? 'mouse') === 'mouse') onPreview?.(action.towerIds);
+        });
+        for (const type of ['pointerleave', 'pointercancel']) {
+          button.addEventListener(type, (event) => {
+            if ((event.pointerType ?? 'mouse') === 'mouse' && !isArmed) onPreview?.([]);
+          });
         }
       }
+      if (isArmed) onPreview?.(action.towerIds ?? []);
       actions.append(button);
     }
     if (!affordable) actions.append(el('p', 'selection-warning', T.noFunds(cost - state.requisition)));
@@ -171,11 +230,13 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onFo
 
       const selected = ui.podSelected ?? 0;
       // Requisition is part of the key: whether a capsule on rubble can be
-      // afforded decides what the panel shows.
-      const next = `${state.wave}:${state.pods.map((p) => `${p.doctrine}${p.rank}`).join()}:${selected}:${state.towers.length}:${state.requisition}`;
+      // afforded decides what the panel shows. So is the armed recipe, because
+      // the button it belongs to is drawn differently while it waits.
+      const armed = ui.recipeArmed ?? null;
+      const next = `${state.wave}:${state.pods.map((p) => `${p.doctrine}${p.rank}`).join()}:${selected}:${state.towers.length}:${state.requisition}:${armed ? JSON.stringify(armed) : ''}`;
       if (next === key) return;
       key = next;
-      renderActions(state, renderCards(state, selected), selected);
+      renderActions(state, renderCards(state, selected), selected, armed);
     },
   };
 }

@@ -472,6 +472,15 @@ export const STRINGS = {
     /** A capsule that came down on rubble: building there clears the heap. */
     onRubble: (cost) => `Trümmer · Abriss ${cost} R`,
     noFunds: (cost) => `Für den Abriss fehlen ${cost} R.`,
+    /**
+     * A recipe that eats standing emplacements is armed on touch: the first tap
+     * shows which ones, the second one builds (GDD section 13).
+     */
+    confirm: 'Nochmal antippen zum Bauen',
+    confirmBanner: (n) =>
+      n === 1
+        ? 'Die gezeigte Stellung wird verbraucht. Nochmal antippen zum Bauen.'
+        : `Die ${n} gezeigten Stellungen werden verbraucht. Nochmal antippen zum Bauen.`,
     /** Every capsule of the salvo stands on rubble nobody can clear. */
     allOnRubble: 'Keine Kapsel dieser Salve ist bebaubar.',
     forfeit: 'Salve verfallen lassen',
