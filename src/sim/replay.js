@@ -88,7 +88,7 @@ export function replayMatch(protocol, { untilWave = Infinity, onWave = null } = 
 
   // Sorted by the step they landed on; a stable sort keeps the recorded order
   // of two actions that happened between the same two steps.
-  const actions = [...(protocol.actions ?? [])].sort((a, b) => a.t - b.t);
+  const actions = withPhaseTimes([...(protocol.actions ?? [])].sort((a, b) => a.t - b.t));
   const skipped = [];
   let next = 0;
   let applied = 0;
@@ -149,6 +149,29 @@ export function replayMatch(protocol, { untilWave = Infinity, onWave = null } = 
   if (steps >= MAX_STEPS) stopped = 'step limit';
 
   return { state, waves: state.log.waves, skipped, applied, stopped, steps };
+}
+
+/**
+ * Fills in the seconds into the wave for protocols recorded before that was
+ * written down (build 0.9.0, the first one handed out).
+ *
+ * It can be reconstructed exactly: a wave begins at the moment the capsule is
+ * chosen, because that choice is what starts it (sim/actions.js). So the step of
+ * the `select` of the round before is the step the wave started on, and the
+ * difference is the time into it. Without this, every command of such a protocol
+ * fires at the first instant of its wave — which is not what the player did.
+ */
+function withPhaseTimes(actions) {
+  if (actions.every((a) => a.pt !== undefined)) return actions;
+  const waveStart = new Map();
+  for (const action of actions) {
+    if (action.a === 'select') waveStart.set(action.w + 1, action.t);
+  }
+  return actions.map((action) => {
+    if (action.pt !== undefined || action.p !== 'wave') return action;
+    const start = waveStart.get(action.w);
+    return { ...action, pt: start === undefined ? 0 : Math.max(0, (action.t - start) * SIM_STEP) };
+  });
 }
 
 /**

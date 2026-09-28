@@ -1,0 +1,4146 @@
+{
+  "magic": "nachschubfront.protokoll",
+  "app": "0.9.0",
+  "exported": 1790577910722,
+  "match": {
+    "version": 1,
+    "id": 1790576195185,
+    "seed": "8425CM",
+    "ruleset": 2,
+    "supplyStart": 1,
+    "tainted": [],
+    "actions": [
+      {
+        "t": 16722,
+        "w": 0,
+        "p": "planning",
+        "a": "zone",
+        "x": 1,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 16760,
+        "w": 0,
+        "p": "planning",
+        "a": "zone",
+        "x": 2,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 16800,
+        "w": 0,
+        "p": "planning",
+        "a": "zone",
+        "x": 3,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 16926,
+        "w": 0,
+        "p": "planning",
+        "a": "zone",
+        "x": 3,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 16999,
+        "w": 0,
+        "p": "planning",
+        "a": "zone",
+        "x": 3,
+        "y": 9,
+        "on": false
+      },
+      {
+        "t": 17057,
+        "w": 0,
+        "p": "planning",
+        "a": "zone",
+        "x": 2,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 17112,
+        "w": 0,
+        "p": "planning",
+        "a": "zone",
+        "x": 2,
+        "y": 10,
+        "on": false
+      },
+      {
+        "t": 17161,
+        "w": 0,
+        "p": "planning",
+        "a": "zone",
+        "x": 0,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 17209,
+        "w": 0,
+        "p": "planning",
+        "a": "zone",
+        "x": 2,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 17275,
+        "w": 0,
+        "p": "planning",
+        "a": "zone",
+        "x": 3,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 18261,
+        "w": 0,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 1,
+            "y": 6
+          },
+          {
+            "x": 2,
+            "y": 7
+          },
+          {
+            "x": 3,
+            "y": 8
+          },
+          {
+            "x": 0,
+            "y": 6
+          },
+          {
+            "x": 2,
+            "y": 10
+          },
+          {
+            "x": 3,
+            "y": 11
+          }
+        ]
+      },
+      {
+        "t": 22064,
+        "w": 0,
+        "p": "selection",
+        "a": "select",
+        "type": "merge",
+        "anchor": 5,
+        "size": 2
+      },
+      {
+        "t": 28000,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 28097,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 28268,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 11,
+        "on": false
+      },
+      {
+        "t": 28304,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 10,
+        "on": false
+      },
+      {
+        "t": 28498,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 1,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 28705,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 0,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 28831,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 1,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 28975,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 1,
+        "y": 11,
+        "on": false
+      },
+      {
+        "t": 29140,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 29320,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 29626,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 12,
+        "on": false
+      },
+      {
+        "t": 29743,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 29845,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 30001,
+        "w": 1,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 30650,
+        "w": 1,
+        "p": "planning",
+        "a": "supply"
+      },
+      {
+        "t": 30779,
+        "w": 1,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 1,
+            "y": 10
+          },
+          {
+            "x": 0,
+            "y": 10
+          },
+          {
+            "x": 5,
+            "y": 10
+          },
+          {
+            "x": 5,
+            "y": 11
+          },
+          {
+            "x": 5,
+            "y": 12
+          },
+          {
+            "x": 5,
+            "y": 13
+          }
+        ]
+      },
+      {
+        "t": 33037,
+        "w": 1,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 3
+      },
+      {
+        "t": 34705,
+        "w": 2,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 34819,
+        "w": 2,
+        "p": "planning",
+        "a": "zone",
+        "x": 3,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 34924,
+        "w": 2,
+        "p": "planning",
+        "a": "zone",
+        "x": 2,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 35035,
+        "w": 2,
+        "p": "planning",
+        "a": "zone",
+        "x": 1,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 35524,
+        "w": 2,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 35659,
+        "w": 2,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 36004,
+        "w": 2,
+        "p": "planning",
+        "a": "supply"
+      },
+      {
+        "t": 36157,
+        "w": 2,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 4,
+            "y": 13
+          },
+          {
+            "x": 3,
+            "y": 13
+          },
+          {
+            "x": 2,
+            "y": 13
+          },
+          {
+            "x": 1,
+            "y": 13
+          },
+          {
+            "x": 6,
+            "y": 14
+          },
+          {
+            "x": 6,
+            "y": 15
+          }
+        ]
+      },
+      {
+        "t": 37717,
+        "w": 2,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 3
+      },
+      {
+        "t": 39484,
+        "w": 3,
+        "p": "planning",
+        "a": "zone",
+        "x": 1,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 39580,
+        "w": 3,
+        "p": "planning",
+        "a": "zone",
+        "x": 2,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 40363,
+        "w": 3,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 40453,
+        "w": 3,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 40660,
+        "w": 3,
+        "p": "planning",
+        "a": "zone",
+        "x": 3,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 40918,
+        "w": 3,
+        "p": "planning",
+        "a": "zone",
+        "x": 0,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 41509,
+        "w": 3,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 1,
+            "y": 15
+          },
+          {
+            "x": 2,
+            "y": 15
+          },
+          {
+            "x": 6,
+            "y": 16
+          },
+          {
+            "x": 6,
+            "y": 17
+          },
+          {
+            "x": 3,
+            "y": 15
+          },
+          {
+            "x": 0,
+            "y": 15
+          }
+        ]
+      },
+      {
+        "t": 42544,
+        "w": 3,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 1
+      },
+      {
+        "t": 43702,
+        "w": 4,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 20,
+        "on": true
+      },
+      {
+        "t": 43780,
+        "w": 4,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 19,
+        "on": true
+      },
+      {
+        "t": 43834,
+        "w": 4,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 43921,
+        "w": 4,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 44005,
+        "w": 4,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 44086,
+        "w": 4,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 44299,
+        "w": 4,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 14,
+        "on": false
+      },
+      {
+        "t": 44421,
+        "w": 4,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 45013,
+        "w": 4,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 8,
+            "y": 20
+          },
+          {
+            "x": 8,
+            "y": 19
+          },
+          {
+            "x": 8,
+            "y": 18
+          },
+          {
+            "x": 8,
+            "y": 17
+          },
+          {
+            "x": 8,
+            "y": 16
+          },
+          {
+            "x": 8,
+            "y": 14
+          }
+        ]
+      },
+      {
+        "t": 46714,
+        "w": 4,
+        "p": "selection",
+        "a": "select",
+        "type": "merge",
+        "anchor": 3,
+        "size": 2
+      },
+      {
+        "t": 48402,
+        "w": 5,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 48489,
+        "w": 5,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 48573,
+        "w": 5,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 48645,
+        "w": 5,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 48714,
+        "w": 5,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 48813,
+        "w": 5,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 49186,
+        "w": 5,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 8,
+            "y": 15
+          },
+          {
+            "x": 8,
+            "y": 13
+          },
+          {
+            "x": 8,
+            "y": 11
+          },
+          {
+            "x": 8,
+            "y": 10
+          },
+          {
+            "x": 8,
+            "y": 12
+          },
+          {
+            "x": 8,
+            "y": 9
+          }
+        ]
+      },
+      {
+        "t": 50301,
+        "w": 5,
+        "p": "selection",
+        "a": "select",
+        "type": "merge",
+        "anchor": 2,
+        "size": 2
+      },
+      {
+        "t": 51466,
+        "w": 6,
+        "p": "planning",
+        "a": "supply"
+      },
+      {
+        "t": 51621,
+        "w": 6,
+        "p": "planning",
+        "a": "supply"
+      },
+      {
+        "t": 52092,
+        "w": 6,
+        "p": "planning",
+        "a": "zone",
+        "x": 7,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 52173,
+        "w": 6,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 52374,
+        "w": 6,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 6,
+        "on": false
+      },
+      {
+        "t": 52443,
+        "w": 6,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 52512,
+        "w": 6,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 52566,
+        "w": 6,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 52860,
+        "w": 6,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 22,
+        "on": true
+      },
+      {
+        "t": 53268,
+        "w": 6,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 5,
+        "on": false
+      },
+      {
+        "t": 53334,
+        "w": 6,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 53694,
+        "w": 6,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 53940,
+        "w": 6,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 7,
+            "y": 8
+          },
+          {
+            "x": 6,
+            "y": 7
+          },
+          {
+            "x": 5,
+            "y": 6
+          },
+          {
+            "x": 8,
+            "y": 22
+          },
+          {
+            "x": 4,
+            "y": 6
+          },
+          {
+            "x": 5,
+            "y": 7
+          }
+        ]
+      },
+      {
+        "t": 55266,
+        "w": 6,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 3
+      },
+      {
+        "t": 56859,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 56943,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 57075,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 5,
+        "on": false
+      },
+      {
+        "t": 57192,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 57282,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 6,
+        "on": false
+      },
+      {
+        "t": 57336,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 57393,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 57462,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 7,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 57519,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 57684,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 7,
+        "y": 7,
+        "on": false
+      },
+      {
+        "t": 57741,
+        "w": 7,
+        "p": "planning",
+        "a": "zone",
+        "x": 7,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 58113,
+        "w": 7,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 4,
+            "y": 6
+          },
+          {
+            "x": 5,
+            "y": 7
+          },
+          {
+            "x": 6,
+            "y": 7
+          },
+          {
+            "x": 8,
+            "y": 9
+          },
+          {
+            "x": 7,
+            "y": 8
+          },
+          {
+            "x": 4,
+            "y": 3
+          }
+        ]
+      },
+      {
+        "t": 60027,
+        "w": 7,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 3
+      },
+      {
+        "t": 64256,
+        "w": 8,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 64358,
+        "w": 8,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 64439,
+        "w": 8,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 64514,
+        "w": 8,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 64622,
+        "w": 8,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 6,
+        "on": false
+      },
+      {
+        "t": 64784,
+        "w": 8,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 64892,
+        "w": 8,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 65009,
+        "w": 8,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 5,
+        "on": false
+      },
+      {
+        "t": 65216,
+        "w": 8,
+        "p": "planning",
+        "a": "zone",
+        "x": 7,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 65720,
+        "w": 8,
+        "p": "planning",
+        "a": "zone",
+        "x": 7,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 65906,
+        "w": 8,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 5,
+            "y": 7
+          },
+          {
+            "x": 6,
+            "y": 7
+          },
+          {
+            "x": 5,
+            "y": 6
+          },
+          {
+            "x": 4,
+            "y": 6
+          },
+          {
+            "x": 7,
+            "y": 8
+          },
+          {
+            "x": 7,
+            "y": 7
+          }
+        ]
+      },
+      {
+        "t": 67496,
+        "w": 8,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 0
+      },
+      {
+        "t": 68660,
+        "w": 9,
+        "p": "planning",
+        "a": "supply"
+      },
+      {
+        "t": 69275,
+        "w": 9,
+        "p": "planning",
+        "a": "zone",
+        "x": 11,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 69353,
+        "w": 9,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 69728,
+        "w": 9,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 70124,
+        "w": 9,
+        "p": "planning",
+        "a": "zone",
+        "x": 13,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 70265,
+        "w": 9,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 4,
+        "on": true
+      },
+      {
+        "t": 70415,
+        "w": 9,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 70772,
+        "w": 9,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 11,
+            "y": 5
+          },
+          {
+            "x": 12,
+            "y": 5
+          },
+          {
+            "x": 12,
+            "y": 6
+          },
+          {
+            "x": 13,
+            "y": 2
+          },
+          {
+            "x": 16,
+            "y": 4
+          },
+          {
+            "x": 15,
+            "y": 6
+          }
+        ]
+      },
+      {
+        "t": 73220,
+        "w": 9,
+        "p": "selection",
+        "a": "select",
+        "type": "recipe",
+        "anchor": 1,
+        "recipeId": "stormBattery"
+      },
+      {
+        "t": 78655,
+        "w": 10,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 78808,
+        "w": 10,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 79042,
+        "w": 10,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 79138,
+        "w": 10,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 79261,
+        "w": 10,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 79384,
+        "w": 10,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 80075,
+        "w": 10,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 12,
+            "y": 15
+          },
+          {
+            "x": 12,
+            "y": 16
+          },
+          {
+            "x": 12,
+            "y": 14
+          },
+          {
+            "x": 12,
+            "y": 13
+          },
+          {
+            "x": 12,
+            "y": 12
+          },
+          {
+            "x": 12,
+            "y": 17
+          }
+        ]
+      },
+      {
+        "t": 81152,
+        "w": 10,
+        "p": "selection",
+        "a": "select",
+        "type": "merge",
+        "anchor": 2,
+        "size": 2
+      },
+      {
+        "t": 82894,
+        "w": 11,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 83032,
+        "w": 11,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 83122,
+        "w": 11,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 83194,
+        "w": 11,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 83689,
+        "w": 11,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 83764,
+        "w": 11,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 83995,
+        "w": 11,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 12,
+            "y": 11
+          },
+          {
+            "x": 12,
+            "y": 10
+          },
+          {
+            "x": 12,
+            "y": 9
+          },
+          {
+            "x": 12,
+            "y": 8
+          },
+          {
+            "x": 16,
+            "y": 18
+          },
+          {
+            "x": 16,
+            "y": 17
+          }
+        ]
+      },
+      {
+        "t": 85654,
+        "w": 11,
+        "p": "selection",
+        "a": "select",
+        "type": "merge",
+        "anchor": 5,
+        "size": 2
+      },
+      {
+        "t": 87340,
+        "w": 12,
+        "p": "planning",
+        "a": "supply"
+      },
+      {
+        "t": 88090,
+        "w": 12,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 88225,
+        "w": 12,
+        "p": "planning",
+        "a": "zone",
+        "x": 11,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 88330,
+        "w": 12,
+        "p": "planning",
+        "a": "zone",
+        "x": 10,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 88783,
+        "w": 12,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 19,
+        "on": true
+      },
+      {
+        "t": 88990,
+        "w": 12,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 19,
+        "on": false
+      },
+      {
+        "t": 89131,
+        "w": 12,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 20,
+        "on": true
+      },
+      {
+        "t": 89425,
+        "w": 12,
+        "p": "planning",
+        "a": "zone",
+        "x": 14,
+        "y": 20,
+        "on": true
+      },
+      {
+        "t": 89659,
+        "w": 12,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 89854,
+        "w": 12,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 12,
+            "y": 18
+          },
+          {
+            "x": 11,
+            "y": 18
+          },
+          {
+            "x": 10,
+            "y": 18
+          },
+          {
+            "x": 12,
+            "y": 20
+          },
+          {
+            "x": 14,
+            "y": 20
+          },
+          {
+            "x": 15,
+            "y": 15
+          }
+        ]
+      },
+      {
+        "t": 90871,
+        "w": 12,
+        "p": "selection",
+        "a": "select",
+        "type": "recipe",
+        "anchor": 1,
+        "recipeId": "stormBattery"
+      },
+      {
+        "t": 92722,
+        "w": 13,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 92785,
+        "w": 13,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 92839,
+        "w": 13,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 92929,
+        "w": 13,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 93021,
+        "w": 13,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 93109,
+        "w": 13,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 94105,
+        "w": 13,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 21,
+            "y": 18
+          },
+          {
+            "x": 21,
+            "y": 17
+          },
+          {
+            "x": 21,
+            "y": 16
+          },
+          {
+            "x": 21,
+            "y": 15
+          },
+          {
+            "x": 21,
+            "y": 14
+          },
+          {
+            "x": 21,
+            "y": 13
+          }
+        ]
+      },
+      {
+        "t": 96172,
+        "w": 13,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 3
+      },
+      {
+        "t": 97815,
+        "w": 14,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 22,
+        "on": true
+      },
+      {
+        "t": 97872,
+        "w": 14,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 21,
+        "on": true
+      },
+      {
+        "t": 97944,
+        "w": 14,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 20,
+        "on": true
+      },
+      {
+        "t": 98004,
+        "w": 14,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 19,
+        "on": true
+      },
+      {
+        "t": 98346,
+        "w": 14,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 98424,
+        "w": 14,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 98853,
+        "w": 14,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 21,
+            "y": 22
+          },
+          {
+            "x": 21,
+            "y": 21
+          },
+          {
+            "x": 21,
+            "y": 20
+          },
+          {
+            "x": 21,
+            "y": 19
+          },
+          {
+            "x": 19,
+            "y": 11
+          },
+          {
+            "x": 19,
+            "y": 12
+          }
+        ]
+      },
+      {
+        "t": 104100,
+        "w": 14,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 5
+      },
+      {
+        "t": 106578,
+        "w": 15,
+        "p": "planning",
+        "a": "zone",
+        "x": 18,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 106671,
+        "w": 15,
+        "p": "planning",
+        "a": "zone",
+        "x": 18,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 107139,
+        "w": 15,
+        "p": "planning",
+        "a": "zone",
+        "x": 18,
+        "y": 15,
+        "on": false
+      },
+      {
+        "t": 107217,
+        "w": 15,
+        "p": "planning",
+        "a": "zone",
+        "x": 18,
+        "y": 16,
+        "on": false
+      },
+      {
+        "t": 107691,
+        "w": 15,
+        "p": "planning",
+        "a": "zone",
+        "x": 13,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 107781,
+        "w": 15,
+        "p": "planning",
+        "a": "zone",
+        "x": 14,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 107931,
+        "w": 15,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 108339,
+        "w": 15,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 108447,
+        "w": 15,
+        "p": "planning",
+        "a": "zone",
+        "x": 17,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 109251,
+        "w": 15,
+        "p": "planning",
+        "a": "supply"
+      },
+      {
+        "t": 109380,
+        "w": 15,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 13,
+            "y": 8
+          },
+          {
+            "x": 14,
+            "y": 8
+          },
+          {
+            "x": 15,
+            "y": 7
+          },
+          {
+            "x": 16,
+            "y": 6
+          },
+          {
+            "x": 17,
+            "y": 5
+          }
+        ]
+      },
+      {
+        "t": 111282,
+        "w": 15,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 1
+      },
+      {
+        "t": 113582,
+        "w": 16,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 113678,
+        "w": 16,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 113933,
+        "w": 16,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 114656,
+        "w": 16,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 10,
+        "on": false
+      },
+      {
+        "t": 114893,
+        "w": 16,
+        "p": "planning",
+        "a": "zone",
+        "x": 18,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 115040,
+        "w": 16,
+        "p": "planning",
+        "a": "zone",
+        "x": 18,
+        "y": 14,
+        "on": false
+      },
+      {
+        "t": 115184,
+        "w": 16,
+        "p": "planning",
+        "a": "zone",
+        "x": 17,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 115325,
+        "w": 16,
+        "p": "planning",
+        "a": "zone",
+        "x": 18,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 115754,
+        "w": 16,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 116543,
+        "w": 16,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 21,
+            "y": 12
+          },
+          {
+            "x": 21,
+            "y": 11
+          },
+          {
+            "x": 17,
+            "y": 14
+          },
+          {
+            "x": 18,
+            "y": 13
+          },
+          {
+            "x": 16,
+            "y": 15
+          }
+        ]
+      },
+      {
+        "t": 118211,
+        "w": 16,
+        "p": "selection",
+        "a": "select",
+        "type": "recipe",
+        "anchor": 3,
+        "recipeId": "purgeShrine"
+      },
+      {
+        "t": 120884,
+        "w": 17,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 120971,
+        "w": 17,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 121052,
+        "w": 17,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 121118,
+        "w": 17,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 121250,
+        "w": 17,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 121520,
+        "w": 17,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 21,
+            "y": 14
+          },
+          {
+            "x": 21,
+            "y": 13
+          },
+          {
+            "x": 21,
+            "y": 12
+          },
+          {
+            "x": 21,
+            "y": 11
+          },
+          {
+            "x": 21,
+            "y": 16
+          }
+        ]
+      },
+      {
+        "t": 122792,
+        "w": 17,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 3
+      },
+      {
+        "t": 125293,
+        "w": 18,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 125507,
+        "w": 18,
+        "p": "planning",
+        "a": "zone",
+        "x": 14,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 125671,
+        "w": 18,
+        "p": "planning",
+        "a": "zone",
+        "x": 14,
+        "y": 14,
+        "on": false
+      },
+      {
+        "t": 125774,
+        "w": 18,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 125830,
+        "w": 18,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 125938,
+        "w": 18,
+        "p": "planning",
+        "a": "zone",
+        "x": 17,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 126116,
+        "w": 18,
+        "p": "planning",
+        "a": "zone",
+        "x": 17,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 126353,
+        "w": 18,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 12,
+            "y": 15
+          },
+          {
+            "x": 15,
+            "y": 15
+          },
+          {
+            "x": 16,
+            "y": 15
+          },
+          {
+            "x": 17,
+            "y": 13
+          },
+          {
+            "x": 17,
+            "y": 14
+          }
+        ]
+      },
+      {
+        "t": 128276,
+        "w": 18,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 3
+      },
+      {
+        "t": 131815,
+        "w": 19,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 131944,
+        "w": 19,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 132364,
+        "w": 19,
+        "p": "planning",
+        "a": "zone",
+        "x": 2,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 133195,
+        "w": 19,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 133507,
+        "w": 19,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 133879,
+        "w": 19,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 5,
+            "y": 13
+          },
+          {
+            "x": 6,
+            "y": 17
+          },
+          {
+            "x": 2,
+            "y": 7
+          },
+          {
+            "x": 21,
+            "y": 12
+          },
+          {
+            "x": 21,
+            "y": 14
+          }
+        ]
+      },
+      {
+        "t": 136525,
+        "w": 19,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 1
+      },
+      {
+        "t": 137824,
+        "w": 20,
+        "p": "wave",
+        "a": "command",
+        "id": "orbitalStrike",
+        "cell": {
+          "x": 0,
+          "y": 13
+        }
+      },
+      {
+        "t": 146493,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 14,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 147036,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 18,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 147126,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 147279,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 147471,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 16,
+        "on": false
+      },
+      {
+        "t": 147987,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 148194,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 16,
+        "on": false
+      },
+      {
+        "t": 148539,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 14,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 148596,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 148983,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 14,
+        "y": 2,
+        "on": false
+      },
+      {
+        "t": 149025,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 2,
+        "on": false
+      },
+      {
+        "t": 149112,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 3,
+        "on": true
+      },
+      {
+        "t": 149214,
+        "w": 20,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 149454,
+        "w": 20,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 14,
+            "y": 15
+          },
+          {
+            "x": 18,
+            "y": 14
+          },
+          {
+            "x": 19,
+            "y": 15
+          },
+          {
+            "x": 16,
+            "y": 3
+          },
+          {
+            "x": 15,
+            "y": 2
+          }
+        ]
+      },
+      {
+        "t": 150729,
+        "w": 20,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 4
+      },
+      {
+        "t": 152697,
+        "w": 21,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 152796,
+        "w": 21,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 153081,
+        "w": 21,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 22,
+        "on": true
+      },
+      {
+        "t": 153120,
+        "w": 21,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 21,
+        "on": true
+      },
+      {
+        "t": 153300,
+        "w": 21,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 153492,
+        "w": 21,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 18,
+        "on": false
+      },
+      {
+        "t": 153759,
+        "w": 21,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 1,
+        "on": true
+      },
+      {
+        "t": 154209,
+        "w": 21,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 19,
+            "y": 16
+          },
+          {
+            "x": 19,
+            "y": 17
+          },
+          {
+            "x": 15,
+            "y": 22
+          },
+          {
+            "x": 16,
+            "y": 21
+          },
+          {
+            "x": 15,
+            "y": 1
+          }
+        ]
+      },
+      {
+        "t": 155367,
+        "w": 21,
+        "p": "selection",
+        "a": "select",
+        "type": "merge",
+        "anchor": 1,
+        "size": 2
+      },
+      {
+        "t": 159476,
+        "w": 22,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 159620,
+        "w": 22,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 159986,
+        "w": 22,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 160235,
+        "w": 22,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 160652,
+        "w": 22,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 160935,
+        "w": 22,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 5,
+            "y": 13
+          },
+          {
+            "x": 6,
+            "y": 15
+          },
+          {
+            "x": 4,
+            "y": 13
+          },
+          {
+            "x": 8,
+            "y": 14
+          },
+          {
+            "x": 12,
+            "y": 8
+          }
+        ]
+      },
+      {
+        "t": 164534,
+        "w": 22,
+        "p": "selection",
+        "a": "select",
+        "type": "recipe",
+        "anchor": 3,
+        "recipeId": "emberCauldron"
+      },
+      {
+        "t": 167048,
+        "w": 23,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 167129,
+        "w": 23,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 167222,
+        "w": 23,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 167468,
+        "w": 23,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 0,
+        "on": true
+      },
+      {
+        "t": 167642,
+        "w": 23,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 168011,
+        "w": 23,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 21,
+            "y": 10
+          },
+          {
+            "x": 21,
+            "y": 9
+          },
+          {
+            "x": 21,
+            "y": 8
+          },
+          {
+            "x": 15,
+            "y": 0
+          },
+          {
+            "x": 21,
+            "y": 7
+          }
+        ]
+      },
+      {
+        "t": 169799,
+        "w": 23,
+        "p": "selection",
+        "a": "select",
+        "type": "merge",
+        "anchor": 2,
+        "size": 2
+      },
+      {
+        "t": 173081,
+        "w": 24,
+        "p": "planning",
+        "a": "zone",
+        "x": 9,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 173164,
+        "w": 24,
+        "p": "planning",
+        "a": "zone",
+        "x": 10,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 173375,
+        "w": 24,
+        "p": "planning",
+        "a": "zone",
+        "x": 10,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 173540,
+        "w": 24,
+        "p": "planning",
+        "a": "zone",
+        "x": 11,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 174331,
+        "w": 24,
+        "p": "planning",
+        "a": "zone",
+        "x": 10,
+        "y": 20,
+        "on": true
+      },
+      {
+        "t": 174503,
+        "w": 24,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 9,
+            "y": 9
+          },
+          {
+            "x": 10,
+            "y": 8
+          },
+          {
+            "x": 10,
+            "y": 7
+          },
+          {
+            "x": 11,
+            "y": 6
+          },
+          {
+            "x": 10,
+            "y": 20
+          }
+        ]
+      },
+      {
+        "t": 175541,
+        "w": 24,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 1
+      },
+      {
+        "t": 179134,
+        "w": 25,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 179173,
+        "w": 25,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 179254,
+        "w": 25,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 179323,
+        "w": 25,
+        "p": "planning",
+        "a": "zone",
+        "x": 17,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 179371,
+        "w": 25,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 4,
+        "on": true
+      },
+      {
+        "t": 179662,
+        "w": 25,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 15,
+            "y": 7
+          },
+          {
+            "x": 15,
+            "y": 6
+          },
+          {
+            "x": 16,
+            "y": 6
+          },
+          {
+            "x": 17,
+            "y": 5
+          },
+          {
+            "x": 16,
+            "y": 4
+          }
+        ]
+      },
+      {
+        "t": 181573,
+        "w": 25,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 1
+      },
+      {
+        "t": 183841,
+        "w": 26,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 184153,
+        "w": 26,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 184210,
+        "w": 26,
+        "p": "planning",
+        "a": "zone",
+        "x": 6,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 184579,
+        "w": 26,
+        "p": "planning",
+        "a": "zone",
+        "x": 10,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 184978,
+        "w": 26,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 185419,
+        "w": 26,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 4,
+            "y": 13
+          },
+          {
+            "x": 6,
+            "y": 15
+          },
+          {
+            "x": 6,
+            "y": 16
+          },
+          {
+            "x": 10,
+            "y": 18
+          },
+          {
+            "x": 19,
+            "y": 15
+          }
+        ]
+      },
+      {
+        "t": 188794,
+        "w": 26,
+        "p": "selection",
+        "a": "select",
+        "type": "recipe",
+        "anchor": 2,
+        "recipeId": "soulfireObelisk"
+      },
+      {
+        "t": 192114,
+        "w": 27,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 192273,
+        "w": 27,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 192444,
+        "w": 27,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 192540,
+        "w": 27,
+        "p": "planning",
+        "a": "zone",
+        "x": 19,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 193020,
+        "w": 27,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 193362,
+        "w": 27,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 21,
+            "y": 7
+          },
+          {
+            "x": 19,
+            "y": 17
+          },
+          {
+            "x": 19,
+            "y": 15
+          },
+          {
+            "x": 19,
+            "y": 11
+          },
+          {
+            "x": 21,
+            "y": 13
+          }
+        ]
+      },
+      {
+        "t": 195090,
+        "w": 27,
+        "p": "selection",
+        "a": "select",
+        "type": "recipe",
+        "anchor": 3,
+        "recipeId": "thunderTower"
+      },
+      {
+        "t": 198120,
+        "w": 28,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 198276,
+        "w": 28,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 198420,
+        "w": 28,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 198711,
+        "w": 28,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 198873,
+        "w": 28,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 199092,
+        "w": 28,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 12,
+            "y": 8
+          },
+          {
+            "x": 12,
+            "y": 10
+          },
+          {
+            "x": 12,
+            "y": 12
+          },
+          {
+            "x": 12,
+            "y": 16
+          },
+          {
+            "x": 12,
+            "y": 17
+          }
+        ]
+      },
+      {
+        "t": 200718,
+        "w": 28,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 3
+      },
+      {
+        "t": 203046,
+        "w": 29,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 203364,
+        "w": 29,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 203478,
+        "w": 29,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 203934,
+        "w": 29,
+        "p": "planning",
+        "a": "zone",
+        "x": 11,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 204732,
+        "w": 29,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 204909,
+        "w": 29,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 12,
+            "y": 8
+          },
+          {
+            "x": 12,
+            "y": 10
+          },
+          {
+            "x": 12,
+            "y": 12
+          },
+          {
+            "x": 11,
+            "y": 6
+          },
+          {
+            "x": 5,
+            "y": 13
+          }
+        ]
+      },
+      {
+        "t": 208697,
+        "w": 29,
+        "p": "selection",
+        "a": "select",
+        "type": "recipe",
+        "anchor": 1,
+        "recipeId": "stormBattery"
+      },
+      {
+        "t": 216104,
+        "w": 30,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 216392,
+        "w": 30,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 216551,
+        "w": 30,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 216755,
+        "w": 30,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 217100,
+        "w": 30,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 217361,
+        "w": 30,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 9,
+        "on": false
+      },
+      {
+        "t": 217505,
+        "w": 30,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 217694,
+        "w": 30,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 21,
+            "y": 7
+          },
+          {
+            "x": 21,
+            "y": 10
+          },
+          {
+            "x": 21,
+            "y": 13
+          },
+          {
+            "x": 21,
+            "y": 16
+          },
+          {
+            "x": 21,
+            "y": 12
+          }
+        ]
+      },
+      {
+        "t": 220349,
+        "w": 30,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 1
+      },
+      {
+        "t": 223438,
+        "w": 31,
+        "p": "planning",
+        "a": "zone",
+        "x": 4,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 223543,
+        "w": 31,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 223672,
+        "w": 31,
+        "p": "planning",
+        "a": "zone",
+        "x": 7,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 223768,
+        "w": 31,
+        "p": "planning",
+        "a": "zone",
+        "x": 7,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 223822,
+        "w": 31,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 224096,
+        "w": 31,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 4,
+            "y": 6
+          },
+          {
+            "x": 5,
+            "y": 7
+          },
+          {
+            "x": 7,
+            "y": 7
+          },
+          {
+            "x": 7,
+            "y": 8
+          },
+          {
+            "x": 8,
+            "y": 9
+          }
+        ]
+      },
+      {
+        "t": 227005,
+        "w": 31,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 2
+      },
+      {
+        "t": 233254,
+        "w": 32,
+        "p": "planning",
+        "a": "zone",
+        "x": 17,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 234151,
+        "w": 32,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 234403,
+        "w": 32,
+        "p": "planning",
+        "a": "zone",
+        "x": 17,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 234493,
+        "w": 32,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 4,
+        "on": true
+      },
+      {
+        "t": 234574,
+        "w": 32,
+        "p": "planning",
+        "a": "zone",
+        "x": 16,
+        "y": 3,
+        "on": true
+      },
+      {
+        "t": 234796,
+        "w": 32,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 17,
+            "y": 6
+          },
+          {
+            "x": 15,
+            "y": 8
+          },
+          {
+            "x": 17,
+            "y": 5
+          },
+          {
+            "x": 16,
+            "y": 4
+          },
+          {
+            "x": 16,
+            "y": 3
+          }
+        ]
+      },
+      {
+        "t": 236725,
+        "w": 32,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 3
+      },
+      {
+        "t": 240309,
+        "w": 33,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 20,
+        "on": true
+      },
+      {
+        "t": 241017,
+        "w": 33,
+        "p": "planning",
+        "a": "bulwark",
+        "x": 8,
+        "y": 20
+      },
+      {
+        "t": 241161,
+        "w": 33,
+        "p": "planning",
+        "a": "bulwark",
+        "x": 8,
+        "y": 19
+      },
+      {
+        "t": 241305,
+        "w": 33,
+        "p": "planning",
+        "a": "bulwark",
+        "x": 8,
+        "y": 18
+      },
+      {
+        "t": 247335,
+        "w": 33,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 20,
+        "on": false
+      },
+      {
+        "t": 247968,
+        "w": 33,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 248274,
+        "w": 33,
+        "p": "planning",
+        "a": "zone",
+        "x": 8,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 248466,
+        "w": 33,
+        "p": "planning",
+        "a": "zone",
+        "x": 5,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 248760,
+        "w": 33,
+        "p": "planning",
+        "a": "zone",
+        "x": 10,
+        "y": 20,
+        "on": true
+      },
+      {
+        "t": 248925,
+        "w": 33,
+        "p": "planning",
+        "a": "zone",
+        "x": 10,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 249102,
+        "w": 33,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 12,
+            "y": 12
+          },
+          {
+            "x": 8,
+            "y": 12
+          },
+          {
+            "x": 5,
+            "y": 13
+          },
+          {
+            "x": 10,
+            "y": 20
+          },
+          {
+            "x": 10,
+            "y": 18
+          }
+        ]
+      },
+      {
+        "t": 250209,
+        "w": 33,
+        "p": "selection",
+        "a": "select",
+        "type": "merge",
+        "anchor": 3,
+        "size": 2
+      },
+      {
+        "t": 253799,
+        "w": 34,
+        "p": "planning",
+        "a": "bulwark",
+        "x": 8,
+        "y": 10
+      },
+      {
+        "t": 253979,
+        "w": 34,
+        "p": "planning",
+        "a": "bulwark",
+        "x": 9,
+        "y": 9
+      },
+      {
+        "t": 254237,
+        "w": 34,
+        "p": "planning",
+        "a": "bulwark",
+        "x": 10,
+        "y": 7
+      },
+      {
+        "t": 254414,
+        "w": 34,
+        "p": "planning",
+        "a": "bulwark",
+        "x": 11,
+        "y": 6
+      },
+      {
+        "t": 257765,
+        "w": 34,
+        "p": "planning",
+        "a": "zone",
+        "x": 12,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 257927,
+        "w": 34,
+        "p": "planning",
+        "a": "zone",
+        "x": 15,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 258086,
+        "w": 34,
+        "p": "planning",
+        "a": "zone",
+        "x": 17,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 258836,
+        "w": 34,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 258920,
+        "w": 34,
+        "p": "planning",
+        "a": "zone",
+        "x": 21,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 259148,
+        "w": 34,
+        "p": "planning",
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 12,
+            "y": 8
+          },
+          {
+            "x": 15,
+            "y": 7
+          },
+          {
+            "x": 17,
+            "y": 5
+          },
+          {
+            "x": 21,
+            "y": 7
+          },
+          {
+            "x": 21,
+            "y": 8
+          }
+        ]
+      },
+      {
+        "t": 262268,
+        "w": 34,
+        "p": "selection",
+        "a": "select",
+        "type": "keep",
+        "anchor": 1
+      },
+      {
+        "t": 264596,
+        "w": 35,
+        "p": "wave",
+        "a": "command",
+        "id": "orbitalStrike",
+        "cell": {
+          "x": 13,
+          "y": 4
+        }
+      },
+      {
+        "t": 265139,
+        "w": 35,
+        "p": "wave",
+        "a": "command",
+        "id": "stasisField",
+        "cell": {
+          "x": 14,
+          "y": 3
+        }
+      },
+      {
+        "t": 268892,
+        "w": 35,
+        "p": "wave",
+        "a": "command",
+        "id": "airstrike",
+        "from": {
+          "x": 22,
+          "y": 6
+        },
+        "to": {
+          "x": 23,
+          "y": 13
+        }
+      }
+    ],
+    "waves": [
+      {
+        "w": 1,
+        "spawned": 21,
+        "killed": 21,
+        "leaked": 0,
+        "lives": 20,
+        "requisition": 35,
+        "commandPoints": 1,
+        "towers": 1,
+        "supply": 1,
+        "route": 44.4,
+        "rating": "fine"
+      },
+      {
+        "w": 2,
+        "spawned": 10,
+        "killed": 10,
+        "leaked": 0,
+        "lives": 20,
+        "requisition": 47,
+        "commandPoints": 2,
+        "towers": 2,
+        "supply": 2,
+        "route": 51.2,
+        "rating": "easy"
+      },
+      {
+        "w": 3,
+        "spawned": 14,
+        "killed": 14,
+        "leaked": 0,
+        "lives": 20,
+        "requisition": 48,
+        "commandPoints": 3,
+        "towers": 3,
+        "supply": 3,
+        "route": 62.6,
+        "rating": "easy"
+      },
+      {
+        "w": 4,
+        "spawned": 12,
+        "killed": 12,
+        "leaked": 0,
+        "lives": 20,
+        "requisition": 100,
+        "commandPoints": 4,
+        "towers": 4,
+        "supply": 3,
+        "route": 67.8,
+        "rating": "easy"
+      },
+      {
+        "w": 5,
+        "spawned": 24,
+        "killed": 24,
+        "leaked": 0,
+        "lives": 20,
+        "requisition": 166,
+        "commandPoints": 5,
+        "towers": 5,
+        "supply": 3,
+        "route": 67.8,
+        "rating": "easy"
+      },
+      {
+        "w": 6,
+        "spawned": 35,
+        "killed": 35,
+        "leaked": 0,
+        "lives": 20,
+        "requisition": 222,
+        "commandPoints": 6,
+        "towers": 6,
+        "supply": 3,
+        "route": 69.6,
+        "rating": "easy"
+      },
+      {
+        "w": 7,
+        "spawned": 34,
+        "killed": 34,
+        "leaked": 0,
+        "lives": 20,
+        "requisition": 113,
+        "commandPoints": 7,
+        "towers": 7,
+        "supply": 5,
+        "route": 78.7,
+        "rating": "easy"
+      },
+      {
+        "w": 8,
+        "spawned": 22,
+        "killed": 8,
+        "leaked": 14,
+        "lives": 6,
+        "requisition": 134,
+        "commandPoints": 7,
+        "towers": 8,
+        "supply": 5,
+        "route": 78.7,
+        "rating": "fine"
+      },
+      {
+        "w": 9,
+        "spawned": 20,
+        "killed": 20,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 199,
+        "commandPoints": 8,
+        "towers": 9,
+        "supply": 5,
+        "route": 78.7,
+        "rating": "easy"
+      },
+      {
+        "w": 10,
+        "spawned": 56,
+        "killed": 56,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 151,
+        "commandPoints": 12,
+        "towers": 9,
+        "supply": 6,
+        "route": 78.7,
+        "rating": "easy"
+      },
+      {
+        "w": 11,
+        "spawned": 41,
+        "killed": 41,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 218,
+        "commandPoints": 13,
+        "towers": 10,
+        "supply": 6,
+        "route": 81.6,
+        "rating": "easy"
+      },
+      {
+        "w": 12,
+        "spawned": 41,
+        "killed": 41,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 328,
+        "commandPoints": 14,
+        "towers": 11,
+        "supply": 6,
+        "route": 82.7,
+        "rating": "easy"
+      },
+      {
+        "w": 13,
+        "spawned": 27,
+        "killed": 27,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 174,
+        "commandPoints": 15,
+        "towers": 12,
+        "supply": 7,
+        "route": 86.7,
+        "rating": "easy"
+      },
+      {
+        "w": 14,
+        "spawned": 22,
+        "killed": 22,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 270,
+        "commandPoints": 16,
+        "towers": 13,
+        "supply": 7,
+        "route": 90.1,
+        "rating": "easy"
+      },
+      {
+        "w": 15,
+        "spawned": 54,
+        "killed": 54,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 407,
+        "commandPoints": 17,
+        "towers": 14,
+        "supply": 7,
+        "route": 91,
+        "rating": "easy"
+      },
+      {
+        "w": 16,
+        "spawned": 46,
+        "killed": 46,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 135,
+        "commandPoints": 18,
+        "towers": 15,
+        "supply": 8,
+        "route": 91,
+        "rating": "easy"
+      },
+      {
+        "w": 17,
+        "spawned": 44,
+        "killed": 44,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 259,
+        "commandPoints": 19,
+        "towers": 16,
+        "supply": 8,
+        "route": 95,
+        "rating": "easy"
+      },
+      {
+        "w": 18,
+        "spawned": 29,
+        "killed": 29,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 341,
+        "commandPoints": 20,
+        "towers": 17,
+        "supply": 8,
+        "route": 95,
+        "rating": "easy"
+      },
+      {
+        "w": 19,
+        "spawned": 25,
+        "killed": 25,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 452,
+        "commandPoints": 21,
+        "towers": 18,
+        "supply": 8,
+        "route": 95,
+        "rating": "easy"
+      },
+      {
+        "w": 20,
+        "spawned": 20,
+        "killed": 20,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 564,
+        "commandPoints": 21,
+        "towers": 19,
+        "supply": 8,
+        "route": 95,
+        "rating": "fine"
+      },
+      {
+        "w": 21,
+        "spawned": 53,
+        "killed": 53,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 655,
+        "commandPoints": 22,
+        "towers": 20,
+        "supply": 8,
+        "route": 96.7,
+        "rating": "easy"
+      },
+      {
+        "w": 22,
+        "spawned": 51,
+        "killed": 51,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 798,
+        "commandPoints": 23,
+        "towers": 21,
+        "supply": 8,
+        "route": 100.1,
+        "rating": "easy"
+      },
+      {
+        "w": 23,
+        "spawned": 34,
+        "killed": 34,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 888,
+        "commandPoints": 24,
+        "towers": 22,
+        "supply": 8,
+        "route": 100.1,
+        "rating": "easy"
+      },
+      {
+        "w": 24,
+        "spawned": 28,
+        "killed": 28,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 1014,
+        "commandPoints": 25,
+        "towers": 23,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "easy"
+      },
+      {
+        "w": 25,
+        "spawned": 69,
+        "killed": 69,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 1192,
+        "commandPoints": 26,
+        "towers": 24,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "easy"
+      },
+      {
+        "w": 26,
+        "spawned": 58,
+        "killed": 58,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 1254,
+        "commandPoints": 27,
+        "towers": 25,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "easy"
+      },
+      {
+        "w": 27,
+        "spawned": 58,
+        "killed": 58,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 1371,
+        "commandPoints": 28,
+        "towers": 24,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "easy"
+      },
+      {
+        "w": 28,
+        "spawned": 36,
+        "killed": 36,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 1457,
+        "commandPoints": 29,
+        "towers": 25,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "easy"
+      },
+      {
+        "w": 29,
+        "spawned": 31,
+        "killed": 31,
+        "leaked": 0,
+        "lives": 6,
+        "requisition": 1543,
+        "commandPoints": 30,
+        "towers": 26,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "easy"
+      },
+      {
+        "w": 30,
+        "spawned": 20,
+        "killed": 19,
+        "leaked": 1,
+        "lives": 1,
+        "requisition": 1599,
+        "commandPoints": 30,
+        "towers": 26,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "hard"
+      },
+      {
+        "w": 31,
+        "spawned": 64,
+        "killed": 64,
+        "leaked": 0,
+        "lives": 1,
+        "requisition": 1647,
+        "commandPoints": 31,
+        "towers": 27,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "easy"
+      },
+      {
+        "w": 32,
+        "spawned": 60,
+        "killed": 60,
+        "leaked": 0,
+        "lives": 1,
+        "requisition": 1751,
+        "commandPoints": 32,
+        "towers": 28,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "easy"
+      },
+      {
+        "w": 33,
+        "spawned": 41,
+        "killed": 41,
+        "leaked": 0,
+        "lives": 1,
+        "requisition": 1830,
+        "commandPoints": 33,
+        "towers": 29,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "easy"
+      },
+      {
+        "w": 34,
+        "spawned": 33,
+        "killed": 33,
+        "leaked": 0,
+        "lives": 1,
+        "requisition": 1377,
+        "commandPoints": 34,
+        "towers": 30,
+        "supply": 8,
+        "route": 108.1,
+        "rating": "easy"
+      },
+      {
+        "w": 35,
+        "spawned": 84,
+        "killed": 84,
+        "leaked": 1,
+        "lives": 0,
+        "requisition": 570,
+        "commandPoints": 24,
+        "towers": 31,
+        "supply": 8,
+        "route": 60.7,
+        "rating": null
+      }
+    ],
+    "end": {
+      "phase": "defeat",
+      "wave": 35,
+      "lives": 0,
+      "kills": 1302
+    }
+  }
+}

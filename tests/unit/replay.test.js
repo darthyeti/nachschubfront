@@ -208,6 +208,43 @@ test('a command in mid-wave is repeated at the same second of the wave', () => {
   assert.deepEqual(run.waves, log.waves, 'the same wave, down to the command damage');
 });
 
+test('a protocol from before the phase time was written down still keeps it', () => {
+  // The first build handed out (0.9.0) recorded the simulation step of an
+  // action but not the seconds into the wave. The wave begins at the moment the
+  // capsule is chosen, so the step of that choice is the start of the wave and
+  // the difference gives the seconds back exactly. Without it every command of
+  // such a protocol goes off in the first instant of its wave, which is not
+  // what the player did — and a command that hits nothing looks like a command
+  // that is too weak.
+  const state = createGameState(SEED);
+  startLog(state, RULESET_VERSION, 3);
+  setWave(state, 15);
+  grant(state, { commandPoints: 20 });
+  setLives(state, 200);
+  const cell = besideRoute(state);
+  if (cell) toggleZone(state, cell);
+  assert.ok(requestSalvo(state));
+  assert.ok(runUntil(state, (s) => s.phase === 'selection', 60));
+  const options = selectionOptions(state);
+  assert.ok(chooseSelection(state, { type: 'keep', anchor: options.keep[0].anchors[0] }).ok);
+  assert.ok(runUntil(state, (s) => s.phaseTime >= 4, 30));
+  const target = state.route.cells[3];
+  assert.ok(useCommand(state, 'orbitalStrike', { x: target.x, y: target.y }).ok);
+  assert.ok(runUntil(state, (s) => s.phase !== 'wave'));
+
+  const full = replayMatch(state.log);
+
+  // The same protocol as an older build would have written it.
+  const old = {
+    ...state.log,
+    actions: state.log.actions.map(({ pt, ...rest }) => rest),
+  };
+  assert.ok(old.actions.every((a) => a.pt === undefined), 'no phase times in it');
+  const reconstructed = replayMatch(old);
+  assert.deepEqual(reconstructed.waves, full.waves, 'the same match all the same');
+  assert.ok(reconstructed.waves[0].commandDamage > 0, 'and the strike found its enemies');
+});
+
 test('untilWave stops the replay where the test entry needs it', () => {
   const log = recordMatch(3);
   const run = replayMatch(log, { untilWave: 2 });
