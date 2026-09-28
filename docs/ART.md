@@ -222,7 +222,11 @@ Der Bauwerktyp aus GDD Abschnitt 10, gebaut aus einem Trümmerfeld. Es **ersetzt
 
 Zwei Regeln, die keine Grafik sind, sondern Renderlogik.
 
-**Rezept-Vorschau.** Sobald eine ausgewählte Kapsel ein Rezept ergeben würde, bekommen alle dafür verbrauchten bestehenden Stellungen eine pulsierende goldene Umrandung. Alles andere auf der Karte — Gelände, Trümmer, unbeteiligte Stellungen — wird um etwa 40 Prozent abgedunkelt und leicht transparent. Damit ist sofort erkennbar, was verloren geht.
+**Rezept-Vorschau.** Sobald eine ausgewählte Kapsel ein Rezept ergeben würde, bekommen alle dafür verbrauchten bestehenden Stellungen eine pulsierende goldene Umrandung und **einen goldenen Pfeil, der von oben auf sie zeigt und langsam schwebt**. Alles andere auf der Karte — Gelände, Trümmer, unbeteiligte Stellungen — wird um **62 Prozent** abgedunkelt. Damit ist sofort erkennbar, was verloren geht.
+
+Der Pfeil hängt am Wirkungsanker der Stellung, dem Punkt, aus dem auch ihre Waffeneffekte kommen; damit sitzt er über dem hohen Lasermast genauso richtig wie über dem flachen Bunker. Seine Größe ist in Weltpixeln konstant und wächst nicht mit der Figur, damit er auf der kleinsten Zoomstufe lesbar bleibt. Bei `prefers-reduced-motion` steht er still.
+
+Die Werte 62 Prozent statt der früheren 40 und der Pfeil sind nach einem Test auf dem iPad gesetzt: Auf dem Tablet war der Ring um eine entfernte Stellung zu leicht zu übersehen.
 
 **Goldener Bodenring der Rezept-Stellungen.** Zu prüfen mit `npm run ringcheck` (Rezept-Stellungen auf benachbarten Feldern, Zoom als Parameter). Der Ring liegt auf Bodenhöhe, wie der Schatten unter einer Figur, und gehört deshalb in den Bodendurchgang — gezeichnet, bevor die tiefensortierten Objekte an der Reihe sind. Er darf unter keinem Zoom und keiner Kameraposition über einem Bauwerk liegen. Bis v3 wurde er zusammen mit seiner eigenen Stellung gezeichnet und legte sich dabei über die Sockelkante der beiden Nachbarn dahinter, weil die Ellipse an den Diagonalen über den Bodenrhombus ihrer Zelle hinausragt.
 

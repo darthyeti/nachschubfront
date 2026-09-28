@@ -13,6 +13,7 @@ import { COMMANDS, commandById } from '../../src/data/commands.js';
 import { railOrder } from '../../src/ui/commands.js';
 import { validateSeed, randomSeed } from '../../src/core/seed.js';
 import { ICONS } from '../../src/ui/icons.js';
+import { doomArrowPoints } from '../../src/render/scene.js';
 
 /** The orbital strike is a wave-phase command, so that is where it is usable. */
 function atWave(wave, phase = 'wave') {
@@ -114,4 +115,34 @@ test('a seed the game hands out passes its own check', () => {
     const seed = randomSeed();
     assert.deepEqual(validateSeed(seed), { ok: true, seed });
   }
+});
+
+// ---------- The arrow over an emplacement a recipe would eat ----------
+//
+// On the map alone the gold ring around a distant bunker is easy to miss
+// (feedback from the iPad), so every doomed emplacement gets an arrow over it.
+// The shape is checked here because a canvas cannot be.
+
+test('the arrow hangs above the emplacement and points down at it', () => {
+  const anchor = [400, 300];
+  const points = doomArrowPoints(anchor, 0, true);
+  const ys = points.map(([, y]) => y);
+  const tip = points[0];
+  assert.equal(tip[0], anchor[0], 'the tip is over the middle of the figure');
+  assert.equal(Math.max(...ys), tip[1], 'and is the lowest point, so the arrow points down');
+  for (const [, y] of points) {
+    assert.ok(y < anchor[1], `every point is above the anchor (${y} vs ${anchor[1]})`);
+  }
+  // Symmetric about the figure: the widest point left and right are mirrored.
+  const xs = points.map(([x]) => x);
+  assert.equal(Math.max(...xs) - anchor[0], anchor[0] - Math.min(...xs));
+});
+
+test('the arrow bobs, and stands still when motion is not wanted', () => {
+  const anchor = [0, 0];
+  const at = (t, reduced) => doomArrowPoints(anchor, t, reduced)[0][1];
+  assert.notEqual(at(0.3, false), at(0.9, false), 'it moves over time');
+  assert.equal(at(0.3, true), at(0.9, true), 'prefers-reduced-motion holds it still');
+  // However far it swings, it never drops onto the figure.
+  for (let t = 0; t < 6; t += 0.05) assert.ok(at(t, false) < anchor[1]);
 });

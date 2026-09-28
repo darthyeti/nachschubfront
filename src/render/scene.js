@@ -2,7 +2,7 @@
 
 import { iso } from './iso.js';
 import { applyCamera } from './camera.js';
-import { cellPath, comicText, ell } from './draw.js';
+import { cellPath, comicText, ell, poly } from './draw.js';
 import { C } from './palette.js';
 import {
   drawObstacleCell,
@@ -22,7 +22,7 @@ import { createAtmosphere } from './atmosphere.js';
 import { snapToAxis } from '../sim/commands.js';
 import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
 import { laneStart } from '../sim/koloss.js';
-import { drawTowerSprite, drawSpecialRing } from './towerSprites.js';
+import { drawTowerSprite, drawSpecialRing, towerAnchor } from './towerSprites.js';
 import {
   createPodRenderer,
   drawZoneMarker,
@@ -90,11 +90,50 @@ function createVignette() {
   };
 }
 
+/** How far the veil over the untouched map takes it back (docs/ART.md). */
+const PREVIEW_VEIL = 0.62;
+/** Size of the arrow over a doomed emplacement, in world pixels. */
+const DOOM_ARROW = { width: 26, height: 22, stem: 16, lift: 34, bob: 5 };
+
 /**
- * Recipe preview (docs/ART.md): while the player holds a recipe, the map goes
- * dark and only the emplacements the recipe would eat keep their colour, each
- * in a pulsing gold ring. Drawn after the depth-sorted pass, so the veil covers
- * everything already on the canvas and the doomed ones are put back on top.
+ * The arrow hanging over an emplacement a recipe would eat: a fat chevron
+ * pointing down at it, bobbing. Drawn in world pixels rather than scaled with
+ * the figure, so it stays readable at the smallest zoom — on the map alone the
+ * gold ring around a distant bunker is easy to miss (feedback from the iPad).
+ *
+ * It hangs off `towerAnchor`, the point the weapon effects come from, so it sits
+ * right over a tall laser mast and over a flat bunker without a case for each.
+ *
+ * The shape is exported on its own so a test can read it without a canvas.
+ * @param {number[]} anchor  Screen point of the emplacement, from `towerAnchor`.
+ */
+export function doomArrowPoints([ax, ay], t, reducedMotion = false) {
+  const { width: w, height: h, stem, lift, bob: swing } = DOOM_ARROW;
+  const bob = reducedMotion ? 0 : Math.sin(t * 3.4) * swing;
+  // y grows downwards, so the arrow hangs above the anchor at a negative offset
+  // and its tip is its lowest point.
+  const tip = ay - lift + bob;
+  return [
+    [ax, tip],
+    [ax + w / 2, tip - h],
+    [ax + w / 6, tip - h],
+    [ax + w / 6, tip - h - stem],
+    [ax - w / 6, tip - h - stem],
+    [ax - w / 6, tip - h],
+    [ax - w / 2, tip - h],
+  ];
+}
+
+function drawDoomArrow(ctx, tower, t, reducedMotion) {
+  poly(ctx, doomArrowPoints(towerAnchor(tower), t, reducedMotion), C.gold, C.ink, 2.5);
+}
+
+/**
+ * Recipe preview (docs/ART.md): while a recipe is being looked at, the map goes
+ * dark and only the emplacements the recipe would eat keep their colour, each in
+ * a pulsing gold ring with an arrow over it. Drawn after the depth-sorted pass,
+ * so the veil covers everything already on the canvas and the doomed ones are
+ * put back on top; the arrows come last and are never covered.
  *
  * The emplacements are redrawn with dt 0: their weapons have already been moved
  * on this frame, and moving them twice would work off the recoil too fast.
@@ -102,16 +141,17 @@ function createVignette() {
 function drawRecipePreview(ctx, state, ui, cam, view, t, sprites) {
   const doomed = ui.recipePreview.map((id) => towerById(state, id)).filter(Boolean);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = 'rgba(17,12,10,.45)';
+  ctx.fillStyle = `rgba(17,12,10,${PREVIEW_VEIL})`;
   ctx.fillRect(0, 0, view.width * view.dpr, view.height * view.dpr);
   applyCamera(ctx, cam, view);
   const pulse = ui.reducedMotion ? 0.8 : 0.6 + Math.sin(t * 5) * 0.3;
   for (const tower of doomed) {
-    drawCellMarker(ctx, tower, `rgba(242,193,78,${pulse * 0.3})`, `rgba(242,193,78,${pulse})`, 3);
+    drawCellMarker(ctx, tower, `rgba(242,193,78,${pulse * 0.45})`, `rgba(242,193,78,${pulse})`, 3);
     if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, tower, cam.zoom, view.dpr, t, 0, ui.reducedMotion)) {
       drawTowerPlaceholder(ctx, tower);
     }
   }
+  for (const tower of doomed) drawDoomArrow(ctx, tower, t, ui.reducedMotion);
 }
 
 /** Dashed, slowly marching route line with ink underlay. */
