@@ -106,6 +106,18 @@ Was diese Befunde nicht beantworten: ob W1 und W8 die richtigen harten Wellen
 sind (jede kam nur in einer Partie vor) und ob Welle 30 als einzige Hürde
 Absicht ist.
 
+## M6 Teil 2: Abstimmung
+
+**Runde 1 liegt zur Entscheidung vor:**
+[`balancing/runden/runde-1.md`](../balancing/runden/runde-1.md). Sie dreht nicht
+an der Schwierigkeit, sondern räumt drei Klippen weg — vorher lässt sich keine
+Schwierigkeitsänderung messen, weil jede noch so kleine in Welle 35 endet.
+Vorgeschlagen: Warpsprung des Warpherolds aus, Schildregeneration 120→40,
+`kolossLeakCost` 15→8. Nichts davon ist umgesetzt.
+
+Drei Fragen liegen bei Till: ob der Warpsprung ganz weg soll oder nur kleiner, ob
+der Koloss die Partie entscheiden darf, und was mit Welle 8 geschieht.
+
 ## Werkzeuge
 
 | Befehl | Zweck |

@@ -1,0 +1,5 @@
+{
+  "bosses": { "warpherald": { "warpJump": { "cells": 0 }, "shieldRegen": 40 } },
+  "rules": { "kolossLeakCost": 8 },
+  "waves": { "healthGrowth": 1.13 }
+}
