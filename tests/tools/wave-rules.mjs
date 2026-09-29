@@ -14,11 +14,25 @@
 
 export const WAVE_RULES = {
   waveCount: 50,
-  /** Health grows by 12 % per wave. */
-  healthGrowth: 1.12,
-  /** Enemies per wave: 12 plus half the wave number, swarmers twice as many. */
+  /**
+   * Health grows by 12.5 % per wave, up from 12 % in balancing round 2
+   * (29.09.2026). Alone this changes nothing measurable; it works together with
+   * countPerWave below, and the pair was chosen over a larger single step
+   * because a replay repeats the player's recorded moves and cannot adapt the
+   * way a person would, so every measured hardness is an upper bound.
+   */
+  healthGrowth: 1.125,
+  /**
+   * Enemies per wave: 12 plus 1.25 per wave, swarmers twice as many.
+   *
+   * 1.25 since balancing round 2, up from 0.5. This is as far as the count can
+   * go: the strongest wave of a played match (45, with the Koloss) spawns 183 at
+   * 1.25 and 216 at 1.5, against a performance target of 200 enemies (CLAUDE.md).
+   * The budget runs out before the difficulty does, which is why the count is not
+   * a lever on its own.
+   */
   baseCount: 12,
-  countPerWave: 0.5,
+  countPerWave: 1.25,
   swarmerFactor: 2,
 
   /** The five-wave cycle; every tenth wave is replaced by a boss. */

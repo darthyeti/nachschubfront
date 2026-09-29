@@ -10,26 +10,39 @@ import { isMeasurable } from '../../src/sim/record.js';
 import { replayMatch } from '../../src/sim/replay.js';
 import { requestSalvo } from '../../src/sim/actions.js';
 
-/** A long match to enter, played once for the whole file. */
-const long = playBotMatch({ seed: 'EINSTIEG', strategy: 'refine' });
+/**
+ * A match to enter, played once for the whole file.
+ *
+ * The wave entered is derived from it rather than written down: how far a bot
+ * gets is a balancing value and moves with every tuning round, and a hard-coded
+ * 10 turned six of these tests red the moment round 2 raised the wave strength.
+ * What is being tested is the contract, not how strong the bots happen to be.
+ */
+const long = playBotMatch({ seed: 'EINSTIEG', strategy: 'simple' });
+const ENTRY = Math.floor(long.waves.length / 2) + 1;
+const BEFORE = ENTRY - 1;
 
 test('the waves the order names are the ones offered', () => {
   assert.deepEqual(TEST_WAVES, [10, 20, 30, 35]);
 });
 
+test('the fixture match is long enough to enter in the middle of', () => {
+  assert.ok(long.waves.length >= 6, `only ${long.waves.length} waves`);
+});
+
 test('the named wave is still ahead of the player', () => {
   // "Ab Welle 35 (Koloss)" is an invitation to fight the Koloss, not to arrive
   // after it. So the handover sits in the planning phase that leads into it.
-  const entry = prepareTestEntry(long.log, 10);
+  const entry = prepareTestEntry(long.log, ENTRY);
   assert.ok(entry.ok, entry.reason);
-  assert.equal(entry.state.wave, 9, 'nine waves fought, the tenth to come');
+  assert.equal(entry.state.wave, BEFORE, 'the wave before it is fought, the chosen one to come');
   assert.equal(entry.state.phase, 'planning', 'where the player acts');
-  assert.equal(entry.state.log.waves.length, 9);
+  assert.equal(entry.state.log.waves.length, BEFORE);
 });
 
 test('the position is the one the protocol had at that wave', () => {
-  const entry = prepareTestEntry(long.log, 10);
-  const recorded = long.waves.find((w) => w.w === 9);
+  const entry = prepareTestEntry(long.log, ENTRY);
+  const recorded = long.waves.find((w) => w.w === BEFORE);
   assert.equal(entry.about.lives, recorded.lives);
   assert.equal(entry.state.towers.length, recorded.towers);
 });
@@ -37,19 +50,19 @@ test('the position is the one the protocol had at that wave', () => {
 test('a prepared match is never a measurement', () => {
   // It was not played, it was set up. Nothing else has to remember that: the
   // tools all ask isMeasurable.
-  const entry = prepareTestEntry(long.log, 10);
+  const entry = prepareTestEntry(long.log, ENTRY);
   assert.ok(entry.state.log.tainted.includes('testEntry'));
   assert.equal(isMeasurable(entry.state.log), false);
 });
 
 test('the handover carries no events from the waves it replayed', () => {
-  // Otherwise nine waves of banners and rating prompts arrive at once.
-  const entry = prepareTestEntry(long.log, 10);
+  // Otherwise every replayed wave's banners and rating prompts arrive at once.
+  const entry = prepareTestEntry(long.log, ENTRY);
   assert.equal(entry.state.events.length, 0);
 });
 
 test('the match goes on from there, and records what happens next', () => {
-  const entry = prepareTestEntry(long.log, 10);
+  const entry = prepareTestEntry(long.log, ENTRY);
   const before = entry.state.log.actions.length;
   assert.ok(requestSalvo(entry.state), 'a salvo can be called in the handed-over state');
   assert.equal(entry.state.phase, 'salvo');
@@ -59,9 +72,9 @@ test('the match goes on from there, and records what happens next', () => {
 test('what it hands over is itself a protocol that replays', () => {
   // The entry costs no save format because the log is rebuilt on the way: the
   // replayed actions are recorded again by the same functions that wrote them.
-  const entry = prepareTestEntry(long.log, 10);
+  const entry = prepareTestEntry(long.log, ENTRY);
   const again = replayMatch(entry.state.log);
-  assert.equal(again.waves.length, 9);
+  assert.equal(again.waves.length, BEFORE);
   assert.deepEqual(
     again.waves.map((w) => w.lives),
     entry.state.log.waves.map((w) => w.lives),

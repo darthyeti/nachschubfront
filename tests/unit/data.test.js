@@ -19,6 +19,7 @@ import {
   enemyDef,
 } from '../../src/data/enemies.js';
 import { WAVES, waveScale } from '../../src/data/waves.js';
+import { WAVE_RULES } from '../../tests/tools/wave-rules.mjs';
 import { RULES } from '../../src/data/rules.js';
 import { SPECIALS, specialDef } from '../../src/data/specials.js';
 import { ARMOR_TYPES, DAMAGE_MATRIX, damageFactor } from '../../src/data/combat.js';
@@ -313,10 +314,12 @@ test('the opening waves are eased in (GDD section 9)', () => {
   for (let n = 1; n <= 5; n++) assert.ok(total(n) >= 8, `wave ${n} has only ${total(n)} enemies`);
 });
 
-test('health grows by 12 percent per wave and waves get bigger', () => {
+test('health grows by the rate the wave rules give, and waves get bigger', () => {
+  // The rate itself is a balancing value and moves between rounds, so the test
+  // asks the rules rather than repeating the number (it was 1.12 until round 2).
   assert.equal(waveScale(1), 1);
   for (let n = 2; n <= WAVES.length; n++) {
-    const grown = waveScale(n - 1) * 1.12;
+    const grown = waveScale(n - 1) * WAVE_RULES.healthGrowth;
     assert.ok(Math.abs(waveScale(n) - grown) < 0.01, `wave ${n}: ${waveScale(n)} vs ${grown}`);
   }
   assert.equal(waveScale(51), 1, 'outside the table nothing is scaled');

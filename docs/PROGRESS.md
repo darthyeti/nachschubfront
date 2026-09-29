@@ -118,21 +118,25 @@ ging weiter und wurde gewonnen.
 **Welle 8 bleibt, wie sie ist** — die teure Fliegerwelle ohne Luftabwehr ist als
 Lernkurve gewollt (Entscheidung 28.09.) und keine offene Baustelle.
 
-**Runde 2 liegt zur Entscheidung vor:**
-[`runde-2.md`](../balancing/runden/runde-2.md). Vorgeschlagen sind
-`healthGrowth` 1,12→1,125 und `countPerWave` 0,5→1,25; die Alternative wären
-niedrigere Rangfaktoren. Nichts davon ist umgesetzt.
+**Runde 2 umgesetzt** (29.09., Regelversion 5, Version 0.9.3):
+[`runde-2.md`](../balancing/runden/runde-2.md). `healthGrowth` 1,12→1,125 und
+`countPerWave` 0,5→1,25, beide in `tests/tools/wave-rules.mjs` und im GDD.
+Nachgemessen: EFDXE8 endet mit 7 statt 15 Leben, ASQ7XY mit 11 statt 12; Reserve
+in W5–W30 von 1556 % auf 634 %, 31 statt 47 Wellen über 200 %.
 
-Was sie angeht: 88 bis 90 % aller Wellen sind „zu leicht", und nur Boss- und
-Kolosswellen bekommen je ein anderes Urteil. Die Reserve liegt in W5–W30 bei
-1556 %. **Ein Labyrinth macht das Spiel lockerer, nicht schwerer** — es kauft Zeit
-unter Feuer. Die Gegnerzahl allein reicht als Hebel nicht: Bei `countPerWave` 1,5
-spawnt Welle 45 bereits 216 Gegner, das Leistungsziel steht bei 200.
+Einzeln bewirkt keiner der beiden Werte etwas — sie greifen nur zusammen. Die
+schärfere Rangvariante wurde geprüft und verworfen: Messung und Modell
+widersprachen sich dort zu weit.
 
-**Protokolle:** 3 von 5 sind Maßstab (7CT7LQ, EFDXE8, ASQ7XY). 8425CM und MZGGZJ
-gehören zu Regeln, die nicht mehr gelten; die Werkzeuge lassen sie von allein
-aus. Nächste Eichung: `refine` liegt bei beiden vollen Partien vorn (Abstand 0,70
-und 0,49), `simple` bei der kurzen.
+**Die Gegnerzahl ist am Anschlag.** Bei `countPerWave` 1,5 spawnt Welle 45 bereits
+216 Gegner, das Leistungsziel steht bei 200. Wer hier weiter drehen will, muss
+erst die Leistung prüfen.
+
+**Protokolle: keines ist mehr Maßstab.** Alle fünf gehören zu Regeln vor Runde 2;
+die Werkzeuge lassen sie von allein aus, die Kraftkurve rechnet solange mit dem
+Bot. **Für Runde 3 braucht es eine gespielte Partie unter Regelversion 5**, gern
+wieder mit Labyrinth — dieser Stil hat die größte Reserve und zeigt am ehesten,
+ob Runde 2 gereicht hat.
 
 ## Werkzeuge
 

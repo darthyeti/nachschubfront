@@ -1,8 +1,32 @@
 # Runde 2 — die 1556 %
 
-**Stand:** Vorschlag, nichts geändert. Die Werte liegen als
-`runde-2/vorschlag.json` bereit und sind über `npm run replay -- … --data` und
-`npm run powercurve -- --data` nachvollziehbar.
+**Stand: entschieden und umgesetzt am 29.09.2026, Regelversion 5, Version
+0.9.3.** Till hat den Vorschlag genommen, nicht die Rangvariante.
+
+| Wert | vorher | jetzt | Datei |
+|---|---|---|---|
+| `healthGrowth` | 1,12 | **1,125** | `tests/tools/wave-rules.mjs` |
+| `countPerWave` | 0,5 | **1,25** | `tests/tools/wave-rules.mjs` |
+| `RULESET_VERSION` | 4 | **5** | `src/data/rules.js` |
+| `APP_VERSION` | 0.9.2 | **0.9.3** | `src/data/version.js` |
+
+Die beiden Wellenregeln stehen auch im GDD (Abschnitt 9, „Wellenaufbau") und sind
+dort mitgezogen. `src/data/waves.js` ist mit `npm run waves` neu erzeugt.
+
+**Nachgemessen nach der Umsetzung**, und es deckt sich mit der Vorhersage:
+
+| Partie | vorher | nach Runde 2 |
+|---|---|---|
+| EFDXE8 (Route 57) | 15 Leben, 1 Durchbruch | **7 Leben**, Durchbrüche W30 W35 |
+| ASQ7XY (Route 178) | 12 Leben, 1 Durchbruch | **11 Leben**, Durchbrüche W35 W45 |
+
+Reserve: W1–W10 **292 %**, W5–W30 **634 %**, W31–W50 **63 %**; 31 von 50 Wellen
+über 200 % statt 47.
+
+**Alle fünf Protokolle sind damit keine Messung mehr** — sie gehören zu Regeln,
+die nicht mehr gelten, und die Werkzeuge lassen sie von allein aus. Die
+Kraftkurve rechnet ab jetzt mit dem Bot (`refine`), bis eine Partie unter
+Regelversion 5 vorliegt. Das ist der Preis jeder Runde und war so vorgesehen.
 
 **Neu seit Runde 1:** Tills Partie ASQ7XY vom 29.09., Version 0.9.2,
 Regelversion 4, 50 Wellen, Sieg mit 12 Leben — die erste Messung unter den neuen

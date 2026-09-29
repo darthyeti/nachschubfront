@@ -1113,19 +1113,27 @@ try {
       // The protocol is played here in node and handed over, rather than loaded
       // from a file: a file in the repository would tie this check to one
       // recorded match, and playing a bot inside the page costs seconds.
-      const botLog = playBotMatch({ seed: 'EINSTIEG', strategy: 'refine' }).log;
-      const entry = await page.evaluate((protocol) => window.__nachschub.testEntry(protocol, 10), botLog);
+      //
+      // The wave is derived from the match rather than written down: how far a
+      // bot gets is a balancing value and moves with every tuning round.
+      const run = playBotMatch({ seed: 'EINSTIEG', strategy: 'simple' });
+      assert.ok(run.waves.length >= 6, `the fixture is only ${run.waves.length} waves`);
+      const wave = Math.floor(run.waves.length / 2) + 1;
+      const entry = await page.evaluate(
+        ([protocol, w]) => window.__nachschub.testEntry(protocol, w),
+        [run.log, wave],
+      );
       assert.ok(entry.ok, entry.reason);
-      assert.equal(entry.about.wave, 10);
+      assert.equal(entry.about.wave, wave);
 
       const state = await game(page);
-      assert.equal(state.wave, 9, 'nine waves fought, the tenth to come');
+      assert.equal(state.wave, wave - 1, 'the wave before it is fought, the chosen one to come');
       assert.equal(state.phase, 'planning', 'and the player is where he decides');
       assert.ok(state.towers.length > 0, 'the emplacements of those nine waves stand');
 
       const log = await page.evaluate(() => window.__nachschub.log());
       assert.ok(log.tainted.includes('testEntry'), 'prepared, not played');
-      assert.equal(log.waves.length, 9);
+      assert.equal(log.waves.length, wave - 1);
 
       assert.ok(state.speed > 0, 'the match runs');
     });
