@@ -78,14 +78,17 @@ const protocols = given ? [given] : listProtocols();
 // proposal* that the round is deciding about — without this the tool could only
 // ever describe the values that are already in src/data/.
 const dataFile = option('data');
-let override = { applied: [], refused: [] };
-if (dataFile) {
-  override = applyOverride(JSON.parse(readFileSync(dataFile, 'utf8')));
-  console.log(`Daten ${dataFile}: ${override.applied.length ? override.applied.join(', ') : 'nichts geändert'}`);
-  for (const { path, why } of override.refused) console.log(`  abgelehnt ${path}: ${why}`);
-  console.log('');
-}
 
+// Who the player is, read BEFORE any proposed values go in.
+//
+// This order is the whole point. The typical route length, rank spread and supply
+// level come from matches somebody played, and a proposal changes the waves — not
+// the player. Applying it first made every protocol fail the reproduction check,
+// because a protocol recorded under other rules is exactly what a proposal
+// creates, and the curve then fell back to a bot. The bot is a far weaker player,
+// so the reserve collapsed for a reason that had nothing to do with the proposal:
+// on 29.09.2026 that turned a real halving of the middle reserve (1556 % to
+// 798 %) into a reported 634 %, measured against a different player.
 const measured = [];
 const unusable = [];
 for (const file of protocols) {
@@ -102,6 +105,17 @@ for (const file of protocols) {
   measured.push({ file, seed: parsed.match.seed, waves: check.played.waves });
 }
 for (const { file, why } of unusable) console.log(`${file} übersprungen. ${why}\n`);
+
+let override = { applied: [], refused: [] };
+if (dataFile) {
+  override = applyOverride(JSON.parse(readFileSync(dataFile, 'utf8')));
+  console.log(`Daten ${dataFile}: ${override.applied.length ? override.applied.join(', ') : 'nichts geändert'}`);
+  for (const { path, why } of override.refused) console.log(`  abgelehnt ${path}: ${why}`);
+  console.log(
+    'Der typische Spieler kommt aus den Protokollen wie sie sind — die Änderung betrifft die Wellen, nicht ihn.',
+  );
+  console.log('');
+}
 
 let typical;
 let source;
