@@ -42,52 +42,52 @@ export const WAVES = [
     { type: 'warrior', count: 6, interval: 0.8, delay: 2 },
   ] },
   // Wave 7 · armour · 24 enemies
-  { kind: 'armour', scale: 2.0273, groups: [
+  { kind: 'armour', scale: 2.143, groups: [
     { type: 'breaker', count: 8, interval: 1.5, delay: 0 },
     { type: 'warrior', count: 11, interval: 0.8, delay: 2 },
     { type: 'burster', count: 5, interval: 1.1, delay: 4 },
   ] },
   // Wave 8 · air · 31 enemies
-  { kind: 'air', scale: 2.2807, groups: [
+  { kind: 'air', scale: 2.7817, groups: [
     { type: 'carrionflyer', count: 22, interval: 0.8, delay: 0 },
     { type: 'warrior', count: 9, interval: 0.8, delay: 2 },
   ] },
   // Wave 9 · warp · 26 enemies
-  { kind: 'warp', scale: 2.5658, groups: [
+  { kind: 'warp', scale: 3.7537, groups: [
     { type: 'warpseer', count: 14, interval: 1.1, delay: 0 },
     { type: 'warrior', count: 9, interval: 0.8, delay: 2 },
     { type: 'healer', count: 3, interval: 1.6, delay: 4 },
   ] },
   // Wave 10 · boss · 61 enemies
-  { kind: 'boss', scale: 2.8865, groups: [
+  { kind: 'boss', scale: 5.0514, groups: [
     { type: 'broodmother', count: 1, interval: 0, delay: 0 },
     { type: 'swarmer', count: 50, interval: 0.4, delay: 4 },
     { type: 'warrior', count: 10, interval: 0.8, delay: 5 },
   ] },
   // Wave 11 · horde · 60 enemies
-  { kind: 'horde', scale: 3.2473, groups: [
+  { kind: 'horde', scale: 6.6148, groups: [
     { type: 'swarmer', count: 52, interval: 0.4, delay: 0 },
     { type: 'warrior', count: 8, interval: 0.8, delay: 2 },
   ] },
   // Wave 12 · armour · 32 enemies
-  { kind: 'armour', scale: 3.6532, groups: [
+  { kind: 'armour', scale: 8.3306, groups: [
     { type: 'breaker', count: 11, interval: 1.5, delay: 0 },
     { type: 'warrior', count: 14, interval: 0.8, delay: 2 },
     { type: 'burster', count: 7, interval: 1.1, delay: 4 },
   ] },
   // Wave 13 · air · 39 enemies
-  { kind: 'air', scale: 4.1099, groups: [
+  { kind: 'air', scale: 10.0401, groups: [
     { type: 'carrionflyer', count: 28, interval: 0.8, delay: 0 },
     { type: 'warrior', count: 11, interval: 0.8, delay: 2 },
   ] },
   // Wave 14 · warp · 35 enemies
-  { kind: 'warp', scale: 4.6236, groups: [
+  { kind: 'warp', scale: 11.5591, groups: [
     { type: 'warpseer', count: 18, interval: 1.1, delay: 0 },
     { type: 'warrior', count: 12, interval: 0.8, delay: 2 },
     { type: 'healer', count: 5, interval: 1.6, delay: 4 },
   ] },
   // Wave 15 · mixed · 65 enemies
-  { kind: 'mixed', scale: 5.2016, groups: [
+  { kind: 'mixed', scale: 12.9559, groups: [
     { type: 'warrior', count: 12, interval: 0.8, delay: 0 },
     { type: 'swarmer', count: 25, interval: 0.4, delay: 2 },
     { type: 'breaker', count: 6, interval: 1.5, delay: 4 },
@@ -97,57 +97,57 @@ export const WAVES = [
     { type: 'healer', count: 3, interval: 1.6, delay: 12 },
   ] },
   // Wave 16 · horde · 74 enemies
-  { kind: 'horde', scale: 5.8518, groups: [
+  { kind: 'horde', scale: 14.4146, groups: [
     { type: 'swarmer', count: 64, interval: 0.4, delay: 0 },
     { type: 'warrior', count: 10, interval: 0.8, delay: 2 },
   ] },
   // Wave 17 · armour · 38 enemies
-  { kind: 'armour', scale: 6.5833, groups: [
+  { kind: 'armour', scale: 15.92, groups: [
     { type: 'breaker', count: 13, interval: 1.5, delay: 0 },
     { type: 'warrior', count: 17, interval: 0.8, delay: 2 },
     { type: 'burster', count: 8, interval: 1.1, delay: 4 },
   ] },
   // Wave 18 · air · 49 enemies
-  { kind: 'air', scale: 7.4062, groups: [
+  { kind: 'air', scale: 17.4546, groups: [
     { type: 'carrionflyer', count: 35, interval: 0.8, delay: 0 },
     { type: 'warrior', count: 14, interval: 0.8, delay: 2 },
   ] },
   // Wave 19 · warp · 41 enemies
-  { kind: 'warp', scale: 8.3319, groups: [
+  { kind: 'warp', scale: 18.9995, groups: [
     { type: 'warpseer', count: 22, interval: 1.1, delay: 0 },
     { type: 'warrior', count: 14, interval: 0.8, delay: 2 },
     { type: 'healer', count: 5, interval: 1.6, delay: 4 },
   ] },
   // Wave 20 · boss · 33 enemies
-  { kind: 'boss', scale: 9.3734, groups: [
+  { kind: 'boss', scale: 20.5356, groups: [
     { type: 'colossusbreaker', count: 1, interval: 0, delay: 0 },
     { type: 'breaker', count: 13, interval: 1.5, delay: 4 },
     { type: 'warrior', count: 19, interval: 0.8, delay: 5 },
   ] },
   // Wave 21 · horde · 87 enemies
-  { kind: 'horde', scale: 10.5451, groups: [
+  { kind: 'horde', scale: 22.0444, groups: [
     { type: 'swarmer', count: 76, interval: 0.4, delay: 0 },
     { type: 'warrior', count: 11, interval: 0.8, delay: 2 },
   ] },
   // Wave 22 · armour · 46 enemies
-  { kind: 'armour', scale: 11.8632, groups: [
+  { kind: 'armour', scale: 23.5101, groups: [
     { type: 'breaker', count: 16, interval: 1.5, delay: 0 },
     { type: 'warrior', count: 20, interval: 0.8, delay: 2 },
     { type: 'burster', count: 10, interval: 1.1, delay: 4 },
   ] },
   // Wave 23 · air · 57 enemies
-  { kind: 'air', scale: 13.3461, groups: [
+  { kind: 'air', scale: 24.9216, groups: [
     { type: 'carrionflyer', count: 41, interval: 0.8, delay: 0 },
     { type: 'warrior', count: 16, interval: 0.8, delay: 2 },
   ] },
   // Wave 24 · warp · 48 enemies
-  { kind: 'warp', scale: 15.0144, groups: [
+  { kind: 'warp', scale: 26.2752, groups: [
     { type: 'warpseer', count: 25, interval: 1.1, delay: 0 },
     { type: 'warrior', count: 17, interval: 0.8, delay: 2 },
     { type: 'healer', count: 6, interval: 1.6, delay: 4 },
   ] },
   // Wave 25 · mixed · 90 enemies
-  { kind: 'mixed', scale: 16.8912, groups: [
+  { kind: 'mixed', scale: 27.5778, groups: [
     { type: 'warrior', count: 17, interval: 0.8, delay: 0 },
     { type: 'swarmer', count: 34, interval: 0.4, delay: 2 },
     { type: 'breaker', count: 9, interval: 1.5, delay: 4 },
@@ -157,46 +157,46 @@ export const WAVES = [
     { type: 'healer', count: 4, interval: 1.6, delay: 12 },
   ] },
   // Wave 26 · horde · 104 enemies
-  { kind: 'horde', scale: 19.0026, groups: [
+  { kind: 'horde', scale: 28.8505, groups: [
     { type: 'swarmer', count: 90, interval: 0.4, delay: 0 },
     { type: 'warrior', count: 14, interval: 0.8, delay: 2 },
   ] },
   // Wave 27 · armour · 53 enemies
-  { kind: 'armour', scale: 21.3779, groups: [
+  { kind: 'armour', scale: 30.1323, groups: [
     { type: 'breaker', count: 18, interval: 1.5, delay: 0 },
     { type: 'warrior', count: 23, interval: 0.8, delay: 2 },
     { type: 'burster', count: 12, interval: 1.1, delay: 4 },
   ] },
   // Wave 28 · air · 66 enemies
-  { kind: 'air', scale: 24.0502, groups: [
+  { kind: 'air', scale: 31.4855, groups: [
     { type: 'carrionflyer', count: 47, interval: 0.8, delay: 0 },
     { type: 'warrior', count: 19, interval: 0.8, delay: 2 },
   ] },
   // Wave 29 · warp · 55 enemies
-  { kind: 'warp', scale: 27.0564, groups: [
+  { kind: 'warp', scale: 32.9999, groups: [
     { type: 'warpseer', count: 29, interval: 1.1, delay: 0 },
     { type: 'warrior', count: 19, interval: 0.8, delay: 2 },
     { type: 'healer', count: 7, interval: 1.6, delay: 4 },
   ] },
   // Wave 30 · boss · 36 enemies
-  { kind: 'boss', scale: 30.4385, groups: [
+  { kind: 'boss', scale: 34.7984, groups: [
     { type: 'warpherald', count: 1, interval: 0, delay: 0 },
     { type: 'warpseer', count: 25, interval: 1.1, delay: 4 },
     { type: 'healer', count: 10, interval: 1.6, delay: 5 },
   ] },
   // Wave 31 · horde · 117 enemies
-  { kind: 'horde', scale: 34.2433, groups: [
+  { kind: 'horde', scale: 37.0425, groups: [
     { type: 'swarmer', count: 102, interval: 0.4, delay: 0 },
     { type: 'warrior', count: 15, interval: 0.8, delay: 2 },
   ] },
   // Wave 32 · armour · 60 enemies
-  { kind: 'armour', scale: 38.5237, groups: [
+  { kind: 'armour', scale: 39.9378, groups: [
     { type: 'breaker', count: 21, interval: 1.5, delay: 0 },
     { type: 'warrior', count: 26, interval: 0.8, delay: 2 },
     { type: 'burster', count: 13, interval: 1.1, delay: 4 },
   ] },
   // Wave 33 · air · 74 enemies
-  { kind: 'air', scale: 43.3392, groups: [
+  { kind: 'air', scale: 43.7394, groups: [
     { type: 'carrionflyer', count: 53, interval: 0.8, delay: 0 },
     { type: 'warrior', count: 21, interval: 0.8, delay: 2 },
   ] },

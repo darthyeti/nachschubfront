@@ -68,6 +68,40 @@ export const WAVE_RULES = {
   earlyWaves: 5,
   earlyFactor: 0.7,
 
+  /**
+   * The middle of the match carries heavier enemies (balancing round 3).
+   *
+   * Between these two waves the health scale is lifted, peaking at `midFactor`
+   * in the middle of the band and easing back to 1 at both ends. A flat band was
+   * the first try and it put a step of 1.8 at wave 8 and, worse, a drop at wave
+   * 23 — a wave that suddenly gets easier reads as a bug. The lift exists because
+   * a single growth rate cannot fit this game: the
+   * player's power grows linearly with the number of emplacements and stepwise
+   * with rank, while `healthGrowth ^ (wave - 1)` is one exponential. Measured
+   * against a played match, W8-W19 sat at 782-1486 % reserve while W31-W50 sat at
+   * 288 %, and no single rate reached the middle before it lost the late game:
+   * 1.13 changed nothing and 1.14 ended the match in wave 48.
+   *
+   * It raises health rather than the enemy count on purpose. The count is already
+   * at its ceiling — wave 45 spawns 183 against a performance target of 200 — and
+   * this band needs weight, not bodies.
+   *
+   * 2.5 rather than the 3 the measurement points at. Till's verdicts put the line
+   * at roughly 400 %: waves he called "passt" sat at a median reserve of 288 %,
+   * waves he called "zu leicht" at 798 %. 2.5 brings the band's median to 476 %
+   * and 3 to 398 %, but his protocol cannot confirm either — he loses lives only
+   * to the Koloss and the wave-40 boss, so the replay reads the same whatever
+   * this is set to. Raising it further is a step to take with a played match in
+   * hand, not without one.
+   *
+   * The counterpart to earlyWaves/earlyFactor above, and shaped the same way, so
+   * the opening and the middle are read in one place.
+   */
+  midFrom: 6,
+  midPeak: 14,
+  midTo: 34,
+  midFactor: 2.5,
+
   /** Boss waves: the boss plus its escort, as shares of the normal wave count. */
   bossWaves: {
     10: { boss: 'broodmother', escort: [['swarmer', 1.0], ['warrior', 0.4]] },
@@ -110,7 +144,7 @@ export function buildWaves(rules = WAVE_RULES) {
 }
 
 export function buildWave(rules, wave) {
-  const scale = Number((rules.healthGrowth ** (wave - 1)).toFixed(4));
+  const scale = Number((rules.healthGrowth ** (wave - 1) * midLift(rules, wave)).toFixed(4));
   const bossWave = rules.bossWaves[wave];
   const groups = [];
   if (bossWave) {
@@ -127,6 +161,33 @@ export function buildWave(rules, wave) {
     if (count > 0) groups.push({ type, count, interval: rules.interval[type], delay: groups.length * 2 });
   }
   return { kind: label(rules, kind, wave), scale, groups };
+}
+
+/**
+ * The extra weight the middle of the match carries: 1 at `midFrom`, up to
+ * `midFactor` at `midPeak`, and back to 1 at `midTo`.
+ *
+ * Asymmetric, because the gap it fills is: the player's power runs away from the
+ * waves quickly once the emplacements start stacking, and the growth rate takes a
+ * long time to catch back up. Rising over eight waves and falling over twenty is
+ * the shape of the thing being corrected.
+ *
+ * It also has to be, for a duller reason. The lift must never shed weight faster
+ * than the growth rate adds it, or a wave comes out no harder than the one before
+ * and the curve reads as a fault. Two shapes failed that before this one: a
+ * straight rise and fall flattened wave 30, and a symmetric raised cosine
+ * flattened waves 26 and 27. Both were caught by the unit test that walks the
+ * whole table, which is why that test asks for strict growth rather than for a
+ * formula.
+ *
+ * Each half is a raised cosine, so the curve is flat where it meets 1 at both
+ * ends and where it turns at the peak.
+ */
+function midLift(rules, wave) {
+  const { midFrom, midPeak, midTo, midFactor } = rules;
+  if (!midFactor || midFactor === 1 || wave <= midFrom || wave >= midTo) return 1;
+  const t = wave <= midPeak ? (wave - midFrom) / (midPeak - midFrom) : (midTo - wave) / (midTo - midPeak);
+  return 1 + (midFactor - 1) * 0.5 * (1 - Math.cos(Math.PI * t));
 }
 
 const waveCount = (rules, wave) => Math.round(rules.baseCount + rules.countPerWave * wave);

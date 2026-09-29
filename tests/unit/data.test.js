@@ -317,12 +317,27 @@ test('the opening waves are eased in (GDD section 9)', () => {
 test('health grows by the rate the wave rules give, and waves get bigger', () => {
   // The rate itself is a balancing value and moves between rounds, so the test
   // asks the rules rather than repeating the number (it was 1.12 until round 2).
+  // Outside the middle band the growth is the bare rate; inside, round 3 lifts it.
+  const { healthGrowth, midFrom, midTo } = WAVE_RULES;
   assert.equal(waveScale(1), 1);
   for (let n = 2; n <= WAVES.length; n++) {
-    const grown = waveScale(n - 1) * WAVE_RULES.healthGrowth;
+    if (n > midFrom && n <= midTo) continue;
+    const grown = waveScale(n - 1) * healthGrowth;
     assert.ok(Math.abs(waveScale(n) - grown) < 0.01, `wave ${n}: ${waveScale(n)} vs ${grown}`);
   }
   assert.equal(waveScale(51), 1, 'outside the table nothing is scaled');
+
+  // The band rises and falls instead of stepping: no wave may be easier than the
+  // one before it, or the curve reads as a fault rather than as a shape.
+  for (let n = 2; n <= WAVES.length; n++) {
+    assert.ok(waveScale(n) > waveScale(n - 1), `wave ${n} is weaker than ${n - 1}`);
+  }
+  // And the band really is a band: it peaks inside and is gone at both ends.
+  const bare = (n) => WAVE_RULES.healthGrowth ** (n - 1);
+  assert.ok(Math.abs(waveScale(midFrom) - bare(midFrom)) < 0.01, 'nothing added at the start');
+  assert.ok(Math.abs(waveScale(midTo) - bare(midTo)) < 0.01, 'and nothing left at the end');
+  const middle = Math.round((midFrom + midTo) / 2);
+  assert.ok(waveScale(middle) > bare(middle) * 2, `the band lifts wave ${middle}`);
   const total = (wave) => WAVES[wave - 1].groups.reduce((sum, g) => sum + g.count, 0);
   // Same kind of wave, ten waves apart: the later one is the bigger one.
   for (const kind of [1, 2, 3, 4]) assert.ok(total(kind + 10) > total(kind), `wave ${kind + 10}`);

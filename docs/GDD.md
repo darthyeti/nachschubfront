@@ -231,6 +231,7 @@ Name im Spiel: **Koloss**. Nicht „Titan" — das ist im Grimdark-Sci-Fi-Genre 
 
 - Fünferzyklus: Horde, Panzer, Flieger, Warp, gemischt. Jede zehnte Welle ersetzt den Zyklus durch einen Boss mit Begleitung.
 - Lebenspunkte wachsen um 12,5 % pro Welle (Faktor 1,125 hoch Welle minus 1). Startwert war 1,12; Balancing-Runde 2 (29.09.2026) hat ihn angehoben.
+- **Die Mitte trägt zusätzliches Gewicht.** Zwischen Welle 6 und Welle 30 wird der Lebenspunkt-Faktor angehoben: gleichmäßig ansteigend bis zum Zweieinhalbfachen in Welle 18 und ebenso zurück auf 1 in Welle 30. Grund (Balancing-Runde 3, 29.09.2026): Die Kraft des Spielers wächst linear mit der Stellungszahl und stufig mit den Rängen, eine einzige Exponentialkurve trifft diese Form nicht — die Wellen 8 bis 19 waren zwölf Wellen am Stück ohne Anspruch. Ein Band statt einer höheren Wachstumsrate, weil jede Rate, die in der Mitte ankommt, das Spätspiel vorher umkippt. Ansteigend und abfallend statt als Stufe, damit keine Welle plötzlich leichter wird als die davor.
 - Gegneranzahl steigt mit 12 plus 1,25 pro Welle, bei Schwärmern das Doppelte. Startwert war 0,5 pro Welle; Runde 2 hat ihn angehoben, so weit es das Leistungsziel von 200 Gegnern zulässt — die stärkste Welle einer gespielten Partie kommt damit auf 183.
 - Die komplette Wellenliste liegt als Datentabelle vor und ist ohne Codeänderung anpassbar.
 
