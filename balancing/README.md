@@ -107,6 +107,15 @@ die Stellungen liefern können, und schreibt ein Diagramm nach
 `balancing/runden/kraftkurve.html`. Liegt ein Protokoll vor, prüft das Werkzeug
 sein eigenes Modell daran und sagt, wie weit es daneben liegt.
 
+Mit `--data <aenderungen>.json` rechnet es die Kurve **unter vorgeschlagenen
+Werten**, in derselben Schreibweise wie beim Nachspielen. Jede Abstimmungsrunde
+beginnt damit: Interessant ist nicht die Kurve der Werte, die schon dastehen,
+sondern die des Vorschlags.
+
+```
+npm run powercurve -- --data balancing/runden/runde-2/vorschlag.json
+```
+
 ## Testeinstieg
 
 Im Spiel, nur mit `?debug`: **Hauptmenü → Testeinstieg**. Ein Protokoll wählen —

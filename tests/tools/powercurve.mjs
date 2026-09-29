@@ -32,6 +32,7 @@ import { RANKS } from '../../src/data/ranks.js';
 import { parseProtocol } from '../../src/storage/protocol.js';
 import { isMeasurable } from '../../src/sim/record.js';
 import { reference } from './reference.mjs';
+import { applyOverride } from './data-override.mjs';
 import { playBotMatch } from './bot-player.mjs';
 
 /**
@@ -70,6 +71,20 @@ const option = (name, fallback = null) => {
 const htmlFile = option('html', 'balancing/runden/kraftkurve.html');
 const given = option('protocol');
 const protocols = given ? [given] : listProtocols();
+
+// Changed values go in before anything is read, so both the model and the
+// protocols it is checked against see the same numbers. Every tuning round of
+// part 2 starts by computing this curve, and it is the curve *under the
+// proposal* that the round is deciding about — without this the tool could only
+// ever describe the values that are already in src/data/.
+const dataFile = option('data');
+let override = { applied: [], refused: [] };
+if (dataFile) {
+  override = applyOverride(JSON.parse(readFileSync(dataFile, 'utf8')));
+  console.log(`Daten ${dataFile}: ${override.applied.length ? override.applied.join(', ') : 'nichts geändert'}`);
+  for (const { path, why } of override.refused) console.log(`  abgelehnt ${path}: ${why}`);
+  console.log('');
+}
 
 const measured = [];
 const unusable = [];
