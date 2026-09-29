@@ -1,0 +1,6 @@
+{
+  "waves": {
+    "healthGrowth": 1.125,
+    "countPerWave": 1.25
+  }
+}

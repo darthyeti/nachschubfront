@@ -108,27 +108,31 @@ Absicht ist.
 
 ## M6 Teil 2: Abstimmung
 
-**Runde 1 ist entschieden und umgesetzt** (28.09., Regelversion 4):
-[`balancing/runden/runde-1.md`](../balancing/runden/runde-1.md). Sie hat nicht an
-der Schwierigkeit gedreht, sondern drei Klippen weggeräumt — vorher endete jede
-noch so kleine Änderung in Welle 35 und sagte nichts über die anderen 49 Wellen.
+**Runde 1 umgesetzt** (28.09., Regelversion 4):
+[`runde-1.md`](../balancing/runden/runde-1.md). Warpsprung 3→1,
+Schildregeneration 120→40, `kolossLeakCost` 15→8. **Bestätigt durch Tills Partie
+ASQ7XY vom 29.09.:** Welle 30 mit Labyrinth 20/20 getötet, kein Durchbruch, von
+Till mit „passt" bewertet statt „zu schwer". Welle 35 kostete 8 Leben, die Partie
+ging weiter und wurde gewonnen.
 
-| Wert | vorher | jetzt |
-|---|---|---|
-| `warpherald.warpJump.cells` | 3 | 1 |
-| `warpherald.shieldRegen` | 120 | 40 |
-| `RULES.kolossLeakCost` | 15 | 8 |
+**Welle 8 bleibt, wie sie ist** — die teure Fliegerwelle ohne Luftabwehr ist als
+Lernkurve gewollt (Entscheidung 28.09.) und keine offene Baustelle.
 
-Entschieden von Till: Der Warpsprung wird kleiner statt abgeschaltet, damit
-Welle 30 das Labyrinth belohnt (Route 108 hält den Boss jetzt, Route 57 zahlt
-weiter 5 Leben). Der Koloss darf keine Partie entscheiden. **Welle 8 bleibt, wie
-sie ist** — die teure Fliegerwelle ohne Luftabwehr ist als Lernkurve gewollt und
-damit keine offene Baustelle mehr.
+**Runde 2 liegt zur Entscheidung vor:**
+[`runde-2.md`](../balancing/runden/runde-2.md). Vorgeschlagen sind
+`healthGrowth` 1,12→1,125 und `countPerWave` 0,5→1,25; die Alternative wären
+niedrigere Rangfaktoren. Nichts davon ist umgesetzt.
 
-**Für Runde 2 fehlen Partien.** Von den vier Protokollen spielen sich nur noch
-7CT7LQ und EFDXE8 nach; 8425CM und MZGGZJ gehören zu Regeln, die nicht mehr
-gelten, und werden von den Werkzeugen von allein ausgelassen. Zwei bis drei neue
-Partien unter Regelversion 4, dazu Testeinstiege bei Welle 30 und 35.
+Was sie angeht: 88 bis 90 % aller Wellen sind „zu leicht", und nur Boss- und
+Kolosswellen bekommen je ein anderes Urteil. Die Reserve liegt in W5–W30 bei
+1556 %. **Ein Labyrinth macht das Spiel lockerer, nicht schwerer** — es kauft Zeit
+unter Feuer. Die Gegnerzahl allein reicht als Hebel nicht: Bei `countPerWave` 1,5
+spawnt Welle 45 bereits 216 Gegner, das Leistungsziel steht bei 200.
+
+**Protokolle:** 3 von 5 sind Maßstab (7CT7LQ, EFDXE8, ASQ7XY). 8425CM und MZGGZJ
+gehören zu Regeln, die nicht mehr gelten; die Werkzeuge lassen sie von allein
+aus. Nächste Eichung: `refine` liegt bei beiden vollen Partien vorn (Abstand 0,70
+und 0,49), `simple` bei der kurzen.
 
 ## Werkzeuge
 
