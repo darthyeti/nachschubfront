@@ -188,24 +188,32 @@ function summarise(waves) {
 /**
  * How far a bot match is from a human one.
  *
- * Route length and lives are compared only over the waves both of them reached,
- * because comparing a wave one of them never saw says nothing. The scales are
- * chosen so that one whole unit is a full miss: ten waves apart, forty cells of
- * route apart, ten lives apart. The three are added and divided by three, so a
- * total near zero means "plays like him" and a total near one means "nothing
- * like him".
+ * The comparison runs over the **human's whole match**, not over the waves both
+ * of them reached. That was the first version, and it flattered a bot that died
+ * early: on a 50-wave match `recipes` reached wave 10 and came out "closest",
+ * because the nine waves it did play had a short route and full lives, and the
+ * forty it missed were not counted at all. A bot that is not there is maximally
+ * unlike him, so a wave it never reached counts as a full miss.
+ *
+ * The scales make one whole unit a full miss: the wave distance against the
+ * human's own length, forty cells of route, ten lives. The three are added and
+ * divided by three, so a total near zero means "plays like him" and a total near
+ * one means "nothing like him".
  */
 function closeness(human, bot) {
-  const shared = Math.min(human.length, bot.length);
   let route = 0;
   let lives = 0;
-  for (let i = 0; i < shared; i++) {
-    route += Math.abs(human[i].route - bot[i].route);
-    lives += Math.abs(human[i].lives - bot[i].lives);
+  for (let i = 0; i < human.length; i++) {
+    const his = human[i];
+    const its = bot[i];
+    // Beyond the bot's end: the whole of his route and his lives are the gap.
+    route += its ? Math.abs(his.route - its.route) : his.route;
+    lives += its ? Math.abs(his.lives - its.lives) : his.lives;
   }
-  route = shared > 0 ? route / shared : 0;
-  lives = shared > 0 ? lives / shared : 0;
+  const n = Math.max(1, human.length);
+  route /= n;
+  lives /= n;
   const waves = Math.abs(human.length - bot.length);
-  const total = (Math.min(1, waves / 10) + Math.min(1, route / 40) + Math.min(1, lives / 10)) / 3;
+  const total = (Math.min(1, waves / n) + Math.min(1, route / 40) + Math.min(1, lives / 10)) / 3;
   return { waves, route, lives, total };
 }
