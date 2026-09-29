@@ -20,8 +20,21 @@ dort mitgezogen. `src/data/waves.js` ist mit `npm run waves` neu erzeugt.
 | EFDXE8 (Route 57) | 15 Leben, 1 Durchbruch | **7 Leben**, Durchbrüche W30 W35 |
 | ASQ7XY (Route 178) | 12 Leben, 1 Durchbruch | **11 Leben**, Durchbrüche W35 W45 |
 
-Reserve: W1–W10 **292 %**, W5–W30 **634 %**, W31–W50 **63 %**; 31 von 50 Wellen
-über 200 % statt 47.
+Reserve, beide Seiten aus Tills eigenem Spiel gemessen:
+
+| | W1–W10 | W5–W30 | W31–W50 | über 200 % |
+|---|---|---|---|---|
+| vor Runde 2 | 534 % | **1556 %** | 673 % | 47 von 50 |
+| nach Runde 2 | 435 % | **798 %** | 288 % | 41 von 50 |
+
+> **Korrektur vom 29.09.:** Hier standen zuerst 292 / 634 / 63 %. Diese Zahlen
+> waren falsch. `powercurve --data` hat die Änderung zuerst angewendet und dann
+> die Protokolle gelesen — die fielen dadurch alle als „nicht mehr nachspielbar"
+> heraus, und das Werkzeug rechnete mit einem Bot statt mit Till. Verglichen wurden
+> also zwei verschiedene Spieler. Das Werkzeug liest den Spieler jetzt vor der
+> Änderung (`c5be616`). **Der Befund bleibt** — Runde 2 hat die Delle in der Mitte
+> etwa halbiert, und Tills Urteile gingen von 88 % auf 51 % „zu leicht" —, die
+> Zahl war zu günstig.
 
 **Alle fünf Protokolle sind damit keine Messung mehr** — sie gehören zu Regeln,
 die nicht mehr gelten, und die Werkzeuge lassen sie von allein aus. Die

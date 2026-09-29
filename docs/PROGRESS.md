@@ -120,23 +120,33 @@ Lernkurve gewollt (Entscheidung 28.09.) und keine offene Baustelle.
 
 **Runde 2 umgesetzt** (29.09., Regelversion 5, Version 0.9.3):
 [`runde-2.md`](../balancing/runden/runde-2.md). `healthGrowth` 1,12→1,125 und
-`countPerWave` 0,5→1,25, beide in `tests/tools/wave-rules.mjs` und im GDD.
-Nachgemessen: EFDXE8 endet mit 7 statt 15 Leben, ASQ7XY mit 11 statt 12; Reserve
-in W5–W30 von 1556 % auf 634 %, 31 statt 47 Wellen über 200 %.
+`countPerWave` 0,5→1,25, beide auch im GDD. **Gemessen an Tills Partie WFQZ4M:**
+„zu leicht" von 88 % auf 51 %, Reserve in W5–W30 von 1556 % auf 798 %, W31–W49
+durchgehend „passt", kein einziges „zu schwer" in 50 Wellen.
 
-Einzeln bewirkt keiner der beiden Werte etwas — sie greifen nur zusammen. Die
-schärfere Rangvariante wurde geprüft und verworfen: Messung und Modell
-widersprachen sich dort zu weit.
+**Runde 3 liegt zur Entscheidung vor:**
+[`runde-3.md`](../balancing/runden/runde-3.md). Übrig ist eine
+zusammenhängende Lücke: **W8–W19, zwölf Wellen am Stück „zu leicht"**, Reserve
+782–1486 %.
 
-**Die Gegnerzahl ist am Anschlag.** Bei `countPerWave` 1,5 spawnt Welle 45 bereits
-216 Gegner, das Leistungsziel steht bei 200. Wer hier weiter drehen will, muss
-erst die Leistung prüfen.
+Zwei Dinge sind daran gemessen und nicht vermutet:
 
-**Protokolle: keines ist mehr Maßstab.** Alle fünf gehören zu Regeln vor Runde 2;
-die Werkzeuge lassen sie von allein aus, die Kraftkurve rechnet solange mit dem
-Bot. **Für Runde 3 braucht es eine gespielte Partie unter Regelversion 5**, gern
-wieder mit Labyrinth — dieser Stil hat die größte Reserve und zeigt am ehesten,
-ob Runde 2 gereicht hat.
+- **Ein globaler Hebel kann es nicht richten.** `healthGrowth` 1,13 wirkt nicht,
+  1,14 verliert in Welle 48; `baseCount` 12→24 und eine angeglichene
+  Wellenmischung ändern gar nichts. Die Mitte bräuchte etwa das 2,7-fache, das
+  Spätspiel steht schon richtig, und `scale = healthGrowth ^ (Welle − 1)` ist eine
+  einzige Exponentialkurve.
+- **Die Lücke ist kein Überlebensproblem, sondern ein Entscheidungsproblem.** Ab
+  Welle 13 ist die Nachschubstufe am Maximum, das erste Bollwerk kam in Welle 32,
+  Abrisse gab es keine — am Ende lagen **5338 Requisition** ungenutzt.
+
+Vorgeschlagen: (A) ein Bandfaktor für die Mitte, als Gegenstück zu
+`earlyWaves`/`earlyFactor`, und (B) eine Geldsenke — die beiden im GDD
+Abschnitt 14 vorgemerkten Mittel stehen zur Wahl. B macht das Spiel leichter,
+also A zuerst oder gemeinsam.
+
+**Protokolle:** Maßstab ist WFQZ4M (Regelversion 5). Die fünf älteren gehören zu
+Regeln davor; die Werkzeuge lassen sie von allein aus.
 
 ## Werkzeuge
 
