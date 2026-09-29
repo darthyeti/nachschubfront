@@ -1,6 +1,15 @@
 # Runde 3 — zwölf leere Wellen
 
-**Stand:** Vorschlag, nichts geändert.
+**Stand: entschieden und umgesetzt am 29.09.2026, Regelversion 6.** Till hat
+**A plus B2** gewählt.
+
+| | |
+|---|---|
+| **A** | Bandfaktor für die Mitte: Welle 6 bis 34, Spitze ×2,5 in Welle 14 |
+| **B2** | Aufwertung statt Bau ab Welle 30, 120 bis 1875 R je Rangstufe |
+| | `RULESET_VERSION` 5 → 6 |
+
+Was dabei herauskam, steht am Ende dieser Datei unter „Umsetzung".
 
 **Grundlage:** Tills Partie WFQZ4M vom 29.09., Version 0.9.3, Regelversion 5, 50
 Wellen, Sieg mit 7 Leben, Route 176 — die erste Messung unter Runde 2, und im
@@ -159,3 +168,74 @@ nicht.
 3. Eine gespielte Partie, gern wieder Labyrinth.
 4. Runde 4: die bis zu 90 % verschwendeter Schaden in den ersten zehn Wellen —
    der letzte der ursprünglichen Befunde, der noch offen ist.
+
+
+---
+
+## Umsetzung
+
+### A — der Bandfaktor
+
+`midFrom: 6`, `midPeak: 14`, `midTo: 34`, `midFactor: 2.5` in
+`tests/tools/wave-rules.mjs`, dazu im GDD Abschnitt 9.
+
+Gemessen an Tills Partie: **Reserve in W5–W30 von 798 % auf 413 %**, W31–W50
+unverändert bei 288 %. Und erstmals bewegt sich etwas in der Lücke: Sein
+Nachspiel verliert jetzt ein Leben in **Welle 15** und endet mit 6 statt 7.
+
+2,5 statt der gemessenen 3: Tills Urteile legen die Grenze bei etwa 400 %
+(„passt" im Median 288 %, „zu leicht" 798 %), und sein Protokoll kann den
+Unterschied nicht bestätigen — er verliert Leben nur an den Koloss und den
+Boss in Welle 40. Höher gehen ist ein Schritt mit einer gespielten Partie in der
+Hand.
+
+**Die Form hat drei Versuche gebraucht, und der Unit-Test hat beide Fehlgriffe
+gefunden.** Ein gerader Auf- und Abstieg verliert am Ende so schnell Gewicht, wie
+das Wachstum es hinzufügt — Welle 30 war nicht schwerer als 29. Ein symmetrischer
+Kosinus tat dasselbe mit 26 und 27. Jetzt ist die Kurve **asymmetrisch**: acht
+Wellen hinauf, zwanzig hinab. Das ist beides — die Form der Lücke, die sie füllt,
+und nirgends steil genug, um die Kurve flach werden zu lassen.
+
+### B2 — Aufwertung statt Bau
+
+Ab Welle 30 eine vierte Möglichkeit in der Auswahlphase. Regeln im GDD
+Abschnitt 11; zwei Bedingungen, die der GDD-Vormerkung nicht zu entnehmen waren
+und hier begründet sind:
+
+- **Die Kapsel muss mindestens den Rang der Stellung haben.** Sonst wäre jede
+  niedrige Kapsel in einer hohen Stellung mehr wert als an jedem Bauplatz, und es
+  gäbe keinen Grund mehr zu verschmelzen.
+- **Es kostet Requisition, steil steigend:** 120 / 300 / 750 / **1875** auf
+  Legende. Der Grund für die Option war, dass späte Requisition keine Verwendung
+  hatte — eine kostenlose Aufwertung hätte die Langeweile behoben und die Kasse
+  voll gelassen. Tills 5338 übrige Requisition kaufen damit zwei bis drei
+  Legenden und nicht mehr.
+
+Angeboten wird **eine Möglichkeit je Rangstufe**, nicht je Stellung: Ab Welle 30
+stehen Dutzende, und zwanzig Schaltflächen sind keine Wahl. Welche Stellung einer
+Stufe es trifft, entscheidet das Spiel wie beim Rezept (die älteste) und zeigt sie
+vorher auf der Karte.
+
+Zwei Dinge fielen beim Bauen auf:
+
+- **Ein Fehler um eins.** `state.wave` ist in der Auswahlphase die *letzte
+  gespielte* Welle, nicht die kommende. Die Grenze hätte sonst erst vor Welle 31
+  gegriffen. Die Browser-Prüfung hat es gefunden, der Unit-Test prüft jetzt die
+  Grenze ausdrücklich an der Welle, für die gerüstet wird.
+- **Zwei Aufwertungen auf derselben Kapsel galten als eine Wahl.** `sameChoice`
+  verglich Typ, Anker, Größe und Rezept, aber nicht die Stellung. Wer die eine
+  scharf machte und dann die andere drückte, kaufte sie ohne sie je auf der Karte
+  gesehen zu haben. Die Aufwertung folgt der Zwei-Tipp-Regel der Rezepte, und die
+  trägt nur, wenn jede Möglichkeit für sich scharf wird.
+
+### Was noch offen bleibt
+
+Der Bandfaktor hebt die Mitte gleichmäßig, aber die **Wellenarten bleiben
+ungleich**: Luft und Horde tragen je Zähleinheit etwa 78 bis 81 Lebenspunkte,
+Panzer und Gemischt 142 bis 146. In der Lücke bleiben deshalb W8, W11, W13 und
+W18 deutlich über dem Rest. Ein Angleichen der Mischung wurde gemessen und
+bewirkte allein **nichts** (Reserve 798 % → 749 %, Nachspiel unverändert) — es
+lohnt erst zusammen mit dem Band. Kandidat für Runde 4, neben dem verschwendeten
+Schaden der ersten zehn Wellen.
+
+Geprüft: 446 Unit-Tests, 63 Browser-Prüfungen in Chromium **und** WebKit.

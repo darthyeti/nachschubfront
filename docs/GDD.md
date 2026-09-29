@@ -268,6 +268,19 @@ Einsatz jederzeit während einer Welle, außer wo anders angegeben. Sie setzen k
 | Heiliges Banner | 2 KP | 30 | 2 Wellen | Stellungen im Radius 2,5 verursachen eine Welle lang 50 % mehr Schaden |
 | Luftschlag | 4 KP | 30 | 4 Wellen | Linienziel: Start- und Endpunkt markieren. Die Linie **rastet auf eine der vier Rasterachsen ein** — der Endpunkt wird auf die Zeile oder Spalte des Startpunkts gezogen, je nachdem, welche Achse näher liegt. Nach 1,1 s Vorwarnung (gelbe gestrichelte Linie und Einschlagmarken) überfliegt ein Gunship die Linie in Achsrichtung und wirft 8 Bomben, abwechselnd leicht links und rechts der Linie. Flächenschaden entlang des ganzen Streifens, mit Bonus gegen die Rüstungsart Panzer. Gegen Bosse und den Koloss höchstens 30 % ihrer maximalen Lebenspunkte pro Einsatz |
 
+### Aufwertung statt Bau
+
+Ab Welle 30 gibt es in der Auswahlphase eine vierte Möglichkeit: Die Kapsel wird **nicht gebaut**, sondern in eine bereits stehende Stellung derselben Doktrin gegeben und hebt sie um einen Rang. Es entsteht keine neue Stellung, kein Feld wird belegt, und die ganze Salve — auch die gewählte Kapsel — wird zu Trümmern.
+
+Zwei Bedingungen, beide aus Balancing-Runde 3:
+
+- **Die Kapsel muss mindestens den Rang der Stellung haben.** Ein Rekrut befördert keinen Helden. Ohne diese Regel wäre jede niedrige Kapsel in einer hohen Stellung mehr wert als an jedem Bauplatz, und es gäbe keinen Grund mehr zu verschmelzen.
+- **Es kostet Requisition, steil steigend mit dem erreichten Rang:** 120 auf Veteran, 300 auf Elite, 750 auf Held, 1875 auf Legende. Der Grund für die Option ist, dass späte Requisition keine Verwendung hatte — eine kostenlose Aufwertung würde die Langeweile beheben und die Kasse voll lassen.
+
+Spezialstellungen werden nicht aufgewertet: Sie haben keinen Rang, und ein Rezept ist keine Stufe auf derselben Leiter.
+
+Angeboten wird eine Möglichkeit je Rangstufe, nicht je Stellung — ab Welle 30 stehen Dutzende, und zwanzig Schaltflächen sind keine Wahl. Welche Stellung einer Stufe es trifft, entscheidet das Spiel wie beim Rezept (die älteste) und zeigt sie vor dem Antippen auf der Karte.
+
 ## 12. Sieg, Niederlage, Wertung
 
 - Die Bastion hat 20 Leben. Normale Gegner kosten beim Durchbruch 1, Bosse 5, der Koloss 8 (Abschnitt 11). Bei 0 ist die Partie verloren.
@@ -297,4 +310,4 @@ Regeln: Nichts darf ausschließlich über Hover erreichbar sein. Trefferflächen
 - Weitere Rezepte, Karten, Endlosmodus-Details.
 - Sprites für Gegner (Blender mit Toon-Shader) falls die Code-Grafik nicht reicht.
 - **Unbegrenzte Nachschubstufe (vorgemerkt, noch nicht umsetzen).** Aus der Auswertung von Spieltest 2 stammt die Idee, die Nachschubstufe über Stufe 8 hinaus weiterführbar zu machen: jede weitere Stufe eine leicht höhere Legende-Chance bei stark steigendem Preis, damit auch ganz späte Requisitionsüberschüsse gebunden werden. Mit Till nicht final abgestimmt und deshalb nicht Teil von v3. Separat aufgreifen, falls Bollwerk und teurere Kommandos allein nicht reichen.
-- **Aufwertung statt Bau (vorgemerkt, noch nicht umsetzen).** Ab etwa Welle 30 könnte eine vierte Option in der Auswahlphase erscheinen: Eine Kapsel wird nicht gebaut, sondern auf eine bestehende Stellung derselben Doktrin gelegt und hebt sie um einen Rang. Das verlagert die späte Partie vom Bauen zum Veredeln, ohne weitere Felder zu belegen. Entscheidung erst nach dem nächsten Spieltest.
+- ~~Aufwertung statt Bau~~ — **umgesetzt in Balancing-Runde 3 (29.09.2026), siehe Abschnitt 11.**

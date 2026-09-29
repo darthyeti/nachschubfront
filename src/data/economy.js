@@ -26,6 +26,17 @@ export const ECONOMY = {
    */
   bulwarkCostFactor: 2,
 
+  /**
+   * Upgrading a standing emplacement instead of building a new one (GDD section
+   * 11, balancing round 3). Late requisition had nowhere to go: supply is at its
+   * maximum from about wave 13, and a played match ended with 5338 unspent.
+   */
+  upgradeFromWave: 30,
+  /** Raising an emplacement to rank 2 costs this ... */
+  upgradeCostBase: 120,
+  /** ... and every rank above that multiplies it by this much. */
+  upgradeCostPerRank: 2.5,
+
   /** Command points for a defeated boss. */
   pointsPerBoss: 3,
   /** Command points for a wave without a single breakthrough. */
@@ -52,6 +63,20 @@ export function rubbleCost(demolished) {
  */
 export function towerCost(demolished) {
   return rubbleCost(demolished) * ECONOMY.towerCostFactor;
+}
+
+/**
+ * Cost of raising a standing emplacement by one rank.
+ *
+ * Priced off the rank it reaches, not off a flat number, because the point is to
+ * bind late requisition: 120 to reach veteran and 1875 to reach legend. A match
+ * that ends with five thousand in the purse can buy two or three legends with it
+ * and no more.
+ *
+ * @param {number} toRank  The rank the emplacement will have afterwards.
+ */
+export function upgradeCost(toRank) {
+  return Math.round(ECONOMY.upgradeCostBase * ECONOMY.upgradeCostPerRank ** (toRank - 2));
 }
 
 /**

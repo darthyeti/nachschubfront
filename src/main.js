@@ -973,6 +973,8 @@ if (debug) {
       setLives: (n) => setLives(state, n),
       grant: (value) => grant(state, value),
       setWave: (n) => setWave(state, n),
+      /** Fixes what the next salvo contains, so a check can set up a doctrine. */
+      forcePod: (content) => forcePod(state, content),
     },
     sprites: () => ({ ...sprites.stats }),
     audio: () => ({ ready: audio.ready, muted: audio.muted }),

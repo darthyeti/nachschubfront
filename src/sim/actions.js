@@ -47,6 +47,9 @@ export function chooseSelection(state, choice) {
     anchor: choice.anchor,
     ...(choice.recipeId ? { recipeId: choice.recipeId } : {}),
     ...(choice.size ? { size: choice.size } : {}),
+    // Which emplacement was improved. Tower ids are handed out in build order,
+    // so they mean the same thing in a replay as they did in the match.
+    ...(choice.towerId !== undefined ? { towerId: choice.towerId } : {}),
   });
   setPhase(state, 'wave');
   beginWave(state);

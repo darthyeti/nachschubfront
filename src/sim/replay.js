@@ -206,6 +206,7 @@ function apply(state, action) {
         anchor: action.anchor,
         recipeId: action.recipeId,
         size: action.size,
+        towerId: action.towerId,
       });
       if (result.ok) return true;
       // This is the one action that cannot simply be skipped: it is what starts

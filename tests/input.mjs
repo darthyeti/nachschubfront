@@ -1064,6 +1064,66 @@ try {
     await context.close();
   }
 
+  // ---------- Upgrading instead of building (GDD 11, round 3) ----------
+  // The fourth option in the selection phase, from wave 30. Checked in the
+  // browser because it is a button that has to appear, say what it costs, and
+  // leave the board with no new emplacement on it.
+  console.log('upgrade instead of build (tablet, touch)');
+  {
+    const { context, page } = await openGame({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+
+    await check('from wave 30 a capsule can go into an emplacement that stands', async () => {
+      // One emplacement of a known doctrine first, then the wave the rule names.
+      await page.evaluate(() => {
+        // One emplacement will not hold a wave on its own, and a defeat here
+        // would never reach the planning phase the jump needs.
+        window.__nachschub.debug.setLives(500);
+        window.__nachschub.debug.grant({ requisition: 6000 });
+        window.__nachschub.debug.forcePod({ doctrine: 'flame', rank: 3 });
+      });
+      await page.getByRole('button', { name: 'Salve anfordern' }).click();
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
+      await page.getByRole('button', { name: 'Behalten' }).click();
+      await page.waitForFunction(() => window.__nachschub.state().towers.length === 1, null, { timeout: 10000 });
+
+      // The jump is only allowed from the planning phase, so the wave that just
+      // started has to run out first; at 3x that is a few seconds.
+      await page.getByRole('button', { name: '3x' }).click();
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'planning', null, { timeout: 120000 });
+      await page.evaluate(() => window.__nachschub.debug.setWave(30));
+      await page.evaluate(() => {
+        window.__nachschub.debug.grant({ requisition: 6000 });
+        window.__nachschub.debug.forcePod({ doctrine: 'flame', rank: 3 });
+      });
+      await page.getByRole('button', { name: 'Salve anfordern' }).click();
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
+
+      const button = page.getByRole('button', { name: /^Aufwerten:/ }).first();
+      await button.waitFor({ state: 'visible', timeout: 10000 });
+      const box = await button.boundingBox();
+      assert.ok(box.height >= 44, `the button is ${box.height} px tall`);
+
+      const before = await game(page);
+      // Two taps on a touch screen, the rule a recipe already follows: the first
+      // marks the emplacement on the map, the second spends the requisition.
+      await button.tap();
+      assert.equal((await game(page)).phase, 'selection', 'the first tap buys nothing');
+      await button.tap();
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'wave', null, { timeout: 10000 });
+      const after = await game(page);
+      assert.equal(after.towers.length, before.towers.length, 'no new emplacement was built');
+      assert.ok(after.towers.some((t) => t.rank === 4), 'the standing one went up a rank');
+      assert.ok(after.requisition < before.requisition, 'and it was paid for');
+    });
+
+    await context.close();
+  }
+
   // ---------- Test entry (M6, step 4) ----------
   // A developer door, so it is checked for what it promises and not for looks:
   // the wave chosen is still ahead of the player, and the match it produces is

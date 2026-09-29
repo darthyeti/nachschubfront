@@ -33,6 +33,10 @@ const recipeName = (id) => STRINGS.recipes[id].name;
  * every one of fifty rounds. A mouse press, and a press from the keyboard, build
  * straight away.
  *
+ * An upgrade follows the same rule, and for the same reason: it names one
+ * standing emplacement out of dozens, and which one it is has to be visible
+ * before the requisition is gone.
+ *
  * @param {object|null} armed  The choice waiting for its second press, if any.
  * @param {object} choice  The choice that was just pressed.
  * @returns {{do: 'build'} | {do: 'arm', towerIds: number[]}}
@@ -51,7 +55,11 @@ export function sameChoice(a, b) {
     a.type === b.type &&
     a.anchor === b.anchor &&
     a.size === b.size &&
-    a.recipeId === b.recipeId
+    a.recipeId === b.recipeId &&
+    // Which emplacement an upgrade would improve. Without it two upgrades on the
+    // same capsule count as one choice, so arming the one and then pressing the
+    // other would commit it with no look at what it touches.
+    a.towerId === b.towerId
   );
 }
 
@@ -78,6 +86,18 @@ export function actionsFor(options, anchor) {
       choice: { type: 'recipe', recipeId: option.recipeId, anchor },
     });
   }
+  // Last, because it builds nothing: the other three put an emplacement on the
+  // board and this one pours the capsule into one that already stands.
+  for (const option of options.upgrades ?? []) {
+    if (!option.anchors.includes(anchor)) continue;
+    actions.push({
+      label: T.upgrade(STRINGS.ranks[option.rank], STRINGS.ranks[option.resultRank]),
+      note: T.upgradeCost(option.cost),
+      // The emplacement that would be improved, shown on the map on touch.
+      towerIds: [option.towerId],
+      choice: { type: 'upgrade', towerId: option.towerId, anchor },
+    });
+  }
   return actions;
 }
 
@@ -85,7 +105,10 @@ export function actionsFor(options, anchor) {
 export function badgeFor(options, index) {
   const merge = options.merges.filter((o) => o.anchors.includes(index)).sort((a, b) => b.size - a.size)[0];
   if (options.recipes.some((o) => o.anchors.includes(index))) return T.recipeBadge;
-  return merge ? T.mergeBadge(merge.size) : '';
+  if (merge) return T.mergeBadge(merge.size);
+  // Only when there is nothing better to say: a recipe or a merge is the rarer
+  // find, and an upgrade is offered on nearly every capsule late in a match.
+  return (options.upgrades ?? []).some((o) => o.anchors.includes(index)) ? T.upgradeBadge : '';
 }
 
 /**

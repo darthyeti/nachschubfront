@@ -501,6 +501,10 @@ export const STRINGS = {
     recipe: (name) => `Rezept: ${name}`,
     recipeBadge: 'Rezept',
     consumes: (n) => (n === 1 ? 'verbraucht 1 Stellung' : `verbraucht ${n} Stellungen`),
+    // Upgrading instead of building (GDD section 11), from wave 30.
+    upgrade: (from, to) => `Aufwerten: ${from} → ${to}`,
+    upgradeCost: (n) => `kostet ${n} R, baut nichts`,
+    upgradeBadge: 'Aufwerten',
     tower: (doctrine, rank) => `${doctrine} ${rank}`,
     built: (name) => `${name} errichtet`,
     /** A capsule that came down on rubble: building there clears the heap. */

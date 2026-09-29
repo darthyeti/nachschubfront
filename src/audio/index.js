@@ -18,6 +18,8 @@ const EVENT_SOUNDS = {
   leak: 'leak',
   podImpact: 'podImpact',
   towerBuilt: 'towerBuilt',
+  // An upgrade is the same act from the ear's side: a capsule becomes strength.
+  towerUpgraded: 'towerBuilt',
   waveStart: 'waveStart',
   waveCleared: 'waveCleared',
   command: 'command',

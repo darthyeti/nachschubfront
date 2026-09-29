@@ -1,5 +1,7 @@
-// The choice after a salvo (GDD sections 3 and 8): keep one tower, merge two or
-// four identical pods, or fulfil a recipe. Everything not used becomes rubble.
+// The choice after a salvo (GDD sections 3, 8 and 11): keep one tower, merge two
+// or four identical pods, fulfil a recipe, or — late in the match — put a capsule
+// into an emplacement that already stands and raise it a rank. Everything not
+// used becomes rubble.
 //
 // The result always stands on one pod's cell, the anchor. Which pods count as
 // "used" makes no difference to the outcome, because every other pod of the
@@ -11,6 +13,7 @@ import { computeRoute } from './route.js';
 import { addTower, removeTower, towerById } from './towers.js';
 import { addRubble, clearRubble, isRubble } from './rubble.js';
 import { nextRubbleCost } from './economy.js';
+import { ECONOMY, upgradeCost } from '../data/economy.js';
 import { clearZones } from './zones.js';
 
 /** Pods of the salvo grouped by doctrine and rank, in pod order. */
@@ -111,7 +114,59 @@ export function selectionOptions(state) {
     if (option) recipes.push(option);
   }
 
-  return { keep, merges, recipes };
+  return { keep, merges, recipes, upgrades: upgradeOptions(state) };
+}
+
+/**
+ * Putting a capsule into an emplacement that already stands, for one rank (GDD
+ * section 11).
+ *
+ * Two conditions beyond the doctrine, and both are the point of the option
+ * rather than decoration:
+ *
+ * - **The capsule may not outrank what it improves downward.** A recruit does not
+ *   promote a hero, so `pod.rank >= tower.rank`. Without it every low capsule
+ *   would be worth more poured into a legend than built anywhere, and there would
+ *   be no reason left to merge.
+ * - **It costs requisition, rising steeply with the rank reached.** The reason
+ *   this option exists at all is that late requisition had nowhere to go; an
+ *   upgrade that were free would fix the boredom and leave the purse full.
+ *
+ * Special emplacements are not upgraded: they have no rank (selection.js builds
+ * them with `rank: null`), and a recipe is not a step on the same ladder.
+ */
+function upgradeOptions(state) {
+  // `state.wave` is the last wave fought, so the one this salvo is arming for is
+  // the next one. Read the other way round the option would first appear in the
+  // selection phase leading into wave 31, not 30.
+  if (state.wave + 1 < ECONOMY.upgradeFromWave) return [];
+  const options = [];
+  state.pods.forEach((pod, index) => {
+    // One option per rank step, not one per emplacement: by wave 30 a player has
+    // a couple of dozen of them and a list of twenty buttons is not a choice.
+    // What is actually being decided is which rank to put the capsule into; which
+    // emplacement of that rank is settled the way a recipe settles it, by taking
+    // the oldest, and the map shows which one it is before the tap lands.
+    const byRank = new Map();
+    for (const tower of state.towers) {
+      if (tower.special || tower.doctrine !== pod.doctrine) continue;
+      if (tower.rank >= MAX_RANK || pod.rank < tower.rank) continue;
+      const held = byRank.get(tower.rank);
+      if (!held || tower.id < held.id) byRank.set(tower.rank, tower);
+    }
+    for (const tower of [...byRank.values()].sort((a, b) => b.rank - a.rank)) {
+      options.push({
+        type: 'upgrade',
+        anchors: [index],
+        towerId: tower.id,
+        doctrine: pod.doctrine,
+        rank: tower.rank,
+        resultRank: tower.rank + 1,
+        cost: upgradeCost(tower.rank + 1),
+      });
+    }
+  });
+  return options;
 }
 
 /**
@@ -153,6 +208,9 @@ export function findOption(state, choice) {
   if (choice.type === 'recipe') {
     return options.recipes.find((o) => o.recipeId === choice.recipeId && o.anchors.includes(choice.anchor)) ?? null;
   }
+  if (choice.type === 'upgrade') {
+    return options.upgrades.find((o) => o.towerId === choice.towerId && o.anchors[0] === choice.anchor) ?? null;
+  }
   return null;
 }
 
@@ -166,6 +224,12 @@ export function applySelection(state, choice) {
   if (state.phase !== 'selection') return { ok: false, reason: 'phase' };
   const option = findOption(state, choice);
   if (!option) return { ok: false, reason: 'invalid' };
+
+  // An upgrade builds nothing, so it pays no ground and clears no heap: the
+  // capsule goes into an emplacement somewhere else on the map and every capsule
+  // of the salvo, the chosen one included, becomes rubble where it stands.
+  if (option.type === 'upgrade') return applyUpgrade(state, option);
+
   // Refused rather than paid into the red: the other pods of the salvo stay
   // open, and one of them stands on a free cell.
   if (!canAffordAnchor(state, choice.anchor)) return { ok: false, reason: 'funds' };
@@ -218,6 +282,36 @@ export function applySelection(state, choice) {
   state.builtByDoctrine[tower.doctrine] = (state.builtByDoctrine[tower.doctrine] ?? 0) + 1;
   state.events.push({ type: 'towerBuilt', tower, choice: option.type, cost });
   return { ok: true, tower, cost };
+}
+
+/**
+ * Raises a standing emplacement by one rank and turns the whole salvo to rubble.
+ *
+ * Kept apart from the building path rather than folded into it, because almost
+ * nothing about it is the same: no cell is built on, no heap under the anchor is
+ * cleared or billed, and the capsule that was chosen becomes rubble like the rest
+ * of the salvo instead of becoming an emplacement.
+ */
+function applyUpgrade(state, option) {
+  if (state.requisition < option.cost) return { ok: false, reason: 'funds' };
+  const tower = towerById(state, option.towerId);
+  // The option was read from this state a line ago, so this cannot happen; it is
+  // here so that a future caller passing a stale option is refused rather than
+  // silently spending the requisition.
+  if (!tower || tower.rank !== option.rank) return { ok: false, reason: 'invalid' };
+
+  state.requisition -= option.cost;
+  tower.rank = option.resultRank;
+
+  for (const pod of state.pods) {
+    if (!isRubble(state.map, pod)) addRubble(state, pod);
+  }
+  state.pods = [];
+  clearZones(state);
+  state.route = computeRoute(state.map);
+  state.mapVersion += 1;
+  state.events.push({ type: 'towerUpgraded', tower, cost: option.cost });
+  return { ok: true, tower, cost: option.cost };
 }
 
 /**
