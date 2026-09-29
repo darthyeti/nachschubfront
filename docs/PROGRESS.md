@@ -124,36 +124,39 @@ Lernkurve gewollt (Entscheidung 28.09.) und keine offene Baustelle.
 „zu leicht" von 88 % auf 51 %, Reserve in W5–W30 von 1556 % auf 798 %, W31–W49
 durchgehend „passt", kein einziges „zu schwer" in 50 Wellen.
 
-**Runde 3 liegt zur Entscheidung vor:**
-[`runde-3.md`](../balancing/runden/runde-3.md). Übrig ist eine
-zusammenhängende Lücke: **W8–W19, zwölf Wellen am Stück „zu leicht"**, Reserve
-782–1486 %.
+**Runde 3 umgesetzt** (29.09., Regelversion 6):
+[`runde-3.md`](../balancing/runden/runde-3.md). Till hat **A plus B2** gewählt.
 
-Zwei Dinge sind daran gemessen und nicht vermutet:
+**A — Bandfaktor für die Mitte.** Welle 6 bis 34, Spitze ×2,5 in Welle 14
+(`midFrom`/`midPeak`/`midTo`/`midFactor` in `tests/tools/wave-rules.mjs`, im GDD
+Abschnitt 9). Ein Band, weil kein globaler Hebel die Mitte erreicht, ohne vorher
+das Spätspiel umzukippen: `healthGrowth` 1,13 wirkte nicht, 1,14 verlor in Welle
+48. Gemessen: Reserve in W5–W30 von 798 % auf 413 %, W31–W50 unverändert 288 %,
+und Tills Nachspiel verliert erstmals ein Leben in der Lücke (Welle 15).
 
-- **Ein globaler Hebel kann es nicht richten.** `healthGrowth` 1,13 wirkt nicht,
-  1,14 verliert in Welle 48; `baseCount` 12→24 und eine angeglichene
-  Wellenmischung ändern gar nichts. Die Mitte bräuchte etwa das 2,7-fache, das
-  Spätspiel steht schon richtig, und `scale = healthGrowth ^ (Welle − 1)` ist eine
-  einzige Exponentialkurve.
-- **Die Lücke ist kein Überlebensproblem, sondern ein Entscheidungsproblem.** Ab
-  Welle 13 ist die Nachschubstufe am Maximum, das erste Bollwerk kam in Welle 32,
-  Abrisse gab es keine — am Ende lagen **5338 Requisition** ungenutzt.
+**B2 — Aufwertung statt Bau.** Ab Welle 30 die vierte Möglichkeit in der
+Auswahlphase (GDD Abschnitt 11): Kapsel in eine stehende Stellung derselben
+Doktrin, ein Rang hinauf, 120 bis 1875 R. Die Kapsel muss mindestens den Rang der
+Stellung haben, sonst gäbe es keinen Grund mehr zu verschmelzen. Eine Möglichkeit
+je Rangstufe, nicht je Stellung.
 
-Vorgeschlagen: (A) ein Bandfaktor für die Mitte, als Gegenstück zu
-`earlyWaves`/`earlyFactor`, und (B) eine Geldsenke — die beiden im GDD
-Abschnitt 14 vorgemerkten Mittel stehen zur Wahl. B macht das Spiel leichter,
-also A zuerst oder gemeinsam.
+**Offen aus Runde 3:** Die Wellenarten bleiben ungleich — Luft und Horde tragen je
+Zähleinheit 78 bis 81 Lebenspunkte, Panzer und Gemischt 142 bis 146. Ein
+Angleichen allein bewirkt nichts (gemessen), lohnt aber vielleicht zusammen mit
+dem Band. Dazu der verschwendete Schaden der ersten zehn Wellen.
 
-**Protokolle:** Maßstab ist WFQZ4M (Regelversion 5). Die fünf älteren gehören zu
-Regeln davor; die Werkzeuge lassen sie von allein aus.
+**Protokolle: keines ist mehr Maßstab.** Alle sechs gehören zu Regeln vor Runde 3.
+**Für Runde 4 braucht es eine gespielte Partie unter Regelversion 6** — und die
+ist diesmal besonders nötig: Das Band lässt sich an Tills Protokoll nur zur Hälfte
+prüfen (er verliert Leben ohnehin nur an Koloss und Boss), und die Aufwertung gab
+es in seiner Partie noch gar nicht.
 
 ## Werkzeuge
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (436) |
-| `npm run test:input` | 58 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
+| `npm test` | Unit-Tests (446) |
+| `npm run test:input` | 63 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |
 | `npm run test:offline` · `test:webkit` | Service Worker · alles in WebKit |
