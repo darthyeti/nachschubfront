@@ -7,6 +7,29 @@ export const STRINGS = {
   /** Corner label; the number itself comes from data/version.js. */
   version: (v) => `v${v}`,
 
+  /** The "?" help overlay: one speech bubble per HUD symbol, [title, text]. */
+  help: {
+    open: 'Hilfe: Symbole erklären',
+    close: 'Hilfe schließen',
+    dismiss: 'Tippen zum Schließen',
+    wave: ['Welle', 'Aktuelle Welle und wie viele es insgesamt sind.'],
+    lives: ['Leben', 'Jeder Durchbruch kostet Leben, Bosse und der Koloss mehr als normale Gegner. Bei 0 ist die Partie verloren.'],
+    supply: ['Nachschubstufe', 'Je höher, desto bessere Ränge bringen neue Kapseln.'],
+    requisition: ['Requisition', 'Deine Währung. Gibt es für Abschüsse und als Bonus nach jeder Welle.'],
+    points: (fromWave) => ['Kommandopunkte', `Für Spezialkommandos ab Welle ${fromWave}. Gibt es für Bosse und Wellen ohne Durchbruch.`],
+    route: ['Routenlänge', 'So viele Felder laufen die Gegner. Ein Strich heißt: Weg blockiert.'],
+    codex: ['Rezepte', 'Zeigt, welche Stellungen sich verschmelzen lassen.'],
+    menu: ['Menü', 'Pause, Einstellungen, Bestenliste und Neue Partie.'],
+    supplyDisc: ['Nachschub', 'Baut die Nachschubstufe aus. Kostet Requisition.'],
+    demolishDisc: ['Abreißen', 'Räumt ein Trümmerfeld und gibt das Feld frei.'],
+    bulwarkDisc: ['Bollwerk', 'Macht aus Trümmern ein Bollwerk, das Rammstößen standhält.'],
+    salvo: ['Salve', 'Startet die Runde: Kapseln landen, du wählst eine Stellung, die Welle beginnt.'],
+    speed: ['Tempo', 'Pause, einfache, doppelte und dreifache Geschwindigkeit.'],
+    /** Third line of a command bubble; every number comes from data/commands.js. */
+    commandMeta: (cost, fromWave, cooldown) =>
+      `${cost} KP · ab Welle ${fromWave} · ${cooldown === 1 ? '1 Welle' : `${cooldown} Wellen`} Pause`,
+  },
+
   hud: {
     wave: 'Welle',
     lives: 'Leben',

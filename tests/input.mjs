@@ -134,6 +134,72 @@ try {
       assert.ok(cam.zoom * 64 >= 40, `cell ${cam.zoom * 64} px`);
     });
 
+    await check('the help layer names every symbol in line with it and gives way to other layers', async () => {
+      const bubbles = () =>
+        page.$$eval('.help-bubble', (bs) => bs.map((b) => {
+          const r = b.getBoundingClientRect();
+          return { title: b.querySelector('b').textContent, left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+        }));
+      const view = await page.evaluate(() => [innerWidth, innerHeight]);
+      const sound = async (expected) => {
+        await frames(page, 25); // the pop-in has to be over, it scales the boxes
+        const list = await bubbles();
+        assert.equal(list.length, expected, list.map((b) => b.title).join(', '));
+        for (const b of list) {
+          assert.ok(b.left >= 0 && b.top >= 0 && b.right <= view[0] && b.bottom <= view[1], `${b.title} leaves the view: ${JSON.stringify(b)} in ${view}`);
+        }
+        for (let a = 0; a < list.length; a++) {
+          for (let c = a + 1; c < list.length; c++) {
+            const x = list[a];
+            const y = list[c];
+            const apart = x.right <= y.left || y.right <= x.left || x.bottom <= y.top || y.bottom <= x.top;
+            assert.ok(apart, `${x.title} and ${y.title} overlap`);
+          }
+        }
+        assert.equal((await page.$$('.help-lines line')).length, expected, 'one line per bubble');
+        // No bubble may hide a symbol, its own or another one.
+        const rings = await page.$$eval('.help-ring', (rs) => rs.map((r) => r.getBoundingClientRect().toJSON()));
+        for (const b of list) {
+          for (const r of rings) {
+            const clear = b.right <= r.left + 4 || r.right - 4 <= b.left || b.bottom <= r.top + 4 || r.bottom - 4 <= b.top;
+            assert.ok(clear, `${b.title} covers a symbol`);
+          }
+        }
+      };
+      const helpButton = page.locator('.help-button');
+      const wave = (await game(page)).wave;
+
+      await helpButton.tap();
+      await frames(page);
+      await sound(13); // the rail is not there yet, so no command is explained
+      const speedBefore = (await game(page)).speed;
+      await page.screenshot({ path: join(OUT, 'tablet-help.png') });
+      await page.locator('.help-layer').tap({ position: { x: 300, y: 400 } });
+      assert.ok(await page.locator('.help-layer').isHidden(), 'a tap closes it');
+      assert.equal((await game(page)).speed, speedBefore, 'it does not stop the match');
+
+      await page.evaluate((n) => window.__nachschub.debug.setWave(n), 20);
+      await frames(page, 3);
+      await helpButton.tap();
+      await frames(page);
+      await sound(13 + 5); // the rail is up: all five discs, locked ones too
+      const titles = (await bubbles()).map((b) => b.title);
+      assert.ok(titles.includes('Orbitalschlag') && titles.includes('Luftschlag'), titles.join(', '));
+      await page.screenshot({ path: join(OUT, 'tablet-help-commands.png') });
+
+      await page.keyboard.press('Escape');
+      assert.ok(await page.locator('.help-layer').isHidden(), 'escape closes only the help');
+      assert.ok(await page.locator('.menu[data-menu="pause"]').isHidden(), 'and does not open the pause screen');
+
+      await helpButton.tap();
+      await page.evaluate(() => document.querySelector('[aria-label="Rezepte"]').click());
+      await frames(page, 3);
+      assert.ok(await page.locator('.help-layer').isHidden(), 'the codex closes it');
+      await page.getByRole('button', { name: 'Schließen' }).tap();
+      await page.evaluate((n) => window.__nachschub.debug.setWave(n), wave);
+      await frames(page, 3);
+    });
+
     await page.getByRole('button', { name: 'Hindernis-Modus' }).tap();
     const before = await game(page);
     /** The pods of the first salvo; later checks count rubble against them. */

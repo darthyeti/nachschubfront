@@ -1853,3 +1853,116 @@ button[hidden] {
     transform: none;
   }
 }
+
+/* ---------- Help overlay: the "?" and its speech bubbles ---------- */
+
+.help-button {
+  position: absolute;
+  left: calc(10px + var(--safe-left));
+  bottom: calc(26px + var(--safe-bottom));
+  z-index: 12;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: rgba(24, 18, 14, 0.92);
+  color: var(--btn, #e8c872);
+  font-family: var(--font-title);
+  font-size: 26px;
+  line-height: 1;
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
+}
+
+.help-button[aria-pressed='true'] {
+  background: var(--btn, #e8c872);
+  color: var(--ink);
+}
+
+.help-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  /* The HUD layer lets clicks through to the map; this one must catch them. */
+  pointer-events: auto;
+  background: rgba(10, 7, 5, 0.55);
+}
+
+.help-layer[hidden] {
+  display: none;
+}
+
+.help-bubble {
+  position: absolute;
+  box-sizing: border-box;
+  width: 132px;
+  padding: 4px 7px;
+  background: rgba(24, 18, 14, 0.97);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.2;
+  pointer-events: none;
+  animation: help-pop 0.18s ease-out both;
+}
+
+.help-bubble b {
+  display: block;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--btn, #e8c872);
+}
+
+.help-button[hidden] {
+  display: none;
+}
+
+.help-meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.help-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.help-lines line {
+  stroke: var(--btn, #e8c872);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.85;
+}
+
+.help-ring {
+  position: absolute;
+  border: 2px solid var(--btn, #e8c872);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.help-dismiss {
+  position: absolute;
+  left: calc(64px + var(--safe-left));
+  bottom: calc(38px + var(--safe-bottom));
+  color: var(--muted);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+@keyframes help-pop {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .help-bubble { animation: none; }
+}

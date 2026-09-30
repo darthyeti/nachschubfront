@@ -4,6 +4,7 @@ import { STRINGS } from '../data/strings.js';
 import { el, button, explain } from './controls.js';
 import { createRuneButton } from './runeButton.js';
 import { icon } from './icons.js';
+import { createHelp } from './help.js';
 import { APP_VERSION } from '../data/version.js';
 import { GAME_SPEEDS } from '../data/settings.js';
 import { RANK_COLORS } from '../data/ranks.js';
@@ -172,7 +173,16 @@ export function createHud(root, { debug, onAction }) {
   // report can say which build it happened on.
   const version = el('div', 'hud-version', STRINGS.version(APP_VERSION));
 
-  root.append(top, bottom, banner, version);
+  const help = createHelp(root, {
+    plates: { wave, lives, supply, requisition, points, route },
+    codex: rightPlates.children[rightPlates.children.length - 2],
+    menu: rightPlates.children[rightPlates.children.length - 1],
+    discs: [supplyDisc.el, demolishDisc.el, bulwarkDisc.el],
+    salvo: start,
+    speed: speedGroup,
+  });
+
+  root.append(top, bottom, banner, version, help.button);
   if (debugEl) root.append(debugEl);
 
   const cache = new Map();
@@ -186,8 +196,14 @@ export function createHud(root, { debug, onAction }) {
     /** Column above the bottom bar; panels insert themselves here. */
     bottom,
 
+    /** The "?" overlay; the command rail hands its discs over through it. */
+    help,
+
     /** Syncs the HUD with game state and render-side UI state. */
     update(state, ui, { totalWaves, canStart }) {
+      // The "?" belongs to the running game: pod selection and the end screens
+      // have their own explanations and need the whole view.
+      help.setAvailable(state.phase !== 'selection' && state.phase !== 'defeat' && state.phase !== 'victory');
       set('wave', `${state.wave}/${totalWaves}`, (v) => {
         wave.value.textContent = v;
         wave.box.setAttribute('aria-label', `${T.wave} ${v}`);

@@ -63,6 +63,9 @@ export function createCommandBar(root, { onPick }) {
   };
 
   return {
+    /** The discs in rail order, for the help overlay. Hidden ones have no box and are skipped there. */
+    helpTargets: () => discs.map(({ command, disc }) => ({ command, node: disc.el })),
+
     /** @param {object} ui  Render-side state; `commandTarget` is the command being aimed. */
     update(state, ui) {
       // Before the first unlock the rail would only be a row of padlocks.

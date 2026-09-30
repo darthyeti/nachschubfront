@@ -537,6 +537,7 @@ const rating = createRatingRow(hud.bottom, {
   },
 });
 const commandBar = createCommandBar(hudRoot, { onPick: pickCommand });
+hud.help.setCommandDiscs(commandBar.helpTargets);
 const debugPanel = debug
   ? createDebugPanel(document.getElementById('hud'), {
       onAction: (action, value) => {
@@ -699,6 +700,7 @@ const menus = createMenus(document.body, {
   onExportMatch: exportMatch,
   onToggle(open) {
     if (open) {
+      hud.help.close();
       if (state.speed > 0) speedBeforeMenu = state.speed;
       setSpeed(state, 0);
     }
@@ -867,6 +869,7 @@ function frame(now) {
   ui.commandLine = aimed?.target === 'line' ? { halfWidth: aimed.halfWidth, maxLength: aimed.maxLength } : null;
 
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);
+  if (codex.open) hud.help.close();
   hud.update(state, ui, { totalWaves: totalWaves(), canStart: canRequestSalvo(state) });
   menus.setStatus({
     running: matchRunning && state.phase !== 'defeat' && state.phase !== 'victory',

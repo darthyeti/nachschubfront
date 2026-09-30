@@ -18,6 +18,14 @@ Version **0.9.1**. Alle Inhalts-Meilensteine sind abgenommen. Offen ist nur noch
 | M5d | Koloss, Stellungsgrafik, Gunship (Update 7) | 27.09.2026 |
 | **M6** | **Balancing und Feinschliff** | **in Arbeit** |
 
+**Hilfe-Ebene (Version 0.9.4):** Der „?“-Knopf unten links über der Versionszahl
+öffnet eine Ebene, die jedes Symbol der Leisten und, sobald sie steht, jede Scheibe
+der Kommandoleiste mit einer Sprechblase und gestrichelter Linie erklärt
+(`src/ui/help.js`, Texte in `STRINGS.help`, Zahlen der Kommandos aus
+`src/data/commands.js`). Sie pausiert nichts und weicht Menü, Codex,
+Kapselauswahl und Ende-Bildschirm. Die Platzierung ist eine reine Funktion
+(`layoutBubbles`) mit Unit-Test.
+
 Die Updates 2 bis 7 waren Einschübe, keine Meilensteine: 2 → M4b, 3 → M4c,
 4 → M4d, 5 → M5b, 6 → M5c, 7 → M5d. Nach M6 kommt keiner mehr.
 

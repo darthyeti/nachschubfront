@@ -11,6 +11,7 @@ import { commandStatus } from '../../src/sim/commands.js';
 import { commandFace } from '../../src/ui/runeButton.js';
 import { COMMANDS, commandById } from '../../src/data/commands.js';
 import { railOrder } from '../../src/ui/commands.js';
+import { layoutBubbles, commandMeta } from '../../src/ui/help.js';
 import { validateSeed, randomSeed } from '../../src/core/seed.js';
 import { ICONS } from '../../src/ui/icons.js';
 import { doomArrowPoints } from '../../src/render/scene.js';
@@ -145,4 +146,66 @@ test('the arrow bobs, and stands still when motion is not wanted', () => {
   assert.equal(at(0.3, true), at(0.9, true), 'prefers-reduced-motion holds it still');
   // However far it swings, it never drops onto the figure.
   for (let t = 0; t < 6; t += 0.05) assert.ok(at(t, false) < anchor[1]);
+});
+
+// ---------- The help layer ----------
+
+const box = (left, top, w = 44, h = 44) => ({ left, top, right: left + w, bottom: top + h });
+const overlap = (a, b, w, hA, hB) =>
+  !(a.x + w <= b.x || b.x + w <= a.x || a.y + hA <= b.y || b.y + hB <= a.y);
+
+test('help bubbles stand in line with their symbol when there is room', () => {
+  const items = [box(100, 10), box(400, 10)].map((rect) => ({ rect, height: 40 }));
+  const spots = layoutBubbles(items, 'below', { width: 800, height: 600 });
+  assert.equal(spots[0].tier, 0);
+  assert.equal(spots[1].tier, 0);
+  for (const [i, s] of spots.entries()) {
+    const cx = (items[i].rect.left + items[i].rect.right) / 2;
+    assert.equal(s.x + 66, cx, 'centred on the symbol');
+    assert.equal(s.line.x2, cx, 'the line ends on it');
+    assert.ok(s.y > items[i].rect.bottom);
+  }
+});
+
+test('crowded symbols get further rows and nothing overlaps or leaves the view', () => {
+  const view = { width: 800, height: 600 };
+  for (const side of ['below', 'above', 'left']) {
+    const items = Array.from({ length: 7 }, (_, i) => ({
+      rect: side === 'left' ? box(740, 100 + i * 46) : box(20 + i * 50, side === 'below' ? 10 : 540),
+      height: 44 + (i % 3) * 12,
+    }));
+    const spots = layoutBubbles(items, side, view);
+    spots.forEach((s, i) => {
+      assert.ok(s.x >= 0 && s.y >= 0 && s.x + 132 <= view.width, `${side} ${i} stays inside`);
+      for (let j = i + 1; j < spots.length; j++) {
+        assert.ok(!overlap(s, spots[j], 132, items[i].height, items[j].height), `${side}: ${i} and ${j} overlap`);
+      }
+    });
+  }
+});
+
+test('bubbles beside the rail keep clear of boxes that are already taken', () => {
+  const view = { width: 1180, height: 820 };
+  const items = Array.from({ length: 5 }, (_, i) => ({ rect: box(1120, 250 + i * 56), height: 62 }));
+  const taken = [{ left: 900, top: 60, right: 1180, bottom: 330 }, { left: 700, top: 400, right: 1000, bottom: 470 }];
+  const spots = layoutBubbles(items, 'left', view, { avoid: taken });
+  spots.forEach((s, i) => {
+    const b = { left: s.x, top: s.y, right: s.x + 132, bottom: s.y + 62 };
+    assert.ok(b.left >= 0 && b.top >= 0 && b.bottom <= view.height, `${i} inside`);
+    for (const t of taken) {
+      assert.ok(b.right <= t.left || t.right <= b.left || b.bottom <= t.top || t.bottom <= b.top, `${i} hits a taken box`);
+    }
+    spots.slice(i + 1).forEach((o, k) => {
+      assert.ok(!overlap(s, o, 132, 62, 62), `${i} and ${i + 1 + k} overlap`);
+    });
+  });
+});
+
+test('a command bubble takes its numbers from the command data', () => {
+  for (const command of COMMANDS) {
+    const meta = commandMeta(command);
+    assert.ok(meta.includes(`${command.cost} KP`), meta);
+    assert.ok(meta.includes(`ab Welle ${command.fromWave}`), meta);
+    assert.ok(meta.includes(String(command.cooldownWaves)), meta);
+  }
 });
