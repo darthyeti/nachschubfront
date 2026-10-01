@@ -152,10 +152,28 @@ Doktrin, ein Rang hinauf, 120 bis 1875 R. Die Kapsel muss mindestens den Rang de
 Stellung haben, sonst gäbe es keinen Grund mehr zu verschmelzen. Eine Möglichkeit
 je Rangstufe, nicht je Stellung.
 
-**Offen aus Runde 3:** Die Wellenarten bleiben ungleich — Luft und Horde tragen je
-Zähleinheit 78 bis 81 Lebenspunkte, Panzer und Gemischt 142 bis 146. Ein
-Angleichen allein bewirkt nichts (gemessen), lohnt aber vielleicht zusammen mit
-dem Band. Dazu der verschwendete Schaden der ersten zehn Wellen.
+**Runde 4 liegt als Frage vor:**
+[`runde-4.md`](../balancing/runden/runde-4.md). Gemessen an Tills Partie U4AZZQ
+(01.10., Regelversion 6):
+
+- **Teil A hat gewirkt.** Reserve in W5–W30 von 798 % auf 523 %, Spätspiel
+  unverändert. Die zwölf leeren Wellen sind als Block weg.
+- **Teil B2 wird nicht gewollt.** Die Aufwertung stand in **allen 21** späten
+  Auswahlphasen zur Wahl und war in allen bezahlbar; genommen wurde sie **zweimal**.
+  Kein Reichweiten- und kein Preisproblem: Eine neue Stellung ist mehr wert als ein
+  Rang, weil die Routenlänge alles dominiert.
+- **Die Bewertungszeile unterscheidet nichts mehr.** 49 von 49 Wellen „passt",
+  über Reserven von −9 % bis 967 %. Dabei kein einziges verlorenes Leben und
+  20/20 am Ende — zwei Tage vorher wurde dieselbe Art Ergebnis zu 88 % „zu leicht"
+  genannt.
+
+**Die offene Frage:** Hieß „passt" „so ist es richtig" (dann ist M6 inhaltlich
+fertig) oder „nichts zu beanstanden" (dann ist 20:0 noch zu leicht)? Davon hängt
+ab, ob Runde 4 abschließt oder weiterdreht.
+
+**Offen, unverändert:** Die Wellenarten bleiben ungleich (Luft/Horde 78–81 LP je
+Zähleinheit, Panzer/Gemischt 142–146; Angleichen allein bewirkt nichts). Dazu der
+verschwendete Schaden der ersten zehn Wellen.
 
 **Protokolle: keines ist mehr Maßstab.** Alle sechs gehören zu Regeln vor Runde 3.
 **Für Runde 4 braucht es eine gespielte Partie unter Regelversion 6** — und die
@@ -167,7 +185,7 @@ es in seiner Partie noch gar nicht.
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (446) |
+| `npm test` | Unit-Tests (451) |
 | `npm run test:input` | 63 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |
