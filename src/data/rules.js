@@ -27,12 +27,38 @@ export const RULESET_VERSION = 6;
 
 /**
  * True while the numbers are still being tuned (M6). It turns on what only a
- * test version wants — the rating line after every wave — and it is a separate
- * flag from the version number on purpose: the version says which rules a score
- * was played under, this says whether the rules are settled. Set it to false
- * with the last balancing round.
+ * test version wants — the rating line after a wave — and it is a separate flag
+ * from the version number on purpose: the version says which rules a score was
+ * played under, this says whether the rules are settled. Set it to false with the
+ * last balancing round.
  */
 export const RULESET_TESTING = true;
+
+/**
+ * The waves the rating line asks about. Ten of fifty, since balancing round 4.
+ *
+ * It used to ask after every wave, and that stopped working: in the match of
+ * 01.10.2026 all 49 answers were "passt", covering waves from -9 % reserve to
+ * 967 %. The same word for the tightest wave in the game and for one with ten
+ * times the firepower it needs is not an answer, it is a reflex. Fifty questions
+ * in a row produce reflexes; ten produce answers.
+ *
+ * Which ten, and why these: wave 1 because it is the one genuinely tight wave,
+ * 8/13/18 because that stretch was twelve empty waves until round 3 and is what
+ * the band is being judged on, 24/30 for the end of the band, 35 for the Koloss,
+ * and 41/46/50 for the late game that has been reading right for two rounds. The
+ * point is to tell those stretches apart, which needs samples from each — not the
+ * most dramatic waves, which would all come back "passt" again.
+ *
+ * A data value and not a rule in the code, so a tuning round can look elsewhere
+ * without touching src/ui.
+ */
+export const RATED_WAVES = [1, 8, 13, 18, 24, 30, 35, 41, 46, 50];
+
+/** Whether the rating line asks after this wave. */
+export function isRatedWave(wave) {
+  return RATED_WAVES.includes(wave);
+}
 
 export const RULES = {
   /** Bastion lives at the start of a match. */

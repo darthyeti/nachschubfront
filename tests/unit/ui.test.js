@@ -15,6 +15,8 @@ import { layoutBubbles, commandMeta } from '../../src/ui/help.js';
 import { validateSeed, randomSeed } from '../../src/core/seed.js';
 import { ICONS } from '../../src/ui/icons.js';
 import { doomArrowPoints } from '../../src/render/scene.js';
+import { RATED_WAVES, isRatedWave } from '../../src/data/rules.js';
+import { WAVES } from '../../src/data/waves.js';
 
 /** The orbital strike is a wave-phase command, so that is where it is usable. */
 function atWave(wave, phase = 'wave') {
@@ -208,4 +210,24 @@ test('a command bubble takes its numbers from the command data', () => {
     assert.ok(meta.includes(`ab Welle ${command.fromWave}`), meta);
     assert.ok(meta.includes(String(command.cooldownWaves)), meta);
   }
+});
+
+test('the rating line asks at ten waves, not at fifty', () => {
+  // Asking after every wave stopped working: in the match of 01.10.2026 all 49
+  // answers were "passt", covering reserves from -9 % to 967 %. The sample is
+  // the fix, so what it covers is worth pinning down.
+  assert.equal(RATED_WAVES.length, 10);
+  assert.ok(RATED_WAVES.every((w) => Number.isInteger(w) && w >= 1 && w <= WAVES.length));
+  assert.deepEqual([...RATED_WAVES].sort((a, b) => a - b), RATED_WAVES, 'in wave order');
+  assert.equal(new Set(RATED_WAVES).size, RATED_WAVES.length, 'no wave twice');
+
+  // It has to reach every stretch the tuning tells apart, or a round cannot say
+  // which of them is wrong: the opening, the middle band, and the late game.
+  assert.ok(RATED_WAVES.includes(1), 'the one genuinely tight wave');
+  assert.ok(RATED_WAVES.some((w) => w >= 8 && w <= 19), 'the stretch round 3 lifted');
+  assert.ok(RATED_WAVES.some((w) => w >= 20 && w <= 30), 'the end of the band');
+  assert.ok(RATED_WAVES.some((w) => w >= 35), 'the late game');
+
+  assert.ok(isRatedWave(RATED_WAVES[0]));
+  assert.ok(!isRatedWave(2), 'and it really does skip the rest');
 });

@@ -56,7 +56,7 @@ import {
   protocolFileName,
 } from './storage/protocol.js';
 import { startLog, recordRating, isMeasurable } from './sim/record.js';
-import { RULESET_VERSION } from './data/rules.js';
+import { RULESET_VERSION, isRatedWave } from './data/rules.js';
 import { createRatingRow } from './ui/rating.js';
 import { prepareTestEntry } from './sim/testentry.js';
 import { registerServiceWorker } from './core/updates.js';
@@ -749,7 +749,9 @@ function drainEvents() {
       saveProtocol();
       // Voluntary and never in the way: the round goes on whether it is answered
       // or not, and the next salvo takes the question down again.
-      if (prefs.values.rateWaves) rating.ask(ev.wave);
+      // Only at the waves the rules name: asking after every one of fifty turned
+      // the answer into a reflex (src/data/rules.js, RATED_WAVES).
+      if (prefs.values.rateWaves && isRatedWave(ev.wave)) rating.ask(ev.wave);
     }
     // Markers the last purchase made impossible to build on. Said out loud,
     // because a landing zone that quietly disappears looks like a fault, and

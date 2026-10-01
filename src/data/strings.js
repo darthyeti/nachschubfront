@@ -274,8 +274,10 @@ export const STRINGS = {
     ratingOn: 'An',
     ratingOff: 'Aus',
     ratingHint:
-      'Nach jeder Welle erscheinen drei Knöpfe: zu leicht, passt, zu schwer. ' +
-      'Die Antworten wandern ins Partie-Protokoll und helfen beim Abstimmen der Werte.',
+      'Nach einigen Wellen erscheinen drei Knöpfe: zu leicht, passt, zu schwer. ' +
+      'Gefragt wird an zehn von fünfzig Wellen — wer fünfzigmal gefragt wird, tippt, ' +
+      'wer zehnmal gefragt wird, überlegt. Die Antworten wandern ins Partie-Protokoll ' +
+      'und helfen beim Abstimmen der Werte.',
     percent: (v) => `${Math.round(v * 100)} %`,
     storageWarning: 'Einstellungen können in diesem Browser nicht gespeichert werden.',
   },
