@@ -152,24 +152,27 @@ Doktrin, ein Rang hinauf, 120 bis 1875 R. Die Kapsel muss mindestens den Rang de
 Stellung haben, sonst gäbe es keinen Grund mehr zu verschmelzen. Eine Möglichkeit
 je Rangstufe, nicht je Stellung.
 
-**Runde 4 liegt als Frage vor:**
-[`runde-4.md`](../balancing/runden/runde-4.md). Gemessen an Tills Partie U4AZZQ
-(01.10., Regelversion 6):
+**Runde 4 läuft:** [`runde-4.md`](../balancing/runden/runde-4.md).
 
-- **Teil A hat gewirkt.** Reserve in W5–W30 von 798 % auf 523 %, Spätspiel
-  unverändert. Die zwölf leeren Wellen sind als Block weg.
-- **Teil B2 wird nicht gewollt.** Die Aufwertung stand in **allen 21** späten
-  Auswahlphasen zur Wahl und war in allen bezahlbar; genommen wurde sie **zweimal**.
-  Kein Reichweiten- und kein Preisproblem: Eine neue Stellung ist mehr wert als ein
-  Rang, weil die Routenlänge alles dominiert.
-- **Die Bewertungszeile unterscheidet nichts mehr.** 49 von 49 Wellen „passt",
-  über Reserven von −9 % bis 967 %. Dabei kein einziges verlorenes Leben und
-  20/20 am Ende — zwei Tage vorher wurde dieselbe Art Ergebnis zu 88 % „zu leicht"
-  genannt.
+- **Runde 3 Teil A hat gewirkt.** Reserve in W5–W30 von 798 % auf 523 %.
+- **Teil B2 wird nicht gewollt.** Die Aufwertung stand in allen 21 späten
+  Auswahlphasen zur Wahl und war bezahlbar; genommen wurde sie zweimal. Eine neue
+  Stellung ist mehr wert als ein Rang, weil die Routenlänge alles dominiert.
+- **Die Bewertungszeile fragt jetzt an zehn Wellen** statt an fünfzig
+  (`RATED_WAVES` in `src/data/rules.js`). Vorher kamen 49 von 49 „passt" zurück,
+  über Reserven von −9 % bis 967 %.
 
-**Die offene Frage:** Hieß „passt" „so ist es richtig" (dann ist M6 inhaltlich
-fertig) oder „nichts zu beanstanden" (dann ist 20:0 noch zu leicht)? Davon hängt
-ab, ob Runde 4 abschließt oder weiterdreht.
+**Die Schere ist der offene Punkt.** Über drei Runden sind die Enden
+auseinandergelaufen: Tills Route bei Welle 30 ging von 57 auf bis zu 219, während
+die Bots sich etwa halbierten (Veredler 28 → 13 Wellen im Median) und **keiner von
+ihnen noch eine Partie gewinnt**. Till gewinnt dieselbe mit 20 von 20 Leben. Grund
+ist, dass die Routenlänge alles multipliziert — dieselbe Erhöhung kostet einen
+kurzen Weg weit mehr als einen langen, die Hebel wirken also regressiv.
+
+**Deshalb in Runde 4 kein Eingriff in die Werte.** Was fehlt, ist eine zweite
+Messung: ein Mensch, der das Spiel nicht selbst abgestimmt hat. Ein Bot ist dafür
+kein Ersatz — er setzt Zonen nach einer Regel und lernt innerhalb einer Partie
+nichts dazu, er ist eine untere Schranke und kein Spieler.
 
 **Offen, unverändert:** Die Wellenarten bleiben ungleich (Luft/Horde 78–81 LP je
 Zähleinheit, Panzer/Gemischt 142–146; Angleichen allein bewirkt nichts). Dazu der
@@ -185,8 +188,8 @@ es in seiner Partie noch gar nicht.
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (451) |
-| `npm run test:input` | 63 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
+| `npm test` | Unit-Tests (452) |
+| `npm run test:input` | 64 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |
 | `npm run test:offline` · `test:webkit` | Service Worker · alles in WebKit |

@@ -3,8 +3,10 @@
 **Berührt:** `balancing/` und `tests/tools` (Auswertung), Vorschlag betrifft
 `src/ui/rating.js` und `src/core/prefs.js`.
 
-**Stand:** Auswertung von Runde 3 und eine Frage, die nur Till beantworten kann.
-Nichts geändert.
+**Stand:** Tills Antwort liegt vor — „schon besser, aber stellenweise vielleicht
+doch noch zu leicht", dazu der Einwand, er sei inzwischen zu gut und nicht mehr
+der Maßstab. Die Bewertungszeile fragt seit dieser Runde nur noch an zehn Wellen.
+An den Spielwerten ist **nichts** geändert; warum nicht, steht unten.
 
 **Grundlage:** Partie U4AZZQ vom 01.10.2026, Version 0.9.4, Regelversion 6,
 50 Wellen, Sieg, Route 133.
@@ -74,23 +76,17 @@ wurde eine Partie ohne Lebensverlust zu 88 % „zu leicht" genannt. Die beiden
 Größen laufen auseinander, und damit ist die Bewertungszeile als Messgerät
 vorerst wertlos: Sie unterscheidet nichts mehr.
 
-### Die Frage, die nur Till beantworten kann
+### Tills Antwort
 
-**Hieß „passt" dieses Mal „so ist es richtig" — oder „nichts zu beanstanden"?**
+„Schon besser, aber stellenweise vielleicht doch noch zu leicht" — und dazu der
+Einwand, der diese Runde bestimmt: **„ich bin mittlerweile zu gut in dem Spiel und
+nicht mehr der Standard."**
 
-Das ist keine Spitzfindigkeit. Davon hängt ab, was Runde 4 tut:
-
-- Hieß es **„so ist es richtig"**, dann ist M6 inhaltlich fertig. Dann bleibt nur
-  noch, `RULESET_TESTING` auf `false` zu setzen, die Bewertungszeile
-  abzuschalten, die hergeleiteten Werte ins GDD zu schreiben und den Meilenstein
-  abzunehmen.
-- Hieß es **„nichts zu beanstanden"**, dann ist eine Partie, die man 20:0 gewinnt,
-  noch zu leicht, und Runde 4 dreht weiter — dann aber ohne die Bewertungszeile
-  als Kompass, weil die nichts mehr zeigt.
+Das ist messbar, und es stimmt noch deutlicher, als er vermutet.
 
 ---
 
-## Vorschlag, falls weitergedreht wird: seltener fragen
+## Umgesetzt: seltener fragen
 
 Fünfzig Fragen hintereinander machen die Antwort zum Reflex. Das ist die
 wahrscheinlichste Erklärung dafür, dass eine Partie ohne jede Bedrohung durchweg
@@ -100,13 +96,14 @@ Vorgeschlagen: **nur noch an wenigen Wellen fragen** — etwa acht, die die
 Kraftkurve als interessant benennt (die engste, die weiteste, die Bosse, der
 Koloss). Wer achtmal gefragt wird, überlegt; wer fünfzigmal gefragt wird, tippt.
 
-Das betrifft `src/ui/rating.js` und eine Einstellung in `src/core/prefs.js`, nicht
-die Spielregeln. Die Protokolle bleiben im selben Format — `rating` ist ohnehin
-`null`, wo nicht gefragt wurde.
+Umgesetzt als `RATED_WAVES` in `src/data/rules.js`: **1, 8, 13, 18, 24, 30, 35,
+41, 46, 50.** Nicht die dramatischsten Wellen — die kämen alle wieder als „passt"
+zurück —, sondern eine Probe aus jedem Abschnitt, den die Abstimmung
+auseinanderhalten muss: die eine wirklich enge Welle, die Strecke, die bis Runde 3
+leer war, das Ende des Bandes, der Koloss, und das Spätspiel.
 
-Eine Alternative wäre, die Frage zu ändern: nicht „wie war die Welle", sondern
-**„musstest du etwas tun?"** Das ist schwerer zu beantworten als mit einem Reflex
-und trifft genau das, was uns interessiert.
+Ein Datenwert, keine Regel im Code: Eine Runde kann woanders hinschauen, ohne
+`src/ui` anzufassen. Keine Regeländerung, also auch keine neue Regelversion.
 
 ---
 
@@ -125,3 +122,78 @@ Unverändert aus Runde 3, beide gemessen und beide ohne Eile:
 1. Till beantwortet die Frage oben.
 2. Je nach Antwort: Abschluss von M6, oder Runde 4 mit einem Messgerät, das
    wieder unterscheidet.
+
+
+---
+
+## Die Schere: das Spiel wird für Schwächere härter und für Till leichter
+
+Tills Einwand lässt sich beziffern. Zuerst sein eigenes Spiel — nur Größen, die
+davon handeln, **was er gebaut hat**, nicht wie die Wellen zurückschlugen, denn
+die bleiben über Regeländerungen hinweg vergleichbar:
+
+| | Route bei Welle 30 |
+|---|---|
+| 28.09., Regelversion 2 | 57 · 57 · 108 |
+| 29.09., Regelversion 4 und 5 | **169 · 219** |
+| 01.10., Regelversion 6 | 132 |
+
+Sein Labyrinthbau hat sich fast vervierfacht, und der Sprung liegt zwischen dem
+28. und 29.09. — also unmittelbar nachdem die Auswertung von Runde 1 ihm gesagt
+hatte, dass Labyrinth sich bisher nicht auszahlt, und Runde 1 es dann belohnt hat.
+**Er hat sein Spiel an der Auswertung ausgerichtet.** Kein Vorwurf, aber eine
+Rückkopplung im Messaufbau: Runde 2 und 3 wurden gegen einen stärkeren Spieler
+gemessen als Runde 1.
+
+Und jetzt die andere Seite. Die Bots über 20 Seeds, vor Runde 1 und heute:
+
+| Strategie | Median vor Runde 1 | Median jetzt | Siege |
+|---|---|---|---|
+| Veredler | 28 Wellen | **13** | 0 von 20 |
+| Feuerkraft | 23 | **12** | 0 von 20 |
+| Labyrinth-Bauer | 18 | **10** | 0 von 20 |
+| Einfach | 10 | **10** | 0 von 20 |
+| Rezept-Jäger | 8 | **7** | 0 von 20 |
+
+**Kein einziger Bot gewinnt mehr eine Partie.** Die beste Strategie kommt im
+Median bis Welle 13; über Welle 20 kommen 20 % einer Strategie und sonst
+niemand. Till gewinnt im selben Spiel mit 20 von 20 Leben.
+
+Die drei Runden haben die Bots ungefähr **halbiert**, während Till von „Sieg mit
+15 Leben" auf „Sieg ohne einen Kratzer" gegangen ist. Das ist eine Schere, und sie
+hat einen Grund: **Die Routenlänge multipliziert alles.** Dieselbe
+Lebenspunkt-Erhöhung kostet einen Spieler mit 57 Feldern Weg weit mehr als einen
+mit 219. Die Hebel, an denen wir gedreht haben, wirken regressiv.
+
+Besonders deutlich an Runde 3: Das Band hebt W6 bis W34, und die Bots sterben
+jetzt gehäuft bei **W8, W10 und W13** — genau dort. Bei Till hat dasselbe Band in
+der wirklich gespielten Partie **null** gekostet.
+
+### Was das heißt
+
+- Tills „stellenweise vielleicht noch zu leicht" ist das Urteil eines Spielers,
+  der viermal besser mazt als zu Beginn. Danach weiterzudrehen, würde die Schere
+  weiter öffnen.
+- Umgekehrt ist „zu schwer für Schwächere" **nicht** belegt: Ein Bot ist kein
+  Anfänger. Er setzt Zonen nach einer Regel und lernt innerhalb einer Partie
+  nichts dazu — er ist eine untere Schranke, kein Spieler. Die Eichung ist in
+  Runde 0 ausdrücklich gescheitert, und das gilt weiter.
+- Belegt ist nur die **Richtung**: Über drei Runden sind die beiden Enden
+  auseinandergelaufen. Welche Zahl für wen richtig ist, kann aus einem einzigen
+  Spieler nicht mehr beantwortet werden.
+
+### Vorschlag
+
+**Kein Eingriff in die Werte in dieser Runde.** Stattdessen die eine fehlende
+Messung beschaffen:
+
+1. **Ein zweiter Mensch.** Tills Freund, der ohnehin dazustoßen will, hat das
+   Spiel nie abgestimmt und kennt die Auswertungen nicht — genau die Referenz, die
+   fehlt. Zwei bis drei Partien von ihm sagen mehr als zehn weitere von Till.
+2. **Till spielt die zehn Fragen** einer weiteren Partie, damit die
+   Bewertungszeile wieder etwas unterscheidet.
+3. Erst dann entscheiden, ob weitergedreht wird — und in welche Richtung.
+
+Falls sich bestätigt, dass die beiden Enden nicht mit einem Satz Zahlen zu
+bedienen sind, ist das keine Balancing-Frage mehr, sondern eine
+Schwierigkeitsstufe. Die steht nicht in M6 und wäre ein eigener Auftrag.
