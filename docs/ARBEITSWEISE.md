@@ -58,5 +58,7 @@ Arbeiten am leichtesten brechen:
 - **Kein Build.** Vanilla JS, native ES-Module, läuft direkt von GitHub Pages.
 
 ## Nach jedem Arbeitsblock
-`docs/PROGRESS.md` aktualisieren: erledigt, offen, Entscheidungen. Kurz halten,
-die Begründungen tragen die Commit-Nachrichten.
+`docs/PROGRESS.md` auf den jetzt geltenden Stand bringen: was gilt, was offen
+ist, welche Entscheidungen weiter wirken. Was erledigt ist und warum, steht nicht
+dort, sondern in den Commit-Nachrichten. Die Datei bleibt kurz; Abgeschlossenes
+wird gestrichen, nicht angehängt.
