@@ -18,6 +18,10 @@ Version **0.9.1**. Alle Inhalts-Meilensteine sind abgenommen. Offen ist nur noch
 | M5d | Koloss, Stellungsgrafik, Gunship (Update 7) | 27.09.2026 |
 | **M6** | **Balancing und Feinschliff** | **in Arbeit** |
 
+**Arbeitsweise versioniert:** Rollen von Chat und Code sowie die Regeln für
+paralleles Arbeiten stehen in [`docs/ARBEITSWEISE.md`](ARBEITSWEISE.md);
+`CLAUDE.md` verweist darauf.
+
 **Hilfe-Ebene (Version 0.9.4):** Der „?“-Knopf unten links über der Versionszahl
 öffnet eine Ebene, die jedes Symbol der Leisten und, sobald sie steht, jede Scheibe
 der Kommandoleiste mit einer Sprechblase und gestrichelter Linie erklärt

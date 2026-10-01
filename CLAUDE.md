@@ -4,7 +4,8 @@ Grimdark-Tower-Defense mit Mazing-Mechanik (Vorbild Gem TD) im isometrischen Com
 
 ## Was vor einer Aufgabe zu lesen ist
 
-Immer: `docs/PROGRESS.md` (Stand, offene Punkte, geltende Regeln).
+Immer: `docs/PROGRESS.md` (Stand, offene Punkte, geltende Regeln) und
+`docs/ARBEITSWEISE.md` (Rollen, paralleles Arbeiten).
 
 Dazu, was die Aufgabe berührt — nicht mehr:
 
