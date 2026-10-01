@@ -14,6 +14,7 @@ import { useCommand } from '../../src/sim/commands.js';
 import { selectionOptions } from '../../src/sim/selection.js';
 import { startLog } from '../../src/sim/record.js';
 import { replayMatch, compareWaves } from '../../src/sim/replay.js';
+import { playBotMatch } from '../../tests/tools/bot-player.mjs';
 import { RULESET_VERSION } from '../../src/data/rules.js';
 import { SIM_STEP } from '../../src/data/settings.js';
 import { ENEMIES } from '../../src/data/enemies.js';
@@ -278,4 +279,26 @@ test('compareWaves names the wave, the field and both values', () => {
   assert.deepEqual(compareWaves(was, now), [{ wave: 1, field: 'lives', was: 20, now: 18 }]);
   assert.deepEqual(compareWaves(was, []), [{ wave: 1, field: 'wave', was: 1, now: null }]);
   assert.deepEqual(compareWaves([], now), [{ wave: 1, field: 'wave', was: null, now: 1 }]);
+});
+
+test('onSelection sees the state as it stood when the player chose', () => {
+  // A protocol records what was picked, never what was on offer. Without this
+  // hook there is no telling an option nobody wanted from one that was never
+  // there — which is the question balancing round 3 left open about upgrading.
+  const run = playBotMatch({ seed: 'BEOBACHTUNG', strategy: 'simple' });
+  const seen = [];
+  const again = replayMatch(run.log, {
+    onSelection(state, action) {
+      seen.push({ wave: state.wave, phase: state.phase, pods: state.pods.length, type: action.type });
+    },
+  });
+
+  const picks = run.log.actions.filter((a) => a.a === 'select');
+  assert.equal(seen.length, picks.length, 'once per choice');
+  for (const row of seen) {
+    assert.equal(row.phase, 'selection', 'called in the phase the choice belongs to');
+    assert.ok(row.pods > 0, 'and while the salvo is still standing');
+  }
+  // Watching must not change the match.
+  assert.deepEqual(compareWaves(run.waves, again.waves), []);
 });

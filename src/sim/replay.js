@@ -73,12 +73,17 @@ function when(state, action) {
  *   the test entry of step 4. Default: play the whole protocol.
  * @param {(line: object) => void} [options.onWave]  Called with every wave line
  *   as it is finished, so a tool can print while it runs.
+ * @param {(state: object, action: object) => void} [options.onSelection]  Called
+ *   with the state as it stood when the player chose, just before the choice is
+ *   applied. The one moment a protocol cannot describe by itself: it records what
+ *   was picked, never what was on offer, so without this there is no way to tell
+ *   an option nobody wanted from one that was never there.
  * @returns {{
  *   state: object, waves: object[], skipped: object[], applied: number,
  *   stopped: string, steps: number,
  * }}
  */
-export function replayMatch(protocol, { untilWave = Infinity, onWave = null } = {}) {
+export function replayMatch(protocol, { untilWave = Infinity, onWave = null, onSelection = null } = {}) {
   const state = createGameState(protocol.seed);
   state.supplyLevel = protocol.supplyStart ?? MIN_SUPPLY_LEVEL;
   // The replay records itself, so the wave lines come out of the same function
@@ -110,6 +115,7 @@ export function replayMatch(protocol, { untilWave = Infinity, onWave = null } = 
         skipped.push({ ...action, why: `${action.p} of round ${action.w} was over` });
         continue;
       }
+      if (onSelection && action.a === 'select') onSelection(state, action);
       const result = apply(state, action);
       if (result === true) applied += 1;
       else skipped.push({ ...action, why: result });
