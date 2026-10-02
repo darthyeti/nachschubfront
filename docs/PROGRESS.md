@@ -7,8 +7,8 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.9.1**. Alle Inhalts-Meilensteine sind abgenommen. Offen ist nur noch
-**M6 Balancing**, der Abschluss des Projekts.
+Version **0.9.1**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
+**M6 Balancing** und, parallel dazu, **M7 Spielmodi** (freigegeben 02.10.2026).
 
 | | | abgenommen |
 |---|---|---|
@@ -17,6 +17,7 @@ Version **0.9.1**. Alle Inhalts-Meilensteine sind abgenommen. Offen ist nur noch
 | M2 … M5c | Kapseln, Kampf, Präsentation, Speichern, HUD | 28.09.2026 |
 | M5d | Koloss, Stellungsgrafik, Gunship (Update 7) | 27.09.2026 |
 | **M6** | **Balancing und Feinschliff** | **in Arbeit** |
+| **M7a · M7b** | **Modus-Gerüst, Modus „King of the Hill"** | **in Arbeit, parallel zu M6** |
 
 **Arbeitsweise versioniert:** Rollen von Chat und Code sowie die Regeln für
 paralleles Arbeiten stehen in [`docs/ARBEITSWEISE.md`](ARBEITSWEISE.md);
@@ -31,7 +32,7 @@ Kapselauswahl und Ende-Bildschirm. Die Platzierung ist eine reine Funktion
 (`layoutBubbles`) mit Unit-Test.
 
 Die Updates 2 bis 7 waren Einschübe, keine Meilensteine: 2 → M4b, 3 → M4c,
-4 → M4d, 5 → M5b, 6 → M5c, 7 → M5d. Nach M6 kommt keiner mehr.
+4 → M4d, 5 → M5b, 6 → M5c, 7 → M5d.
 
 ## M6: wo wir stehen
 
@@ -184,11 +185,40 @@ ist diesmal besonders nötig: Das Band lässt sich an Tills Protokoll nur zur H�
 prüfen (er verliert Leben ohnehin nur an Koloss und Boss), und die Aufwertung gab
 es in seiner Partie noch gar nicht.
 
+## M7: Spielmodi (parallel zu M6)
+
+Aufträge: [`M7a-modi.md`](meilensteine/M7a-modi.md) (Modus-Gerüst, unsichtbar)
+und [`M7b-king-of-the-hill.md`](meilensteine/M7b-king-of-the-hill.md) (Bastion
+in der Mitte, vier Risse; Studie `reference/studien/king-of-the-hill.html`).
+M7b erst nach M7a.
+
+- **Schritt 0 ✓** (02.10.) Aufträge und Studie abgelegt, Golden-Test auf `main`.
+- **Als Nächstes:** M7a auf dem Zweig `modi`, nach Abschluss schnell nach `main`.
+
+**Golden-Test** (`tests/unit/golden.test.js`, Hashes in `golden.json`): Die
+sieben Protokolle aus `balancing/protokolle/`, unter den heutigen Regeln
+nachgespielt, und drei Bot-Partien müssen bitgleich bleiben. **Der Hash wird nur
+in einem Commit erneuert, der `RULESET_VERSION` anhebt oder ausdrücklich sagt,
+dass er das Spiel ändert** (`GOLDEN_WRITE=1 node --test tests/unit/golden.test.js`).
+Gilt auch für M6: Wer Werte ändert, erneuert ihn im selben Commit.
+
+**Wie M6 und M7 sich nicht in die Quere kommen:** M7 ändert keine
+Balancing-Zahl und nicht `RULESET_VERSION`. Regeln, in denen sich Modi
+unterscheiden, werden Tabellen von Varianten im Modus-Datensatz (etwa
+`upgrade.kind`: `'pod'` im Standard, `'ladder'` in King of the Hill), keine
+Verzweigung nach dem Modus. Die Aufwertung aus Runde 3 wird dafür in M7a der
+Eintrag `'pod'` — wer sie in M6 ändert, ändert sie dort. Ins GDD schreibt M7
+nur den neuen Abschnitt „Spielmodi"; Abschnitt 9 und 11 bleiben bei M6.
+
+**Für M6 gemeldet, nicht geändert:** GDD Abschnitt 9 nennt das Mittelband
+„Welle 6 bis 30, Spitze bei 18", `tests/tools/wave-rules.mjs` rechnet 6 bis 34
+mit Spitze bei 14 (wie oben unter Runde 3 beschrieben).
+
 ## Werkzeuge
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (452) |
+| `npm test` | Unit-Tests (453), darunter der Golden-Test (etwa 14 s) |
 | `npm run test:input` | 64 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |

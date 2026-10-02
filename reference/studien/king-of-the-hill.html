@@ -1,0 +1,1768 @@
+<title>Studie King of the Hill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout concept: the map is the work surface on the left, a narrow instrument panel on the right; below 900px the panel stacks under the map. */
+:root {
+  --bg: #14110f;
+  --panel: #1c1815;
+  --panel-2: #231e1a;
+  --line: #3a322b;
+  --fg: #e8e0d0;
+  --muted: #a1957f;
+  --gold: #e0b341;
+  --blood: #d9473a;
+  --toxic: #8fbf3f;
+  --warp: #9a6bd6;
+  --font-head: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--bg); color: var(--fg); }
+body { font-family: var(--font-body); font-size: 15px; line-height: 1.45; padding-inline: 16px; padding-block: 14px 28px; }
+h1, h2, h3 { font-family: var(--font-head); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; text-wrap: balance; }
+.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 12px; }
+.top h1 { font-size: 26px; font-weight: 700; }
+.top h1 span { color: var(--gold); }
+.top p { margin: 0; color: var(--muted); font-size: 14px; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 372px; gap: 16px; align-items: start; }
+@media (max-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+.stage { min-width: 0; }
+.board { position: relative; width: min(100%, calc(100vh - 150px)); min-width: min(100%, 300px); margin-inline: auto; }
+#cv { display: block; width: 100%; aspect-ratio: 1 / 1; background: #211c17; border: 1px solid var(--line); touch-action: pan-y; cursor: crosshair; }
+.toast { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); max-width: 90%; background: rgba(20, 17, 15, 0.94); border: 1px solid var(--line); border-left: 4px solid var(--gold); padding: 8px 14px; font-size: 14px; pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+.toast.on { opacity: 1; }
+.toast.bad { border-left-color: var(--blood); }
+.key { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px auto 0; width: min(100%, calc(100vh - 150px)); color: var(--muted); font-size: 13px; }
+.key b { color: var(--fg); font-weight: 600; }
+.side { min-width: 0; background: var(--panel); border: 1px solid var(--line); }
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line); }
+.tabs button { min-height: 46px; background: transparent; color: var(--muted); border: 0; border-bottom: 3px solid transparent; font: 600 16px var(--font-head); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--gold); background: var(--panel-2); }
+.pane { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+button { font-family: var(--font-body); }
+button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.stat { background: var(--panel-2); border: 1px solid var(--line); padding: 8px 10px; min-width: 0; }
+.stat small { display: block; color: var(--muted); font: 600 12px var(--font-head); letter-spacing: 0.03em; text-transform: uppercase; }
+.stat strong { font: 700 22px var(--font-head); font-variant-numeric: tabular-nums; }
+.phase h2 { font-size: 20px; }
+.phase p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.arms { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.arm { background: var(--panel-2); border: 1px solid var(--line); padding: 7px 6px; text-align: center; min-width: 0; }
+.arm small { display: block; color: var(--muted); font: 600 12px var(--font-head); letter-spacing: 0.08em; text-transform: uppercase; }
+.arm strong { font: 700 22px var(--font-head); font-variant-numeric: tabular-nums; }
+.arm.next { border-color: var(--gold); background: #2a2216; }
+.arm.next small { color: var(--gold); }
+.note { color: var(--muted); font-size: 13px; margin: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { min-height: 46px; padding: 0 16px; background: var(--panel-2); color: var(--fg); border: 1px solid var(--line); font: 600 15px var(--font-body); cursor: pointer; flex: 1 1 auto; }
+.btn:hover:not(:disabled) { border-color: var(--muted); }
+.btn.primary { background: var(--gold); color: #1b1408; border-color: var(--gold); }
+.btn.primary:hover:not(:disabled) { background: #edc45a; }
+.btn[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: #2a2216; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.caps { display: flex; flex-direction: column; gap: 6px; }
+.cap { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; min-height: 46px; padding: 4px 10px; background: var(--panel-2); border: 1px solid var(--line); color: var(--fg); text-align: left; cursor: pointer; font-size: 14px; }
+.cap i { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 700 16px var(--font-head); font-style: normal; color: #14110f; }
+.cap em { font-style: normal; color: var(--muted); font-size: 13px; }
+.cap.on { border-color: var(--gold); background: #2a2216; }
+.cap:disabled { opacity: 0.45; cursor: wait; }
+.progress { height: 8px; background: var(--panel-2); border: 1px solid var(--line); }
+.progress div { height: 100%; width: 0; background: var(--gold); }
+.inspect { background: var(--panel-2); border: 1px solid var(--line); padding: 10px 12px; font-size: 14px; min-height: 64px; }
+.inspect b { font: 700 16px var(--font-head); letter-spacing: 0.05em; text-transform: uppercase; }
+label.field { display: grid; grid-template-columns: minmax(0, 1fr) 96px; align-items: center; gap: 4px 10px; font-size: 14px; }
+label.field span small { display: block; color: var(--muted); font-size: 12.5px; }
+input[type="number"], select { min-height: 40px; width: 100%; background: var(--panel-2); color: var(--fg); border: 1px solid var(--line); padding: 0 8px; font: 500 15px var(--font-body); font-variant-numeric: tabular-nums; }
+.check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; }
+.check input { width: 20px; height: 20px; accent-color: var(--gold); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th { text-align: left; font: 600 12px var(--font-head); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); padding: 6px 3px; border-bottom: 1px solid var(--line); }
+td { padding: 7px 3px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tablewrap { overflow-x: auto; }
+.sw { display: inline-block; width: 10px; height: 10px; margin-right: 6px; }
+.chart { width: 100%; height: auto; display: block; }
+.verdict { margin: 0; padding: 10px 12px; border-left: 4px solid var(--gold); background: var(--panel-2); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+
+<div class="top">
+  <h1>Nachschubfront <span>Studie King of the Hill</span></h1>
+  <p>24 x 24 Felder, Bastion in der Mitte, vier Risse im Wechsel, keine Signalfeuer. Prototyp, kein Spielcode.</p>
+</div>
+
+<div class="layout">
+  <section class="stage">
+    <div class="board">
+      <canvas id="cv" tabindex="0" aria-label="Spielkarte"></canvas>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+    <div class="key">
+      <span><b>Zahl am Turm</b>: Seiten (von 4), deren Route er erreicht</span>
+      <span><b>Gold gestrichelt</b>: Route der nächsten Welle</span>
+      <span><b>Violett</b>: Routen der anderen Seiten</span>
+      <span><b>Schraffur</b>: Sperrzone, kein Bau</span>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="tabs" role="tablist" aria-label="Bereiche">
+      <button role="tab" id="t-play" aria-selected="true" aria-controls="p-play">Spiel</button>
+      <button role="tab" id="t-bots" aria-selected="false" aria-controls="p-bots">Bots</button>
+      <button role="tab" id="t-vals" aria-selected="false" aria-controls="p-vals">Werte</button>
+    </div>
+
+    <div class="pane" id="p-play" role="tabpanel" aria-labelledby="t-play">
+      <div class="stats">
+        <div class="stat"><small>Welle</small><strong id="s-wave">1</strong></div>
+        <div class="stat"><small>Leben</small><strong id="s-lives">20</strong></div>
+        <div class="stat"><small>Requis.</small><strong id="s-req">0</strong></div>
+        <div class="stat"><small>Abschüsse</small><strong id="s-kills">0</strong></div>
+      </div>
+      <div class="phase">
+        <h2 id="ph-title">Planung</h2>
+        <p id="ph-hint"></p>
+      </div>
+      <div>
+        <div class="arms" id="arms"></div>
+        <p class="note" style="margin-top:6px">Weglänge in Feldern pro Seite. Gold ist die Seite der nächsten Welle.</p>
+      </div>
+      <div id="act-plan" class="row">
+        <button class="btn primary" id="b-salvo">Salve anfordern</button>
+        <button class="btn" id="b-upg" aria-pressed="false">Aufwertung statt Salve</button>
+        <button class="btn" id="b-demo" aria-pressed="false">Abriss-Modus</button>
+        <p class="note" id="upg-note" style="flex:1 1 100%;margin:0"></p>
+      </div>
+      <div id="act-select" class="caps" hidden></div>
+      <div id="act-wave" hidden>
+        <div class="row">
+          <button class="btn" data-speed="0" aria-pressed="false">Pause</button>
+          <button class="btn" data-speed="1" aria-pressed="true">1x</button>
+          <button class="btn" data-speed="2" aria-pressed="false">2x</button>
+          <button class="btn" data-speed="3" aria-pressed="false">3x</button>
+        </div>
+        <div class="progress" style="margin-top:10px"><div id="wave-bar"></div></div>
+        <p class="note" id="wave-note" style="margin-top:6px"></p>
+      </div>
+      <div id="act-end" hidden>
+        <button class="btn primary" id="b-new" style="width:100%">Neue Partie</button>
+      </div>
+      <div class="inspect" id="inspect"></div>
+      <div>
+        <div class="row" style="align-items:center">
+          <label class="check" style="flex:1 1 auto"><input type="checkbox" id="c-auto"> Bot spielt mit</label>
+          <select id="sel-strat" aria-label="Strategie des Bots" style="width:auto;flex:0 0 150px">
+            <option value="ring">Ring</option>
+            <option value="arm">Arm</option>
+            <option value="mix" selected>Mix</option>
+            <option value="balance">Ausgewogen</option>
+          </select>
+        </div>
+        <div class="row" style="align-items:center;margin-top:6px">
+          <span style="flex:1 1 auto;font-size:14px">Aufwertungsrunde des Bots</span>
+          <select id="sel-every" aria-label="Aufwertungsrunde des Bots" style="width:auto;flex:0 0 150px">
+            <option value="0">nie</option>
+            <option value="4">jede 4. Runde</option>
+            <option value="3" selected>jede 3. Runde</option>
+            <option value="2">jede 2. Runde</option>
+          </select>
+        </div>
+        <p class="note">Der Bot markiert, wählt und lässt die Welle laufen. So siehst du, wie sich ein Ring oder ein Arm aufbaut.</p>
+      </div>
+    </div>
+
+    <div class="pane" id="p-bots" role="tabpanel" aria-labelledby="t-bots" hidden>
+      <p class="note">Vier einfache Bots spielen dieselben Karten mit den Werten aus dem Reiter Werte. <b>Ring</b> baut ein Labyrinth um die Bastion, <b>Arm</b> nur an der Seite der nächsten Welle, <b>Mix</b> beides, <b>Ausgewogen</b> baut am Arm und wählt Stellungen für die Seite mit der schwächsten Abdeckung.</p>
+      <label class="field"><span>Karten (Seeds)</span><input type="number" id="bot-n" min="4" max="40" value="8"></label>
+      <label class="field"><span>Aufwertungsrunde des Bots</span>
+        <select id="bot-every"><option value="0">nie</option><option value="4">jede 4.</option><option value="3" selected>jede 3.</option><option value="2">jede 2.</option></select></label>
+      <div class="row">
+        <button class="btn primary" id="bot-run">Vergleich starten</button>
+        <button class="btn" id="bot-run2">Mit und ohne Sperrzone</button>
+      </div>
+      <div class="progress"><div id="bot-bar"></div></div>
+      <p class="note" id="bot-note">Noch nicht gelaufen. Jeder Lauf bleibt unten stehen, so lassen sich Einstellungen vergleichen.</p>
+      <div id="bot-out"></div>
+    </div>
+
+    <div class="pane" id="p-vals" role="tabpanel" aria-labelledby="t-vals" hidden>
+      <label class="field"><span>Seed der Karte<small>Gleicher Seed, gleiche Ruinen</small></span><input type="number" id="v-seed" min="1" max="99999"></label>
+      <label class="field"><span>Reihenfolge der Seiten<small>Gemischt: Viererblöcke, nie zweimal dieselbe Seite hintereinander</small></span>
+        <select id="v-order"><option value="mixed">Gemischt</option><option value="cycle">Strikt N, O, S, W</option></select></label>
+      <label class="field"><span>Kapseln in Welle 1<small>Startsalve</small></span><input type="number" id="v-start" min="1" max="14"></label>
+      <label class="field"><span>Kapseln Welle 2 bis 15</span><input type="number" id="v-early" min="1" max="14"></label>
+      <label class="field"><span>Kapseln Welle 16 bis 35</span><input type="number" id="v-mid" min="1" max="14"></label>
+      <label class="field"><span>Kapseln ab Welle 36</span><input type="number" id="v-late" min="1" max="14"></label>
+      <label class="field"><span>Startleben</span><input type="number" id="v-lives" min="1" max="99"></label>
+      <label class="field"><span>Start-Requisition</span><input type="number" id="v-req" min="0" max="999"></label>
+      <label class="field"><span>Sperrzone um die Bastion, Radius<small>In Feldern. Dort darf nichts gebaut und nichts gelandet werden. 0 = aus</small></span><input type="number" id="v-ban" min="0" max="8" step="0.5"></label>
+      <label class="field"><span>Aufwertung statt Salve<small>Eine Stellung steigt einen Rang, dafür gibt es keine Salve in dieser Runde</small></span>
+        <select id="v-upg"><option value="ladder">Preis nach Staffel</option><option value="free">gratis</option><option value="off">aus</option></select></label>
+      <label class="field"><span>Gegner-Lebenspunkte, Faktor<small>Basisspiel = 1. Die Routen sind halb so lang, deshalb ein Platzhalter</small></span><input type="number" id="v-hp" min="0.02" max="3" step="0.01"></label>
+      <label class="field"><span>Rangersatz pro Welle<small>Schadensfaktor je Welle. Steht für Verschmelzen und Nachschubstufe, die diese Studie nicht hat</small></span><input type="number" id="v-pg" min="1" max="1.2" step="0.005"></label>
+      <label class="check"><input type="checkbox" id="c-all" checked> Routen aller vier Seiten zeigen</label>
+      <div class="row">
+        <button class="btn primary" id="v-apply">Übernehmen und neu starten</button>
+        <button class="btn" id="v-reset">Standardwerte</button>
+      </div>
+      <p class="note">Ränge gibt es nur über die Aufwertung. Nicht enthalten: Verschmelzen, Rezepte, Kommandos, Rüstungsmatrix, Nachschubstufe, Koloss und Bossfähigkeiten. Bosse sind hier gewöhnliche, sehr zähe Gegner.</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+'use strict';
+/* Study core: pure simulation, no DOM, no canvas. Prototype numbers, own seeded RNG for the study only. */
+const Core = (() => {
+  const N = 24;
+  const NN = N * N;
+  const CENTER = N / 2;
+  const ARMS = ['Nord', 'Ost', 'Süd', 'West'];
+  // Two gate cells per rift, centred on the edge.
+  const GATES = [
+    [[11, 0], [12, 0]],
+    [[23, 11], [23, 12]],
+    [[11, 23], [12, 23]],
+    [[0, 11], [0, 12]],
+  ];
+  const BASTION_CELLS = [[11, 11], [12, 11], [11, 12], [12, 12]];
+  const K = { FREE: 0, RUIN: 1, RUBBLE: 2, TOWER: 3, BASTION: 4, MARK: 5 };
+  const idx = (x, y) => y * N + x;
+
+  const DOCS = {
+    flame: { name: 'Flamme', short: 'F', dps: 18, range: 2.0, air: false, color: '#e8762c' },
+    cannon: { name: 'Autokanone', short: 'A', dps: 30, range: 3.5, air: true, color: '#d9c25a' },
+    laser: { name: 'Laser', short: 'L', dps: 32, range: 4.5, air: true, color: '#e0463c' },
+    mortar: { name: 'Mörser', short: 'M', dps: 13.5, range: 7.0, minRange: 1.5, air: false, color: '#b79a68' },
+    psi: { name: 'Psi', short: 'P', dps: 4, range: 3.0, air: true, color: '#9a6bd6' },
+    tesla: { name: 'Tesla', short: 'T', dps: 14, range: 3.0, air: true, color: '#4fb4e6' },
+  };
+  const DOC_KEYS = Object.keys(DOCS);
+  // Ranks as in the GDD: damage factor and range bonus per rank (Rekrut ... Legende).
+  const RANK_NAMES = ['Rekrut', 'Veteran', 'Elite', 'Held', 'Legende'];
+  const RANK_DMG = [1, 2.2, 5, 12, 30];
+  const RANK_RANGE = [0, 0.05, 0.1, 0.15, 0.2];
+  // Requisition price to lift an emplacement from rank r to r + 1 (GDD section 11, "Aufwertung statt Bau").
+  const UPG_LADDER = [120, 300, 750, 1875];
+
+  // Protected: bastion and every gate plus one field around them.
+  const PROTECTED = (() => {
+    const p = new Uint8Array(NN);
+    const mark = (x, y) => {
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const a = x + dx, b = y + dy;
+        if (a >= 0 && b >= 0 && a < N && b < N) p[idx(a, b)] = 1;
+      }
+    };
+    BASTION_CELLS.forEach(([x, y]) => mark(x, y));
+    GATES.forEach((g) => g.forEach(([x, y]) => mark(x, y)));
+    return p;
+  })();
+
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6d2b79f5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // ---------------------------------------------------------------- pathing
+  const DX = [-1, 1, 0, 0, -1, 1, -1, 1];
+  const DY = [0, 0, -1, 1, -1, -1, 1, 1];
+  const DC = [1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2];
+  const passable = (k) => k === 0 || k === 4;
+  const hD = new Float64Array(NN * 10);
+  const hI = new Int32Array(NN * 10);
+
+  /** Reverse Dijkstra from the bastion: dist[cell] = walking cost to the bastion. */
+  function computeDist(kind, dist) {
+    dist.fill(Infinity);
+    let size = 0;
+    const push = (d, i) => {
+      let p = size++;
+      while (p > 0) {
+        const q = (p - 1) >> 1;
+        if (hD[q] <= d) break;
+        hD[p] = hD[q]; hI[p] = hI[q]; p = q;
+      }
+      hD[p] = d; hI[p] = i;
+    };
+    for (let b = 0; b < BASTION_CELLS.length; b++) {
+      const i = idx(BASTION_CELLS[b][0], BASTION_CELLS[b][1]);
+      dist[i] = 0; push(0, i);
+    }
+    while (size > 0) {
+      const d = hD[0], u = hI[0];
+      size--;
+      if (size > 0) {
+        const ld = hD[size], li = hI[size];
+        let p = 0;
+        for (;;) {
+          let c = 2 * p + 1;
+          if (c >= size) break;
+          if (c + 1 < size && hD[c + 1] < hD[c]) c++;
+          if (hD[c] >= ld) break;
+          hD[p] = hD[c]; hI[p] = hI[c]; p = c;
+        }
+        hD[p] = ld; hI[p] = li;
+      }
+      if (d > dist[u]) continue;
+      const ux = u % N, uy = (u / N) | 0;
+      for (let k = 0; k < 8; k++) {
+        const vx = ux + DX[k], vy = uy + DY[k];
+        if (vx < 0 || vy < 0 || vx >= N || vy >= N) continue;
+        const v = vy * N + vx;
+        if (kind[v] !== 0) continue;
+        if (k >= 4 && (!passable(kind[uy * N + vx]) || !passable(kind[vy * N + ux]))) continue;
+        const nd = d + DC[k];
+        if (nd < dist[v]) { dist[v] = nd; push(nd, v); }
+      }
+    }
+  }
+
+  function gatesOk(dist) {
+    for (let a = 0; a < 4; a++) for (let g = 0; g < 2; g++) {
+      if (!isFinite(dist[idx(GATES[a][g][0], GATES[a][g][1])])) return false;
+    }
+    return true;
+  }
+
+  function nextCell(kind, dist, c) {
+    const ux = c % N, uy = (c / N) | 0;
+    let best = -1, bv = Infinity;
+    for (let k = 0; k < 8; k++) {
+      const vx = ux + DX[k], vy = uy + DY[k];
+      if (vx < 0 || vy < 0 || vx >= N || vy >= N) continue;
+      const v = vy * N + vx;
+      if (!passable(kind[v])) continue;
+      if (k >= 4 && (!passable(kind[uy * N + vx]) || !passable(kind[vy * N + ux]))) continue;
+      const val = dist[v] + DC[k];
+      if (val < bv - 1e-9) { bv = val; best = v; }
+    }
+    return best;
+  }
+
+  function routeCells(kind, dist, gx, gy) {
+    const cells = [];
+    let c = idx(gx, gy), guard = 0;
+    if (!isFinite(dist[c])) return cells;
+    while (dist[c] > 0 && guard++ < NN) {
+      cells.push(c);
+      const n = nextCell(kind, dist, c);
+      if (n < 0) break;
+      c = n;
+    }
+    return cells;
+  }
+
+  // ------------------------------------------------------------------ waves
+  const WR = {
+    healthGrowth: 1.125, baseCount: 12, countPerWave: 1.25, swarmerFactor: 2,
+    cycle: ['horde', 'armour', 'air', 'warp', 'mixed'],
+    interval: { swarmer: 0.4, warrior: 0.8, breaker: 1.5, warpseer: 1.1, carrionflyer: 0.8, burster: 1.1, healer: 1.6 },
+    unlock: { swarmer: 1, warrior: 1, breaker: 4, carrionflyer: 6, warpseer: 4, burster: 7, healer: 9 },
+    earlyWaves: 5, earlyFactor: 0.7,
+    midFrom: 6, midPeak: 14, midTo: 34, midFactor: 2.5,
+    bossWaves: {
+      10: { boss: 'boss', escort: [['swarmer', 1.0], ['warrior', 0.4]] },
+      20: { boss: 'boss', escort: [['breaker', 0.35], ['warrior', 0.5]] },
+      30: { boss: 'boss', escort: [['warpseer', 0.5], ['healer', 0.2]] },
+      40: { boss: 'boss', escort: [['carrionflyer', 0.8], ['warrior', 0.4]] },
+      50: { boss: 'boss', escort: [['breaker', 0.3], ['warpseer', 0.3], ['carrionflyer', 0.4]] },
+    },
+    composition: {
+      horde: [['swarmer', 1.0], ['warrior', 0.3]],
+      armour: [['breaker', 0.4], ['warrior', 0.5], ['burster', 0.25]],
+      air: [['carrionflyer', 1.0], ['warrior', 0.4]],
+      warp: [['warpseer', 0.6], ['warrior', 0.4], ['healer', 0.15]],
+      mixed: [['warrior', 0.4], ['swarmer', 0.4], ['breaker', 0.2], ['carrionflyer', 0.25], ['warpseer', 0.2], ['burster', 0.15], ['healer', 0.1]],
+    },
+    lead: { horde: 'swarmer', armour: 'breaker', air: 'carrionflyer', warp: 'warpseer' },
+  };
+  const BOSS_BASE_HP = 1500;
+  const ENEMY = {
+    swarmer: { name: 'Schwärmer', hp: 30, speed: 1.6, reward: 1, r: 0.17, color: '#c9d65a' },
+    warrior: { name: 'Krieger', hp: 70, speed: 1.1, reward: 2, r: 0.23, color: '#d07a5a' },
+    breaker: { name: 'Brecher', hp: 220, speed: 0.6, reward: 5, r: 0.33, color: '#8d8d99' },
+    warpseer: { name: 'Warp-Seher', hp: 120, speed: 1.0, reward: 4, r: 0.25, color: '#b07ae0' },
+    carrionflyer: { name: 'Aasflieger', hp: 50, speed: 1.4, reward: 3, r: 0.22, air: true, color: '#e6d870' },
+    burster: { name: 'Zerplatzer', hp: 90, speed: 0.9, reward: 3, r: 0.28, color: '#e0894a' },
+    healer: { name: 'Heiler', hp: 80, speed: 0.9, reward: 4, r: 0.25, color: '#6ec9a0' },
+    boss: { name: 'Boss', hp: BOSS_BASE_HP, speed: 0.7, reward: 20, r: 0.5, color: '#c4382c', leak: 5 },
+  };
+
+  function midLift(wave) {
+    const { midFrom, midPeak, midTo, midFactor } = WR;
+    if (wave <= midFrom || wave >= midTo) return 1;
+    const t = wave <= midPeak ? (wave - midFrom) / (midPeak - midFrom) : (midTo - wave) / (midTo - midPeak);
+    return 1 + (midFactor - 1) * 0.5 * (1 - Math.cos(Math.PI * t));
+  }
+  const waveCount = (wave) => Math.round(WR.baseCount + WR.countPerWave * wave);
+  function share(wave, type, f) {
+    if (wave < WR.unlock[type]) return 0;
+    const base = waveCount(wave) * (type === 'swarmer' ? WR.swarmerFactor : 1) * (wave <= WR.earlyWaves ? WR.earlyFactor : 1);
+    return Math.max(1, Math.round(base * f));
+  }
+  function unlockedMix(kind, wave) {
+    const all = WR.composition[kind];
+    const open = all.filter(([t]) => wave >= WR.unlock[t]);
+    const missing = all.reduce((s, [t, f]) => (wave < WR.unlock[t] ? s + f : s), 0);
+    if (missing === 0 || open.length === 0) return open;
+    const openShare = open.reduce((s, [, f]) => s + f, 0);
+    const factor = (openShare + missing) / openShare;
+    return open.map(([t, f]) => [t, f * factor]);
+  }
+  function buildWave(wave) {
+    const scale = WR.healthGrowth ** (wave - 1) * midLift(wave);
+    const bw = WR.bossWaves[wave];
+    const groups = [];
+    if (bw) {
+      groups.push({ type: bw.boss, count: 1, interval: 0, delay: 0 });
+      for (const [type, f] of bw.escort) {
+        const count = share(wave, type, f);
+        if (count > 0) groups.push({ type, count, interval: WR.interval[type], delay: 3 + groups.length });
+      }
+      return { kind: 'boss', scale, groups };
+    }
+    const kindRaw = WR.cycle[(wave - 1) % WR.cycle.length];
+    const lead = WR.lead[kindRaw];
+    const kind = lead && wave < WR.unlock[lead] ? 'horde' : kindRaw;
+    for (const [type, f] of unlockedMix(kindRaw, wave)) {
+      const count = share(wave, type, f);
+      if (count > 0) groups.push({ type, count, interval: WR.interval[type], delay: groups.length * 2 });
+    }
+    return { kind, scale, groups };
+  }
+
+  // ------------------------------------------------------------- directions
+  const permCache = new Map();
+  function blockPerm(seed, block) {
+    const key = seed + ':' + block;
+    if (permCache.has(key)) return permCache.get(key);
+    const r = rng(seed * 7907 + block * 104729 + 5);
+    const perm = [0, 1, 2, 3];
+    for (let i = 3; i > 0; i--) {
+      const j = Math.floor(r() * (i + 1));
+      const t = perm[i]; perm[i] = perm[j]; perm[j] = t;
+    }
+    if (block > 0) {
+      const prev = blockPerm(seed, block - 1);
+      if (perm[0] === prev[3]) { const t = perm[0]; perm[0] = perm[1]; perm[1] = t; }
+    }
+    permCache.set(key, perm);
+    return perm;
+  }
+  /** Which rift attacks in a wave. 'cycle' = strict N,E,S,W; 'mixed' = shuffled blocks of four, never the same side twice in a row. */
+  function riftFor(P, wave, seed) {
+    const b = Math.floor((wave - 1) / 4), p = (wave - 1) % 4;
+    if (P.order === 'cycle') return p;
+    return blockPerm(seed, b)[p];
+  }
+
+  function defaults() {
+    return {
+      startSalvo: 8, salvoEarly: 6, salvoMid: 5, salvoLate: 4,
+      lives: 20, powerGrowth: 1.06, hpFactor: 0.1, order: 'mixed', startReq: 30, waves: 50,
+      banRadius: 4, upgradeMode: 'ladder',
+    };
+  }
+  function salvoFor(P, wave) {
+    if (wave === 1) return P.startSalvo;
+    if (wave <= 15) return P.salvoEarly;
+    if (wave <= 35) return P.salvoMid;
+    return P.salvoLate;
+  }
+
+  // ------------------------------------------------------------------- game
+  function newGame(P, seed) {
+    const G = {
+      P: Object.assign({}, P), seed,
+      kind: new Uint8Array(NN), dist: new Float64Array(NN), tmp: new Float64Array(NN),
+      towers: [], enemies: [], marks: [], caps: [], scratch: [],
+      wave: 1, phase: 'plan', lives: P.lives, req: P.startReq, kills: 0, leaks: 0, demoCount: 0,
+      time: 0, events: [], spawnI: 0, spawnN: 0, waveLeaks: 0, dmgMult: 1, rift: 0, an: null, stats: [], wave_info: null,
+      lastRubble: 0, prot: new Uint8Array(PROTECTED),
+    };
+    for (const [x, y] of BASTION_CELLS) G.kind[idx(x, y)] = K.BASTION;
+    if (P.banRadius > 0) for (let i = 0; i < NN; i++) if (Math.hypot((i % N) + 0.5 - CENTER, ((i / N) | 0) + 0.5 - CENTER) <= P.banRadius) G.prot[i] = 1;
+    const r = rng(seed * 7919 + 13);
+    const count = 12 + Math.floor(r() * 9);
+    let placed = 0, tries = 0;
+    while (placed < count && tries++ < 3000) {
+      const i = idx(Math.floor(r() * N), Math.floor(r() * N));
+      if (G.kind[i] !== 0 || G.prot[i]) continue;
+      G.kind[i] = K.RUIN;
+      computeDist(G.kind, G.tmp);
+      if (!gatesOk(G.tmp)) { G.kind[i] = 0; continue; }
+      placed++;
+    }
+    beginPlan(G);
+    return G;
+  }
+
+  function refresh(G) {
+    computeDist(G.kind, G.dist);
+    analyze(G);
+  }
+
+  function beginPlan(G) {
+    G.phase = 'plan';
+    G.marks = []; G.caps = [];
+    G.rift = riftFor(G.P, G.wave, G.seed);
+    G.wave_info = buildWave(G.wave);
+    refresh(G);
+  }
+
+  const rangeEff = (t) => DOCS[t.doc].range * (1 + RANK_RANGE[t.rank || 0]);
+
+  /** Route lengths per arm, route cells, and how many arms each emplacement can reach. */
+  function analyze(G) {
+    const len = [], routes = [];
+    for (let a = 0; a < 4; a++) {
+      const rs = GATES[a].map(([x, y]) => routeCells(G.kind, G.dist, x, y));
+      routes.push(rs);
+      len.push(Math.min(G.dist[idx(GATES[a][0][0], GATES[a][0][1])], G.dist[idx(GATES[a][1][0], GATES[a][1][1])]));
+    }
+    let sum = 0;
+    for (const t of G.towers) {
+      const D = DOCS[t.doc];
+      t.arms = [false, false, false, false];
+      let n = 0;
+      for (let a = 0; a < 4; a++) {
+        let hit = false;
+        for (const rs of routes[a]) {
+          for (let k = 0; k < rs.length && !hit; k++) {
+            const c = rs[k];
+            const dx = (c % N) + 0.5 - t.cx, dy = ((c / N) | 0) + 0.5 - t.cy;
+            const d2 = dx * dx + dy * dy;
+            if (d2 <= rangeEff(t) ** 2 && d2 >= (D.minRange || 0) ** 2) hit = true;
+          }
+          if (hit) break;
+        }
+        t.arms[a] = hit;
+        if (hit) n++;
+      }
+      t.cover = n;
+      sum += n;
+    }
+    G.an = { len, routes, avgCover: G.towers.length ? sum / G.towers.length : 0 };
+  }
+
+  /** Reason code when a landing zone cannot be marked, otherwise null. */
+  function canMark(G, i) {
+    if (G.phase !== 'plan') return 'phase';
+    if (G.marks.includes(i)) return 'marked';
+    if (G.prot[i]) return 'protected';
+    if (G.kind[i] !== 0) return 'occupied';
+    if (G.marks.length >= salvoFor(G.P, G.wave)) return 'limit';
+    G.kind[i] = K.MARK;
+    computeDist(G.kind, G.tmp);
+    G.kind[i] = 0;
+    return gatesOk(G.tmp) ? null : 'blocked';
+  }
+  function mark(G, i) {
+    if (canMark(G, i)) return false;
+    G.marks.push(i); G.kind[i] = K.MARK; refresh(G);
+    return true;
+  }
+  function unmark(G, i) {
+    const p = G.marks.indexOf(i);
+    if (p < 0 || G.phase !== 'plan') return false;
+    G.marks.splice(p, 1); G.kind[i] = 0; refresh(G);
+    return true;
+  }
+
+  /** Order the salvo: fill missing zones at random, drop the capsules. */
+  function requestSalvo(G) {
+    if (G.phase !== 'plan') return;
+    const n = salvoFor(G.P, G.wave);
+    if (G.marks.length < n) {
+      const r = rng(G.seed * 31 + G.wave * 101);
+      const cand = [];
+      for (let i = 0; i < NN; i++) if (G.kind[i] === 0 && !G.prot[i]) cand.push(i);
+      for (let i = cand.length - 1; i > 0; i--) {
+        const j = Math.floor(r() * (i + 1));
+        const t = cand[i]; cand[i] = cand[j]; cand[j] = t;
+      }
+      let tries = 0;
+      for (const i of cand) {
+        if (G.marks.length >= n || tries++ > 500) break;
+        G.kind[i] = K.MARK;
+        computeDist(G.kind, G.tmp);
+        if (gatesOk(G.tmp)) G.marks.push(i); else G.kind[i] = 0;
+      }
+    }
+    const pr = rng(G.seed * 131 + G.wave * 977);
+    G.caps = G.marks.map((i) => ({ i, x: i % N, y: (i / N) | 0, doc: DOC_KEYS[Math.floor(pr() * DOC_KEYS.length)] }));
+    refresh(G);
+    if (G.caps.length === 0) { startWave(G); return; }
+    G.phase = 'select';
+  }
+
+  /** Keep capsule k as emplacement, the rest turns to rubble. k < 0 lets the salvo lapse. */
+  function choose(G, k) {
+    if (G.phase !== 'select') return;
+    G.caps.forEach((c, n) => {
+      if (n === k) {
+        G.kind[c.i] = K.TOWER;
+        G.towers.push({ x: c.x, y: c.y, cx: c.x + 0.5, cy: c.y + 0.5, doc: c.doc, rank: 0, tgt: [], firing: false, arms: [false, false, false, false], cover: 0 });
+      } else G.kind[c.i] = K.RUBBLE;
+    });
+    G.caps = []; G.marks = [];
+    startWave(G);
+  }
+
+  const rubblePrice = (G) => 15 + 5 * G.demoCount;
+  function demolishPrice(G, i) {
+    if (G.kind[i] === K.RUBBLE) return rubblePrice(G);
+    if (G.kind[i] === K.TOWER) return rubblePrice(G) * 3;
+    return null;
+  }
+  function demolish(G, i) {
+    if (G.phase !== 'plan') return false;
+    const price = demolishPrice(G, i);
+    if (price === null || G.req < price) return false;
+    if (G.kind[i] === K.TOWER) G.towers = G.towers.filter((t) => idx(t.x, t.y) !== i);
+    G.kind[i] = 0; G.req -= price; G.demoCount++;
+    refresh(G);
+    return true;
+  }
+
+  const towerAt = (G, i) => G.towers.find((t) => idx(t.x, t.y) === i) || null;
+  /** Price to lift an emplacement from `rank` to the next one; null if the option is off or the rank is maxed. */
+  function upgradePrice(G, rank) {
+    if (G.P.upgradeMode === 'off' || rank >= 4) return null;
+    return G.P.upgradeMode === 'free' ? 0 : UPG_LADDER[rank];
+  }
+  /** Reason code when an emplacement cannot be lifted instead of ordering a salvo, otherwise null. */
+  function canUpgrade(G, i) {
+    if (G.phase !== 'plan') return 'phase';
+    if (G.marks.length) return 'marks';
+    const t = towerAt(G, i);
+    if (!t) return 'notower';
+    const price = upgradePrice(G, t.rank);
+    if (price === null) return t.rank >= 4 ? 'max' : 'off';
+    return G.req < price ? 'req' : null;
+  }
+  /** The round's action: lift one emplacement by one rank, no salvo, no new rubble. The wave starts at once. */
+  function upgrade(G, i) {
+    if (canUpgrade(G, i)) return false;
+    const t = towerAt(G, i);
+    G.req -= upgradePrice(G, t.rank);
+    t.rank++;
+    startWave(G);
+    return true;
+  }
+
+  function startWave(G) {
+    G.phase = 'wave';
+    refresh(G);
+    const w = G.wave_info || buildWave(G.wave);
+    G.scale = w.scale;
+    G.events = [];
+    for (const g of w.groups) for (let i = 0; i < g.count; i++) G.events.push({ t: g.delay + i * g.interval, type: g.type });
+    G.events.sort((a, b) => a.t - b.t);
+    G.spawnI = 0; G.spawnN = 0; G.time = 0; G.waveLeaks = 0; G.enemies = [];
+    G.dmgMult = G.P.powerGrowth ** (G.wave - 1);
+  }
+
+  function spawn(G, type, cell, x, y) {
+    const def = ENEMY[type];
+    const hp = def.hp * G.scale * G.P.hpFactor;
+    const e = { type, hp, max: hp, x, y, cell, next: -1, air: !!def.air, slowT: 0, alive: true, rem: 0 };
+    G.enemies.push(e);
+    return e;
+  }
+
+  function leak(G, e) {
+    e.alive = false;
+    const cost = ENEMY[e.type].leak || 1;
+    G.lives -= cost; G.leaks += cost; G.waveLeaks += cost;
+  }
+
+  function hit(G, e, dmg) {
+    if (!e.alive) return;
+    e.hp -= dmg;
+    if (e.hp > 0) return;
+    e.alive = false; G.kills++; G.req += ENEMY[e.type].reward;
+    if (e.type === 'burster') {
+      for (let k = 0; k < 4; k++) {
+        const s = spawn(G, 'swarmer', e.cell, e.x + (k % 2 ? 0.15 : -0.15), e.y + (k < 2 ? 0.15 : -0.15));
+        s.next = e.next;
+      }
+    }
+  }
+
+  const remaining = (G, e) => {
+    if (e.air) return Math.hypot(CENTER - e.x, CENTER - e.y);
+    if (e.next >= 0) return G.dist[e.next] + Math.hypot((e.next % N) + 0.5 - e.x, ((e.next / N) | 0) + 0.5 - e.y);
+    return G.dist[e.cell];
+  };
+
+  function moveEnemy(G, e, dt) {
+    const def = ENEMY[e.type];
+    let move = def.speed * (e.slowT > 0 ? 0.7 : 1) * dt;
+    if (e.slowT > 0) e.slowT -= dt;
+    if (e.air) {
+      const dx = CENTER - e.x, dy = CENTER - e.y, d = Math.hypot(dx, dy);
+      if (d <= move + 1.0) { leak(G, e); return; }
+      e.x += (dx / d) * move; e.y += (dy / d) * move;
+      return;
+    }
+    let guard = 0;
+    while (move > 0 && guard++ < 6) {
+      if (e.next < 0) {
+        if (G.kind[e.cell] === K.BASTION) { leak(G, e); return; }
+        e.next = nextCell(G.kind, G.dist, e.cell);
+        if (e.next < 0) { leak(G, e); return; }
+      }
+      const tx = (e.next % N) + 0.5, ty = ((e.next / N) | 0) + 0.5;
+      const dx = tx - e.x, dy = ty - e.y, d = Math.hypot(dx, dy);
+      if (d <= move) {
+        e.x = tx; e.y = ty; move -= d; e.cell = e.next; e.next = -1;
+        if (G.kind[e.cell] === K.BASTION) { leak(G, e); return; }
+      } else { e.x += (dx / d) * move; e.y += (dy / d) * move; move = 0; }
+    }
+  }
+
+  function fireTower(G, t, dt) {
+    const D = DOCS[t.doc], E = G.enemies, m = G.dmgMult;
+    const rng2 = rangeEff(t), r2 = rng2 * rng2, mr2 = (D.minRange || 0) ** 2;
+    const inR = G.scratch; inR.length = 0;
+    let primary = null, pRem = Infinity;
+    for (let i = 0; i < E.length; i++) {
+      const e = E[i];
+      if (!e.alive || (e.air && !D.air)) continue;
+      const dx = e.x - t.cx, dy = e.y - t.cy, d2 = dx * dx + dy * dy;
+      if (d2 > r2 || d2 < mr2) continue;
+      inR.push(e);
+      e.rem = remaining(G, e);
+      if (e.rem < pRem) { pRem = e.rem; primary = e; }
+    }
+    t.tgt.length = 0;
+    t.firing = !!primary;
+    if (!primary) return;
+    const dps = D.dps * RANK_DMG[t.rank || 0] * m * dt;
+    switch (t.doc) {
+      case 'flame':
+        for (const e of inR) if (Math.hypot(e.x - primary.x, e.y - primary.y) <= 0.9) hit(G, e, dps);
+        t.tgt.push(primary);
+        break;
+      case 'cannon':
+        hit(G, primary, dps); t.tgt.push(primary);
+        break;
+      case 'laser': {
+        const dx = primary.x - t.cx, dy = primary.y - t.cy, len = Math.hypot(dx, dy) || 1;
+        const ux = dx / len, uy = dy / len;
+        for (const e of inR) {
+          const ex = e.x - t.cx, ey = e.y - t.cy;
+          const along = ex * ux + ey * uy, perp = Math.abs(ex * uy - ey * ux);
+          if (along > 0 && perp < 0.55) hit(G, e, dps);
+        }
+        t.tgt.push(primary);
+        break;
+      }
+      case 'mortar':
+        for (let i = 0; i < E.length; i++) {
+          const e = E[i];
+          if (e.alive && !e.air && Math.hypot(e.x - primary.x, e.y - primary.y) <= 1.2) hit(G, e, dps);
+        }
+        t.tgt.push(primary);
+        break;
+      case 'psi':
+        for (const e of inR) { hit(G, e, dps); e.slowT = 0.3; }
+        break;
+      case 'tesla': {
+        inR.sort((a, b) => a.rem - b.rem);
+        let f = 1;
+        for (let i = 0; i < Math.min(4, inR.length); i++) { hit(G, inR[i], dps * f); t.tgt.push(inR[i]); f *= 0.8; }
+        break;
+      }
+    }
+  }
+
+  function step(G, dt) {
+    if (G.phase !== 'wave') return;
+    G.time += dt;
+    while (G.spawnI < G.events.length && G.events[G.spawnI].t <= G.time) {
+      const ev = G.events[G.spawnI++];
+      const g = GATES[G.rift][G.spawnN++ % 2];
+      spawn(G, ev.type, idx(g[0], g[1]), g[0] + 0.5, g[1] + 0.5);
+    }
+    const E = G.enemies;
+    for (let i = 0; i < E.length; i++) {
+      const e = E[i];
+      if (e.alive && e.type === 'healer') {
+        for (let j = 0; j < E.length; j++) {
+          const o = E[j];
+          if (o.alive && o !== e && o.hp < o.max && Math.hypot(o.x - e.x, o.y - e.y) <= 1.5) o.hp = Math.min(o.max, o.hp + 8 * G.scale * dt);
+        }
+      }
+    }
+    for (let i = 0; i < E.length; i++) if (E[i].alive) moveEnemy(G, E[i], dt);
+    for (const t of G.towers) fireTower(G, t, dt);
+    let w = 0;
+    for (let i = 0; i < E.length; i++) if (E[i].alive) E[w++] = E[i];
+    E.length = w;
+    if (G.lives <= 0) { G.lives = 0; G.phase = 'lost'; return; }
+    if (G.spawnI >= G.events.length && E.length === 0) {
+      G.req += 10 + G.wave;
+      G.stats.push({ wave: G.wave, leaks: G.waveLeaks, cover: G.an.avgCover, len: G.an.len.slice(), arm: G.rift, towers: G.towers.length });
+      G.wave++;
+      if (G.wave > G.P.waves) G.phase = 'won'; else beginPlan(G);
+    }
+  }
+
+  // ------------------------------------------------------------------- bots
+  const STRATS = ['ring', 'arm', 'mix', 'random', 'balance'];
+  const RING_R = 6.5;
+  const cellDist = (i) => Math.hypot((i % N) + 0.5 - CENTER, ((i / N) | 0) + 0.5 - CENTER);
+  const armLen = (dist, a) => Math.min(dist[idx(GATES[a][0][0], GATES[a][0][1])], dist[idx(GATES[a][1][0], GATES[a][1][1])]);
+
+  function pickZone(G, mode, arm, r) {
+    const kind = G.kind;
+    computeDist(kind, G.dist);
+    let cands = [];
+    if (mode === 'ring') {
+      const ringR = Math.max(RING_R, G.P.banRadius + 3);
+      for (let i = 0; i < NN; i++) if (kind[i] === 0 && !G.prot[i] && cellDist(i) <= ringR) cands.push(i);
+    } else if (mode === 'arm') {
+      const seen = new Set();
+      for (const [gx, gy] of GATES[arm]) {
+        for (const c of routeCells(kind, G.dist, gx, gy)) {
+          if (!seen.has(c) && kind[c] === 0 && !G.prot[c] && cellDist(c) >= Math.max(4.8, G.P.banRadius + 1)) { seen.add(c); cands.push(c); }
+        }
+      }
+    }
+    if (!cands.length) for (let i = 0; i < NN; i++) if (kind[i] === 0 && !G.prot[i]) cands.push(i);
+    const S = Math.min(10, cands.length);
+    for (let i = 0; i < S; i++) {
+      const j = i + Math.floor(r() * (cands.length - i));
+      const t = cands[i]; cands[i] = cands[j]; cands[j] = t;
+    }
+    let best = -1, bs = -Infinity;
+    for (let n = 0; n < S; n++) {
+      const c = cands[n];
+      kind[c] = K.MARK;
+      computeDist(kind, G.tmp);
+      kind[c] = 0;
+      if (!gatesOk(G.tmp)) continue;
+      let score;
+      if (mode === 'ring') score = armLen(G.tmp, 0) + armLen(G.tmp, 1) + armLen(G.tmp, 2) + armLen(G.tmp, 3);
+      else if (mode === 'arm') score = armLen(G.tmp, arm);
+      else score = 0;
+      score += r() * 0.01;
+      if (score > bs) { bs = score; best = c; }
+    }
+    return best;
+  }
+
+  function botMaintain(G) {
+    const need = salvoFor(G.P, G.wave) * 3;
+    let free = 0;
+    for (let i = 0; i < NN; i++) if (G.kind[i] === 0 && !G.prot[i]) free++;
+    let guard = 0;
+    while (free < need && guard++ < 6 && G.req >= rubblePrice(G)) {
+      const rc = [];
+      for (const rs of G.an.routes) for (const r of rs) for (const c of r) rc.push(c);
+      let best = -1, bd = -1;
+      for (let i = 0; i < NN; i++) {
+        if (G.kind[i] !== K.RUBBLE) continue;
+        let md = Infinity;
+        const x = i % N, y = (i / N) | 0;
+        for (let k = 0; k < rc.length; k++) {
+          const d = Math.abs((rc[k] % N) - x) + Math.abs(((rc[k] / N) | 0) - y);
+          if (d < md) md = d;
+          if (md <= bd) break;
+        }
+        if (md > bd) { bd = md; best = i; }
+      }
+      if (best < 0 || !demolish(G, best)) break;
+      free++;
+    }
+  }
+
+  function botPlan(G, strat) {
+    const n = salvoFor(G.P, G.wave);
+    const r = rng(G.seed * 977 + G.wave * 131 + STRATS.indexOf(strat) * 17 + 3);
+    for (let i = 0; i < n; i++) {
+      const mode = strat === 'mix' ? (i < 3 ? 'ring' : 'arm') : strat === 'balance' ? 'arm' : strat;
+      const pick = pickZone(G, mode, G.rift, r);
+      if (pick < 0) break;
+      G.marks.push(pick); G.kind[pick] = K.MARK;
+    }
+    refresh(G);
+  }
+
+  function botChoose(G, strat) {
+    if (!G.caps.length) return -1;
+    computeDist(G.kind, G.dist);
+    const routes = [];
+    for (let a = 0; a < 4; a++) {
+      const cells = [];
+      for (const [gx, gy] of GATES[a]) for (const c of routeCells(G.kind, G.dist, gx, gy)) cells.push(c);
+      routes.push(cells);
+    }
+    const count = {}; DOC_KEYS.forEach((k) => (count[k] = 0));
+    let aa = 0;
+    const armPower = [0, 0, 0, 0];
+    for (const t of G.towers) {
+      count[t.doc]++; if (DOCS[t.doc].air) aa++;
+      for (let a = 0; a < 4; a++) if (t.arms[a]) armPower[a] += DOCS[t.doc].dps * RANK_DMG[t.rank];
+    }
+    const r = rng(G.seed * 541 + G.wave * 29);
+    let best = 0, bs = -Infinity;
+    G.caps.forEach((c, n) => {
+      const cx = c.x + 0.5, cy = c.y + 0.5, D = DOCS[c.doc];
+      const reach = routes.map((cells) => {
+        let md = Infinity;
+        for (const rc of cells) {
+          const d = Math.hypot((rc % N) + 0.5 - cx, ((rc / N) | 0) + 0.5 - cy);
+          if (d < md && d >= (D.minRange || 0)) md = d;
+        }
+        return md;
+      });
+      const covers = reach.map((d) => d <= D.range * (1 + RANK_RANGE[0]));
+      const coverAll = covers.filter(Boolean).length;
+      const next = covers[G.rift] ? 8 : 0;
+      let s = Math.max(0, 3 - count[c.doc]) * 6;
+      if (D.air && aa < 2 + Math.floor(G.wave / 8)) s += 4;
+      if (strat === 'ring') s += coverAll * 4 + next;
+      else if (strat === 'arm') s += next - Math.min(reach[G.rift], 12) * 0.5;
+      else if (strat === 'balance') {
+        for (let a = 0; a < 4; a++) if (covers[a]) s += 10 / (1 + armPower[a] / 30);
+        s += next;
+      } else s += coverAll * 2 + next;
+      if (strat === 'random') s = r();
+      if (s > bs) { bs = s; best = n; }
+    });
+    return best;
+  }
+
+  /** Bot: pick the emplacement whose next rank adds the most firepower on the coming arm. */
+  function botUpgrade(G) {
+    let best = -1, bs = 0;
+    for (const t of G.towers) {
+      const i = idx(t.x, t.y);
+      if (canUpgrade(G, i)) continue;
+      const D = DOCS[t.doc];
+      const gain = D.dps * (RANK_DMG[t.rank + 1] - RANK_DMG[t.rank]);
+      const s = gain * (1 + t.cover) + (t.arms[G.rift] ? gain * 3 : 0);
+      if (s > bs) { bs = s; best = i; }
+    }
+    return best >= 0 && upgrade(G, best);
+  }
+
+  function runBot(P, seed, strat, opts) {
+    const dt = (opts && opts.dt) || 0.1;
+    const every = (opts && opts.upgradeEvery) || 0;
+    const G = newGame(P, seed);
+    const cover = [], lens = [];
+    let guard = 0, upgrades = 0;
+    while (G.phase !== 'won' && G.phase !== 'lost' && guard++ < 400000) {
+      if (G.phase === 'plan') {
+        let done = false;
+        if (every && G.wave >= 3 && G.wave % every === 0 && G.towers.length) done = botUpgrade(G);
+        if (done) upgrades++;
+        else {
+          botMaintain(G);
+          if (strat !== 'random') botPlan(G, strat);
+          requestSalvo(G);
+          if (G.phase === 'select') choose(G, botChoose(G, strat));
+        }
+        cover.push(G.an.avgCover);
+        lens.push(G.an.len.reduce((a, b) => a + b, 0) / 4);
+      }
+      while (G.phase === 'wave') step(G, dt);
+    }
+    const lostAt = G.phase === 'lost' ? G.wave : Infinity;
+    let rubble = 0;
+    for (let i = 0; i < NN; i++) if (G.kind[i] === K.RUBBLE) rubble++;
+    return {
+      seed, strat, won: G.phase === 'won', lostAt, reached: G.phase === 'won' ? G.P.waves : G.wave,
+      lives: G.lives, towers: G.towers.length, rubble, upgrades,
+      topRank: G.towers.reduce((m, t) => Math.max(m, t.rank), 0),
+      cover: cover.reduce((a, b) => a + b, 0) / Math.max(1, cover.length), len: lens.reduce((a, b) => a + b, 0) / Math.max(1, lens.length),
+      leakWaves: G.stats.filter((s) => s.leaks > 0).map((s) => s.wave),
+    };
+  }
+
+  return {
+    N, NN, CENTER, ARMS, GATES, BASTION_CELLS, K, DOCS, DOC_KEYS, ENEMY, PROTECTED, STRATS, idx,
+    rng, defaults, salvoFor, buildWave, riftFor, newGame, beginPlan, refresh, analyze,
+    canMark, mark, unmark, requestSalvo, choose, demolish, demolishPrice, rubblePrice, step,
+    RANK_NAMES, RANK_DMG, RANK_RANGE, UPG_LADDER, upgradePrice, canUpgrade, upgrade, towerAt, rangeEff,
+    botMaintain, botPlan, botChoose, botUpgrade, runBot, cellDist, routeCells, computeDist, gatesOk, RING_R,
+  };
+})();
+if (typeof module !== 'undefined') module.exports = Core;
+
+</script>
+<script>
+'use strict';
+/* Study UI: reads the Core state, draws it, forwards input. No game rules in here. */
+(() => {
+  const { N, ARMS, GATES, K, DOCS, ENEMY, PROTECTED, idx } = Core;
+  const $ = (id) => document.getElementById(id);
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const KIND_LABEL = { horde: 'Horde', armour: 'Panzer', air: 'Flieger', warp: 'Warp', mixed: 'Gemischt', boss: 'Boss' };
+  const COVER_COLOR = ['#6b6359', '#d9473a', '#e08a3a', '#c9c744', '#8fbf3f'];
+  const C = { ground: '#211c17', ground2: '#27211b', line: 'rgba(232,224,208,0.05)', gold: '#e0b341', warp: '#9a6bd6', blood: '#d9473a', toxic: '#8fbf3f', bone: '#d8d0bd', ink: '#14110f' };
+
+  const ui = {
+    tab: 'play', P: Core.defaults(), seed: 7, G: null, speed: 1, hover: -1, sel: -1, demo: false, pendingDemo: -1,
+    showAll: true, auto: false, strat: 'mix', upg: false, pendingUpg: -1, botEvery: '3', land: null, capSel: -1, acc: 0, time: 0, autoT: 0, panelT: 0,
+    hoverKey: '', hoverReason: null, toastT: 0, shots: [], lastPhase: '', lastWave: 0, botRunning: false,
+  };
+  const cv = $('cv');
+  const ctx = cv.getContext('2d');
+  let S = 600, cell = 25, dpr = 1;
+
+  function fit() {
+    const r = cv.getBoundingClientRect();
+    S = Math.max(240, Math.round(r.width));
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(S * dpr); cv.height = Math.round(S * dpr);
+    cell = S / N;
+  }
+  new ResizeObserver(fit).observe(cv);
+  window.addEventListener('resize', fit);
+
+  // ------------------------------------------------------------------ setup
+  function newGame() {
+    ui.G = Core.newGame(ui.P, ui.seed);
+    ui.sel = -1; ui.land = null; ui.capSel = -1; ui.pendingDemo = -1; ui.acc = 0; ui.autoT = 0; ui.demo = false; ui.upg = false; ui.pendingUpg = -1;
+    ui.hoverKey = '';
+    setPanelMode(true);
+  }
+  const fmt = (v, d = 1) => v.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d });
+  function toast(text, bad) {
+    const t = $('toast');
+    t.textContent = text; t.classList.toggle('bad', !!bad); t.classList.add('on');
+    ui.toastT = 2.2;
+  }
+
+  // ------------------------------------------------------------------ input
+  const cellAt = (e) => {
+    const r = cv.getBoundingClientRect();
+    const x = Math.floor(((e.clientX - r.left) / r.width) * N), y = Math.floor(((e.clientY - r.top) / r.height) * N);
+    return x < 0 || y < 0 || x >= N || y >= N ? -1 : idx(x, y);
+  };
+  let down = null;
+  cv.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY }; ui.hover = cellAt(e); });
+  cv.addEventListener('pointermove', (e) => { ui.hover = cellAt(e); });
+  cv.addEventListener('pointerleave', () => { ui.hover = -1; });
+  cv.addEventListener('pointercancel', () => { down = null; });
+  cv.addEventListener('pointerup', (e) => {
+    if (!down) return;
+    const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+    down = null;
+    if (moved < 10) onCell(cellAt(e));
+  });
+
+  function onCell(i) {
+    const G = ui.G;
+    if (i < 0) return;
+    if (G.phase === 'select') {
+      const n = G.caps.findIndex((c) => c.i === i);
+      if (n >= 0) pickCap(n);
+      return;
+    }
+    if (G.phase === 'plan' && ui.upg) {
+      const t = Core.towerAt(G, i);
+      if (!t) { toast('Tippe eine Stellung an.', true); return; }
+      const why = Core.canUpgrade(G, i), price = Core.upgradePrice(G, t.rank);
+      if (why) {
+        toast({ marks: 'Erst alle Markierungen entfernen, die Aufwertung ersetzt die Salve.', req: 'Zu wenig Requisition (' + price + ' nötig).', max: 'Diese Stellung ist schon Legende.', off: 'Die Aufwertung ist ausgeschaltet.' }[why] || 'Nicht möglich.', true);
+        return;
+      }
+      if (ui.pendingUpg === i) {
+        const name = DOCS[t.doc].name, to = Core.RANK_NAMES[t.rank + 1];
+        Core.upgrade(G, i);
+        ui.upg = false; ui.pendingUpg = -1; ui.sel = -1;
+        toast(name + ' ist jetzt ' + to + '. Die Welle startet ohne Salve.');
+        setPanelMode(true);
+      } else {
+        ui.pendingUpg = i;
+        toast(DOCS[t.doc].name + ': ' + Core.RANK_NAMES[t.rank] + ' zu ' + Core.RANK_NAMES[t.rank + 1] + ' für ' + price + ' Requisition. Nochmal tippen bestätigt, dann startet die Welle ohne Salve.');
+      }
+      return;
+    }
+    if (G.phase === 'plan' && ui.demo) {
+      const price = Core.demolishPrice(G, i);
+      if (price === null) { toast('Das lässt sich nicht abreißen.', true); return; }
+      if (ui.pendingDemo === i) {
+        if (Core.demolish(G, i)) { toast('Abgerissen für ' + price + ' Requisition.'); ui.pendingDemo = -1; ui.hoverKey = ''; }
+        else toast('Zu wenig Requisition (' + price + ' nötig).', true);
+      } else { ui.pendingDemo = i; toast('Preis ' + price + '. Nochmal tippen zum Abreißen.'); }
+      return;
+    }
+    if (G.phase === 'plan') {
+      const k = G.kind[i];
+      if (k === K.MARK) { Core.unmark(G, i); ui.hoverKey = ''; return; }
+      if (k === K.TOWER) { ui.sel = ui.sel === i ? -1 : i; return; }
+      if (k === K.FREE && !G.prot[i]) {
+        const why = Core.canMark(G, i);
+        if (!why) { Core.mark(G, i); ui.hoverKey = ''; return; }
+        toast({ blocked: 'Dort wäre ein Weg blockiert.', limit: 'Alle Landezonen dieser Salve sind markiert.', occupied: 'Das Feld ist belegt.', protected: 'Geschütztes Feld oder Sperrzone.' }[why] || 'Nicht möglich.', true);
+        return;
+      }
+      if (G.prot[i] && k === K.FREE) { toast(PROTECTED[i] ? 'Geschütztes Feld.' : 'Sperrzone: Dort darf nichts gebaut werden.', true); return; }
+      ui.sel = i;
+      return;
+    }
+    ui.sel = G.kind[i] === K.TOWER ? (ui.sel === i ? -1 : i) : -1;
+  }
+
+  function pickCap(n) {
+    const G = ui.G;
+    if (ui.land) return;
+    if (ui.capSel === n) { Core.choose(G, n); ui.capSel = -1; ui.speed = ui.speed || 1; setPanelMode(true); }
+    else { ui.capSel = n; capSig = ''; updatePanel(); }
+  }
+
+  function doSalvo() {
+    const G = ui.G;
+    if (G.phase !== 'plan') return;
+    ui.demo = false; ui.upg = false; ui.pendingDemo = -1; ui.pendingUpg = -1; ui.sel = -1;
+    Core.requestSalvo(G);
+    if (G.phase === 'select') {
+      const n = G.caps.length;
+      ui.land = { t: 0, total: reduce ? 0 : 0.2 + (n - 1) * 0.12 + 0.55 + 0.5 };
+      ui.capSel = -1;
+    }
+    setPanelMode(true);
+  }
+
+  // ------------------------------------------------------------------ drawing
+  const hash = (x, y, s = 0) => ((Math.imul(x + 31 * s, 73856093) ^ Math.imul(y + 17 * s, 19349663)) >>> 0) % 1000 / 1000;
+  const px = (v) => v * cell;
+  const cx = (i) => ((i % N) + 0.5) * cell;
+  const cy = (i) => (((i / N) | 0) + 0.5) * cell;
+
+  function draw() {
+    const G = ui.G;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, S, S);
+    ground();
+    margins();
+    rifts();
+    routes();
+    bastion();
+    obstacles();
+    hoverCell();
+    towers();
+    capsules();
+    enemies();
+    banner();
+    if (G.phase === 'won' || G.phase === 'lost') endOverlay();
+  }
+
+  function ground() {
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      ctx.fillStyle = (x + y) % 2 ? C.ground : C.ground2;
+      ctx.fillRect(x * cell, y * cell, cell + 0.5, cell + 0.5);
+      const h = hash(x, y);
+      if (h > 0.86) { ctx.fillStyle = 'rgba(232,224,208,0.035)'; ctx.fillRect(x * cell + cell * 0.2, y * cell + cell * 0.55, cell * 0.35, cell * 0.12); }
+    }
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) { ctx.moveTo(i * cell, 0); ctx.lineTo(i * cell, S); ctx.moveTo(0, i * cell); ctx.lineTo(S, i * cell); }
+    ctx.stroke();
+  }
+
+  let hatch = null;
+  function margins() {
+    const G = ui.G;
+    ctx.fillStyle = 'rgba(232,224,208,0.05)';
+    for (let i = 0; i < N * N; i++) if (PROTECTED[i]) ctx.fillRect((i % N) * cell, ((i / N) | 0) * cell, cell, cell);
+    if (!(G.P.banRadius > 0)) return;
+    if (!hatch) {
+      const pc = document.createElement('canvas'); pc.width = pc.height = 10;
+      const p = pc.getContext('2d'); p.strokeStyle = 'rgba(224,179,65,0.26)'; p.lineWidth = 1.5;
+      p.beginPath(); p.moveTo(0, 10); p.lineTo(10, 0); p.moveTo(-2, 2); p.lineTo(2, -2); p.moveTo(8, 12); p.lineTo(12, 8); p.stroke();
+      hatch = ctx.createPattern(pc, 'repeat');
+    }
+    ctx.fillStyle = hatch; ctx.beginPath();
+    for (let i = 0; i < N * N; i++) if (G.prot[i] && !PROTECTED[i]) ctx.rect((i % N) * cell, ((i / N) | 0) * cell, cell, cell);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(224,179,65,0.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 5]);
+    ctx.beginPath(); ctx.arc(S / 2, S / 2, G.P.banRadius * cell, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  function rifts() {
+    const G = ui.G, active = G.rift, t = ui.time;
+    for (let a = 0; a < 4; a++) {
+      const [g0, g1] = GATES[a];
+      const x0 = Math.min(g0[0], g1[0]), y0 = Math.min(g0[1], g1[1]);
+      const w = Math.abs(g0[0] - g1[0]) + 1, h = Math.abs(g0[1] - g1[1]) + 1;
+      const mx = (x0 + w / 2) * cell, my = (y0 + h / 2) * cell;
+      const isActive = a === active && (G.phase === 'plan' || G.phase === 'select' || G.phase === 'wave');
+      const pulse = reduce ? 0.5 : 0.5 + 0.5 * Math.sin(t * 4);
+      if (isActive) {
+        const rg = ctx.createRadialGradient(mx, my, 0, mx, my, cell * (2.6 + pulse * 0.6));
+        rg.addColorStop(0, 'rgba(154,107,214,0.65)'); rg.addColorStop(1, 'rgba(154,107,214,0)');
+        ctx.fillStyle = rg; ctx.fillRect(mx - cell * 3.4, my - cell * 3.4, cell * 6.8, cell * 6.8);
+      }
+      ctx.fillStyle = isActive ? '#6c3fb0' : '#3c2a58';
+      ctx.fillRect(x0 * cell, y0 * cell, w * cell, h * cell);
+      ctx.strokeStyle = isActive ? '#c8a6f2' : '#6f5a92'; ctx.lineWidth = 2;
+      ctx.strokeRect(x0 * cell + 1, y0 * cell + 1, w * cell - 2, h * cell - 2);
+      // label and inward arrow
+      const dirx = a === 1 ? -1 : a === 3 ? 1 : 0, diry = a === 0 ? 1 : a === 2 ? -1 : 0;
+      ctx.fillStyle = isActive ? C.bone : '#a995cc';
+      ctx.font = '700 ' + Math.round(cell * 0.44) + 'px "Barlow Condensed", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.save(); ctx.translate(mx, my);
+      if (dirx) ctx.rotate(dirx > 0 ? -Math.PI / 2 : Math.PI / 2);
+      ctx.fillText(ARMS[a].toUpperCase(), 0, 1);
+      ctx.restore();
+      if (isActive) {
+        ctx.strokeStyle = C.gold; ctx.lineWidth = 3;
+        const ax = mx + dirx * cell * 1.6, ay = my + diry * cell * 1.6, off = reduce ? 0 : (Math.sin(t * 5) * cell * 0.15);
+        ctx.beginPath();
+        ctx.moveTo(ax - diry * cell * 0.45 + dirx * off, ay - dirx * cell * 0.45 + diry * off);
+        ctx.lineTo(ax + dirx * cell * 0.5 + dirx * off, ay + diry * cell * 0.5 + diry * off);
+        ctx.lineTo(ax + diry * cell * 0.45 + dirx * off, ay + dirx * cell * 0.45 + diry * off);
+        ctx.stroke();
+      }
+    }
+  }
+
+  function routeLine(cells, gate) {
+    ctx.beginPath();
+    ctx.moveTo((gate[0] + 0.5) * cell, (gate[1] + 0.5) * cell);
+    for (const c of cells) ctx.lineTo(cx(c), cy(c));
+    ctx.lineTo(S / 2, S / 2);
+    ctx.stroke();
+  }
+  function routes() {
+    const G = ui.G;
+    if (!G.an) return;
+    const dash = [cell * 0.28, cell * 0.22];
+    for (let a = 0; a < 4; a++) {
+      const isNext = a === G.rift;
+      if (!isNext && !ui.showAll) continue;
+      ctx.setLineDash(dash);
+      ctx.lineDashOffset = reduce ? 0 : -ui.time * cell * 0.8;
+      ctx.lineWidth = isNext ? Math.max(2.5, cell * 0.13) : Math.max(1.4, cell * 0.06);
+      ctx.strokeStyle = isNext ? C.gold : 'rgba(154,107,214,0.5)';
+      G.an.routes[a].forEach((cells, g) => routeLine(cells, GATES[a][g]));
+    }
+    ctx.setLineDash([]);
+    // route length labels beside each gate
+    ctx.font = '700 ' + Math.round(cell * 0.5) + 'px "Barlow Condensed", sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let a = 0; a < 4; a++) {
+      const [g0, g1] = GATES[a];
+      const mx = ((g0[0] + g1[0]) / 2 + 0.5) * cell, my = ((g0[1] + g1[1]) / 2 + 0.5) * cell;
+      const sx = a % 2 === 0 ? cell * 2.3 : 0, sy = a % 2 === 0 ? 0 : cell * 2.3;
+      const lx = mx + sx, ly = my + sy;
+      ctx.fillStyle = a === G.rift ? C.gold : '#a58fcd';
+      ctx.fillText(Math.round(G.an.len[a]), lx, ly);
+    }
+  }
+
+  function bastion() {
+    const x = 11 * cell, y = 11 * cell, w = 2 * cell;
+    ctx.fillStyle = '#0d0b09'; ctx.fillRect(x - 3, y + 3, w + 6, w + 3);
+    ctx.fillStyle = '#bdb49d'; ctx.fillRect(x, y, w, w);
+    ctx.fillStyle = '#d8d0bd'; ctx.fillRect(x + 3, y + 3, w - 6, w * 0.45);
+    ctx.fillStyle = C.blood; ctx.fillRect(x + w / 2 - cell * 0.18, y + cell * 0.2, cell * 0.36, w - cell * 0.4);
+    ctx.fillRect(x + cell * 0.35, y + w / 2 - cell * 0.16, w - cell * 0.7, cell * 0.32);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 3; ctx.strokeRect(x, y, w, w);
+  }
+
+  function obstacles() {
+    const G = ui.G;
+    for (let i = 0; i < N * N; i++) {
+      const k = G.kind[i];
+      if (k !== K.RUIN && k !== K.RUBBLE) continue;
+      const x = (i % N) * cell, y = ((i / N) | 0) * cell, h = hash(i % N, (i / N) | 0, 3);
+      if (k === K.RUIN) {
+        ctx.fillStyle = '#4d463d'; ctx.fillRect(x + cell * 0.1, y + cell * 0.12, cell * 0.8, cell * 0.76);
+        ctx.fillStyle = '#625a4f'; ctx.fillRect(x + cell * 0.1, y + cell * 0.12, cell * 0.8, cell * 0.2);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 2; ctx.strokeRect(x + cell * 0.1, y + cell * 0.12, cell * 0.8, cell * 0.76);
+        ctx.beginPath(); ctx.moveTo(x + cell * (0.3 + h * 0.3), y + cell * 0.32); ctx.lineTo(x + cell * 0.5, y + cell * 0.6); ctx.lineTo(x + cell * 0.42, y + cell * 0.88); ctx.stroke();
+      } else {
+        ctx.fillStyle = '#6a4f37';
+        for (let n = 0; n < 4; n++) {
+          const rx = x + cell * (0.2 + hash(i, n, 5) * 0.45), ry = y + cell * (0.25 + hash(i, n, 7) * 0.4), rs = cell * (0.16 + hash(i, n, 9) * 0.14);
+          ctx.beginPath(); ctx.moveTo(rx, ry - rs); ctx.lineTo(rx + rs, ry + rs * 0.7); ctx.lineTo(rx - rs, ry + rs * 0.8); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.stroke();
+        }
+      }
+    }
+  }
+
+  function hoverCell() {
+    const G = ui.G, i = ui.hover;
+    // marked landing zones
+    for (const m of G.marks) {
+      ctx.strokeStyle = C.gold; ctx.lineWidth = 2; ctx.setLineDash([cell * 0.15, cell * 0.12]);
+      ctx.beginPath(); ctx.arc(cx(m), cy(m), cell * 0.38, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(cx(m) - cell * 0.12, cy(m)); ctx.lineTo(cx(m) + cell * 0.12, cy(m)); ctx.moveTo(cx(m), cy(m) - cell * 0.12); ctx.lineTo(cx(m), cy(m) + cell * 0.12); ctx.stroke();
+    }
+    if (i < 0 || G.phase !== 'plan') return;
+    const x = (i % N) * cell, y = ((i / N) | 0) * cell;
+    if (ui.upg) {
+      const t = Core.towerAt(G, i);
+      if (!t) return;
+      const price = Core.upgradePrice(G, t.rank), why = Core.canUpgrade(G, i);
+      const col = why ? C.blood : C.gold;
+      ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
+      const txt = price === null ? 'Höchster Rang' : Core.RANK_NAMES[t.rank] + ' zu ' + Core.RANK_NAMES[t.rank + 1] + ': ' + price + ' R';
+      ctx.font = '700 ' + Math.round(cell * 0.42) + 'px "Barlow Condensed", sans-serif';
+      const w = ctx.measureText(txt).width + cell * 0.5, lx = Math.min(S - w - 2, Math.max(2, x + cell / 2 - w / 2));
+      ctx.fillStyle = 'rgba(20,17,15,0.94)'; ctx.fillRect(lx, y - cell * 0.75, w, cell * 0.6);
+      ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(txt, lx + cell * 0.25, y - cell * 0.45);
+      return;
+    }
+    if (ui.demo) {
+      const price = Core.demolishPrice(G, i);
+      if (price === null) return;
+      const ok = G.req >= price;
+      ctx.strokeStyle = ok ? C.gold : C.blood; ctx.lineWidth = 3; ctx.strokeRect(x + 1.5, y + 1.5, cell - 3, cell - 3);
+      ctx.fillStyle = 'rgba(20,17,15,0.92)'; ctx.fillRect(x + cell * 0.1, y - cell * 0.62, cell * 1.4, cell * 0.55);
+      ctx.fillStyle = ok ? C.gold : C.blood; ctx.font = '700 ' + Math.round(cell * 0.42) + 'px "Barlow Condensed", sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(price + ' R', x + cell * 0.2, y - cell * 0.35);
+      return;
+    }
+    if (G.kind[i] !== K.FREE || G.prot[i]) return;
+    const key = i + ':' + G.marks.length;
+    if (ui.hoverKey !== key) { ui.hoverKey = key; ui.hoverReason = Core.canMark(G, i); }
+    const bad = ui.hoverReason !== null;
+    ctx.fillStyle = bad ? 'rgba(217,71,58,0.28)' : 'rgba(143,191,63,0.22)';
+    ctx.fillRect(x, y, cell, cell);
+    ctx.strokeStyle = bad ? C.blood : C.toxic; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, cell - 2, cell - 2);
+    if (bad && ui.hoverReason === 'blocked') {
+      ctx.beginPath(); ctx.moveTo(x + cell * 0.25, y + cell * 0.25); ctx.lineTo(x + cell * 0.75, y + cell * 0.75); ctx.moveTo(x + cell * 0.75, y + cell * 0.25); ctx.lineTo(x + cell * 0.25, y + cell * 0.75); ctx.stroke();
+    }
+  }
+
+  function towers() {
+    const G = ui.G;
+    // selected range first, below the towers
+    if (ui.sel >= 0 && G.kind[ui.sel] === K.TOWER) {
+      const t = G.towers.find((q) => idx(q.x, q.y) === ui.sel);
+      if (t) {
+        const D = DOCS[t.doc];
+        ctx.fillStyle = 'rgba(224,179,65,0.1)'; ctx.strokeStyle = 'rgba(224,179,65,0.7)'; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+        ctx.beginPath(); ctx.arc(t.cx * cell, t.cy * cell, D.range * cell, 0, 7); ctx.fill(); ctx.stroke();
+        if (D.minRange) { ctx.beginPath(); ctx.arc(t.cx * cell, t.cy * cell, D.minRange * cell, 0, 7); ctx.stroke(); }
+        ctx.setLineDash([]);
+      }
+    }
+    for (const t of G.towers) {
+      const D = DOCS[t.doc], x = t.cx * cell, y = t.cy * cell;
+      if (t.firing && G.phase === 'wave' && t.doc === 'psi') {
+        ctx.strokeStyle = 'rgba(154,107,214,0.35)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, D.range * cell * (reduce ? 1 : 0.85 + 0.15 * Math.sin(ui.time * 6)), 0, 7); ctx.stroke();
+      }
+      if (t.firing && G.phase === 'wave') {
+        for (const e of t.tgt) {
+          const ex = e.x * cell, ey = e.y * cell;
+          ctx.strokeStyle = D.color; ctx.globalAlpha = 0.85;
+          ctx.lineWidth = t.doc === 'flame' ? cell * 0.22 : t.doc === 'laser' ? 3 : 2;
+          ctx.beginPath(); ctx.moveTo(x, y);
+          if (t.doc === 'tesla') { const mx = (x + ex) / 2 + (Math.random() - 0.5) * cell * 0.4, my = (y + ey) / 2 + (Math.random() - 0.5) * cell * 0.4; ctx.lineTo(mx, my); }
+          ctx.lineTo(ex, ey); ctx.stroke();
+          if (t.doc === 'mortar') { ctx.fillStyle = 'rgba(183,154,104,0.25)'; ctx.beginPath(); ctx.arc(ex, ey, 1.2 * cell, 0, 7); ctx.fill(); }
+          ctx.globalAlpha = 1;
+        }
+      }
+      ctx.fillStyle = '#0d0b09'; ctx.beginPath(); ctx.arc(x, y + cell * 0.06, cell * 0.4, 0, 7); ctx.fill();
+      ctx.fillStyle = D.color; ctx.strokeStyle = C.ink; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(x, y, cell * 0.36, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = C.ink; ctx.font = '700 ' + Math.round(cell * 0.52) + 'px "Barlow Condensed", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(D.short, x, y + 1);
+      for (let k = 0; k < t.rank; k++) {
+        ctx.fillStyle = C.gold; ctx.strokeStyle = C.ink; ctx.lineWidth = 1;
+        const px0 = x + (k - (t.rank - 1) / 2) * cell * 0.17, py0 = y + cell * 0.5;
+        ctx.beginPath(); ctx.moveTo(px0, py0 - cell * 0.1); ctx.lineTo(px0 + cell * 0.09, py0 + cell * 0.05); ctx.lineTo(px0 - cell * 0.09, py0 + cell * 0.05); ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      if (ui.upg && G.phase === 'plan' && !Core.canUpgrade(G, idx(t.x, t.y))) {
+        ctx.strokeStyle = C.gold; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.arc(x, y, cell * 0.5, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+      }
+      // coverage badge
+      const bx = x + cell * 0.34, by = y - cell * 0.34;
+      ctx.fillStyle = COVER_COLOR[t.cover]; ctx.beginPath(); ctx.arc(bx, by, cell * 0.2, 0, 7); ctx.fill();
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = C.ink; ctx.font = '700 ' + Math.round(cell * 0.3) + 'px "Barlow Condensed", sans-serif';
+      ctx.fillText(t.cover, bx, by + 0.5);
+    }
+  }
+
+  function capsules() {
+    const G = ui.G;
+    if (G.phase !== 'select') return;
+    const L = ui.land;
+    G.caps.forEach((c, n) => {
+      const start = 0.2 + n * 0.12, dur = 0.55;
+      const p = L ? Math.min(1, Math.max(0, (L.t - start) / dur)) : 1;
+      const x = (c.x + 0.5) * cell, y = (c.y + 0.5) * cell;
+      if (L && p <= 0) return;
+      const drop = (1 - p) * (1 - p) * cell * 7;
+      ctx.fillStyle = 'rgba(0,0,0,' + 0.35 * p + ')'; ctx.beginPath(); ctx.ellipse(x, y + cell * 0.25, cell * (0.15 + 0.25 * p), cell * (0.07 + 0.1 * p), 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#5b5f68'; ctx.strokeStyle = C.ink; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(x - cell * 0.3, y - cell * 0.38 - drop, cell * 0.6, cell * 0.76, cell * 0.14); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = DOCS[c.doc].color; ctx.fillRect(x - cell * 0.22, y - cell * 0.3 - drop, cell * 0.44, cell * 0.22);
+      if (p >= 1) {
+        const on = ui.capSel === n;
+        ctx.strokeStyle = on ? C.gold : 'rgba(232,224,208,0.55)'; ctx.lineWidth = on ? 3 : 1.5; ctx.setLineDash(on ? [] : [4, 4]);
+        ctx.beginPath(); ctx.arc(x, y, cell * 0.5, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = C.bone; ctx.font = '700 ' + Math.round(cell * 0.4) + 'px "Barlow Condensed", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(DOCS[c.doc].short, x, y + cell * 0.12);
+        const since = L ? L.t - (start + dur) : 1;
+        if (since >= 0 && since < 0.35 && !reduce) { ctx.strokeStyle = 'rgba(232,224,208,' + (1 - since / 0.35) * 0.7 + ')'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y + cell * 0.2, cell * (0.3 + since * 3), 0, 7); ctx.stroke(); }
+      }
+    });
+  }
+
+  function enemies() {
+    const G = ui.G;
+    for (const pass of [0, 1]) for (const e of G.enemies) {
+      if (!!e.air !== !!pass) continue;
+      const D = ENEMY[e.type], x = e.x * cell, y = e.y * cell, r = Math.max(2.5, D.r * cell);
+      if (e.air) {
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(x, y + cell * 0.35, r * 0.9, r * 0.4, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = D.color; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(x - r * 1.5, y - r * 0.2); ctx.lineTo(x, y + r * 0.9); ctx.lineTo(x + r * 1.5, y - r * 0.2); ctx.lineTo(x, y - r * 0.8); ctx.closePath(); ctx.fill(); ctx.stroke();
+      } else {
+        ctx.fillStyle = D.color; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.stroke();
+        if (e.type === 'healer') { ctx.fillStyle = C.ink; ctx.fillRect(x - r * 0.15, y - r * 0.6, r * 0.3, r * 1.2); ctx.fillRect(x - r * 0.6, y - r * 0.15, r * 1.2, r * 0.3); }
+      }
+      if (e.slowT > 0) { ctx.strokeStyle = C.warp; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r + 2.5, 0, 7); ctx.stroke(); }
+      if (e.hp < e.max - 0.01 && (D.r >= 0.28 || e.type === 'boss')) {
+        ctx.fillStyle = '#0d0b09'; ctx.fillRect(x - r, y - r - 6, r * 2, 3);
+        ctx.fillStyle = C.toxic; ctx.fillRect(x - r, y - r - 6, Math.max(0, r * 2 * (e.hp / e.max)), 3);
+      }
+    }
+  }
+
+  function banner() {
+    const G = ui.G;
+    if (G.phase === 'won' || G.phase === 'lost') return;
+    const txt = (G.phase === 'wave' ? 'Angriff von ' : 'Nächster Angriff von ') + ARMS[G.rift].toUpperCase();
+    ctx.font = '700 ' + Math.round(cell * 0.58) + 'px "Barlow Condensed", sans-serif';
+    const w = ctx.measureText(txt).width + cell * 1.2;
+    ctx.fillStyle = 'rgba(20,17,15,0.88)'; ctx.fillRect(S / 2 - w / 2, cell * 3.1, w, cell * 0.95);
+    ctx.strokeStyle = C.gold; ctx.lineWidth = 2; ctx.strokeRect(S / 2 - w / 2, cell * 3.1, w, cell * 0.95);
+    ctx.fillStyle = C.gold; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(txt, S / 2, cell * 3.1 + cell * 0.5);
+  }
+
+  function endOverlay() {
+    const G = ui.G;
+    ctx.fillStyle = 'rgba(20,17,15,0.72)'; ctx.fillRect(0, 0, S, S);
+    ctx.fillStyle = G.phase === 'won' ? C.toxic : C.blood;
+    ctx.font = '700 ' + Math.round(cell * 1.5) + 'px "Barlow Condensed", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(G.phase === 'won' ? 'BASTION GEHALTEN' : 'BASTION GEFALLEN', S / 2, S / 2 - cell * 0.6);
+    ctx.fillStyle = C.bone; ctx.font = '500 ' + Math.round(cell * 0.7) + 'px "Barlow", sans-serif';
+    ctx.fillText(G.phase === 'won' ? 'Alle ' + G.P.waves + ' Wellen überstanden, ' + G.lives + ' Leben übrig' : 'In Welle ' + G.wave + ' gefallen, ' + G.kills + ' Abschüsse', S / 2, S / 2 + cell * 0.7);
+  }
+
+  // ------------------------------------------------------------------- panel
+  const el = {
+    wave: $('s-wave'), lives: $('s-lives'), req: $('s-req'), kills: $('s-kills'), title: $('ph-title'), hint: $('ph-hint'),
+    arms: $('arms'), plan: $('act-plan'), sel: $('act-select'), wv: $('act-wave'), end: $('act-end'), salvo: $('b-salvo'), demo: $('b-demo'),
+    bar: $('wave-bar'), note: $('wave-note'), insp: $('inspect'), upg: $('b-upg'), upgNote: $('upg-note'),
+  };
+  el.arms.innerHTML = ARMS.map((a, n) => '<div class="arm" data-a="' + n + '"><small>' + a + '</small><strong>0</strong></div>').join('');
+
+  function setPanelMode(force) {
+    const G = ui.G;
+    el.plan.hidden = G.phase !== 'plan';
+    el.sel.hidden = G.phase !== 'select';
+    el.wv.hidden = G.phase !== 'wave';
+    el.end.hidden = !(G.phase === 'won' || G.phase === 'lost');
+    if (force) { ui.lastPhase = G.phase; ui.lastWave = G.wave; }
+    updatePanel();
+  }
+
+  function buildCaps() {
+    const G = ui.G;
+    el.sel.innerHTML = '';
+    const route = G.an ? G.an.routes[G.rift] : [];
+    const reaches = (c) => {
+      const D = DOCS[c.doc];
+      for (const rs of route) for (const rc of rs) {
+        const d = Math.hypot((rc % N) - c.x, ((rc / N) | 0) - c.y);
+        if (d <= D.range && d >= (D.minRange || 0)) return true;
+      }
+      return false;
+    };
+    G.caps.forEach((c, n) => {
+      const D = DOCS[c.doc];
+      const ok = reaches(c);
+      const b = document.createElement('button');
+      b.className = 'cap' + (ui.capSel === n ? ' on' : '');
+      b.disabled = !!ui.land;
+      b.innerHTML = '<i style="background:' + D.color + '">' + D.short + '</i><span>' + D.name + (D.air ? '' : ' <em>nur Boden</em>') + '</span><em style="color:' + (ui.capSel === n ? 'var(--gold)' : ok ? 'var(--toxic)' : 'var(--blood)') + '">' + (ui.capSel === n ? 'Nochmal: behalten' : ok ? 'erreicht ' + ARMS[G.rift] : 'zu weit weg') + '</em>';
+      b.addEventListener('click', () => pickCap(n));
+      el.sel.appendChild(b);
+    });
+  }
+
+  let capSig = '';
+  function updatePanel() {
+    const G = ui.G;
+    el.wave.textContent = Math.min(G.wave, G.P.waves);
+    el.lives.textContent = G.lives;
+    el.req.textContent = G.req;
+    el.kills.textContent = G.kills;
+    el.arms.querySelectorAll('.arm').forEach((n, a) => {
+      n.classList.toggle('next', a === G.rift && G.phase !== 'won' && G.phase !== 'lost');
+      n.querySelector('strong').textContent = G.an ? Math.round(G.an.len[a]) : '';
+    });
+    const wi = G.wave_info;
+    const total = wi ? wi.groups.reduce((s, g) => s + g.count, 0) : 0;
+    const salvo = Core.salvoFor(G.P, G.wave);
+    if (G.phase === 'plan') {
+      el.title.textContent = 'Planung, Welle ' + G.wave;
+      el.hint.textContent = (wi ? KIND_LABEL[wi.kind] + ' mit ' + total + ' Gegnern von ' + ARMS[G.rift] + '. ' : '') + 'Tippe freie Felder, um Landezonen zu markieren. Rot heißt: ein Weg wäre blockiert. Fehlende Zonen werden zufällig ergänzt.';
+      el.salvo.textContent = 'Salve anfordern (' + G.marks.length + ' von ' + salvo + ' markiert)';
+      el.demo.setAttribute('aria-pressed', String(ui.demo));
+      el.demo.textContent = ui.demo ? 'Abriss beenden' : 'Abriss-Modus';
+      el.upg.disabled = !(G.towers.length > 0 && G.P.upgradeMode !== 'off');
+      el.upg.setAttribute('aria-pressed', String(ui.upg));
+      el.upg.textContent = ui.upg ? 'Aufwertung beenden' : 'Aufwertung statt Salve';
+      const cheapest = G.towers.reduce((m, t) => { const p = Core.upgradePrice(G, t.rank); return p === null ? m : Math.min(m, p); }, Infinity);
+      el.upgNote.textContent = G.P.upgradeMode === 'off' ? '' : G.towers.length ? 'Günstigste Aufwertung: ' + (isFinite(cheapest) ? cheapest + ' Requisition' : 'nicht möglich') + ', du hast ' + G.req + '. Sie ersetzt die Salve dieser Runde.' : 'Aufwertung geht erst, wenn eine Stellung steht.';
+    } else if (G.phase === 'select') {
+      el.title.textContent = 'Auswahl';
+      el.hint.textContent = 'Die Welle kommt von ' + ARMS[G.rift] + '. Behalte genau eine Stellung, am besten eine, die diese Route erreicht. Tippe sie an, dann nochmal zum Bestätigen. Die übrigen werden zu Trümmern.';
+      const sig = G.caps.map((c) => c.doc).join() + ':' + ui.capSel + ':' + (ui.land ? 1 : 0);
+      if (sig !== capSig) { capSig = sig; buildCaps(); }
+    } else if (G.phase === 'wave') {
+      el.title.textContent = 'Welle ' + G.wave + ' läuft';
+      el.hint.textContent = (wi ? KIND_LABEL[wi.kind] + ', ' : '') + 'Angriff von ' + ARMS[G.rift] + '.';
+      const spawned = G.spawnI, alive = G.enemies.length;
+      el.bar.style.width = (total ? Math.min(100, (100 * (spawned - alive)) / total) : 0) + '%';
+      el.note.textContent = alive + ' Gegner auf dem Feld, ' + (total - spawned) + ' kommen noch. Durchbrüche in dieser Welle: ' + G.waveLeaks + '.';
+    } else {
+      el.title.textContent = G.phase === 'won' ? 'Sieg' : 'Niederlage';
+      el.hint.textContent = G.phase === 'won' ? 'Alle Wellen überstanden.' : 'Die Bastion ist gefallen.';
+    }
+    document.querySelectorAll('[data-speed]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === (ui.paused ? 0 : ui.speed))));
+    inspect();
+  }
+
+  function inspect() {
+    const G = ui.G;
+    let h = '';
+    const i = ui.sel >= 0 ? ui.sel : -1;
+    const t = i >= 0 ? G.towers.find((q) => idx(q.x, q.y) === i) : null;
+    if (t) {
+      const D = DOCS[t.doc];
+      const arms = ARMS.filter((a, n) => t.arms[n]).join(', ') || 'keine';
+      const dpsNow = D.dps * Core.RANK_DMG[t.rank];
+      h = '<b>' + D.name + ', ' + Core.RANK_NAMES[t.rank] + '</b><br>' + fmt(dpsNow, dpsNow % 1 ? 1 : 0) + ' Schaden pro Sekunde, Reichweite ' + fmt(Core.rangeEff(t), 1) + (D.minRange ? ' (ab ' + fmt(D.minRange, 1) + ')' : '') + ', ' + (D.air ? 'Boden und Luft' : 'nur Boden') + '.<br>Erreicht die Routen von: ' + arms + ' (' + t.cover + ' von 4).';
+    } else if (G.towers.length) {
+      h = '<b>Abdeckung</b><br>Deine Stellungen erreichen im Schnitt <b style="color:var(--gold)">' + fmt(G.an.avgCover, 1) + ' von 4</b> Seiten. Tippe eine Stellung an, um Reichweite und Seiten zu sehen.';
+    } else {
+      h = '<b>Noch keine Stellung</b><br>Jede Runde bleibt eine Kapsel als Stellung, alle anderen werden Trümmer und bauen das Labyrinth.';
+    }
+    if (el.insp.innerHTML !== h) el.insp.innerHTML = h;
+  }
+
+  // ----------------------------------------------------------------- buttons
+  el.salvo.addEventListener('click', doSalvo);
+  el.upg.addEventListener('click', () => { ui.upg = !ui.upg; ui.demo = false; ui.pendingUpg = -1; ui.pendingDemo = -1; ui.hoverKey = ''; if (ui.upg) toast('Tippe eine Stellung an. Nochmal tippen bestätigt, die Welle startet dann ohne Salve.'); updatePanel(); });
+  el.demo.addEventListener('click', () => { ui.demo = !ui.demo; ui.upg = false; ui.pendingUpg = -1; ui.pendingDemo = -1; ui.hoverKey = ''; if (ui.demo) toast('Abriss: Preis steht am Feld. Trümmer ' + Core.rubblePrice(ui.G) + ', Stellungen ' + Core.rubblePrice(ui.G) * 3 + '.'); updatePanel(); });
+  document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => {
+    const v = Number(b.dataset.speed);
+    if (v === 0) ui.paused = !ui.paused; else { ui.paused = false; ui.speed = v; }
+    updatePanel();
+  }));
+  $('b-new').addEventListener('click', () => { newGame(); });
+  $('c-auto').addEventListener('change', (e) => { ui.auto = e.target.checked; ui.autoT = 0; });
+  $('sel-strat').addEventListener('change', (e) => { ui.strat = e.target.value; });
+  $('c-all').addEventListener('change', (e) => { ui.showAll = e.target.checked; });
+
+  // -------------------------------------------------------------------- tabs
+  const tabs = { play: ['t-play', 'p-play'], bots: ['t-bots', 'p-bots'], vals: ['t-vals', 'p-vals'] };
+  function showTab(name) {
+    for (const [k, [t, p]] of Object.entries(tabs)) { $(t).setAttribute('aria-selected', String(k === name)); $(p).hidden = k !== name; }
+    ui.tab = name;
+  }
+  for (const [k, [t]] of Object.entries(tabs)) $(t).addEventListener('click', () => showTab(k));
+
+  // ------------------------------------------------------------------ values
+  const V = { seed: 'v-seed', order: 'v-order', startSalvo: 'v-start', salvoEarly: 'v-early', salvoMid: 'v-mid', salvoLate: 'v-late', lives: 'v-lives', startReq: 'v-req', hpFactor: 'v-hp', powerGrowth: 'v-pg', banRadius: 'v-ban', upgradeMode: 'v-upg' };
+  function fillValues() {
+    $(V.seed).value = ui.seed;
+    for (const k of Object.keys(V)) if (k !== 'seed') $(V[k]).value = ui.P[k];
+  }
+  function readValues() {
+    const num = (id, lo, hi, dflt) => { const v = parseFloat($(id).value); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : dflt; };
+    const P = Core.defaults();
+    ui.seed = Math.round(num(V.seed, 1, 99999, 7));
+    P.order = $(V.order).value;
+    P.startSalvo = Math.round(num(V.startSalvo, 1, 14, P.startSalvo));
+    P.salvoEarly = Math.round(num(V.salvoEarly, 1, 14, P.salvoEarly));
+    P.salvoMid = Math.round(num(V.salvoMid, 1, 14, P.salvoMid));
+    P.salvoLate = Math.round(num(V.salvoLate, 1, 14, P.salvoLate));
+    P.lives = Math.round(num(V.lives, 1, 99, P.lives));
+    P.startReq = Math.round(num(V.startReq, 0, 999, P.startReq));
+    P.hpFactor = num(V.hpFactor, 0.02, 3, P.hpFactor);
+    P.powerGrowth = num(V.powerGrowth, 1, 1.2, P.powerGrowth);
+    P.banRadius = Math.round(num(V.banRadius, 0, 8, P.banRadius) * 2) / 2;
+    P.upgradeMode = $(V.upgradeMode).value;
+    ui.P = P;
+  }
+  $('v-apply').addEventListener('click', () => { readValues(); fillValues(); newGame(); showTab('play'); toast('Neue Partie mit den neuen Werten.'); });
+  $('v-reset').addEventListener('click', () => { ui.P = Core.defaults(); ui.seed = 7; fillValues(); });
+
+  // --------------------------------------------------------------- bot compare
+  const STRATS = ['ring', 'arm', 'mix', 'balance'];
+  const STRAT_NAME = { ring: 'Ring', arm: 'Arm', mix: 'Mix', balance: 'Ausgewogen' };
+  const STRAT_COLOR = { ring: '#e0b341', arm: '#4fb4e6', mix: '#8fbf3f', balance: '#d9473a' };
+  const UPG_NAME = { off: 'aus', free: 'gratis', ladder: 'nach Staffel' };
+  const history = [];
+  const med = (a) => { const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const setEvery = (v) => { ui.botEvery = v; $('sel-every').value = v; $('bot-every').value = v; };
+  $('sel-every').addEventListener('change', (e) => setEvery(e.target.value));
+  $('bot-every').addEventListener('change', (e) => setEvery(e.target.value));
+  const cfgLabel = (P, every) => 'Sperrzone ' + (P.banRadius ? fmt(P.banRadius, 1) : 'aus') + ', Aufwertung ' + UPG_NAME[P.upgradeMode] + (every && P.upgradeMode !== 'off' ? ', Bot jede ' + every + '. Runde' : ', Bot ohne Aufwertung') + ', Gegner x' + fmt(P.hpFactor, 2);
+
+  function runConfigs(configs) {
+    if (ui.botRunning) return;
+    const n = Math.max(4, Math.min(40, parseInt($('bot-n').value, 10) || 8));
+    const every = Number(ui.botEvery) || 0;
+    const blocks = configs.map((cfg) => ({ title: cfg.title, label: cfgLabel(cfg.P, every), P: cfg.P, res: { ring: [], arm: [], mix: [], balance: [] } }));
+    const jobs = [];
+    blocks.forEach((bl, ci) => { for (let s = 0; s < n; s++) for (const st of STRATS) jobs.push([ci, st, ui.seed + s]); });
+    ui.botRunning = true; $('bot-run').disabled = true; $('bot-run2').disabled = true;
+    let k = 0;
+    const tick = () => {
+      const t0 = performance.now();
+      while (k < jobs.length && performance.now() - t0 < 40) {
+        const [ci, st, sd] = jobs[k++];
+        blocks[ci].res[st].push(Core.runBot(blocks[ci].P, sd, st, { upgradeEvery: every }));
+      }
+      $('bot-bar').style.width = (100 * k / jobs.length) + '%';
+      $('bot-note').textContent = 'Partie ' + k + ' von ' + jobs.length + ' gespielt.';
+      if (k < jobs.length) { setTimeout(tick, 0); return; }
+      ui.botRunning = false; $('bot-run').disabled = false; $('bot-run2').disabled = false;
+      $('bot-note').textContent = n + ' Karten, Seeds ' + ui.seed + ' bis ' + (ui.seed + n - 1) + '.';
+      history.unshift({ blocks, n });
+      history.length = Math.min(history.length, 3);
+      renderHistory();
+    };
+    setTimeout(tick, 0);
+  }
+  $('bot-run').addEventListener('click', () => runConfigs([{ title: 'Aktuelle Werte', P: Object.assign({}, ui.P) }]));
+  $('bot-run2').addEventListener('click', () => {
+    const withBan = Object.assign({}, ui.P);
+    if (!withBan.banRadius) withBan.banRadius = 4;
+    runConfigs([{ title: 'Mit Sperrzone', P: withBan }, { title: 'Ohne Sperrzone', P: Object.assign({}, ui.P, { banRadius: 0 }) }]);
+  });
+
+  function blockHTML(bl, n) {
+    const rows = STRATS.map((st) => {
+      const r = bl.res[st], reached = r.map((x) => x.reached);
+      return '<tr><td><span class="sw" style="background:' + STRAT_COLOR[st] + '"></span>' + STRAT_NAME[st] + '</td>' +
+        '<td>' + fmt(med(reached), 0) + '<br><small style="color:var(--muted)">' + Math.min(...reached) + ' bis ' + Math.max(...reached) + '</small></td>' +
+        '<td>' + r.filter((x) => x.won).length + '/' + r.length + '</td>' +
+        '<td>' + fmt(r.reduce((a, x) => a + x.cover, 0) / r.length, 1) + '</td>' +
+        '<td>' + fmt(r.reduce((a, x) => a + x.len, 0) / r.length, 0) + '</td>' +
+        '<td>' + fmt(r.reduce((a, x) => a + x.upgrades, 0) / r.length, 1) + '</td></tr>';
+    });
+    const W = 50, w = 560, h = 250, L = 52, R = 14, T = 14, B = 36;
+    const X = (v) => L + ((w - L - R) * v) / W, Y = (v) => T + (h - T - B) * (1 - v);
+    let svg = '<svg class="chart" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="Anteil der Partien, die jede Welle überstehen">';
+    svg += '<style>.ax{stroke:#3a322b;stroke-width:1}.tk{fill:#a1957f;font:17px Barlow,sans-serif}</style>';
+    for (const v of [0, 0.5, 1]) svg += '<line class="ax" x1="' + L + '" x2="' + (w - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '"/><text class="tk" x="' + (L - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + v * 100 + ' %</text>';
+    for (const v of [0, 10, 20, 30, 40, 50]) svg += '<text class="tk" x="' + X(v) + '" y="' + (h - 12) + '" text-anchor="middle">' + v + '</text>';
+    for (const st of STRATS) {
+      const r = bl.res[st];
+      let d = '';
+      for (let v = 0; v <= W; v++) d += (v ? 'L' : 'M') + X(v).toFixed(1) + ' ' + Y(r.filter((x) => x.lostAt > v).length / r.length).toFixed(1);
+      svg += '<path d="' + d + '" fill="none" stroke="' + STRAT_COLOR[st] + '" stroke-width="3.5" stroke-linejoin="round"/>';
+    }
+    svg += '</svg>';
+    return '<section style="margin-top:14px"><h3 style="font-size:17px">' + bl.title + '</h3><p class="note" style="margin:2px 0 8px">' + bl.label + '</p>' +
+      '<div class="tablewrap"><table><thead><tr><th>Bot</th><th>Welle</th><th>Siege</th><th>Seiten</th><th>Route</th><th>Aufw.</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' +
+      '<p class="note" style="margin:6px 0 0">Welle: Median, darunter kleinste bis größte. Seiten: Ø erreichte Seiten je Stellung. Route: Ø Weglänge. Aufw.: Ø Aufwertungsrunden je Partie.</p>' +
+      '<p class="note" style="margin:10px 0 0">Anteil der Partien, die die jeweilige Welle überstehen (waagerecht die Welle):</p>' + svg + '</section>';
+  }
+
+  function ringLead(bl) {
+    const m = (st) => med(bl.res[st].map((x) => x.reached));
+    return m('ring') - Math.max(m('arm'), m('balance'));
+  }
+  function renderHistory() {
+    $('bot-out').innerHTML = history.map((g, gi) => {
+      let head = '';
+      if (g.blocks.length === 2) {
+        const a = ringLead(g.blocks[0]), b = ringLead(g.blocks[1]);
+        const f = (v) => (v > 0 ? '+' : '') + fmt(v, 0);
+        head = '<p class="verdict">Vorsprung des Rings vor dem besten Nicht-Ring-Bot (Arm oder Ausgewogen): <b>' + f(a) + ' Wellen mit Sperrzone</b>, <b>' + f(b) + ' Wellen ohne Sperrzone</b>. ' +
+          (a < b ? 'Die Sperrzone verkleinert den Vorsprung des Rings.' : a > b ? 'Die Sperrzone vergrößert den Vorsprung des Rings sogar.' : 'Kein Unterschied im Median.') +
+          ' Einfache Bots und ein Platzhalter für die Stärke, nimm es als Richtung, nicht als Maß.</p>';
+      } else if (gi === 0) {
+        const m = (st) => med(g.blocks[0].res[st].map((x) => x.reached));
+        const best = STRATS.slice().sort((x, y) => m(y) - m(x));
+        head = '<p class="verdict">Höchster Median: <b>' + STRAT_NAME[best[0]] + '</b> (Welle ' + fmt(m(best[0]), 0) + '), niedrigster: <b>' + STRAT_NAME[best[3]] + '</b> (Welle ' + fmt(m(best[3]), 0) + '). Einfache Bots und ein Platzhalter für die Stärke, nimm es als Richtung, nicht als Maß.</p>';
+      }
+      return (gi ? '<hr style="border:0;border-top:1px solid var(--line);margin:18px 0 0">' : '') + head + g.blocks.map((bl) => blockHTML(bl, g.n)).join('');
+    }).join('');
+  }
+
+  // ---------------------------------------------------------------- main loop
+  function autopilot(dt) {
+    const G = ui.G;
+    if (!ui.auto || ui.land) return;
+    if (G.phase === 'plan' || G.phase === 'select') {
+      ui.autoT += dt;
+      if (ui.autoT < (G.phase === 'plan' ? 0.7 : 0.9)) return;
+      ui.autoT = 0;
+      if (G.phase === 'plan') {
+        const ev = Number(ui.botEvery) || 0;
+        if (ev && G.wave >= 3 && G.wave % ev === 0 && G.towers.length && Core.botUpgrade(G)) { toast('Der Bot hebt eine Stellung einen Rang an. Keine Salve in dieser Runde.'); setPanelMode(true); return; }
+        Core.botMaintain(G); Core.botPlan(G, ui.strat); doSalvo();
+      }
+      else { Core.choose(G, Core.botChoose(G, ui.strat)); ui.capSel = -1; setPanelMode(true); }
+    }
+  }
+
+  let last = performance.now(), panelClock = 0;
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    ui.time += dt;
+    const G = ui.G;
+    if (ui.land) { ui.land.t += dt; if (ui.land.t >= ui.land.total) { ui.land = null; setPanelMode(false); capSig = ''; updatePanel(); } }
+    autopilot(dt);
+    if (G.phase === 'wave' && !ui.paused) {
+      ui.acc += dt * ui.speed;
+      let n = 0;
+      while (ui.acc >= 1 / 60 && n < 12) { Core.step(G, 1 / 60); ui.acc -= 1 / 60; n++; }
+      if (n >= 12) ui.acc = 0;
+    }
+    if (G.phase !== ui.lastPhase || G.wave !== ui.lastWave) { ui.lastPhase = G.phase; ui.lastWave = G.wave; if (ui.sel >= 0 && G.kind[ui.sel] !== K.TOWER) ui.sel = -1; setPanelMode(false); if (G.phase === 'plan' && G.wave > 1) toast('Welle ' + (G.wave - 1) + ' überstanden. +' + (10 + G.wave - 1) + ' Requisition.'); }
+    panelClock += dt;
+    if (panelClock > 0.15) { panelClock = 0; updatePanel(); }
+    if (ui.toastT > 0) { ui.toastT -= dt; if (ui.toastT <= 0) $('toast').classList.remove('on'); }
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  fillValues();
+  newGame();
+  fit();
+  requestAnimationFrame(frame);
+  window.__study = { ui, Core };
+})();
+
+</script>

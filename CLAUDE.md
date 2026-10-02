@@ -17,6 +17,7 @@ Dazu, was die Aufgabe berührt — nicht mehr:
 | Zeichenstil, Effekte, Zeichenfunktionen | `reference/stiltest.html` |
 | Speicherformat, Export/Import, Service Worker | `docs/SPEICHER.md` |
 | der laufende Meilenstein | `docs/meilensteine/M6-balancing.md` |
+| Spielmodi (parallel zu M6) | `docs/meilensteine/M7a-modi.md`, `M7b-king-of-the-hill.md` |
 | Balancing-Werkzeuge und Protokolle | `balancing/README.md` |
 
 Die abgeschlossenen Meilensteine stehen als Tabelle in `docs/meilensteine/README.md`; ihre Arbeitsaufträge sind in der Git-Historie.

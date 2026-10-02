@@ -1,7 +1,7 @@
 # Meilensteine
 
-Definiert waren sieben: **M0 bis M6**. M6 ist der Abschluss, nach ihm kommt
-keiner. Alles mit Buchstaben war ein Einschub aus einem Update-Paket.
+Definiert waren sieben: **M0 bis M6**. Alles mit Buchstaben war ein Einschub
+aus einem Update-Paket. Am 02.10.2026 kam **M7 Spielmodi** dazu, parallel zu M6.
 
 Die Arbeitsaufträge der abgeschlossenen Meilensteine sind am 28.09.2026 aus dem
 Ordner genommen worden — sie waren Bestellungen, die alle ausgeliefert und
@@ -28,5 +28,7 @@ git show <commit>:docs/meilensteine/M3-kampf-und-inhalte.md
 | M5c | Update 6 — HUD, Menüs, letzte vier Spezialstellungen | 28.09.2026 |
 | M5d | Update 7 — Koloss-Verhalten, Stellungsgrafik, Gunship | 27.09.2026 |
 | **M6** | **Balancing und Feinschliff** — [M6-balancing.md](M6-balancing.md) | **in Arbeit** |
+| **M7a** | **Modus-Gerüst** — [M7a-modi.md](M7a-modi.md) | **in Arbeit** |
+| **M7b** | **Modus „King of the Hill"** — [M7b-king-of-the-hill.md](M7b-king-of-the-hill.md) | **nach M7a** |
 
 Der Stand steht in [`docs/PROGRESS.md`](../PROGRESS.md).
