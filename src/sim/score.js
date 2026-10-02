@@ -15,6 +15,10 @@ export function score(state) {
 export function scoreEntry(state) {
   return {
     ruleset: RULESET_VERSION,
+    /** Run configuration (M7a): the leaderboard keeps one compartment per mode. */
+    mode: state.mode.id,
+    modeRev: state.mode.rev,
+    difficulty: state.difficulty,
     seed: state.seed,
     wave: state.wave,
     kills: state.kills,

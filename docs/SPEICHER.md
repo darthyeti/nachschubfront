@@ -1,7 +1,7 @@
 # Speichern
 
 Was das Spiel behält, wo es liegt, und wie später ein Online-Backend dahinterpasst.
-Stand: M5, Profilformat 1.
+Stand: M7a, Profilformat 2, Protokollformat 2.
 
 ## Grundregel
 
@@ -13,14 +13,19 @@ ein einziger Aufrufer sich ändert.
 Jeder Lese- und Schreibzugriff ist in `try/catch`. Ein voller, gesperrter oder
 fehlender Speicher kostet den Spielstand, nie die Partie.
 
-## Zwei Dokumente
+## Drei Dokumente
 
-Es sind bewusst zwei, nicht eins.
+Es sind bewusst drei, nicht eins.
 
 | Schlüssel | Inhalt | Modul | Wandert in den Export |
 | --- | --- | --- | --- |
-| `nachschubfront:prefs` | Lautstärken, Bewegung, weggeklickte Hinweise | `src/core/prefs.js` | nein |
+| `nachschubfront:prefs` | Lautstärken, Bewegung, weggeklickte Hinweise, zuletzt gespielter Modus | `src/core/prefs.js` | nein |
 | `nachschubfront:profile` | Bestwerte und Statistik | `src/storage/profile.js` | ja |
+| `nachschubfront:protocols` | die letzten fünf Partie-Protokolle (M6) | `src/storage/protocol.js` | eigene Datei |
+
+`prefs.lastRun` (`{ mode, difficulty }`, seit M7a) merkt sich die Lauf-Konfiguration
+der letzten Partie. Gespeichert werden nur die beiden Kennungen; ist der Modus in
+diesem Build nicht (mehr) wählbar, nimmt das Menü den Standard.
 
 Die Einstellungen gehören dem Gerät. Wer ein fremdes Profil einspielt, soll
 nicht plötzlich mit fremder Lautstärke spielen. Deshalb bleiben sie draußen
@@ -56,39 +61,52 @@ Punkte, an denen es hakt, und wie sie gemeint sind:
   führt, ersetzt nicht `createStorage`, sondern `createProfileStore`: dort
   liegen `load`, `record`, `replace` und `reset`, und nur die vier fassen das
   Dokument an.
-- **Die Regelversion steht an jedem Ergebnis** (siehe unten). Eine Bestenliste
-  im Netz muss danach trennen, sonst mischt sie Läufe aus zwei Spielen.
+- **Regelversion und Lauf-Schlüssel stehen an jedem Ergebnis** (siehe unten).
+  Eine Bestenliste im Netz muss nach beiden trennen, sonst mischt sie Läufe aus
+  zwei Spielen.
 - **Der Seed identifiziert eine Partie, nicht den Spieler.** Für eine Bestenliste
   fehlt eine Spielerkennung; die gibt es bisher nicht und sie müsste ins
   Profil-Meta.
 
-## Profilformat 1
+## Profilformat 2
 
 ```js
 {
-  version: 1,
+  version: 2,
   best: {
-    '2': [                  // Schlüssel ist die Regelversion
-      {
-        seed: 'BASTION',
-        wave: 12, kills: 340, lives: 17, score: 15740,
-        victory: false,
-        date: 1758672000000, // ms seit Epoch, 0 wenn unbekannt
-        runs: 3,             // wie oft dieser Seed gespielt wurde
-      },
-    ],
+    '6': {                         // Regelversion
+      'standard|1|normal': [       // Lauf-Schlüssel: Modus | Modus-Stand | Schwierigkeit
+        {
+          seed: 'BASTION',
+          wave: 12, kills: 340, lives: 17, score: 15740,
+          victory: false,
+          date: 1758672000000,     // ms seit Epoch, 0 wenn unbekannt
+          runs: 3,                 // wie oft dieser Seed gespielt wurde
+        },
+      ],
+    },
   },
   stats: {
     matches: 0, victories: 0, kills: 0, bestWave: 0, seconds: 0,
     doctrines: { flame: 0, autocannon: 0, laser: 0, mortar: 0, psi: 0, tesla: 0 },
+    byMode: { standard: { matches: 0, victories: 0, bestWave: 0 } },
   },
   meta: { app: '0.5.0', updated: 1758672000000 },
 }
 ```
 
-Ein Eintrag pro Seed und Regelversion, absteigend nach Punkten sortiert, höchstens
-`MAX_BEST_ENTRIES` (50) je Regelversion. Die Liste ist damit beides: der Bestwert
-je Seed und die Bestenliste insgesamt. Das Menü zeigt die ersten zehn.
+Ein Eintrag pro Seed, Lauf-Schlüssel und Regelversion, absteigend nach Punkten
+sortiert, höchstens `MAX_BEST_ENTRIES` (50) je Fach. Die Liste ist damit beides:
+der Bestwert je Seed und die Bestenliste insgesamt. Das Menü zeigt die ersten zehn.
+
+Der **Lauf-Schlüssel** kommt aus `src/data/modes.js` (`runKey`). Der Modus-Stand
+(`rev`) zählt hoch, wenn die Regeln eines Modus alte Ergebnisse unvergleichbar
+machen — wie die Regelversion, nur für einen Modus allein. Die globale Statistik
+zählt alle Modi zusammen, `byMode` je Modus.
+
+**Fächer und Statistik unbekannter Modi bleiben erhalten.** Ein Profil aus einem
+Build mit mehr Modi darf auf dem Weg durch diesen nichts verlieren; angeboten
+wird ein unbekannter Modus im Menü trotzdem nicht.
 
 `stats.doctrines` zählt **gebaute** Stellungen, und zwar nur solche, die der
 Spieler im Auswahldialog gewählt hat (`src/sim/selection.js`). Was der
@@ -117,6 +135,11 @@ liest sich als leeres Profil — das Spiel startet immer.
 Ein fehlender Schritt heißt: zwischen diesen beiden Versionen musste nichts
 umgerechnet werden. Ein Dokument ohne `version` gilt als Version 0.
 
+`MIGRATIONS[1]` (M7a) legt die Liste jeder Regelversion in das Fach
+`standard|1|normal` — vor M7a gab es nur diesen Lauf — und füllt
+`stats.byMode.standard` aus den globalen Zahlen. Er nennt keine Regelversion,
+damit M6 sie jederzeit anheben kann.
+
 Ein Dokument aus einer **neueren** Version wird nicht angefasst.
 `migrateProfile()` meldet `future: true`, der Store schaltet auf `locked`, zeigt
 eine Warnung in der Bestenliste und schreibt nichts mehr. Sonst würde ein
@@ -130,7 +153,7 @@ Die Exportdatei ist das Profil plus Kennung:
 ```js
 {
   magic: 'nachschubfront.profile',
-  version: 1,
+  version: 2,
   app: '0.5.0',
   exported: 1758672000000,
   best: { ... },
@@ -149,6 +172,8 @@ Dateiname `nachschubfront-profil-JJJJ-MM-TT.json`.
 | `future` | die Datei kommt aus einer neueren Version |
 | `empty` | nach dem Sanitizing steht keine beendete Partie darin |
 
+Eine Datei im Format 1 wird beim Import migriert wie ein gespeichertes Profil.
+
 Erst wenn eine Datei alle vier Hürden nimmt, fragt der Bildschirm nach — mit
 beiden Ständen nebeneinander. **Der Import ersetzt, er führt nicht zusammen**
 (Entscheidung vom 24.09.2026): Zusammenführen klingt freundlicher, zählt aber
@@ -158,6 +183,15 @@ niemand.
 Zwei Wege hinein, weil iPadOS Dateien aus fremden Apps nicht zuverlässig
 durchreicht: Dateiauswahl und ein Einfügefeld. Zwei Wege hinaus: Download und
 Zwischenablage.
+
+## Partie-Protokolle
+
+Format und Felder beschreibt `src/sim/record.js`. **Protokollformat 2** (M7a)
+trägt im Kopf `mode`, `modeRev` und `difficulty`; das Nachspielen baut die Partie
+damit auf. Einem Protokoll im Format 1 fehlen die Felder, es gilt als
+`standard`, `1`, `normal`. Ein Protokoll eines Modus, den der Build nicht kennt,
+bleibt gespeichert, wird aber beim Laden und beim Testeinstieg mit einer
+deutschen Meldung abgelehnt, nicht erst im Nachspielen.
 
 ## Offline und Updates
 

@@ -22,6 +22,7 @@ import {
   parseImport,
   summarize,
   createProfileStore,
+  DEFAULT_RUN_KEY,
 } from '../../src/storage/profile.js';
 import { createStorage } from '../../src/storage/index.js';
 import { RULESET_VERSION } from '../../src/data/rules.js';
@@ -65,11 +66,14 @@ test('a fresh profile has every doctrine at zero and nothing else', () => {
 
 test('sanitize drops what it does not understand and keeps the rest', () => {
   const p = sanitizeProfile({
-    version: 1,
+    version: 2,
     nonsense: 'weg damit',
     best: {
-      [RULESET_VERSION]: [run({ score: 100 }), { seed: 42 }, null, { seed: 'X', score: -5, wave: 1.7 }],
-      'not-a-version': [run()],
+      [RULESET_VERSION]: {
+        [DEFAULT_RUN_KEY]: [run({ score: 100 }), { seed: 42 }, null, { seed: 'X', score: -5, wave: 1.7 }],
+        'kein schluessel': [run()],
+      },
+      'not-a-version': { [DEFAULT_RUN_KEY]: [run()] },
     },
     stats: { matches: 3, victories: 9, kills: -1, doctrines: { flame: 4, erfunden: 99 } },
     meta: { app: '9.9.9', updated: 12345 },
@@ -82,6 +86,7 @@ test('sanitize drops what it does not understand and keeps the rest', () => {
     [String(RULESET_VERSION)],
     'a key that is not a ruleset version is dropped',
   );
+  assert.deepEqual(Object.keys(p.best[RULESET_VERSION]), [DEFAULT_RUN_KEY], 'a key that is not a run key is dropped');
   assert.equal(p.stats.victories, 3, 'more wins than matches is impossible');
   assert.equal(p.stats.kills, 0);
   assert.equal(p.stats.doctrines.flame, 4);
@@ -90,7 +95,7 @@ test('sanitize drops what it does not understand and keeps the rest', () => {
 });
 
 test('the same seed twice in one list keeps only the better run', () => {
-  const p = sanitizeProfile({ best: { [RULESET_VERSION]: [run({ score: 500 }), run({ score: 900 })] } });
+  const p = sanitizeProfile({ best: { [RULESET_VERSION]: { [DEFAULT_RUN_KEY]: [run({ score: 500 }), run({ score: 900 })] } } });
   assert.equal(bestList(p).length, 1);
   assert.equal(bestForSeed(p, 'BASTION').score, 900);
 });
@@ -166,9 +171,9 @@ test('a second run on the same seed keeps the better score and counts both', () 
 test('two ruleset versions never share a list', () => {
   let p = recordMatch(emptyProfile(), run({ ruleset: 1, score: 99999 }), 1000);
   p = recordMatch(p, run({ ruleset: 2, score: 100 }), 2000);
-  assert.equal(bestList(p, 1)[0].score, 99999);
-  assert.equal(bestList(p, 2)[0].score, 100);
-  assert.equal(bestForSeed(p, 'BASTION', 2).score, 100, 'the old record does not leak into the new rules');
+  assert.equal(bestList(p, DEFAULT_RUN_KEY, 1)[0].score, 99999);
+  assert.equal(bestList(p, DEFAULT_RUN_KEY, 2)[0].score, 100);
+  assert.equal(bestForSeed(p, 'BASTION', DEFAULT_RUN_KEY, 2).score, 100, 'the old record does not leak into the new rules');
 });
 
 test('the list is sorted best first and capped', () => {
@@ -268,4 +273,62 @@ test('reset empties the record', async () => {
   store.reset();
   assert.deepEqual(store.values.best, {});
   assert.equal(store.values.stats.matches, 0);
+});
+
+// ---------- Format 2: compartments per run configuration (M7a, A4) ----------
+
+/** A full version-1 profile: several ruleset versions, one of them at the cap. */
+function formatOne() {
+  const full = Array.from({ length: MAX_BEST_ENTRIES }, (_, i) => run({ seed: `S${i}`, score: 1000 + i }));
+  return {
+    version: 1,
+    best: { 2: [run({ seed: 'ALT', score: 7 })], 5: full, [RULESET_VERSION]: [run({ score: 42 })] },
+    stats: { matches: 60, victories: 4, kills: 900, bestWave: 50, seconds: 99, doctrines: { tesla: 3 } },
+    meta: { app: '0.9.1', updated: 5 },
+  };
+}
+
+test('format 1 becomes format 2 without losing a run, under every ruleset version', () => {
+  const { profile, future } = migrateProfile(formatOne());
+  assert.equal(future, false);
+  assert.equal(profile.version, 2);
+  assert.equal(bestList(profile, DEFAULT_RUN_KEY, 2)[0].seed, 'ALT');
+  assert.equal(bestList(profile, DEFAULT_RUN_KEY, 5).length, MAX_BEST_ENTRIES, 'a full list stays full');
+  assert.equal(bestList(profile, DEFAULT_RUN_KEY, RULESET_VERSION)[0].score, 42);
+  assert.equal(DEFAULT_RUN_KEY, 'standard|1|normal');
+  assert.deepEqual(profile.stats.byMode, { standard: { matches: 60, victories: 4, bestWave: 50 } });
+  assert.equal(profile.stats.kills, 900, 'the totals stay as they were');
+  assert.equal(summarize(profile).seeds, MAX_BEST_ENTRIES + 2);
+});
+
+test('the migration names no ruleset version: any number moves the same way', () => {
+  const { profile } = migrateProfile({ version: 1, best: { 9999: [run()] } });
+  assert.equal(bestList(profile, DEFAULT_RUN_KEY, 9999).length, 1);
+});
+
+test('a match in another mode lands in its own compartment and statistics', () => {
+  let p = recordMatch(emptyProfile(), run({ score: 500 }), 1000);
+  p = recordMatch(p, run({ score: 900, victory: true, mode: 'standard-klon', modeRev: 1, difficulty: 'normal' }), 2000);
+  assert.equal(bestForSeed(p, 'BASTION').score, 500, 'standard does not see the clone run');
+  assert.equal(bestForSeed(p, 'BASTION', 'standard-klon|1|normal').score, 900);
+  assert.deepEqual(p.stats.byMode['standard-klon'], { matches: 1, victories: 1, bestWave: 12 });
+  assert.deepEqual(p.stats.byMode.standard, { matches: 1, victories: 0, bestWave: 12 });
+  assert.equal(p.stats.matches, 2, 'the global statistics count both');
+});
+
+test('a compartment of a mode this build does not know survives an import', () => {
+  const p = recordMatch(emptyProfile(), run({ mode: 'aus-der-zukunft', modeRev: 3, difficulty: 'hart' }), 1000);
+  const back = parseImport(JSON.stringify(exportProfile(p, 0)));
+  assert.ok(back.ok);
+  assert.equal(bestForSeed(back.profile, 'BASTION', 'aus-der-zukunft|3|hart').score, 15740);
+  assert.equal(back.profile.stats.byMode['aus-der-zukunft'].matches, 1);
+});
+
+test('an export is format 2, and a format-1 file is still accepted', () => {
+  const p = recordMatch(emptyProfile(), run(), 1000);
+  assert.equal(exportProfile(p, 0).version, 2);
+  const old = { magic: PROFILE_MAGIC, ...formatOne() };
+  const result = parseImport(JSON.stringify(old));
+  assert.ok(result.ok);
+  assert.equal(bestList(result.profile, DEFAULT_RUN_KEY, 5).length, MAX_BEST_ENTRIES);
 });

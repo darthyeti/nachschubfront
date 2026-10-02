@@ -24,7 +24,15 @@ export const PREF_DEFAULTS = {
    * for good once the values are settled.
    */
   rateWaves: RULESET_TESTING,
+  /**
+   * The run configuration of the last match started (M7a). Only ids: whether
+   * the mode is still offered is decided by the menu, which falls back to the
+   * default when it is not.
+   */
+  lastRun: { mode: 'standard', difficulty: 'normal' },
 };
+
+const isId = (value) => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,31}$/.test(value);
 
 const VOLUMES = ['master', 'sfx', 'music'];
 const MOTIONS = ['auto', 'full', 'reduced'];
@@ -40,6 +48,10 @@ export function sanitizePrefs(raw) {
   if (MOTIONS.includes(raw.motion)) out.motion = raw.motion;
   if (typeof raw.installHintDismissed === 'boolean') out.installHintDismissed = raw.installHintDismissed;
   if (typeof raw.rateWaves === 'boolean') out.rateWaves = raw.rateWaves;
+  const last = raw.lastRun;
+  if (last && typeof last === 'object' && isId(last.mode) && isId(last.difficulty)) {
+    out.lastRun = { mode: last.mode, difficulty: last.difficulty };
+  }
   return out;
 }
 

@@ -11,20 +11,40 @@
 import { RULESET_VERSION } from '../data/rules.js';
 import { DOCTRINE_IDS } from '../data/doctrines.js';
 import { APP_VERSION } from '../data/version.js';
+import { MODES, DEFAULT_CONFIG, runKey } from '../data/modes.js';
 
 export const PROFILE_KEY = 'profile';
 
-/** Format version of the stored document. Raise it and add a migration step. */
-export const PROFILE_VERSION = 1;
+/**
+ * Format version of the stored document. Raise it and add a migration step.
+ * 2 (M7a): the best lists are split by run configuration, and the statistics
+ * count per mode as well.
+ */
+export const PROFILE_VERSION = 2;
 
 /** Kennung in an exported file, so a foreign JSON is refused before parsing. */
 export const PROFILE_MAGIC = 'nachschubfront.profile';
 
 /**
- * Best runs kept per ruleset version. One entry per seed, so the list doubles as
- * the per-seed record; the menu shows the top ten of it.
+ * Best runs kept per compartment and ruleset version. One entry per seed, so the
+ * list doubles as the per-seed record; the menu shows the top ten of it.
  */
 export const MAX_BEST_ENTRIES = 50;
+
+/** The compartment of a standard match on normal, where everything before M7a went. */
+export const DEFAULT_RUN_KEY = runKey(DEFAULT_CONFIG.mode, MODES[DEFAULT_CONFIG.mode].rev, DEFAULT_CONFIG.difficulty);
+
+/** Shape of a mode or difficulty id as this format accepts it, known or not. */
+const ID = '[a-z0-9][a-z0-9-]{0,31}';
+const RUN_KEY = new RegExp(`^${ID}\\|\\d{1,4}\\|${ID}$`);
+const MODE_ID = new RegExp(`^${ID}$`);
+
+/** The compartment a state or a result belongs to. */
+export function runKeyOf({ mode, modeRev, difficulty }) {
+  const id = typeof mode === 'object' && mode ? mode.id : mode;
+  const rev = typeof mode === 'object' && mode ? mode.rev : modeRev;
+  return runKey(id ?? DEFAULT_CONFIG.mode, rev ?? 1, difficulty ?? DEFAULT_CONFIG.difficulty);
+}
 
 export function emptyStats() {
   return {
@@ -35,13 +55,22 @@ export function emptyStats() {
     seconds: 0,
     /** Towers built, by doctrine. The largest is the "liebste Doktrin". */
     doctrines: Object.fromEntries(DOCTRINE_IDS.map((id) => [id, 0])),
+    /** The same three numbers per mode id, known to this build or not (M7a). */
+    byMode: {},
   };
+}
+
+function emptyModeStats() {
+  return { matches: 0, victories: 0, bestWave: 0 };
 }
 
 export function emptyProfile() {
   return {
     version: PROFILE_VERSION,
-    /** Keyed by ruleset version as a string: a score only compares within one. */
+    /**
+     * Keyed by ruleset version as a string, then by run key ("standard|1|normal"):
+     * a score only compares within one ruleset and one configuration.
+     */
     best: {},
     stats: emptyStats(),
     meta: { app: APP_VERSION, updated: 0 },
@@ -91,6 +120,16 @@ function sanitizeStats(raw) {
     // Unknown doctrine ids are dropped: the list of doctrines is ours, not the file's.
     for (const id of DOCTRINE_IDS) out.doctrines[id] = int(doctrines[id]);
   }
+  const byMode = raw.byMode;
+  if (byMode && typeof byMode === 'object') {
+    // Mode ids are kept even when this build does not know them: a profile from
+    // a build with more modes must not lose anything on its way through this one.
+    for (const [id, item] of Object.entries(byMode)) {
+      if (!MODE_ID.test(id) || !item || typeof item !== 'object') continue;
+      const matches = int(item.matches);
+      out.byMode[id] = { matches, victories: Math.min(matches, int(item.victories)), bestWave: int(item.bestWave, 9999) };
+    }
+  }
   return out;
 }
 
@@ -99,22 +138,33 @@ function byScore(a, b) {
   return b.score - a.score || a.date - b.date || a.seed.localeCompare(b.seed);
 }
 
+function sanitizeList(list) {
+  if (!Array.isArray(list)) return [];
+  const bySeed = new Map();
+  for (const item of list) {
+    const entry = sanitizeEntry(item);
+    if (!entry) continue;
+    const seen = bySeed.get(entry.seed);
+    // A file listing the same seed twice keeps the better run, not both.
+    if (!seen || byScore(entry, seen) < 0) bySeed.set(entry.seed, entry);
+  }
+  return [...bySeed.values()].sort(byScore).slice(0, MAX_BEST_ENTRIES);
+}
+
 function sanitizeBest(raw) {
   const out = {};
   if (!raw || typeof raw !== 'object') return out;
-  for (const [key, list] of Object.entries(raw)) {
+  for (const [ruleset, compartments] of Object.entries(raw)) {
     // Ruleset versions are plain positive integers; anything else is not ours.
-    if (!/^\d{1,4}$/.test(key) || !Array.isArray(list)) continue;
-    const bySeed = new Map();
-    for (const item of list) {
-      const entry = sanitizeEntry(item);
-      if (!entry) continue;
-      const seen = bySeed.get(entry.seed);
-      // A file listing the same seed twice keeps the better run, not both.
-      if (!seen || byScore(entry, seen) < 0) bySeed.set(entry.seed, entry);
+    if (!/^\d{1,4}$/.test(ruleset) || !compartments || typeof compartments !== 'object') continue;
+    for (const [key, list] of Object.entries(compartments)) {
+      // Run keys of modes this build does not know are kept, like their stats.
+      if (!RUN_KEY.test(key)) continue;
+      const clean = sanitizeList(list);
+      if (clean.length === 0) continue;
+      out[ruleset] ??= {};
+      out[ruleset][key] = clean;
     }
-    if (bySeed.size === 0) continue;
-    out[key] = [...bySeed.values()].sort(byScore).slice(0, MAX_BEST_ENTRIES);
   }
   return out;
 }
@@ -139,11 +189,26 @@ export function sanitizeProfile(raw) {
 
 /**
  * One step per version jump: `MIGRATIONS[n]` turns a version-n document into a
- * version-(n+1) one. There is nothing to convert yet — before M5 no profile was
- * ever written — but the path exists, so the first real change has somewhere to go.
+ * version-(n+1) one.
  * @type {Record<number, (doc: object) => object>}
  */
-const MIGRATIONS = {};
+const MIGRATIONS = {
+  /**
+   * 1 -> 2 (M7a): every run so far was a standard match on normal, so each
+   * ruleset's list moves into that compartment, and the per-mode statistics of
+   * standard start from the totals. No ruleset version is named here — M6 may
+   * raise it at any time, and every one of them moves the same way.
+   */
+  1(doc) {
+    const best = {};
+    if (doc.best && typeof doc.best === 'object') {
+      for (const [ruleset, list] of Object.entries(doc.best)) best[ruleset] = { [DEFAULT_RUN_KEY]: list };
+    }
+    const stats = doc.stats && typeof doc.stats === 'object' ? doc.stats : {};
+    const standard = { matches: stats.matches, victories: stats.victories, bestWave: stats.bestWave };
+    return { ...doc, version: 2, best, stats: { ...stats, byMode: { [DEFAULT_CONFIG.mode]: standard } } };
+  },
+};
 
 /**
  * Brings a stored document up to the current format.
@@ -167,14 +232,19 @@ export function migrateProfile(raw) {
 
 // ---------- Recording a match ----------
 
-/** The list for a ruleset version, newest state included. */
-export function bestList(profile, ruleset = RULESET_VERSION) {
-  return profile.best[String(ruleset)] ?? [];
+/** The list of one compartment under one ruleset version. */
+export function bestList(profile, key = DEFAULT_RUN_KEY, ruleset = RULESET_VERSION) {
+  return profile.best[String(ruleset)]?.[key] ?? [];
 }
 
-/** The stored run for one seed, or null. */
-export function bestForSeed(profile, seed, ruleset = RULESET_VERSION) {
-  return bestList(profile, ruleset).find((e) => e.seed === seed) ?? null;
+/** The stored run for one seed in one compartment, or null. */
+export function bestForSeed(profile, seed, key = DEFAULT_RUN_KEY, ruleset = RULESET_VERSION) {
+  return bestList(profile, key, ruleset).find((e) => e.seed === seed) ?? null;
+}
+
+/** Every stored run of every compartment and ruleset, for totals. */
+function allEntries(profile) {
+  return Object.values(profile.best).flatMap((compartments) => Object.values(compartments).flat());
 }
 
 /** The doctrine with the most towers built, or null while nothing was built. */
@@ -198,9 +268,11 @@ export function favouriteDoctrine(stats) {
 export function recordMatch(profile, result, now = Date.now()) {
   const entry = sanitizeEntry({ ...result, date: now, runs: 1 });
   if (!entry) return profile;
-  const key = String(int(result.ruleset, 9999));
+  const ruleset = String(int(result.ruleset, 9999));
+  const key = runKeyOf(result);
+  const modeId = key.split('|')[0];
 
-  const list = [...bestList(profile, key)];
+  const list = [...bestList(profile, key, ruleset)];
   const index = list.findIndex((e) => e.seed === entry.seed);
   if (index === -1) {
     list.push(entry);
@@ -212,7 +284,12 @@ export function recordMatch(profile, result, now = Date.now()) {
   }
   list.sort(byScore);
 
-  const stats = { ...profile.stats, doctrines: { ...profile.stats.doctrines } };
+  const stats = { ...profile.stats, doctrines: { ...profile.stats.doctrines }, byMode: { ...profile.stats.byMode } };
+  const mode = { ...(stats.byMode[modeId] ?? emptyModeStats()) };
+  mode.matches += 1;
+  if (entry.victory) mode.victories += 1;
+  mode.bestWave = Math.max(mode.bestWave, entry.wave);
+  stats.byMode[modeId] = mode;
   stats.matches += 1;
   if (entry.victory) stats.victories += 1;
   stats.kills += entry.kills;
@@ -224,7 +301,7 @@ export function recordMatch(profile, result, now = Date.now()) {
 
   return sanitizeProfile({
     ...profile,
-    best: { ...profile.best, [key]: list.slice(0, MAX_BEST_ENTRIES) },
+    best: { ...profile.best, [ruleset]: { ...profile.best[ruleset], [key]: list.slice(0, MAX_BEST_ENTRIES) } },
     stats,
     meta: { app: APP_VERSION, updated: now },
   });
@@ -277,7 +354,7 @@ export function parseImport(input) {
 
 /** The few numbers the replace dialog shows for both sides. */
 export function summarize(profile) {
-  const entries = Object.values(profile.best).flat();
+  const entries = allEntries(profile);
   return {
     runs: profile.stats.matches,
     seeds: entries.length,

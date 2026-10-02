@@ -48,7 +48,7 @@ import { ENEMY_SPRITE_DEFS } from './render/enemySprites.js';
 import { POD_SPRITE_DEFS, keepClearedCells } from './render/pods.js';
 import { startStress, stopStress, setLives, setWave, grant, forcePod, toggleInvulnerable } from './sim/debug.js';
 import { score, scoreEntry } from './sim/score.js';
-import { createProfileStore, bestForSeed } from './storage/profile.js';
+import { createProfileStore, bestForSeed, runKeyOf } from './storage/profile.js';
 import {
   createProtocolStore,
   describeProtocol,
@@ -813,7 +813,7 @@ function showEndScreen(victory) {
   saveProtocol();
   // The old record has to be read before the new one goes in, otherwise the run
   // that just ended is its own previous best.
-  const previous = bestForSeed(profile.values, state.seed);
+  const previous = bestForSeed(profile.values, state.seed, runKeyOf(state));
   const total = score(state);
   profile.record({
     ...scoreEntry(state),

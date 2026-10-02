@@ -240,11 +240,12 @@ export function createRecordsScreen(panel, { profile, onSeed, onBack, canStore =
     });
   }
 
-  /** Counts runs recorded under any other ruleset version. */
+  /** Counts runs recorded under any other ruleset version, all compartments. */
   function olderRuns(p) {
     let n = 0;
-    for (const [key, list] of Object.entries(p.best)) {
-      if (Number(key) !== RULESET_VERSION) n += list.length;
+    for (const [key, compartments] of Object.entries(p.best)) {
+      if (Number(key) === RULESET_VERSION) continue;
+      for (const list of Object.values(compartments)) n += list.length;
     }
     return n;
   }
