@@ -6,15 +6,24 @@ import { MIN_SUPPLY_LEVEL } from '../data/supply.js';
 import { createRng } from './random.js';
 import { generateMap } from '../sim/mapgen.js';
 import { computeRoute } from '../sim/route.js';
+import { resolveConfig, DEFAULT_CONFIG } from '../data/modes.js';
 
 /**
  * @param {string} seed  Shown to the player; the same seed gives the same map.
+ * @param {{mode?: string, difficulty?: string}} [config]  Run configuration
+ *   (src/data/modes.js). Unknown ids throw; callers that take a configuration
+ *   from outside pass it through sanitizeConfig first. Later fields (a campaign
+ *   carrying something over) are meant to arrive in here as well.
  */
-export function createGameState(seed) {
+export function createGameState(seed, config = DEFAULT_CONFIG) {
+  const { mode, difficulty } = resolveConfig(config);
   const rng = createRng(seed);
   const map = generateMap(rng.fork('map'));
   return {
     seed,
+    /** The mode record (not just its id) and the difficulty id; never change. */
+    mode,
+    difficulty: difficulty.id,
     map,
     /** Current ground route (planning preview). Recomputed when the maze changes. */
     route: computeRoute(map),

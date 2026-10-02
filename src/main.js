@@ -60,6 +60,7 @@ import { RULESET_VERSION, isRatedWave } from './data/rules.js';
 import { createRatingRow } from './ui/rating.js';
 import { prepareTestEntry } from './sim/testentry.js';
 import { registerServiceWorker } from './core/updates.js';
+import { sanitizeConfig } from './data/modes.js';
 
 const FLASH_SECONDS = 0.9;
 const STRESS_ENEMIES = 200;
@@ -79,7 +80,17 @@ document.fonts?.load('24px Bangers').catch(() => {});
 /** Debug: start at a higher supply level so merges and recipes can be tried out. */
 const startSupply = Math.min(MAX_SUPPLY_LEVEL, Math.max(MIN_SUPPLY_LEVEL, Number(params.get('supply')) || MIN_SUPPLY_LEVEL));
 
-let state = createGameState(normalizeSeed(params.get('seed')) ?? randomSeed());
+/**
+ * Run configuration of the next new match (M7a). `?mode` and `?difficulty` are
+ * debug parameters; with ?debug an unknown id is a fault, without it they are
+ * not read at all.
+ */
+let runConfig = sanitizeConfig(
+  debug ? { mode: params.get('mode') ?? undefined, difficulty: params.get('difficulty') ?? undefined } : null,
+  { strict: debug },
+);
+
+let state = createGameState(normalizeSeed(params.get('seed')) ?? randomSeed(), runConfig);
 state.supplyLevel = startSupply;
 startLog(state, RULESET_VERSION, Date.now());
 /** Speed to restore when unpausing with Space. */
@@ -190,8 +201,9 @@ function adoptState(next) {
   history.replaceState(null, '', url);
 }
 
-function newGame(seed = null) {
-  const next = createGameState(normalizeSeed(seed) ?? randomSeed());
+function newGame(seed = null, config = runConfig) {
+  runConfig = config;
+  const next = createGameState(normalizeSeed(seed) ?? randomSeed(), config);
   next.supplyLevel = startSupply;
   // A fresh protocol per match. The id tells two matches on the same seed apart,
   // so saving the same one again replaces it instead of piling up (M6).
@@ -925,6 +937,8 @@ if (debug) {
       state.map.obstacles.filter((o) => o.kind === 'rubble').map((o) => ({ x: o.cells[0].x, y: o.cells[0].y })),
     screenOfCell: (cx, cy) => worldToScreen(camera, view, ...iso(cx + 0.5, cy + 0.5)),
     state: () => ({
+      mode: state.mode.id,
+      difficulty: state.difficulty,
       phase: state.phase,
       wave: state.wave,
       lives: state.lives,

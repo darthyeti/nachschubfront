@@ -86,6 +86,18 @@ export const STRINGS = {
     cooldownLabel: (name, waves) => `${name} — noch ${waves} Wellen`,
   },
 
+  /** Game modes (src/data/modes.js): name and one sentence for the mode screen. */
+  modes: {
+    standard: {
+      name: 'Standard',
+      desc: 'Ein Riss, zwei Signalfeuer, die Bastion am anderen Rand. Baue das Labyrinth, das den Weg am längsten macht.',
+    },
+    'standard-klon': {
+      name: 'Standard (Klon)',
+      desc: 'Testmodus mit den Regeln von Standard und eigener Bestenliste. Nur im Debug-Modus.',
+    },
+  },
+
   menu: {
     subtitle: 'Grimdark Tower Defense',
     tagline: 'Halte den Riss. Baue das Labyrinth. Fünfzig Wellen.',

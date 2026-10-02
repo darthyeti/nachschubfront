@@ -114,7 +114,29 @@ export function selectionOptions(state) {
     if (option) recipes.push(option);
   }
 
-  return { keep, merges, recipes, upgrades: upgradeOptions(state) };
+  return { keep, merges, recipes, upgrades: upgradeKind(state).selectionOptions(state) };
+}
+
+/**
+ * What each `upgrade.kind` of a mode record does (src/data/modes.js). One entry
+ * per rule, looked up rather than branched on, so a mode with another rule adds
+ * an entry and leaves the others alone.
+ *
+ * - `pod`: a capsule of the salvo goes into a standing emplacement (GDD section
+ *   11), offered in the selection phase.
+ * - `off`: no upgrades.
+ */
+export const UPGRADE_KINDS = {
+  pod: { selectionOptions: upgradeOptions },
+  off: { selectionOptions: () => [] },
+};
+
+/** The upgrade rule of the running mode. */
+function upgradeKind(state) {
+  const kind = state.mode?.upgrade?.kind ?? 'pod';
+  const rule = UPGRADE_KINDS[kind];
+  if (!rule) throw new Error(`Unknown upgrade kind: ${kind}`);
+  return rule;
 }
 
 /**
