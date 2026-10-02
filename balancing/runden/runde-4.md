@@ -197,3 +197,53 @@ Messung beschaffen:
 Falls sich bestätigt, dass die beiden Enden nicht mit einem Satz Zahlen zu
 bedienen sind, ist das keine Balancing-Frage mehr, sondern eine
 Schwierigkeitsstufe. Die steht nicht in M6 und wäre ein eigener Auftrag.
+
+---
+
+## Die zweite Messung: JGR9H6 (02.10.2026)
+
+Die Partie des zweiten Spielers, Version 0.9.4, Regelversion 6. Sie spielt sich
+Welle für Welle nach. **Niederlage in Welle 10**; bis dahin 5 Leben verloren
+(W1: 4, W4: 1), in Welle 10 die übrigen 15. Keine Welle bewertet.
+
+| | JGR9H6 | zum Vergleich |
+|---|---|---|
+| Route | 40 bis 47 | Till bei W10: 95 |
+| Nachschubstufe | 1 bis Welle 8, dann 3 | |
+| Stellungen bei W10 | 9, kaum verschmolzen (7 auf der zweiten Rangstufe) | |
+| ungenutzt am Ende | 561 Requisition, 7 Kommandopunkte | |
+| Ende | Welle 10 | Bots im Median 7 bis 13 |
+
+**Woran sie verloren ging:** an der Brutmutter. Alle 15 Durchbrüche sind
+Schwärmer aus ihrer Spur, ausgesetzt auf den letzten Feldern vor der Bastion
+(Feld 35 bis 41 von 47) und fast unbeschädigt. Die Brutmutter selbst stand bei
+Feld 43 noch mit 6765 Lebenspunkten.
+
+**Was die Zahlen aus Runde 3 damit zu tun haben: nichts.** Nachgespielt mit
+geänderten Werten:
+
+| Änderung | Ergebnis |
+|---|---|
+| ohne Mittelband (Stand Runde 2) | Niederlage in Welle 10, 15 Durchbrüche |
+| Mittelband 1,75 statt 2,5 | Niederlage in Welle 10, 15 Durchbrüche |
+| Brutmutter mit halben Lebenspunkten | Niederlage in Welle 10 |
+| Schwärmerspur halb so oft | Niederlage in Welle 10 |
+| ganz ohne Schwärmerspur | übersteht Welle 10 mit 10 Leben |
+
+Die Abwehr war für Welle 10 zu schwach, unter jeder Fassung der Wellen seit
+Runde 1. Gefehlt hat nicht Glück, sondern das, was das Spiel stark macht:
+Nachschub, Verschmelzen, Labyrinth, Kommandos.
+
+### Was das heißt
+
+- **Die Schere ist jetzt an einem Menschen belegt**, nicht nur an Bots: Der neue
+  Spieler endet genau dort, wo die Bots enden.
+- **Kein Eingriff in die Gegnerstärke** (Entscheidung 02.10.). Ein Zurückdrehen
+  von Runde 3 hätte diese Partie nicht gerettet und Till das Spiel wieder leer
+  gemacht.
+- Der Hebel für das untere Ende liegt in der **Bedienführung** (die Systeme
+  finden, bevor Welle 10 kommt) oder in einer **Schwierigkeitsstufe** — beides
+  nicht Teil von M6. Die Brutmutter ist die erste Wand; das ist als Lernkurve
+  vertretbar, solange das Spiel vorher zeigt, was man dagegen tut.
+- Eine Partie ist eine Partie. Eine zweite des neuen Spielers würde zeigen, ob
+  er die Systeme nach der ersten Niederlage findet.

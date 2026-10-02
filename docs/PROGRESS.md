@@ -171,20 +171,27 @@ ihnen noch eine Partie gewinnt**. Till gewinnt dieselbe mit 20 von 20 Leben. Gru
 ist, dass die Routenlänge alles multipliziert — dieselbe Erhöhung kostet einen
 kurzen Weg weit mehr als einen langen, die Hebel wirken also regressiv.
 
-**Deshalb in Runde 4 kein Eingriff in die Werte.** Was fehlt, ist eine zweite
-Messung: ein Mensch, der das Spiel nicht selbst abgestimmt hat. Ein Bot ist dafür
-kein Ersatz — er setzt Zonen nach einer Regel und lernt innerhalb einer Partie
-nichts dazu, er ist eine untere Schranke und kein Spieler.
+**Die zweite Messung liegt vor** (JGR9H6, 02.10., der zweite Spieler): Niederlage
+in Welle 10 an der Brutmutter, Route 47, Nachschub und Kommandos kaum genutzt —
+genau dort, wo die Bots enden. Ohne das Band aus Runde 3 endet die Partie
+genauso. **Entscheidung 02.10.: Gegnerstärke bleibt, in beiden Modi.** Der Hebel
+für das untere Ende ist Bedienführung oder eine Schwierigkeitsstufe, beides nicht
+M6. Einzelheiten in `runde-4.md`.
 
 **Offen, unverändert:** Die Wellenarten bleiben ungleich (Luft/Horde 78–81 LP je
 Zähleinheit, Panzer/Gemischt 142–146; Angleichen allein bewirkt nichts). Dazu der
 verschwendete Schaden der ersten zehn Wellen.
 
-**Protokolle: keines ist mehr Maßstab.** Alle sechs gehören zu Regeln vor Runde 3.
-**Für Runde 4 braucht es eine gespielte Partie unter Regelversion 6** — und die
-ist diesmal besonders nötig: Das Band lässt sich an Tills Protokoll nur zur Hälfte
-prüfen (er verliert Leben ohnehin nur an Koloss und Boss), und die Aufwertung gab
-es in seiner Partie noch gar nicht.
+**Protokolle unter Regelversion 6:** U4AZZQ, JGR9H6 (Standard) und 75YZ4E (King
+of the Hill) spielen sich Welle für Welle nach und sind Maßstab. Die älteren
+gehören zu Regeln vor Runde 3.
+
+**Gemessen, nicht geändert: der Mörser verfehlt den Koloss.** Der Vorhalt liest
+die Linie der Welle, der Koloss fährt seine eigene (`predict` in
+`src/sim/projectiles.js`). Heute landen 1 bis 3 Granaten je Koloss-Welle auf ihm,
+mit seiner eigenen Linie 14 bis 49. Die Korrektur ändert das Spiel: 75YZ4E spielt
+sich danach nicht mehr genau nach, U4AZZQ schon. Wartet auf Tills Entscheidung,
+ob sie `RULESET_VERSION` hebt.
 
 ## M7: Spielmodi (parallel zu M6)
 
@@ -206,12 +213,13 @@ M7b erst nach M7a.
   einem Entfernungsfeld, Rissfolge, Sperrzone, Aufwertung statt Salve
   (`upgrade.kind: 'ladder'`), Darstellung, Modus-Karte, Bots
   (`npm run koth-bots`). GDD Abschnitt 15 und ART nachgezogen.
-- **Offen für King of the Hill:** Kalibrierung 1
-  ([`koth-1.md`](../balancing/runden/koth-1.md)) hat keine Werte geändert. Die
-  Richtwerte des Auftrags sind erfüllt, aber alle Bots verlieren früh — an der
-  Abdeckung, nicht an der Gegnerstärke. **Es braucht eine gespielte Partie.**
-  Danach entscheidet Till, ob das Kennzeichen „Experimentell" fällt; wird dann
-  eine Regel des Modus geändert, steigt sein `rev` (eigene Bestenliste).
+- **Offen für King of the Hill:** Die erste gespielte Partie
+  ([`koth-2.md`](../balancing/runden/koth-2.md), Sieg mit 5 von 20 Leben)
+  bestätigt Kalibrierung 1: Die Stärke passt, aber **Welle 1 kostet die Hälfte
+  der Leben** — an der Abdeckung, mit einer Stellung gegen vier Richtungen. Der
+  Hebel ist der Anfang (erste Salve, erste Welle, Start-Requisition), nicht
+  `enemyHpFactor`. Danach entscheidet Till, ob das Kennzeichen „Experimentell"
+  fällt; wird eine Regel des Modus geändert, steigt sein `rev`.
 
 **Wo M7b vom Auftrag abweicht:**
 
@@ -234,8 +242,12 @@ M7b erst nach M7a.
 
 **Für M6 gemeldet, nicht geändert:** Zielwahl, Mörser-Vorhalt und
 Fähigkeiten lesen für den Koloss die Linie der Welle, nicht seine eigene
-(`waveLineOf` in `src/sim/route.js` hält das fest). Möglicherweise ein Fehler;
-eine Änderung verschiebt die Standardpartien und gehört in eine Balancing-Runde.
+(`waveLineOf` in `src/sim/route.js`). Beim Mörser ist es gemessen ein Fehler
+(oben unter M6).
+
+**Koloss-Spur:** Sie wird beim Verlassen der Planung festgelegt (`setPhase` in
+`src/core/phases.js`), nicht nur im Planungsschritt — sonst übernahm das
+Nachspielen nach einem Risswechsel die Spur der Vorrunde.
 
 **Wo M7a vom Auftrag abweicht** (dort steht, dass der Code gilt):
 
@@ -257,7 +269,7 @@ eine Änderung verschiebt die Standardpartien und gehört in eine Balancing-Rund
   sonst Standard mit einer Zeile in der Konsole (`sanitizeConfig`).
 
 **Golden-Test** (`tests/unit/golden.test.js`, Hashes in `golden.json`): Die
-sieben Protokolle aus `balancing/protokolle/`, unter den heutigen Regeln
+neun Protokolle aus `balancing/protokolle/`, unter den heutigen Regeln
 nachgespielt, und drei Bot-Partien müssen bitgleich bleiben. **Der Hash wird nur
 in einem Commit erneuert, der `RULESET_VERSION` anhebt oder ausdrücklich sagt,
 dass er das Spiel ändert** (`GOLDEN_WRITE=1 node --test tests/unit/golden.test.js`).
@@ -279,7 +291,7 @@ mit Spitze bei 14 (wie oben unter Runde 3 beschrieben).
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (499), darunter der Golden-Test (etwa 14 s) |
+| `npm test` | Unit-Tests (501), darunter der Golden-Test (etwa 14 s) |
 | `npm run test:input` | 77 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |
