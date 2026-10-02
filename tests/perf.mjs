@@ -5,7 +5,7 @@
 // Frame-time limits are only enforced on a hardware GPU; with software rendering
 // (e.g. CI without GPU) the numbers are reported but not judged.
 //
-// Usage: npm run test:perf [-- --browser webkit]
+// Usage: npm run test:perf [-- --browser webkit] [-- --mode koth]
 // WebKit timings are reported only: headless WebKit is not representative of Safari's GPU path.
 
 import * as playwright from 'playwright';
@@ -26,6 +26,9 @@ const engine = browserName();
 const browser = await launchBrowser(playwright, engine);
 const problems = [];
 const report = [];
+/** Game mode to measure (M7b): `--mode koth` plays King of the Hill. */
+const modeArg = process.argv.indexOf('--mode');
+const mode = modeArg > 0 ? process.argv[modeArg + 1] : 'standard';
 
 const sampleFrames = (page, n) =>
   page.evaluate(
@@ -55,7 +58,7 @@ try {
     const page = await context.newPage();
     watchProblems(page, label, problems);
     await page.goto(`${server.url}?seed=BASTION&debug`, { waitUntil: 'networkidle' });
-    await startMatch(page);
+    await startMatch(page, mode);
     const renderer = await page.evaluate(() => {
       const gl = document.createElement('canvas').getContext('webgl');
       const info = gl?.getExtension('WEBGL_debug_renderer_info');
