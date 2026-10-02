@@ -23,7 +23,7 @@
 // banners must not arrive at once.
 
 import { replayMatch } from './replay.js';
-import { taint, record } from './record.js';
+import { taint, record, protocolConfig, playableHere } from './record.js';
 import { stepSimulation } from './step.js';
 import { SIM_STEP } from '../data/settings.js';
 import { isOver } from '../core/phases.js';
@@ -42,13 +42,15 @@ const MAX_HANDOVER_STEPS = 600;
  * @param {number} wave  The wave the player is to fight first. Must be at least
  *   2; wave 1 is a new match and needs nothing replayed.
  * @returns {{ok: true, state: object, about: object}
- *   | {ok: false, reason: 'short' | 'over' | 'stuck' | 'first', about: object}}
+ *   | {ok: false, reason: 'short' | 'over' | 'stuck' | 'first' | 'mode', about: object}}
  */
 export function prepareTestEntry(protocol, wave) {
   // Everything before the wave he is to play, and not one round more.
   const before = wave - 1;
   const about = { wave, before, reached: 0, seed: protocol.seed, skipped: 0, stopped: 'not started' };
   if (before < 1) return { ok: false, reason: 'first', about };
+  about.mode = protocolConfig(protocol).mode;
+  if (!playableHere(protocol)) return { ok: false, reason: 'mode', about };
 
   const run = replayMatch(protocol, { untilWave: before });
   const state = run.state;

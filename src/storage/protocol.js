@@ -11,7 +11,7 @@
 // part that touches the storage layer.
 
 import { APP_VERSION } from '../data/version.js';
-import { PROTOCOL_VERSION } from '../sim/record.js';
+import { PROTOCOL_VERSION, protocolConfig, playableHere } from '../sim/record.js';
 
 export const PROTOCOL_KEY = 'protocols';
 
@@ -70,7 +70,7 @@ export function exportProtocol(log, now = Date.now()) {
  * reproduce it. It is null for a bare match, which carries no wrapper.
  * @param {string|object} input  File text, or an already parsed object.
  * @returns {{ok: true, match: object, app: string|null, exported: number|null}
- *   | {ok: false, error: 'parse' | 'magic' | 'empty'}}
+ *   | {ok: false, error: 'parse' | 'magic' | 'empty' | 'mode', mode?: string}}
  */
 export function parseProtocol(input) {
   let raw = input;
@@ -87,6 +87,9 @@ export function parseProtocol(input) {
   const match = raw.match ?? raw;
   if (raw.magic !== undefined && raw.magic !== PROTOCOL_MAGIC) return { ok: false, error: 'magic' };
   if (!isMatch(match)) return { ok: false, error: 'empty' };
+  // A match from a build with more modes is kept in a file, but there is nothing
+  // here to play it with; said in words rather than failing in the replay.
+  if (!playableHere(match)) return { ok: false, error: 'mode', mode: protocolConfig(match).mode };
   return {
     ok: true,
     match,
@@ -111,6 +114,7 @@ export function describeProtocol(log) {
   const last = log.waves.length > 0 ? log.waves[log.waves.length - 1] : null;
   return {
     seed: log.seed,
+    ...protocolConfig(log),
     waves: log.waves.length,
     wave: last?.w ?? 0,
     lives: last?.lives ?? null,

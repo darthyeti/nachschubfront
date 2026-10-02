@@ -28,7 +28,7 @@ import { toggleZone, zoneIndexAt } from './zones.js';
 import { buySupply, demolish, buildBulwark } from './economy.js';
 import { useCommand } from './commands.js';
 import { setLives, setWave, grant, forcePod, toggleInvulnerable } from './debug.js';
-import { startLog } from './record.js';
+import { startLog, protocolConfig } from './record.js';
 import { RULESET_VERSION } from '../data/rules.js';
 
 /** Steps a replay may take before it is called stuck, about 100 minutes. */
@@ -84,7 +84,8 @@ function when(state, action) {
  * }}
  */
 export function replayMatch(protocol, { untilWave = Infinity, onWave = null, onSelection = null } = {}) {
-  const state = createGameState(protocol.seed);
+  const { mode, difficulty } = protocolConfig(protocol);
+  const state = createGameState(protocol.seed, { mode, difficulty });
   state.supplyLevel = protocol.supplyStart ?? MIN_SUPPLY_LEVEL;
   // The replay records itself, so the wave lines come out of the same function
   // that wrote the protocol in the first place — one definition of what a wave

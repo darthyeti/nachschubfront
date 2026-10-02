@@ -17,8 +17,37 @@
 //    stamps the document when it saves it, so the simulation stays free of
 //    wall-clock time and can be replayed step by step.
 
-/** Format of the protocol document. Raise when the shape changes. */
-export const PROTOCOL_VERSION = 1;
+import { MODES, DIFFICULTIES } from '../data/modes.js';
+
+/**
+ * Format of the protocol document. Raise when the shape changes.
+ * 2 (M7a): the run configuration, `mode`, `modeRev` and `difficulty`.
+ */
+export const PROTOCOL_VERSION = 2;
+
+/** What a protocol from before version 2 was played as: there was only this. */
+export const LEGACY_CONFIG = Object.freeze({ mode: 'standard', modeRev: 1, difficulty: 'normal' });
+
+/**
+ * The run configuration a protocol was recorded under, with the fields a
+ * version-1 protocol lacks filled in.
+ */
+export function protocolConfig(log) {
+  return {
+    mode: typeof log?.mode === 'string' ? log.mode : LEGACY_CONFIG.mode,
+    modeRev: Number.isInteger(log?.modeRev) ? log.modeRev : LEGACY_CONFIG.modeRev,
+    difficulty: typeof log?.difficulty === 'string' ? log.difficulty : LEGACY_CONFIG.difficulty,
+  };
+}
+
+/**
+ * True if this build knows the mode and the difficulty the match was played in.
+ * A protocol from a build with more modes is kept, but cannot be replayed here.
+ */
+export function playableHere(log) {
+  const { mode, difficulty } = protocolConfig(log);
+  return Object.hasOwn(MODES, mode) && Object.hasOwn(DIFFICULTIES, difficulty);
+}
 
 /**
  * Starts recording on a state. Without this the record functions do nothing, so
@@ -35,6 +64,10 @@ export function startLog(state, ruleset, id = 0) {
     id,
     seed: state.seed,
     ruleset,
+    /** Run configuration (src/data/modes.js); the replay builds the state with it. */
+    mode: state.mode?.id ?? LEGACY_CONFIG.mode,
+    modeRev: state.mode?.rev ?? LEGACY_CONFIG.modeRev,
+    difficulty: state.difficulty ?? LEGACY_CONFIG.difficulty,
     /** Supply level the match started on; debug can raise it before wave 1. */
     supplyStart: state.supplyLevel,
     /** Debug levers pulled in this match. A tainted match is not a measurement. */

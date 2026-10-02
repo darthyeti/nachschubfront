@@ -162,6 +162,7 @@ export const STRINGS = {
       stuck: () => 'Das Nachspielen bleibt hängen. Ein anderes Protokoll oder eine andere Welle wählen.',
       first: () => 'Welle 1 ist eine neue Partie, dafür braucht es keinen Einstieg.',
       file: () => 'Das ist kein Protokoll.',
+      mode: ({ mode }) => `Das Protokoll gehört zum Modus „${mode}“, den diese Version des Spiels nicht kennt.`,
     },
     pauseTitle: 'Pausiert',
     pauseStatus: (wave, total, lives, requisition) =>

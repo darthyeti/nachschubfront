@@ -271,7 +271,7 @@ export function createMenus(root, {
       if (!file) return;
       const parsed = parseProtocol(await file.text());
       if (!parsed.ok) {
-        sayTest(T.testEntryErrors.file(), true);
+        sayTest(parsed.error === 'mode' ? T.testEntryErrors.mode(parsed) : T.testEntryErrors.file(), true);
         return;
       }
       testFile = parsed.match;

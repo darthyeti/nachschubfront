@@ -9,6 +9,7 @@ import { playBotMatch } from '../../tests/tools/bot-player.mjs';
 import { isMeasurable } from '../../src/sim/record.js';
 import { replayMatch } from '../../src/sim/replay.js';
 import { requestSalvo } from '../../src/sim/actions.js';
+import { STRINGS } from '../../src/data/strings.js';
 
 /**
  * A match to enter, played once for the whole file.
@@ -103,4 +104,11 @@ test('a protocol that ends in defeat at that wave offers nothing to play on', ()
   const entry = prepareTestEntry(lost.log, lost.waves.length + 1);
   assert.equal(entry.ok, false);
   assert.ok(['over', 'short'].includes(entry.reason), entry.reason);
+});
+
+test('a protocol of an unknown mode is turned away before the replay (M7a)', () => {
+  const result = prepareTestEntry({ seed: 'X', mode: 'aus-der-zukunft', actions: [], waves: [] }, 10);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'mode');
+  assert.ok(STRINGS.menu.testEntryErrors.mode(result.about).includes('aus-der-zukunft'));
 });

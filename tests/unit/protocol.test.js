@@ -12,7 +12,8 @@ import {
   protocolFileName,
   sanitizeProtocols,
 } from '../../src/storage/protocol.js';
-import { startLog, record, recordWave, PROTOCOL_VERSION } from '../../src/sim/record.js';
+import { startLog, record, recordWave, PROTOCOL_VERSION, protocolConfig, playableHere } from '../../src/sim/record.js';
+import { createGameState } from '../../src/core/state.js';
 import { APP_VERSION } from '../../src/data/version.js';
 
 /** A log as the recorder leaves it, without playing a match for it. */
@@ -186,4 +187,35 @@ test('a saved match comes back through the storage layer', async () => {
   assert.equal(loaded.matches.length, 1);
   assert.equal(loaded.matches[0].seed, 'WIEDER');
   assert.equal(second.latest.waves.length, 2);
+});
+
+// ---------- Version 2: the run configuration (M7a, A3) ----------
+
+test('a protocol carries the mode, its revision and the difficulty', () => {
+  const state = createGameState('MODI', { mode: 'standard-klon', difficulty: 'normal' });
+  const log = startLog(state, 6, 1);
+  assert.equal(log.version, 2);
+  assert.equal(log.mode, 'standard-klon');
+  assert.equal(log.modeRev, 1);
+  assert.equal(log.difficulty, 'normal');
+  assert.equal(describeProtocol(log).mode, 'standard-klon');
+});
+
+test('a version-1 protocol reads as standard on normal', () => {
+  const log = fakeLog();
+  delete log.mode;
+  delete log.modeRev;
+  delete log.difficulty;
+  log.version = 1;
+  const parsed = parseProtocol(exportProtocol(log, 0));
+  assert.ok(parsed.ok);
+  assert.deepEqual(protocolConfig(parsed.match), { mode: 'standard', modeRev: 1, difficulty: 'normal' });
+});
+
+test('a protocol of a mode this build does not know is refused in words, and kept in storage', () => {
+  const log = { ...fakeLog(), mode: 'aus-der-zukunft' };
+  const parsed = parseProtocol(exportProtocol(log, 0));
+  assert.deepEqual(parsed, { ok: false, error: 'mode', mode: 'aus-der-zukunft' });
+  assert.equal(sanitizeProtocols({ matches: [log] }).matches.length, 1, 'stored, not thrown away');
+  assert.equal(playableHere(log), false);
 });

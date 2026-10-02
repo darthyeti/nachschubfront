@@ -302,3 +302,14 @@ test('onSelection sees the state as it stood when the player chose', () => {
   // Watching must not change the match.
   assert.deepEqual(compareWaves(run.waves, again.waves), []);
 });
+
+test('the replay plays a protocol in the mode it was recorded in (M7a)', () => {
+  const state = createGameState('MODUS', { mode: 'standard-klon' });
+  startLog(state, RULESET_VERSION, 1);
+  const played = replayMatch(state.log);
+  assert.equal(played.state.mode.id, 'standard-klon');
+  assert.equal(played.state.log.mode, 'standard-klon');
+  const legacy = { ...state.log, version: 1 };
+  delete legacy.mode;
+  assert.equal(replayMatch(legacy).state.mode.id, 'standard', 'a version-1 protocol is a standard match');
+});

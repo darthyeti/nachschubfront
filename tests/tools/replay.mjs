@@ -36,7 +36,11 @@ if (!file) {
 
 const parsed = parseProtocol(readFileSync(file, 'utf8'));
 if (!parsed.ok) {
-  console.error(`${file}: kein Protokoll (${parsed.error}).`);
+  console.error(
+    parsed.error === 'mode'
+      ? `${file}: gespielt im Modus „${parsed.mode}“, den diese Version nicht kennt.`
+      : `${file}: kein Protokoll (${parsed.error}).`,
+  );
   process.exit(1);
 }
 const protocol = parsed.match;
@@ -51,7 +55,8 @@ if (dataFile) {
 
 console.log(`Protokoll ${file}`);
 console.log(
-  `Seed ${about.seed} · Regelversion ${protocol.ruleset} · Version ${parsed.app ?? 'unbekannt'}` +
+  `Seed ${about.seed} · Modus ${about.mode} (Stand ${about.modeRev}, ${about.difficulty}) · ` +
+    `Regelversion ${protocol.ruleset} · Version ${parsed.app ?? 'unbekannt'}` +
     `${parsed.app && parsed.app !== APP_VERSION ? ` (hier läuft ${APP_VERSION})` : ''} · ` +
     `${about.waves} Wellen bis Welle ${about.wave} · ` +
     `${about.actions} Aktionen · ${about.ratings} bewertet · ` +
