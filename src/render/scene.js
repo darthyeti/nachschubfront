@@ -8,6 +8,10 @@ import {
   drawObstacleCell,
   drawRift,
   drawRiftGlow,
+  drawRiftMouth,
+  drawRiftGlowAt,
+  drawRiftLabel,
+  drawBanZone,
   drawBastion,
   drawBastionGlow,
   drawBeacon,
@@ -35,8 +39,10 @@ import { previewRoute } from '../sim/zones.js';
 import { towerAt, towerStats } from '../sim/towers.js';
 import { demolishTarget, nextBulwarkCost } from '../sim/economy.js';
 import { PLANNING_PHASES } from '../core/phases.js';
+import { canUpgradeTower } from '../sim/actions.js';
 import { towerById } from '../sim/towers.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
+import { STRINGS } from '../data/strings.js';
 
 const KIND_OBSTACLE = 0;
 const KIND_RIFT = 1;
@@ -310,6 +316,31 @@ function drawBulwarkOverlay(ctx, state, armed, t, reducedMotion) {
 }
 
 /**
+ * King of the Hill's upgrade mode (M7b, B5): every emplacement that could go up
+ * a rank instead of the salvo, with its price; the armed one pulses.
+ */
+function drawUpgradeOverlay(ctx, state, armed, t, reducedMotion) {
+  const pulse = reducedMotion ? 1 : 0.75 + 0.25 * Math.sin(t * 6);
+  const marked = [];
+  for (const tower of state.towers) {
+    const check = canUpgradeTower(state, tower.id);
+    if (!check.ok && check.reason !== 'funds') continue;
+    const affordable = check.ok;
+    const isArmed = armed === tower.id;
+    const alpha = (affordable ? 1 : 0.35) * (isArmed ? pulse : 1);
+    drawCellMarker(
+      ctx,
+      tower,
+      `rgba(232,200,114,${(isArmed ? 0.34 : 0.16) * alpha})`,
+      `rgba(232,200,114,${(isArmed ? 1 : 0.8) * alpha})`,
+      isArmed ? 4 : 2.5,
+    );
+    marked.push({ cell: { x: tower.x, y: tower.y }, cost: check.cost, kind: 'upgrade', affordable, armed: isArmed });
+  }
+  return marked;
+}
+
+/**
  * The prices, written after the sprites so a heap of rubble cannot hide its own
  * price tag. They sit inside the cell rather than floating above it: cells tile
  * the ground without overlapping, so two neighbouring prices never collide the
@@ -325,6 +356,41 @@ function drawDemolishPrices(ctx, marked) {
 /**
  * @param {ReturnType<import('./sprites/rasterizer.js').createSpriteCache>} sprites
  */
+/** Footprint of the bastion in cells: 1 on the standard map, 2 in King of the Hill. */
+function bastionSize(map) {
+  return map.bastionCells ? Math.round(Math.sqrt(map.bastionCells.length)) : 1;
+}
+
+/**
+ * Where each rift of a map with several sits and where its name goes (M7b, B8):
+ * the middle of its gates, a point beyond the map edge outwards from there, and
+ * the angle of that edge on screen. Built once per map.
+ */
+const riftLayouts = new WeakMap();
+function riftLayout(map) {
+  let layout = riftLayouts.get(map.rifts);
+  if (layout) return layout;
+  const mid = map.size / 2;
+  layout = map.rifts.map((rift) => {
+    const x = rift.gates.reduce((sum, g) => sum + g.x + 0.5, 0) / rift.gates.length;
+    const y = rift.gates.reduce((sum, g) => sum + g.y + 0.5, 0) / rift.gates.length;
+    const dx = x - mid;
+    const dy = y - mid;
+    const len = Math.hypot(dx, dy) || 1;
+    // A rift on the top or bottom edge lies along x, on screen (32, 16); one on
+    // the left or right edge along y, (-32, 16), read left to right.
+    const alongX = rift.gates.every((g) => g.y === rift.gates[0].y);
+    return { x, y, labelX: x + (dx / len) * 1.7, labelY: y + (dy / len) * 1.7, angle: Math.atan2(alongX ? 16 : -16, 32) };
+  });
+  riftLayouts.set(map.rifts, layout);
+  return layout;
+}
+
+/** Route length as the player reads it: one decimal, German comma. */
+function cells(length) {
+  return STRINGS.hud.riftLength(length.toFixed(1).replace('.', ','));
+}
+
 export function createSceneRenderer(sprites) {
   const drawVignette = createVignette();
   const backdrop = createBackdropLayer();
@@ -358,8 +424,17 @@ export function createSceneRenderer(sprites) {
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
 
-    drawRiftGlow(ctx, map.rift, t);
-    drawBastionGlow(ctx, map.bastion, t);
+    if (map.rifts) {
+      riftLayout(map).forEach((r, i) => {
+        const active = i === state.riftIndex;
+        drawRiftGlowAt(ctx, r.x, r.y, t, { active, still: ui.reducedMotion });
+      });
+    } else {
+      drawRiftGlow(ctx, map.rift, t);
+    }
+    drawBastionGlow(ctx, map.bastion, t, bastionSize(map));
+    // The ban zone lies on the ground, under the route and the markers (M7b, B4).
+    drawBanZone(ctx, map);
 
     // While zones are marked the preview shows the route they will force.
     const route = previewRoute(state);
@@ -372,6 +447,8 @@ export function createSceneRenderer(sprites) {
         demolishable = drawDemolishOverlay(ctx, state, ui.demolishArmed, t, ui.reducedMotion);
       } else if (ui.bulwarkMode) {
         demolishable = drawBulwarkOverlay(ctx, state, ui.bulwarkArmed, t, ui.reducedMotion);
+      } else if (ui.upgradeMode) {
+        demolishable = drawUpgradeOverlay(ctx, state, ui.upgradeArmed, t, ui.reducedMotion);
       } else {
         state.zones.forEach((zone, i) => drawZoneMarker(ctx, zone, i, t, ui.reducedMotion));
       }
@@ -460,8 +537,17 @@ export function createSceneRenderer(sprites) {
       if (onScreen(tower.x + 0.5, tower.y + 0.5)) items.push([tower.x + tower.y + 1, KIND_TOWER, tower, 0]);
     }
     for (const pod of state.pods) items.push([pod.x + pod.y + 1, KIND_POD, pod, 0]);
-    items.push([map.rift.x + map.rift.y + 1, KIND_RIFT, map.rift, 0]);
-    items.push([map.bastion.x + map.bastion.y + 1, KIND_BASTION, map.bastion, 0]);
+    if (map.rifts) {
+      // Every gate is a mouth of its own; the attacking rift's pulse (B8).
+      map.rifts.forEach((rift, i) => {
+        const active = i === state.riftIndex ? 1 : 2;
+        for (const gate of rift.gates) items.push([gate.x + gate.y + 1, KIND_RIFT, gate, active]);
+      });
+    } else {
+      items.push([map.rift.x + map.rift.y + 1, KIND_RIFT, map.rift, 0]);
+    }
+    const size = bastionSize(map);
+    items.push([map.bastion.x + map.bastion.y + 2 * size - 1, KIND_BASTION, map.bastion, size]);
     map.beacons.forEach((b, i) => items.push([b.x + b.y + 1, KIND_BEACON, b, i]));
     for (const e of state.enemies) {
       if (!onScreen(e.x, e.y)) continue;
@@ -476,8 +562,11 @@ export function createSceneRenderer(sprites) {
 
     for (const [, kind, o, i] of items) {
       if (kind === KIND_OBSTACLE) drawObstacleCell(ctx, o, i);
-      else if (kind === KIND_RIFT) drawRift(ctx, o, t);
-      else if (kind === KIND_BASTION) drawBastion(ctx, o, t);
+      else if (kind === KIND_RIFT) {
+        // i: 0 the single rift of the standard map, 1 the attacking one, 2 a quiet one.
+        if (i === 0) drawRift(ctx, o, t);
+        else drawRiftMouth(ctx, o.x + 0.5, o.y + 0.5, t, { scale: 0.8, still: i === 2 || ui.reducedMotion });
+      } else if (kind === KIND_BASTION) drawBastion(ctx, o, t, i);
       else if (kind === KIND_BEACON) drawBeacon(ctx, o, t);
       else if (kind === KIND_POD) drawPod(ctx, o, t, enemyView);
       else if (kind === KIND_TOWER) {
@@ -506,6 +595,14 @@ export function createSceneRenderer(sprites) {
     }
     for (const pod of state.pods) drawPodHologram(ctx, pod, t);
     map.beacons.forEach((b, i) => drawBeaconLabel(ctx, b, i + 1));
+    if (map.rifts) {
+      riftLayout(map).forEach((r, i) => {
+        const active = i === state.riftIndex;
+        // During planning the attacking rift says how long its way is (B8).
+        const detail = active && PLANNING_PHASES.has(state.phase) && route ? cells(route.length) : null;
+        drawRiftLabel(ctx, r.labelX, r.labelY, r.angle, STRINGS.rifts[map.rifts[i].id], { active, detail });
+      });
+    }
 
     // Shots, shells, particles and damage numbers go on top of the units.
     ui.effects?.drawAbove(ctx, state, t, ui.reducedMotion);

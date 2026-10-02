@@ -224,6 +224,15 @@ body {
   display: none;
 }
 
+/* King of the Hill: the attacking rift and the next one (M7b). */
+.plate-rift .plate-value {
+  white-space: nowrap;
+}
+
+.plate-rift[hidden] {
+  display: none;
+}
+
 /* Codex and menu: plates that can be pressed, and therefore thumb-sized. The
    bar takes its height from them, which is why the other plates stretch. */
 button.plate-button {

@@ -1,5 +1,8 @@
 // DOM HUD above the canvas. Updates only touch the DOM when a value changed.
 
+import { upgradeKind } from '../sim/selection.js';
+import { canUpgradeTower } from '../sim/actions.js';
+import { riftForWave } from '../sim/rifts.js';
 import { STRINGS } from '../data/strings.js';
 import { el, button, explain } from './controls.js';
 import { createRuneButton } from './runeButton.js';
@@ -54,6 +57,10 @@ export function createHud(root, { debug, onAction }) {
   const supply = plate(rightPlates, 'supply', 'plate-supply', T.supplyLabel);
   const requisition = plate(rightPlates, 'requisition', 'plate-requisition', T.requisitionLabel);
   const points = plate(rightPlates, 'points', 'plate-points', T.commandPointsTitle);
+  // King of the Hill: which rift attacks, and which one after it (M7b, B8).
+  // Only on a map with more than one rift; the standard bar stays as it was.
+  const rift = plate(rightPlates, 'wave', 'plate-rift', T.riftPlateLabel);
+  rift.box.hidden = true;
   const route = plate(rightPlates, 'route', 'plate-route', T.routeLabel);
 
   // Housekeeping, not the action of the round: the codex and the menu sit at
@@ -134,8 +141,18 @@ export function createHud(root, { debug, onAction }) {
     onClick: () => onAction('bulwarkMode'),
   });
 
+  // King of the Hill: up a rank instead of a salvo (M7b, B5). Only where the
+  // mode's upgrade rule acts in planning; the standard bar stays as it was.
+  const upgradeDisc = createRuneButton({
+    iconName: 'upgrade',
+    label: T.upgradeName,
+    hint: T.upgradeHint,
+    onClick: () => onAction('upgradeMode'),
+  });
+  upgradeDisc.el.hidden = true;
+
   const groundGroup = el('div', 'rune-group');
-  groundGroup.append(supplyDisc.el, demolishDisc.el, bulwarkDisc.el);
+  groundGroup.append(supplyDisc.el, demolishDisc.el, bulwarkDisc.el, upgradeDisc.el);
 
   bar.append(groundGroup, start, restart, speedGroup);
 
@@ -174,10 +191,10 @@ export function createHud(root, { debug, onAction }) {
   const version = el('div', 'hud-version', STRINGS.version(APP_VERSION));
 
   const help = createHelp(root, {
-    plates: { wave, lives, supply, requisition, points, route },
+    plates: { wave, lives, supply, requisition, points, route, rift },
     codex: rightPlates.children[rightPlates.children.length - 2],
     menu: rightPlates.children[rightPlates.children.length - 1],
-    discs: [supplyDisc.el, demolishDisc.el, bulwarkDisc.el],
+    discs: [supplyDisc.el, demolishDisc.el, bulwarkDisc.el, upgradeDisc.el],
     salvo: start,
     speed: speedGroup,
   });
@@ -215,6 +232,22 @@ export function createHud(root, { debug, onAction }) {
         const share = v / RULES.startLives;
         lives.box.dataset.level = share <= 0.25 ? 'critical' : share <= 0.5 ? 'low' : 'fine';
       });
+      if (state.map.rifts) {
+        // In planning riftIndex is already the coming wave's rift; during a wave
+        // it is the running one. Either way the next one follows the wave after.
+        const nowId = state.map.rifts[state.riftIndex].id;
+        const coming = state.phase === 'wave' || state.phase === 'evaluation' ? state.wave + 1 : state.wave + 2;
+        const nextId = state.map.rifts[riftForWave(state, coming)].id;
+        set('rift', `${nowId}/${nextId}`, () => {
+          rift.box.hidden = false;
+          rift.value.textContent = T.riftPlate(STRINGS.rifts[nowId], STRINGS.rifts[nextId]);
+          rift.box.setAttribute('aria-label', T.riftPlateAria(STRINGS.rifts[nowId], STRINGS.rifts[nextId]));
+        });
+      } else {
+        set('rift', '', () => {
+          rift.box.hidden = true;
+        });
+      }
       const shown = previewRoute(state);
       set('route', shown ? String(Math.round(shown.length)) : T.routeBlockedShort, (v) => {
         route.value.textContent = v;
@@ -271,6 +304,19 @@ export function createHud(root, { debug, onAction }) {
       });
 
       // Same rule as the demolish disc: the purse guards the way in, never out.
+      if (upgradeKind(state).inPlanning) {
+        const offers = state.towers.map((tower) => canUpgradeTower(state, tower.id));
+        const cheapest = Math.min(...offers.filter((o) => o.ok || o.reason === 'funds').map((o) => o.cost ?? Infinity));
+        upgradeDisc.el.hidden = false;
+        upgradeDisc.update({
+          state: 'ready',
+          note: Number.isFinite(cheapest) ? T.upgradeNote(cheapest) : null,
+          enabled: offers.some((o) => o.ok) || ui.upgradeMode,
+          on: ui.upgradeMode,
+        });
+      } else {
+        upgradeDisc.el.hidden = true;
+      }
       const bulwarkPrice = nextBulwarkCost(state);
       const canEnterBulwark = state.phase === 'planning' && state.requisition >= bulwarkPrice;
       bulwarkDisc.update({

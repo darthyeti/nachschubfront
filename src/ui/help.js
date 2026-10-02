@@ -160,6 +160,7 @@ export function createHelp(root, targets) {
     [targets.plates.requisition.box, T.requisition],
     [targets.plates.points.box, T.points(firstCommandWave)],
     [targets.plates.route.box, T.route],
+    ...(targets.plates.rift ? [[targets.plates.rift.box, T.riftPlate]] : []),
     [targets.codex, T.codex],
     [targets.menu, T.menu],
   ];
@@ -167,6 +168,7 @@ export function createHelp(root, targets) {
     [targets.discs[0], T.supplyDisc],
     [targets.discs[1], T.demolishDisc],
     [targets.discs[2], T.bulwarkDisc],
+    ...(targets.discs[3] ? [[targets.discs[3], T.upgradeDisc]] : []),
     [targets.salvo, T.salvo],
     [targets.speed, T.speed],
   ];

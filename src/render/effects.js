@@ -306,8 +306,10 @@ export function createEffects() {
     } else if (event.type === 'command' && event.id === 'prioritySupply') {
       // No target on the map: the order goes out from the bastion.
       const { x, y } = state.map.bastion;
-      burst(x + 0.5, y + 0.5, 30, 'spark', reducedMotion ? 6 : 18, { speed: 90, size: 2.5, life: 0.8, gravity: -120 });
-      addRing(x + 0.5, y + 0.5, { radius: 2.2, life: 0.7, colour: C.gold, width: 4 });
+      // The middle of the bastion, whichever size it is (M7b: 2 x 2).
+      const half = state.map.bastionCells ? Math.sqrt(state.map.bastionCells.length) / 2 : 0.5;
+      burst(x + half, y + half, 30, 'spark', reducedMotion ? 6 : 18, { speed: 90, size: 2.5, life: 0.8, gravity: -120 });
+      addRing(x + half, y + half, { radius: 2.2, life: 0.7, colour: C.gold, width: 4 });
     }
   }
 

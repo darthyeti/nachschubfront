@@ -136,12 +136,13 @@ export const UPGRADE_KINDS = {
   pod: { selectionOptions: upgradeOptions, planningCost: () => null },
   // Instead of a salvo, in planning (M7b, B5); nothing is offered in the selection.
   ladder: {
+    inPlanning: true,
     selectionOptions: () => [],
     planningCost: (state, tower) => state.mode.upgrade.prices[tower.rank - 1] ?? null,
   },
   // A test lever from the study: free upgrades early on replace the salvoes and
   // spoil the game (B5). Never the value of a mode a player gets.
-  free: { selectionOptions: () => [], planningCost: () => 0 },
+  free: { inPlanning: true, selectionOptions: () => [], planningCost: () => 0 },
   off: { selectionOptions: () => [], planningCost: () => null },
 };
 

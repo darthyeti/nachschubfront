@@ -23,6 +23,8 @@ export const STRINGS = {
     supplyDisc: ['Nachschub', 'Baut die Nachschubstufe aus. Kostet Requisition.'],
     demolishDisc: ['Abreißen', 'Räumt ein Trümmerfeld und gibt das Feld frei.'],
     bulwarkDisc: ['Bollwerk', 'Macht aus Trümmern ein Bollwerk, das Rammstößen standhält.'],
+    upgradeDisc: ['Aufwerten', 'Statt einer Salve steigt eine Stellung einen Rang. Die Welle beginnt sofort.'],
+    riftPlate: ['Angriffsrichtung', 'Aus welchem Riss diese Welle kommt, und welcher danach dran ist.'],
     salvo: ['Salve', 'Startet die Runde: Kapseln landen, du wählst eine Stellung, die Welle beginnt.'],
     speed: ['Tempo', 'Pause, einfache, doppelte und dreifache Geschwindigkeit.'],
     /** Third line of a command bubble; every number comes from data/commands.js. */
@@ -39,6 +41,11 @@ export const STRINGS = {
     routeBlocked: 'Route blockiert',
     /** On the status plate there is room for the number alone. */
     routeBlockedShort: '—',
+    /** King of the Hill: the rift this wave comes from and the one after it (M7b, B8). */
+    riftPlateLabel: 'Angriffsrichtung',
+    riftPlate: (now, next) => `${now} → ${next}`,
+    riftPlateAria: (now, next) => `Riss dieser Welle: ${now}, danach: ${next}`,
+    riftLength: (cells) => `${cells} Felder`,
     supplyLabel: 'Nachschubstufe',
     requisitionLabel: 'Requisition',
     requestSalvo: 'Salve anfordern',
@@ -67,6 +74,13 @@ export const STRINGS = {
     bulwarkConfirm: (cost) => `Bollwerk bauen? ${cost}`,
     bulwarkHint:
       'Macht aus einem Trümmerfeld ein Bollwerk. Es blockiert wie Trümmer, hält aber dem Rammstoß eines Kolosses stand.',
+    /** King of the Hill: an emplacement up a rank instead of a salvo (M7b, B5). */
+    upgradeName: 'Stellung aufwerten',
+    upgradeHint:
+      'Statt einer Salve steigt eine Stellung einen Rang. Keine Kapseln, keine neuen Trümmer, die Welle beginnt sofort. Nur ohne markierte Landezonen.',
+    upgradeNote: (cost) => `ab ${cost}`,
+    upgradeConfirm: (rank, cost) => `Auf ${rank} aufwerten? ${cost}`,
+    upgradeConfirmDetail: 'Keine Salve — die Welle beginnt sofort.',
     newGame: 'Neue Partie',
     pause: 'Pause',
     speed: (n) => `${n}x`,
@@ -84,6 +98,14 @@ export const STRINGS = {
   rune: {
     lockedLabel: (name, wave) => `${name} — ab Welle ${wave}`,
     cooldownLabel: (name, waves) => `${name} — noch ${waves} Wellen`,
+  },
+
+  /** The four rifts of King of the Hill (data/map.js, KOTH_MAP), by id. */
+  rifts: {
+    north: 'Nord',
+    east: 'Ost',
+    south: 'Süd',
+    west: 'West',
   },
 
   /** Game modes (src/data/modes.js): name and one sentence for the mode screen. */
@@ -455,6 +477,9 @@ export const STRINGS = {
     /** Names of what can stand on a cell. */
     terrainNames: {
       rift: 'Riss',
+      riftNamed: (name) => `Riss ${name}`,
+      /** King of the Hill: the ban zone around the bastion (M7b). */
+      banned: 'Sperrzone — hier wird nichts gebaut',
       bastion: 'Bastion',
       beacon: 'Signalfeuer',
       ruin: 'Ruine',
@@ -536,6 +561,13 @@ export const STRINGS = {
     bulwarkTarget: 'Nur auf Trümmern',
     zoneAdded: 'Landezone',
     zoneRemoved: 'Zone gelöscht',
+    /** Why an emplacement cannot go up a rank instead of a salvo (M7b). */
+    zones: 'Erst die Landezonen aufheben',
+    tower: 'Hier steht keine Stellung',
+    special: 'Spezialstellungen haben keinen Rang',
+    max: 'Schon Legende',
+    off: 'Hier nicht möglich',
+    upgraded: (rank) => `${rank}!`,
     /**
      * Markers the last purchase invalidated: the demolition became unpayable, or
      * the ground was built on. The cell itself says which (`placement.funds` or

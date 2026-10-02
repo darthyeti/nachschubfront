@@ -97,6 +97,16 @@ export const ICONS = {
     <path d="M9.6 11.6 v3.6 M14.4 11.6 v3.6 M7.2 15.2 h9.6 M12 15.2 v4.4" stroke="${INK}" stroke-width="1.2" fill="none"/>
   `,
 
+  /** Upgrade instead of a salvo (M7b): three rank chevrons, the top one gold. */
+  upgrade: `
+    <path d="M5 19.4 l7 -4.4 l7 4.4" stroke="${INK}" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <path d="M5 19.4 l7 -4.4 l7 4.4" stroke="${STONE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <path d="M5 13.8 l7 -4.4 l7 4.4" stroke="${INK}" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <path d="M5 13.8 l7 -4.4 l7 4.4" stroke="${STONE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <path d="M5 8.2 l7 -4.4 l7 4.4" stroke="${INK}" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <path d="M5 8.2 l7 -4.4 l7 4.4" stroke="#e8c872" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+  `,
+
   /** Supply salvo: the pod itself, light and all. */
   salvo: `
     <path d="M8.8 3.8 h6.4 l3.2 15.4 h-12.8 Z" fill="${STONE}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>

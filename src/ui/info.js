@@ -93,8 +93,13 @@ export function enemyOn(state, cell) {
 
 function terrainName(state, cell) {
   const { map } = state;
+  const at = (c) => c.x === cell.x && c.y === cell.y;
+  // A map with several rifts names which one (M7b); the standard map has one.
+  const rift = map.rifts?.find((r) => r.gates.some(at));
+  if (rift) return T.terrainNames.riftNamed(STRINGS.rifts[rift.id]);
   if (map.rift.x === cell.x && map.rift.y === cell.y) return T.terrainNames.rift;
-  if (map.bastion.x === cell.x && map.bastion.y === cell.y) return T.terrainNames.bastion;
+  if ((map.bastionCells ?? [map.bastion]).some(at)) return T.terrainNames.bastion;
+  if (map.banned?.[cell.y * map.size + cell.x]) return T.terrainNames.banned;
   if (map.beacons.some((b) => b.x === cell.x && b.y === cell.y)) return T.terrainNames.beacon;
   const obstacle = map.obstacles.find((o) => o.cells.some((c) => c.x === cell.x && c.y === cell.y));
   if (obstacle) return T.terrainNames[obstacle.kind] ?? T.terrainNames.rubble;

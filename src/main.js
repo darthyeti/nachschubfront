@@ -14,7 +14,10 @@ import {
   giveUpSalvo,
   setSpeed,
   toggleObstacle,
+  canUpgradeTower,
+  upgradeTower,
 } from './sim/actions.js';
+import { towerAt } from './sim/towers.js';
 import { toggleZone } from './sim/zones.js';
 import { buySupply, demolish, canDemolish, buildBulwark, canBuildBulwark } from './sim/economy.js';
 import { useCommand, canUseCommand } from './sim/commands.js';
@@ -119,6 +122,10 @@ const ui = {
   bulwarkMode: false,
   /** Touch only: the cell whose bulwark is waiting for a confirming tap. */
   bulwarkArmed: null,
+  /** King of the Hill: taps raise an emplacement instead of marking zones (M7b). */
+  upgradeMode: false,
+  /** Touch only: the id of the emplacement waiting for a confirming tap. */
+  upgradeArmed: null,
   /** Id of the command being aimed; the next tap on the map fires it. */
   commandTarget: null,
   /** Line commands: the start the player has already set, or null. */
@@ -242,9 +249,45 @@ function leaveBulwarkMode() {
   ui.bulwarkArmed = null;
 }
 
+/** The same for the upgrade mode of King of the Hill. */
+function leaveUpgradeMode() {
+  ui.upgradeMode = false;
+  ui.upgradeArmed = null;
+}
+
 /** True while one of the map-editing modes has the taps. */
 function inBuildMode() {
-  return ui.demolishMode || ui.bulwarkMode;
+  return ui.demolishMode || ui.bulwarkMode || ui.upgradeMode;
+}
+
+/**
+ * Raises an emplacement one rank instead of the salvo (M7b, B5). It cannot be
+ * taken back and starts the wave, so on touch the first tap shows the price and
+ * the second one does it; with a mouse one click, as everywhere in the game.
+ */
+function applyUpgradeTap(cell, pointerType = 'mouse') {
+  const t = STRINGS.placement;
+  const tower = cell ? towerAt(state, cell) : null;
+  if (!tower) {
+    ui.upgradeArmed = null;
+    if (cell) flash(cell, false, t.tower);
+    return;
+  }
+  const check = canUpgradeTower(state, tower.id);
+  if (!check.ok) {
+    ui.upgradeArmed = null;
+    flash(cell, false, t[check.reason] ?? t.off);
+    return;
+  }
+  if (pointerType !== 'mouse' && ui.upgradeArmed !== tower.id) {
+    ui.upgradeArmed = tower.id;
+    showBanner(STRINGS.hud.upgradeConfirm(STRINGS.ranks[tower.rank + 1], check.cost), STRINGS.hud.upgradeConfirmDetail);
+    return;
+  }
+  const result = upgradeTower(state, tower.id);
+  leaveUpgradeMode();
+  if (result.ok) flash(cell, true, t.upgraded(STRINGS.ranks[result.tower.rank]));
+  else flash(cell, false, t[result.reason] ?? t.off);
 }
 
 /** Marks or clears a landing zone and shows why a cell was refused. */
@@ -467,6 +510,7 @@ function onCellTap(cell, pointerType) {
   else if (ui.obstacleMode) applyObstacle(cell);
   else if (ui.demolishMode && state.phase === 'planning') applyDemolish(cell, pointerType);
   else if (ui.bulwarkMode && state.phase === 'planning') applyBulwark(cell, pointerType);
+  else if (ui.upgradeMode && state.phase === 'planning') applyUpgradeTap(cell, pointerType);
   else if (state.phase === 'planning') applyZone(cell);
   else if (state.phase === 'selection') applyPodTap(cell);
 }
@@ -500,6 +544,7 @@ function onAction(action) {
       ui.demolishArmed = null;
       ui.obstacleMode = false;
       leaveBulwarkMode();
+      leaveUpgradeMode();
     }
   } else if (action === 'bulwarkMode') {
     if (ui.bulwarkMode) leaveBulwarkMode();
@@ -508,6 +553,16 @@ function onAction(action) {
       ui.bulwarkArmed = null;
       ui.obstacleMode = false;
       leaveDemolishMode();
+      leaveUpgradeMode();
+    }
+  } else if (action === 'upgradeMode') {
+    if (ui.upgradeMode) leaveUpgradeMode();
+    else {
+      ui.upgradeMode = true;
+      ui.upgradeArmed = null;
+      ui.obstacleMode = false;
+      leaveDemolishMode();
+      leaveBulwarkMode();
     }
   } else if (action === 'codex') {
     codex.toggle();
@@ -519,6 +574,7 @@ function onAction(action) {
     if (ui.commandTarget) cancelAiming();
     else if (ui.demolishMode) leaveDemolishMode();
     else if (ui.bulwarkMode) leaveBulwarkMode();
+    else if (ui.upgradeMode) leaveUpgradeMode();
     else if (codex.open) codex.setOpen(false);
     else menus.togglePause();
   } else if (action === 'supplyLevel') {
@@ -945,6 +1001,9 @@ if (debug) {
     state: () => ({
       mode: state.mode.id,
       difficulty: state.difficulty,
+      riftIndex: state.riftIndex,
+      riftId: state.map.rifts?.[state.riftIndex]?.id ?? null,
+      banned: state.map.banned ? state.map.banned.reduce((n, v) => n + v, 0) : 0,
       phase: state.phase,
       wave: state.wave,
       lives: state.lives,
@@ -1011,6 +1070,8 @@ if (debug) {
       demolishArmed: ui.demolishArmed,
       bulwarkMode: ui.bulwarkMode,
       bulwarkArmed: ui.bulwarkArmed,
+      upgradeMode: ui.upgradeMode,
+      upgradeArmed: ui.upgradeArmed,
       commandTarget: ui.commandTarget,
       commandLineFrom: ui.commandLineFrom,
       commandLineTo: ui.commandLineTo,

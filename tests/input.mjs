@@ -1535,6 +1535,96 @@ try {
     await context.close();
   }
 
+  // ---------- King of the Hill (M7b) ----------
+  // Tablet with touch, because the upgrade is the one action here that needs
+  // its two taps. Played to wave 3 with the bastion held up by the debug lever:
+  // the question is whether the mode runs and reads, not whether it is won.
+  console.log('King of the Hill (tablet, touch)');
+  {
+    const context = await browser.newContext({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+    const page = await context.newPage();
+    watchProblems(page, 'koth', problems);
+    await page.goto(`${server.url}?seed=HUEGEL&debug`, { waitUntil: 'networkidle' });
+    await startMatch(page, 'koth');
+    await frames(page, 5);
+    const tap = (x, y) => page.touchscreen.tap(x, y);
+    const seen = new Set();
+    const plate = page.locator('.plate-rift');
+
+    const planningShot = async () => {
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'planning', null, { timeout: 180000 });
+      await frames(page, 3);
+      const s = await game(page);
+      seen.add(s.riftId);
+      await page.screenshot({ path: join(OUT, `koth-planning-${s.wave + 1}-${s.riftId}.png`) });
+      return s;
+    };
+
+    await check('the mode starts with its map: ban zone, the attacking rift in the bar, a salvo of 8', async () => {
+      const s = await game(page);
+      assert.equal(s.mode, 'koth');
+      assert.ok(s.banned > 40, `ban zone of ${s.banned} cells`);
+      assert.ok(await plate.isVisible(), 'the rift plate is up');
+      assert.match(await plate.locator('.plate-value').textContent(), /^(Nord|Ost|Süd|West) → (Nord|Ost|Süd|West)$/);
+      assert.equal(await page.locator('.salvo-zones').textContent(), '0/8');
+      const box = await page.getByRole('button', { name: 'Stellung aufwerten' }).boundingBox();
+      assert.ok(box.width >= 44 && box.height >= 44, `the upgrade disc is ${box.width} x ${box.height}`);
+      assert.ok(await page.getByRole('button', { name: 'Stellung aufwerten' }).isDisabled(), 'nothing to raise yet');
+      await planningShot();
+    });
+
+    await check('a tap in the ban zone is refused', async () => {
+      const [x, y] = await screenOf(page, { x: 12, y: 9 });
+      await tap(x, y);
+      assert.equal((await game(page)).zones.length, 0);
+    });
+
+    await check('three rounds to wave 3, each planned against the rift that then attacks', async () => {
+      await page.getByRole('button', { name: 'Unverwundbar' }).tap();
+      await page.getByRole('button', { name: '3x' }).tap();
+      for (let round = 0; round < 2; round++) {
+        const before = await game(page);
+        await playRound(page, tap);
+        const during = await game(page);
+        assert.equal(during.riftId, before.riftId, 'the wave comes from the rift the planning showed');
+        await planningShot();
+      }
+      assert.equal(seen.size, 3, `three rounds, three rifts: ${[...seen]}`);
+    });
+
+    await check('the upgrade asks on the first tap and raises on the second, and the wave starts', async () => {
+      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 500 }));
+      await frames(page, 2);
+      const disc = page.getByRole('button', { name: 'Stellung aufwerten' });
+      assert.ok(await disc.isEnabled());
+      await disc.tap();
+      const s = await game(page);
+      const tower = s.towers[0];
+      const [x, y] = await screenOf(page, tower);
+      await tap(x, y);
+      await frames(page, 2);
+      assert.equal((await game(page)).phase, 'planning', 'the first tap only asks');
+      assert.match(await page.locator('.hud-banner').textContent(), /aufwerten\?/);
+      await page.screenshot({ path: join(OUT, 'koth-upgrade-confirm.png') });
+      await tap(x, y);
+      await frames(page, 2);
+      const after = await game(page);
+      assert.equal(after.phase, 'wave');
+      assert.equal(after.towers.find((t) => t.id === tower.id).rank, tower.rank + 1);
+      assert.equal(after.requisition, s.requisition - [120, 300, 750, 1875][tower.rank - 1]);
+      assert.equal(after.pods.length, 0, 'no salvo');
+      await planningShot();
+      assert.equal(seen.size, 4, `all four rifts in the first block: ${[...seen]}`);
+    });
+
+    await context.close();
+  }
+
   // ---------- Mode screen (M7a) ----------
   // Tablet sizes from the order, both ways round. Without ?debug there is one
   // mode and nothing new to see; with it, the clone makes the screen appear.
@@ -1568,7 +1658,7 @@ try {
         assert.ok(box.width >= 44 && box.height >= 44, `"${text}" is ${box.width} x ${box.height}`);
       }
       const cards = await modeScreen.locator('.mode-card').evaluateAll((list) => list.map((c) => c.getBoundingClientRect()));
-      assert.equal(cards.length, 2);
+      assert.equal(cards.length, 3, 'standard, the clone and King of the Hill');
       if (label === 'landscape') assert.equal(cards[0].top, cards[1].top, 'side by side');
       else assert.ok(cards[1].top > cards[0].bottom, 'one above the other');
       assert.ok(await modeScreen.locator('.mode-difficulty').isHidden(), 'one difficulty, no row for it');

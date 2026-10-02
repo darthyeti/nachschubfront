@@ -1,5 +1,6 @@
 // Debug-only simulation tools. Never used by normal play.
 
+import { syncRift } from './rifts.js';
 import { ENEMIES } from '../data/enemies.js';
 import { WAVES } from '../data/waves.js';
 import { DOCTRINE_IDS } from '../data/doctrines.js';
@@ -44,6 +45,8 @@ export function setWave(state, wave) {
   // this action is what would take it there.
   record(state, 'jump', { wave: Math.max(0, Math.min(total - 1, Math.round(wave) - 1)) });
   state.wave = Math.max(0, Math.min(total - 1, Math.round(wave) - 1));
+  // The rift moves with the wave it is the rift of (M7b).
+  syncRift(state);
   return true;
 }
 

@@ -170,47 +170,172 @@ export function drawRiftGlow(ctx, p, t) {
 }
 
 export function drawRift(ctx, p, t) {
-  const [x, y] = iso(p.x + 0.5, p.y + 0.5);
-  const pulse = 1 + Math.sin(t * 3) * 0.06;
+  drawRiftMouth(ctx, p.x + 0.5, p.y + 0.5, t);
+}
+
+/**
+ * A rift's mouth at a world point. `still` drops the pulse and the swirl, for a
+ * rift that is not attacking and for prefers-reduced-motion (M7b, B8).
+ */
+export function drawRiftMouth(ctx, wx, wy, t, { scale = 1, still = false } = {}) {
+  const [x, y] = iso(wx, wy);
+  const pulse = (still ? 1 : 1 + Math.sin(t * 3) * 0.06) * scale;
   ell(ctx, x, y, 28 * pulse, 14 * pulse, C.warpD, C.ink, 2.5);
   for (let i = 0; i < 3; i++) {
     ctx.strokeStyle = i % 2 ? C.warp : C.warpL;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    const start = t * (1.6 + i * 0.7) + i * 2;
+    const start = (still ? 0 : t * (1.6 + i * 0.7)) + i * 2;
     ctx.ellipse(x, y, (23 - i * 6) * pulse, (11.5 - i * 3) * pulse, 0, start, start + Math.PI * 1.2);
     ctx.stroke();
   }
 }
 
-export function drawBastionGlow(ctx, p, t) {
-  const [x, y] = iso(p.x + 0.5, p.y + 0.5);
+/**
+ * The glow over a rift of a map with several (M7b): `p` is the middle of its
+ * gates in world units. The attacking rift glows and pulses, the others only
+ * smoulder.
+ */
+export function drawRiftGlowAt(ctx, wx, wy, t, { active = true, still = false } = {}) {
+  const [x, y] = iso(wx, wy);
+  const strength = active ? 0.42 + (still ? 0 : Math.sin(t * 3) * 0.05) : 0.14;
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(1, 0.5);
-  const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 70);
-  g.addColorStop(0, `rgba(255,70,30,${0.3 + Math.sin(t * 4) * 0.06})`);
-  g.addColorStop(1, 'rgba(255,70,30,0)');
+  const g = ctx.createRadialGradient(0, 0, 4, 0, 0, active ? 96 : 64);
+  g.addColorStop(0, `rgba(200,80,255,${strength})`);
+  g.addColorStop(1, 'rgba(200,80,255,0)');
   ctx.fillStyle = g;
-  ctx.fillRect(-72, -72, 144, 144);
+  ctx.fillRect(-98, -98, 196, 196);
   ctx.restore();
 }
 
-export function drawBastion(ctx, p, t) {
+/**
+ * The name of a rift beyond the map edge, along that edge, so it never sits on
+ * the route that leads inwards from it (B8). With `detail` a second, smaller
+ * line under it (the route length during planning).
+ */
+export function drawRiftLabel(ctx, wx, wy, angle, name, { active = false, detail = null } = {}) {
+  const [x, y] = iso(wx, wy);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.globalAlpha = active ? 1 : 0.6;
+  comicText(ctx, name, 0, 0, active ? 26 : 20, active ? C.warpL : C.bone);
+  if (detail) comicText(ctx, detail, 0, 22, 17, C.gold);
+  ctx.restore();
+}
+
+/** Diagonal hatching for the ban zone, one tile, made once. */
+let hatchTile = null;
+function hatchPattern(ctx) {
+  if (!hatchTile) {
+    hatchTile = document.createElement('canvas');
+    hatchTile.width = 16;
+    hatchTile.height = 16;
+    const g = hatchTile.getContext('2d');
+    g.strokeStyle = 'rgba(255,90,60,0.38)';
+    g.lineWidth = 3;
+    g.beginPath();
+    for (const o of [-16, 0, 16]) {
+      g.moveTo(o, 16);
+      g.lineTo(o + 16, 0);
+    }
+    g.stroke();
+  }
+  return ctx.createPattern(hatchTile, 'repeat');
+}
+
+/** The ban zone's area and outline as paths in iso space, built once per map. */
+const banPaths = new WeakMap();
+function banZonePaths(map) {
+  let paths = banPaths.get(map.banned);
+  if (paths) return paths;
+  const area = new Path2D();
+  const edge = new Path2D();
+  const { size, banned } = map;
+  const inside = (x, y) => x >= 0 && y >= 0 && x < size && y < size && banned[y * size + x] === 1;
+  const line = (ax, ay, bx, by) => {
+    const a = iso(ax, ay);
+    const b = iso(bx, by);
+    edge.moveTo(a[0], a[1]);
+    edge.lineTo(b[0], b[1]);
+  };
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (!inside(x, y)) continue;
+      const corners = [iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)];
+      area.moveTo(corners[0][0], corners[0][1]);
+      for (let i = 1; i < 4; i++) area.lineTo(corners[i][0], corners[i][1]);
+      area.closePath();
+      if (!inside(x, y - 1)) line(x, y, x + 1, y);
+      if (!inside(x + 1, y)) line(x + 1, y, x + 1, y + 1);
+      if (!inside(x, y + 1)) line(x, y + 1, x + 1, y + 1);
+      if (!inside(x - 1, y)) line(x, y, x, y + 1);
+    }
+  }
+  paths = { area, edge };
+  banPaths.set(map.banned, paths);
+  return paths;
+}
+
+/**
+ * The ban zone around the centre (M7b, B4): hatched ground with a rim, so it
+ * reads as "nothing goes here" without hiding the floor.
+ */
+export function drawBanZone(ctx, map) {
+  if (!map.banned) return;
+  const { area, edge } = banZonePaths(map);
+  ctx.save();
+  ctx.fillStyle = 'rgba(40,10,6,0.22)';
+  ctx.fill(area);
+  ctx.fillStyle = hatchPattern(ctx);
+  ctx.fill(area);
+  ctx.strokeStyle = 'rgba(255,110,70,0.75)';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([8, 6]);
+  ctx.stroke(edge);
+  ctx.restore();
+}
+
+export function drawBastionGlow(ctx, p, t, size = 1) {
+  const [x, y] = iso(p.x + size / 2, p.y + size / 2);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1, 0.5);
+  const reach = 70 * size;
+  const g = ctx.createRadialGradient(0, 0, 4, 0, 0, reach);
+  g.addColorStop(0, `rgba(255,70,30,${0.3 + Math.sin(t * 4) * 0.06})`);
+  g.addColorStop(1, 'rgba(255,70,30,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(-reach - 2, -reach - 2, reach * 2 + 4, reach * 2 + 4);
+  ctx.restore();
+}
+
+/**
+ * The bastion. `size` is its footprint in cells: 1 on the standard map, 2 in
+ * King of the Hill, where it stands in the middle and has to read from every
+ * side (B8). Drawn the same, only larger and a little taller.
+ */
+export function drawBastion(ctx, p, t, size = 1) {
   const { x, y } = p;
-  const [sx, sy] = iso(x + 0.5, y + 0.5);
-  shadow(ctx, sx, sy + 4, 36, 15, 0.35);
-  box(ctx, x + 0.08, y + 0.08, 0.84, 0.84, 30, 0, C.brick);
+  const s = size;
+  const lift = 1 + (s - 1) * 0.45;
+  const [sx, sy] = iso(x + 0.5 * s, y + 0.5 * s);
+  shadow(ctx, sx, sy + 4 * s, 36 * s, 15 * s, 0.35);
+  box(ctx, x + 0.08 * s, y + 0.08 * s, 0.84 * s, 0.84 * s, 30 * lift, 0, C.brick);
   // Battlements.
   for (const [dx, dy] of [[0.08, 0.08], [0.64, 0.08], [0.08, 0.64], [0.64, 0.64]]) {
-    box(ctx, x + dx, y + dy, 0.28, 0.28, 10, 30, C.brick, 2);
+    box(ctx, x + dx * s, y + dy * s, 0.28 * s, 0.28 * s, 10 * lift, 30 * lift, C.brick, 2);
   }
   // Glowing gate on the two visible faces.
   const flicker = 0.75 + Math.sin(t * 7) * 0.1;
-  poly(ctx, [iso(x + 0.35, y + 0.92, 0), iso(x + 0.65, y + 0.92, 0), iso(x + 0.65, y + 0.92, 16), iso(x + 0.5, y + 0.92, 22), iso(x + 0.35, y + 0.92, 16)], `rgba(255,110,40,${flicker})`, C.ink, 2);
-  poly(ctx, [iso(x + 0.92, y + 0.35, 0), iso(x + 0.92, y + 0.65, 0), iso(x + 0.92, y + 0.65, 16), iso(x + 0.92, y + 0.5, 22), iso(x + 0.92, y + 0.35, 16)], `rgba(255,110,40,${flicker * 0.8})`, C.ink, 2);
+  const fx = (v) => x + v * s;
+  const fy = (v) => y + v * s;
+  poly(ctx, [iso(fx(0.35), fy(0.92), 0), iso(fx(0.65), fy(0.92), 0), iso(fx(0.65), fy(0.92), 16 * lift), iso(fx(0.5), fy(0.92), 22 * lift), iso(fx(0.35), fy(0.92), 16 * lift)], `rgba(255,110,40,${flicker})`, C.ink, 2);
+  poly(ctx, [iso(fx(0.92), fy(0.35), 0), iso(fx(0.92), fy(0.65), 0), iso(fx(0.92), fy(0.65), 16 * lift), iso(fx(0.92), fy(0.5), 22 * lift), iso(fx(0.92), fy(0.35), 16 * lift)], `rgba(255,110,40,${flicker * 0.8})`, C.ink, 2);
   // Banner pole with a skull emblem.
-  const [bx, by] = iso(x + 0.5, y + 0.5, 40);
+  const [bx, by] = iso(fx(0.5), fy(0.5), 40 * lift);
   ctx.strokeStyle = C.ink;
   ctx.lineWidth = 4;
   ctx.beginPath();
