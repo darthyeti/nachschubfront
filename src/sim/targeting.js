@@ -6,15 +6,16 @@
 // of a late match that is a few thousand distance checks per step, which is far
 // below the frame budget; a spatial index would only pay off beyond that.
 
-import { waveLineOf } from './route.js';
+import { lineOf } from './route.js';
 
 /**
  * How far an enemy has come, as a share of its own route. Flyers cut across the
  * map while the ground troops walk the maze, so the raw distance would always
- * make the ground troops look closer to the bastion.
+ * make the ground troops look closer to the bastion. The Koloss is measured on
+ * its own line, the one its distance counts along.
  */
 export function routeProgress(state, enemy) {
-  const line = waveLineOf(state, enemy);
+  const line = lineOf(state, enemy);
   return line && line.length > 0 ? enemy.d / line.length : enemy.d;
 }
 

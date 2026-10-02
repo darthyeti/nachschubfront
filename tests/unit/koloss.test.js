@@ -28,6 +28,9 @@ import { computeRoute, groundPolyline, flyerPolyline, positionAt } from '../../s
 import { isBlocked, setBlocked } from '../../src/sim/grid.js';
 import { updateEnemies, spawnEnemy } from '../../src/sim/enemies.js';
 import { updateCombat } from '../../src/sim/combat.js';
+import { predict } from '../../src/sim/projectiles.js';
+import { routeProgress } from '../../src/sim/targeting.js';
+import { enemySpeed } from '../../src/sim/effects.js';
 import { setPhase } from '../../src/core/phases.js';
 import { KOLOSS_RUN } from '../../src/data/enemies.js';
 import { RULES } from '../../src/data/rules.js';
@@ -712,4 +715,20 @@ test('the ram destroys the emplacement in its way, effects and all', () => {
   assert.equal(state.towers.length, 0, 'the emplacement is gone');
   assert.equal(isBlocked(map.grid, ahead.x, ahead.y), false, 'its cell with it');
   assert.equal(tower.firing, false, 'and it left no effect behind');
+});
+
+test('a mortar leads the Koloss on its own line, and targeting measures it there', () => {
+  // Before ruleset 7 both read the wave's line: the shells landed where the
+  // Koloss would have been had it walked the maze, never on it.
+  const state = bareField();
+  const dir = driveDirection(state.map);
+  const start = laneStart(state.map, 9, dir);
+  addRubble(state, { x: start.x + dir.dx * 7, y: start.y + dir.dy * 7 });
+  state.route = computeRoute(state.map);
+  const e = arrived(state);
+  run(state, () => e.d > 3, 'a few cells of the charge');
+  const ahead = positionAt(e.route, e.d + enemySpeed(state, e) * 2);
+  const aimed = predict(state, e, 2);
+  assert.ok(Math.hypot(aimed.x - ahead.x, aimed.y - ahead.y) < 1e-9, 'the shell lands where it will be');
+  assert.equal(routeProgress(state, e), e.d / e.route.length);
 });

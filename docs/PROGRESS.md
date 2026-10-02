@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.9.5**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
+Version **0.9.6**, Regelversion **7**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
 **M6 Balancing** und, parallel dazu, **M7 Spielmodi** (freigegeben 02.10.2026).
 
 | | | abgenommen |
@@ -182,16 +182,17 @@ M6. Einzelheiten in `runde-4.md`.
 Zähleinheit, Panzer/Gemischt 142–146; Angleichen allein bewirkt nichts). Dazu der
 verschwendete Schaden der ersten zehn Wellen.
 
-**Protokolle unter Regelversion 6:** U4AZZQ, JGR9H6 (Standard) und 75YZ4E (King
-of the Hill) spielen sich Welle für Welle nach und sind Maßstab. Die älteren
-gehören zu Regeln vor Runde 3.
+**Regelversion 7** (02.10., Version 0.9.6): Mörser-Vorhalt und Zielwahl lesen den
+Koloss auf seiner eigenen Linie (`lineOf` in `predict` und `routeProgress`).
+Vorher landeten 1 bis 3 Granaten einer Koloss-Welle auf ihm, jetzt 14 bis 49.
+Keine Balancing-Zahl geändert, aber das Spiel: Bestwerte aus Regelversion 6
+liegen in einer eigenen Liste.
 
-**Gemessen, nicht geändert: der Mörser verfehlt den Koloss.** Der Vorhalt liest
-die Linie der Welle, der Koloss fährt seine eigene (`predict` in
-`src/sim/projectiles.js`). Heute landen 1 bis 3 Granaten je Koloss-Welle auf ihm,
-mit seiner eigenen Linie 14 bis 49. Die Korrektur ändert das Spiel: 75YZ4E spielt
-sich danach nicht mehr genau nach, U4AZZQ schon. Wartet auf Tills Entscheidung,
-ob sie `RULESET_VERSION` hebt.
+**Protokolle als Maßstab:** U4AZZQ und JGR9H6 spielen sich auch unter
+Regelversion 7 Welle für Welle nach (in beiden entscheidet kein Mörser über den
+Koloss). 75YZ4E (King of the Hill) stimmt bis Welle 44; ab dem zweiten Koloss in
+Welle 45 stirbt er früher und reißt weniger ab. Die älteren gehören zu Regeln vor
+Runde 3.
 
 ## M7: Spielmodi (parallel zu M6)
 
@@ -240,10 +241,9 @@ M7b erst nach M7a.
 - 60 fps mit 200 Gegnern gemessen auf dem M2 dieses Macs
   (`npm run test:perf -- --mode koth`), auf dem iPad noch nicht.
 
-**Für M6 gemeldet, nicht geändert:** Zielwahl, Mörser-Vorhalt und
-Fähigkeiten lesen für den Koloss die Linie der Welle, nicht seine eigene
-(`waveLineOf` in `src/sim/route.js`). Beim Mörser ist es gemessen ein Fehler
-(oben unter M6).
+**Koloss und Linien:** Zielwahl und Mörser-Vorhalt lesen seit Regelversion 7 die
+eigene Linie des Koloss (`lineOf`), die Fähigkeiten weiter die der Welle
+(`waveLineOf`) — keine davon gehört dem Koloss.
 
 **Koloss-Spur:** Sie wird beim Verlassen der Planung festgelegt (`setPhase` in
 `src/core/phases.js`), nicht nur im Planungsschritt — sonst übernahm das

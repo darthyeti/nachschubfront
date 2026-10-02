@@ -1,6 +1,6 @@
 // Shells in flight (mortars and the siege mortar). Everything else hits at once.
 
-import { positionAt, waveLineOf } from './route.js';
+import { positionAt, lineOf } from './route.js';
 import { enemiesAround } from './targeting.js';
 import { damageEnemy } from './damage.js';
 import { enemySpeed } from './effects.js';
@@ -8,9 +8,10 @@ import { enemySpeed } from './effects.js';
 /**
  * Where an enemy will be in `seconds`, assuming it keeps its current speed.
  * Mortars need the lead, otherwise their shells always land behind the target.
+ * Read on the line the enemy really walks: the Koloss has one of its own.
  */
 export function predict(state, enemy, seconds) {
-  const line = waveLineOf(state, enemy);
+  const line = lineOf(state, enemy);
   const d = Math.min(line.length, enemy.d + enemySpeed(state, enemy) * seconds);
   return positionAt(line, d);
 }

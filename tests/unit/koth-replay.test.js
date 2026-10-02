@@ -86,13 +86,16 @@ test('the Koloss lane follows the rift even if the planning ends without a step'
   assert.deepEqual({ dx: state.koloss.lane.dx, dy: state.koloss.lane.dy }, dir);
 });
 
-test('a played King of the Hill match replays wave for wave, Koloss included', () => {
-  // 75YZ4E, 02.10.2026, the first one played by hand: two Koloss waves, each
-  // after a change of rift. Before the lane was fixed on leaving the planning it
-  // came apart in wave 35.
+test('a played King of the Hill match replays through its first Koloss wave', () => {
+  // 75YZ4E, 02.10.2026, the first one played by hand. Before the lane was fixed
+  // on leaving the planning it came apart in wave 35, the first Koloss wave,
+  // right after a change of rift. It was recorded under ruleset 6: since 7 the
+  // mortars hit the Koloss, and the second one (wave 45) dies sooner and tears
+  // less. Up to there the match is the one that was played.
   const file = new URL('../../balancing/protokolle/nachschubfront-2026-10-02-75YZ4E-welle50.json', import.meta.url);
   const { match: protocol } = parseProtocol(readFileSync(file, 'utf8'));
-  const played = replayMatch(protocol);
+  const played = replayMatch(protocol, { untilWave: 44 });
   const fields = ['lives', 'spawned', 'killed', 'leaked', 'route', 'requisition'];
-  assert.deepEqual(compareWaves(protocol.waves, played.waves, fields), []);
+  const recorded = protocol.waves.filter((w) => w.w <= 44);
+  assert.deepEqual(compareWaves(recorded, played.waves, fields), []);
 });

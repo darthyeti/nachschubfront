@@ -204,8 +204,8 @@ export function lineOf(state, enemy) {
 
 /**
  * The wave's line for an enemy, ignoring a line of its own: the flyers' or its
- * lane. Targeting, the mortar's lead and the abilities have always read this
- * one, also for the Koloss, and the standard mode has to stay bit for bit.
+ * lane. Only the abilities still read this one; none of them belongs to the
+ * Koloss. Targeting and the mortar's lead read `lineOf` since ruleset 7.
  */
 export function waveLineOf(state, enemy) {
   const routes = state.waveRoutes;

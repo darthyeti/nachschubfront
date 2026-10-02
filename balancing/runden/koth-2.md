@@ -5,8 +5,8 @@ Koloss-Spur beim Nachspielen (Commit „Fix the Koloss lane when the planning
 ends").
 
 **Grundlage:** 75YZ4E vom 02.10.2026, Version 0.9.5, Modus-Stand 1, von Hand
-gespielt. **Sieg in Welle 50 mit 5 von 20 Leben.** Spielt sich seit der
-Korrektur Welle für Welle nach.
+gespielt. **Sieg in Welle 50 mit 5 von 20 Leben.** Unter Regelversion 6 Welle für
+Welle nachspielbar; unter 7 (Mörser treffen den Koloss) bis Welle 44.
 
 ---
 
