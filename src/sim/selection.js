@@ -9,7 +9,7 @@
 
 import { MAX_RANK } from '../data/ranks.js';
 import { RECIPES, recipeById } from '../data/recipes.js';
-import { computeRoute } from './route.js';
+import { currentRoute } from './route.js';
 import { addTower, removeTower, towerById } from './towers.js';
 import { addRubble, clearRubble, isRubble } from './rubble.js';
 import { nextRubbleCost } from './economy.js';
@@ -301,7 +301,7 @@ export function applySelection(state, choice) {
 
   state.pods = [];
   clearZones(state);
-  state.route = computeRoute(state.map);
+  state.route = currentRoute(state);
   state.mapVersion += 1;
   // Counted here rather than in addTower: only a tower the player chose says
   // anything about their taste. The stress test builds without choosing.
@@ -334,7 +334,7 @@ function applyUpgrade(state, option) {
   }
   state.pods = [];
   clearZones(state);
-  state.route = computeRoute(state.map);
+  state.route = currentRoute(state);
   state.mapVersion += 1;
   state.events.push({ type: 'towerUpgraded', tower, cost: option.cost });
   return { ok: true, tower, cost: option.cost };
@@ -367,7 +367,7 @@ export function forfeitSalvo(state, { force = false } = {}) {
   }
   state.pods = [];
   clearZones(state);
-  state.route = computeRoute(state.map);
+  state.route = currentRoute(state);
   state.mapVersion += 1;
   state.events.push({ type: 'salvoForfeited', rubble });
   return { ok: true, rubble };

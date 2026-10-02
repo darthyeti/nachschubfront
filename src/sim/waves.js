@@ -2,7 +2,7 @@
 
 import { WAVES } from '../data/waves.js';
 import { updateKoloss, spawnKoloss } from './koloss.js';
-import { groundPolyline, flyerPolyline } from './route.js';
+import { freezeRoutes } from './route.js';
 import { spawnEnemy } from './enemies.js';
 
 /** Flattens a wave definition into spawn entries sorted by time (stable for equal times). */
@@ -30,8 +30,10 @@ export function beginWave(state) {
   state.wave += 1;
   const def = WAVES[state.wave - 1];
   state.spawns = buildSpawns(def);
-  state.waveScale = def.scale;
-  state.waveRoutes = { ground: groundPolyline(state.route), flyer: flyerPolyline(state.map) };
+  // The mode's factor on top of the wave rules (M7b, B6); 1 in the standard mode,
+  // and a product with 1 is exact, so the standard waves stay bit for bit.
+  state.waveScale = def.scale * (state.mode?.balance?.enemyHpFactor ?? 1);
+  state.waveRoutes = freezeRoutes(state);
   state.waveStats = {
     spawned: 0,
     leaked: 0,

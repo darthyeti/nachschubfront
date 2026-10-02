@@ -1,21 +1,25 @@
-// Enemy routes: the chain rift -> beacons 1-4 -> bastion (GDD section 5),
-// plus placement checks that keep every leg of that chain open.
+// Enemy routes and the placement checks that keep them open.
+//
+// How a route runs depends on the map's layout (data/map.js), and each layout
+// is an entry in ROUTE_KINDS rather than a branch:
+//
+// - `chain`, the standard map: rift -> beacons -> bastion (GDD section 5), each
+//   leg its own shortest path.
+// - `center`, King of the Hill (M7b, B1): four rifts on the edges and the
+//   bastion in the middle. One distance field, computed backwards from the
+//   bastion, serves every gate of every rift; nothing is computed per enemy or
+//   per rift.
 
-import { findPath } from './pathfinding.js';
+import { findPath, distanceField, descend } from './pathfinding.js';
 import { inBounds, isBlocked, setBlocked } from './grid.js';
 import { isRubble } from './rubble.js';
 
-/** Rift, beacons in order, bastion. */
+/** Rift, beacons in order, bastion: the chain of the standard map. */
 export function waypoints(map) {
   return [map.rift, ...map.beacons, map.bastion];
 }
 
-/**
- * Ground route through all waypoints. Each leg is its own shortest path.
- * @returns {{cells: {x: number, y: number}[], length: number, legs: number[]} | null}
- *   `legs` holds the length of each leg; null if any leg is blocked.
- */
-export function computeRoute(map) {
+function chainRoute(map) {
   const points = waypoints(map);
   const cells = [points[0]];
   const legs = [];
@@ -28,6 +32,80 @@ export function computeRoute(map) {
     length += leg.length;
   }
   return { cells: cells.map(({ x, y }) => ({ x, y })), length, legs };
+}
+
+function chainExists(map) {
+  const points = waypoints(map);
+  for (let i = 0; i < points.length - 1; i++) {
+    if (!findPath(map.grid, points[i], points[i + 1])) return false;
+  }
+  return true;
+}
+
+function centre(cells) {
+  const x = cells.reduce((sum, c) => sum + c.x, 0) / cells.length;
+  const y = cells.reduce((sum, c) => sum + c.y, 0) / cells.length;
+  return { x: x + 0.5, y: y + 0.5 };
+}
+
+/**
+ * The route of one rift: one lane per gate, each the way down the distance
+ * field. The route itself is the first lane, so everything that reads one route
+ * (the preview, the statistics, the Koloss) keeps working.
+ */
+function centerRoute(map, riftIndex) {
+  const rift = map.rifts[riftIndex] ?? map.rifts[0];
+  const field = distanceField(map.grid, map.bastionCells);
+  const lanes = [];
+  for (const gate of rift.gates) {
+    const lane = descend(map.grid, field, gate);
+    if (!lane) return null;
+    lanes.push(lane);
+  }
+  return { cells: lanes[0].cells, length: lanes[0].length, legs: [lanes[0].length], lanes };
+}
+
+/** Every gate of every rift reaches the bastion, read off one field. */
+function centerExists(map) {
+  const field = distanceField(map.grid, map.bastionCells);
+  return map.rifts.every((rift) => rift.gates.every(({ x, y }) => field[y * map.size + x] !== Infinity));
+}
+
+/** Flyers ignore obstacles: straight from the middle of the rift to the middle of the bastion. */
+function centerFlyerPoints(map, riftIndex) {
+  const rift = map.rifts[riftIndex] ?? map.rifts[0];
+  return [centre(rift.gates), centre(map.bastionCells)];
+}
+
+const ROUTE_KINDS = {
+  chain: {
+    compute: chainRoute,
+    exists: chainExists,
+    flyerPoints: (map) => waypoints(map).map(({ x, y }) => ({ x: x + 0.5, y: y + 0.5 })),
+  },
+  center: { compute: centerRoute, exists: centerExists, flyerPoints: centerFlyerPoints },
+};
+
+function routeKind(map) {
+  const kind = ROUTE_KINDS[map.layout ?? 'chain'];
+  if (!kind) throw new Error(`Unknown map layout: ${map.layout}`);
+  return kind;
+}
+
+/**
+ * Ground route of a rift (only the active one matters; the standard map has one).
+ * @returns {{cells: {x: number, y: number}[], length: number, legs: number[],
+ *   lanes?: {cells: object[], length: number}[]} | null}
+ *   `legs` holds the length of each leg; `lanes` one route per gate where a
+ *   rift has more than one. Null if the way is blocked.
+ */
+export function computeRoute(map, riftIndex = 0) {
+  return routeKind(map).compute(map, riftIndex);
+}
+
+/** The route of the rift the running or coming wave uses. */
+export function currentRoute(state) {
+  return computeRoute(state.map, state.riftIndex ?? 0);
 }
 
 /**
@@ -49,18 +127,18 @@ function withBlocked(map, cells, fn) {
  * Route as it would be if `cells` were obstacles, without changing the map.
  * Used for the planning preview: marked landing zones are not blocked yet.
  */
-export function routeWith(map, cells) {
-  if (cells.length === 0) return computeRoute(map);
-  return withBlocked(map, cells, () => computeRoute(map));
+export function routeWith(map, cells, riftIndex = 0) {
+  if (cells.length === 0) return computeRoute(map, riftIndex);
+  return withBlocked(map, cells, () => computeRoute(map, riftIndex));
 }
 
-/** True if every leg of the chain has a path. */
+/**
+ * True if the map can be walked: every leg of the chain, or on a map with
+ * several rifts every gate of every one of them — a placement that cuts off a
+ * rift that is not attacking now is refused all the same.
+ */
 export function routeExists(map) {
-  const points = waypoints(map);
-  for (let i = 0; i < points.length - 1; i++) {
-    if (!findPath(map.grid, points[i], points[i + 1])) return false;
-  }
-  return true;
+  return routeKind(map).exists(map);
 }
 
 /**
@@ -105,8 +183,35 @@ export function groundPolyline(route) {
 }
 
 /** Flyers ignore obstacles and fly straight from waypoint to waypoint. */
-export function flyerPolyline(map) {
-  return createPolyline(waypoints(map).map(({ x, y }) => ({ x: x + 0.5, y: y + 0.5 })));
+export function flyerPolyline(map, riftIndex = 0) {
+  return createPolyline(routeKind(map).flyerPoints(map, riftIndex));
+}
+
+/**
+ * The lines a wave walks, frozen at its start: one ground line per gate (the
+ * standard map has one gate, so `lanes` is just `[ground]`) and the flyers' line.
+ */
+export function freezeRoutes(state) {
+  const route = state.route;
+  const lanes = (route.lanes ?? [route]).map(groundPolyline);
+  return { ground: lanes[0], lanes, flyer: flyerPolyline(state.map, state.riftIndex ?? 0) };
+}
+
+/** The line an enemy walks: its own (the Koloss), the flyers', or its lane. */
+export function lineOf(state, enemy) {
+  return enemy.route ?? waveLineOf(state, enemy);
+}
+
+/**
+ * The wave's line for an enemy, ignoring a line of its own: the flyers' or its
+ * lane. Targeting, the mortar's lead and the abilities have always read this
+ * one, also for the Koloss, and the standard mode has to stay bit for bit.
+ */
+export function waveLineOf(state, enemy) {
+  const routes = state.waveRoutes;
+  if (!routes) return null;
+  if (enemy.flying) return routes.flyer;
+  return routes.lanes?.[enemy.lane ?? 0] ?? routes.ground;
 }
 
 /**

@@ -14,7 +14,7 @@ import { record } from './record.js';
  * (GDD section 3: the preview follows every marker). Null clears it.
  */
 export function refreshZonePreview(state) {
-  state.zonePreview = state.zones.length > 0 ? routeWith(state.map, state.zones) : null;
+  state.zonePreview = state.zones.length > 0 ? routeWith(state.map, state.zones, state.riftIndex ?? 0) : null;
   state.mapVersion += 1;
 }
 
@@ -29,7 +29,7 @@ export function zoneIndexAt(state, cell) {
 
 /** Zones the coming salvo can use; the size follows the wave (GDD section 3). */
 export function zoneLimit(state) {
-  return salvoSize(upcomingWave(state));
+  return salvoSize(upcomingWave(state), state.mode?.salvo);
 }
 
 export function zonesFull(state) {

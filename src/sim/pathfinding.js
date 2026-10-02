@@ -167,3 +167,88 @@ export function findPath(grid, start, goal, { diagonal = true, extraCost = null 
   cells.reverse();
   return { cells, length: g[goalIdx] };
 }
+
+/**
+ * Distance from every cell to the nearest goal cell, by the same movement rules
+ * as findPath (8 directions, sqrt(2) for a diagonal, no cutting corners).
+ * Dijkstra run backwards from the goals: one run serves every start at once,
+ * which is what a map with several rifts needs (M7b, B1). Unreachable and
+ * blocked cells are Infinity.
+ * @param {{size: number, blocked: Uint8Array}} grid
+ * @param {{x: number, y: number}[]} goals  Free cells; their distance is 0.
+ * @returns {Float64Array}
+ */
+export function distanceField(grid, goals) {
+  const { size } = grid;
+  const count = size * size;
+  const field = new Float64Array(count).fill(Infinity);
+  const closed = new Uint8Array(count);
+  const open = createHeap(count * 8);
+  for (const { x, y } of goals) {
+    if (isBlocked(grid, x, y)) continue;
+    const i = y * size + x;
+    field[i] = 0;
+    open.push(i, 0, 0);
+  }
+  while (open.size > 0) {
+    const current = open.pop();
+    if (closed[current]) continue;
+    closed[current] = 1;
+    const cx = current % size;
+    const cy = (current - cx) / size;
+    for (const [dx, dy, cost] of NEIGHBOURS) {
+      const nx = cx + dx;
+      const ny = cy + dy;
+      if (isBlocked(grid, nx, ny)) continue;
+      // The same corner rule in both directions: the two cells beside a diagonal
+      // step are the same whichever way it is taken.
+      if (dx !== 0 && dy !== 0 && (isBlocked(grid, cx + dx, cy) || isBlocked(grid, cx, cy + dy))) continue;
+      const next = ny * size + nx;
+      if (closed[next]) continue;
+      const tentative = field[current] + cost;
+      if (tentative < field[next] - 1e-9) {
+        field[next] = tentative;
+        open.push(next, tentative, 0);
+      }
+    }
+  }
+  return field;
+}
+
+/**
+ * The way down a distance field from `start` to a goal: every step goes to the
+ * neighbour with the smallest step cost plus remaining distance, ties to the
+ * first in the fixed neighbour order, so the same grid gives the same path.
+ * @returns {{cells: {x: number, y: number}[], length: number} | null}
+ *   Null if the start cannot reach any goal.
+ */
+export function descend(grid, field, start) {
+  const { size } = grid;
+  let index = start.y * size + start.x;
+  if (!inBounds(grid, start.x, start.y) || field[index] === Infinity) return null;
+  const cells = [{ x: start.x, y: start.y }];
+  // A path never has more steps than there are cells; the bound only guards
+  // against a field that does not belong to this grid.
+  for (let guard = 0; field[index] > 1e-9 && guard < size * size; guard++) {
+    const cx = index % size;
+    const cy = (index - cx) / size;
+    let best = -1;
+    let bestValue = Infinity;
+    for (const [dx, dy, cost] of NEIGHBOURS) {
+      const nx = cx + dx;
+      const ny = cy + dy;
+      if (isBlocked(grid, nx, ny)) continue;
+      if (dx !== 0 && dy !== 0 && (isBlocked(grid, cx + dx, cy) || isBlocked(grid, cx, cy + dy))) continue;
+      const value = cost + field[ny * size + nx];
+      if (value < bestValue - 1e-9) {
+        bestValue = value;
+        best = ny * size + nx;
+      }
+    }
+    if (best === -1) return null;
+    index = best;
+    const x = index % size;
+    cells.push({ x, y: (index - x) / size });
+  }
+  return { cells, length: field[start.y * size + start.x] };
+}

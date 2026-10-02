@@ -12,7 +12,7 @@
 import { KOLOSS_RUN } from '../data/enemies.js';
 import { isBulwark, bulwarkIndexAt, crushCell } from './rubble.js';
 import { towerAt, towerStats, towerCentre, removeTower } from './towers.js';
-import { computeRoute, createPolyline, groundPolyline, nearestDistanceOn } from './route.js';
+import { currentRoute, createPolyline, nearestDistanceOn, freezeRoutes, lineOf } from './route.js';
 import { findPath } from './pathfinding.js';
 import { inBounds, isBlocked, setBlocked } from './grid.js';
 import { spawnEnemy } from './enemies.js';
@@ -146,7 +146,7 @@ function distanceToRoute(route, cell) {
  */
 export function chooseLane(state) {
   const dir = driveDirection(state.map);
-  const route = state.route ?? computeRoute(state.map);
+  const route = state.route ?? currentRoute(state);
   let best = null;
   let bestPower = Infinity;
   let bestDistance = Infinity;
@@ -318,15 +318,16 @@ function crush(state, cell) {
  */
 function openedUp(state, cell) {
   setBlocked(state.map.grid, cell.x, cell.y, false);
-  state.route = computeRoute(state.map);
+  state.route = currentRoute(state);
   state.mapVersion += 1;
   if (state.waveRoutes && state.route) {
-    const ground = groundPolyline(state.route);
+    const { ground, lanes } = freezeRoutes(state);
     state.waveRoutes.ground = ground;
+    state.waveRoutes.lanes = lanes;
     for (const e of state.enemies) {
       // Flyers never cared about the maze, and the Koloss walks a line of its own.
       if (e.flying || e.koloss || e.route) continue;
-      e.d = nearestDistanceOn(ground, e.x, e.y);
+      e.d = nearestDistanceOn(lineOf(state, e), e.x, e.y);
     }
   }
   state.events.push({ type: 'kolossCrush', x: cell.x + 0.5, y: cell.y + 0.5 });

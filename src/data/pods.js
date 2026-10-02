@@ -17,19 +17,22 @@ export const SALVO_SIZES = [
   { untilWave: Infinity, pods: 4, minRank: 2 },
 ];
 
-/** The row of SALVO_SIZES that governs a wave. */
-export function salvoRules(wave) {
-  return SALVO_SIZES.find((row) => wave <= row.untilWave) ?? SALVO_SIZES[SALVO_SIZES.length - 1];
+/**
+ * The row of a salvo table that governs a wave. A mode may bring its own table
+ * (src/data/modes.js, `salvo`); the standard one is SALVO_SIZES.
+ */
+export function salvoRules(wave, table = SALVO_SIZES) {
+  return table.find((row) => wave <= row.untilWave) ?? table[table.length - 1];
 }
 
 /** Landing zones and pods in the salvo for that wave. */
-export function salvoSize(wave) {
-  return salvoRules(wave).pods;
+export function salvoSize(wave, table = SALVO_SIZES) {
+  return salvoRules(wave, table).pods;
 }
 
 /** Lowest rank a pod of that wave can hold; from wave 36 there are no recruits. */
-export function salvoMinRank(wave) {
-  return salvoRules(wave).minRank;
+export function salvoMinRank(wave, table = SALVO_SIZES) {
+  return salvoRules(wave, table).minRank;
 }
 
 /** The largest salvo there is, for anything that needs an upper bound. */

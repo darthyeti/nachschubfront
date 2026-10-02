@@ -5,7 +5,7 @@ import { WAVES } from '../data/waves.js';
 import { DOCTRINE_IDS } from '../data/doctrines.js';
 import { RECIPES } from '../data/recipes.js';
 import { MAX_RANK } from '../data/ranks.js';
-import { groundPolyline, flyerPolyline, positionAt, computeRoute } from './route.js';
+import { positionAt, currentRoute, freezeRoutes, lineOf } from './route.js';
 import { isBlocked, setBlocked } from './grid.js';
 import { spawnEnemy } from './enemies.js';
 import { addTower, removeTower } from './towers.js';
@@ -116,12 +116,12 @@ export function startStress(state, count) {
   if (state.phase !== 'planning' || !state.route || state.stress) return false;
   taint(state, 'stress');
   state.stress = true;
-  state.waveRoutes = { ground: groundPolyline(state.route), flyer: flyerPolyline(state.map) };
+  state.waveRoutes = freezeRoutes(state);
   addStressTowers(state);
   const types = Object.keys(ENEMIES);
   for (let i = 0; i < count; i++) {
     const e = spawnEnemy(state, types[i % types.length]);
-    const line = e.flying ? state.waveRoutes.flyer : state.waveRoutes.ground;
+    const line = lineOf(state, e);
     // Spread evenly along the route, starting past the fade-in at the rift.
     e.d = 0.5 + ((i + 0.5) / count) * (line.length - 1);
     positionAt(line, e.d, e);
@@ -140,7 +140,7 @@ export function stopStress(state) {
     if (tower) setBlocked(state.map.grid, tower.x, tower.y, false);
   }
   state.stressTowers = [];
-  state.route = computeRoute(state.map);
+  state.route = currentRoute(state);
   state.mapVersion += 1;
 }
 
@@ -150,9 +150,8 @@ export function stopStress(state) {
  * enemies are patched up every step and the treadmill never empties.
  */
 export function updateStress(state, dt) {
-  const { ground, flyer } = state.waveRoutes;
   for (const e of state.enemies) {
-    const line = e.flying ? flyer : ground;
+    const line = lineOf(state, e);
     e.d += e.speed * dt;
     if (e.d >= line.length) e.d = 0.5;
     positionAt(line, e.d, e);

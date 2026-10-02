@@ -5,7 +5,7 @@
 import { ECONOMY, waveBonus, towerCost, bulwarkCost } from '../data/economy.js';
 import { supplyCost, MAX_SUPPLY_LEVEL } from '../data/supply.js';
 import { setBlocked } from './grid.js';
-import { computeRoute, routeExists } from './route.js';
+import { currentRoute, routeExists } from './route.js';
 import { towerAt, removeTower } from './towers.js';
 import { rubbleIndexAt, bulwarkIndexAt, isRubble, raiseBulwark, nextRubbleCost } from './rubble.js';
 import { dropInvalidZones } from './zones.js';
@@ -125,7 +125,7 @@ export function demolish(state, cell) {
   // against the price that holds from now on, not the one just paid.
   state.demolished += 1;
   spend(state, check.cost);
-  state.route = computeRoute(state.map);
+  state.route = currentRoute(state);
   state.mapVersion += 1;
   state.events.push({ type: 'demolish', x: cell.x, y: cell.y, cost: check.cost, kind: target.kind });
   return check;

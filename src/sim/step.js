@@ -1,5 +1,6 @@
 // One fixed simulation step. Knows nothing about canvas or DOM.
 
+import { syncRift } from './rifts.js';
 import { RULES } from '../data/rules.js';
 import { setPhase } from '../core/phases.js';
 import { updateSpawns, waveCleared, totalWaves } from './waves.js';
@@ -60,5 +61,6 @@ export function stepSimulation(state, dt) {
     }
   } else if (state.phase === 'evaluation' && state.phaseTime >= RULES.evaluationSeconds) {
     setPhase(state, state.wave >= totalWaves() ? 'victory' : 'planning');
+    if (state.phase === 'planning') syncRift(state);
   }
 }

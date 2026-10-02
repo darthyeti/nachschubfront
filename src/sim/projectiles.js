@@ -1,6 +1,6 @@
 // Shells in flight (mortars and the siege mortar). Everything else hits at once.
 
-import { positionAt } from './route.js';
+import { positionAt, waveLineOf } from './route.js';
 import { enemiesAround } from './targeting.js';
 import { damageEnemy } from './damage.js';
 import { enemySpeed } from './effects.js';
@@ -10,7 +10,7 @@ import { enemySpeed } from './effects.js';
  * Mortars need the lead, otherwise their shells always land behind the target.
  */
 export function predict(state, enemy, seconds) {
-  const line = enemy.flying ? state.waveRoutes.flyer : state.waveRoutes.ground;
+  const line = waveLineOf(state, enemy);
   const d = Math.min(line.length, enemy.d + enemySpeed(state, enemy) * seconds);
   return positionAt(line, d);
 }

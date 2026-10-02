@@ -7,7 +7,7 @@
 
 import { enemyDef } from '../data/enemies.js';
 import { healEnemy } from './damage.js';
-import { positionAt } from './route.js';
+import { positionAt, waveLineOf } from './route.js';
 import { spawnEnemy } from './enemies.js';
 
 /** Heals every other enemy inside the radius. */
@@ -44,7 +44,7 @@ export function updateAbilities(state, dt) {
 
     if (def.warpJump && e.abilityTimer >= def.warpJump.intervalSeconds) {
       e.abilityTimer = 0;
-      const line = e.flying ? state.waveRoutes.flyer : state.waveRoutes.ground;
+      const line = waveLineOf(state, e);
       e.d = Math.min(line.length - 0.001, e.d + def.warpJump.cells);
       positionAt(line, e.d, e);
       state.events.push({ type: 'warpJump', enemyId: e.id, x: e.x, y: e.y });

@@ -6,7 +6,7 @@ import { supplyWeights } from '../data/supply.js';
 import { PODS, salvoMinRank } from '../data/pods.js';
 import { MAX_RANK } from '../data/ranks.js';
 import { setBlocked } from './grid.js';
-import { computeRoute } from './route.js';
+import { currentRoute } from './route.js';
 import { takeSupplyBonus } from './commands.js';
 
 /**
@@ -56,7 +56,7 @@ export function createPods(state) {
   const bonus = takeSupplyBonus(state);
   // From wave 36 a pod can no longer hold a recruit (GDD section 3). The floor
   // is applied after the draw, so the random stream stays in step either way.
-  const floor = salvoMinRank(upcomingWave(state));
+  const floor = salvoMinRank(upcomingWave(state), state.mode?.salvo);
   const raise = (pod) => {
     // Debug: forced contents replace the draw, which keeps the stream in step.
     const rolled = state.forcedPod ? { ...pod, ...state.forcedPod } : pod;
@@ -106,7 +106,7 @@ export function updatePods(state, dt) {
     }
   }
   if (landings > 0) {
-    state.route = computeRoute(state.map);
+    state.route = currentRoute(state);
     state.mapVersion += 1;
   }
 }

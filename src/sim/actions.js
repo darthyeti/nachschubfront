@@ -3,7 +3,7 @@
 
 import { GAME_SPEEDS } from '../data/settings.js';
 import { setPhase } from '../core/phases.js';
-import { computeRoute, checkPlacement } from './route.js';
+import { currentRoute, checkPlacement } from './route.js';
 import { setBlocked } from './grid.js';
 import { beginWave, totalWaves } from './waves.js';
 import { fillZones, dropInvalidZones } from './zones.js';
@@ -86,7 +86,7 @@ export function setSpeed(state, speed) {
 }
 
 function refreshRoute(state) {
-  state.route = computeRoute(state.map);
+  state.route = currentRoute(state);
   state.mapVersion += 1;
 }
 

@@ -39,11 +39,12 @@ const BULWARK_FROM_WAVE = 30;
  * @param {string} [options.strategy]  Strategy id, default 'maze'.
  * @param {number} [options.supply]  Supply level to start on, for the debug case.
  * @param {(line: object) => void} [options.onWave]
+ * @param {{mode?: string, difficulty?: string}} [options.config]  Run configuration (M7a).
  * @returns {{log: object, state: object, waves: object[], stopped: string}}
  */
-export function playBotMatch({ seed, strategy = 'maze', supply = 1, onWave = null } = {}) {
+export function playBotMatch({ seed, strategy = 'maze', supply = 1, onWave = null, config = undefined } = {}) {
   const how = strategyById(strategy);
-  const state = createGameState(seed);
+  const state = createGameState(seed, config);
   state.supplyLevel = supply;
   startLog(state, RULESET_VERSION, 1);
 

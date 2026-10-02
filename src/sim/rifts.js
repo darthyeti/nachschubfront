@@ -7,6 +7,7 @@
 // without knowing anything else about the match.
 
 import { createRng } from '../core/random.js';
+import { currentRoute } from './route.js';
 
 /** The order of the rifts within one block of `count` waves: a permutation. */
 export function blockOrder(seed, block, count) {
@@ -43,4 +44,23 @@ export function riftForWave(state, wave) {
   const order = RIFT_ORDERS[state.mode.riftOrder ?? 'mixed'];
   if (!order) throw new Error(`Unknown rift order: ${state.mode.riftOrder}`);
   return order(state.seed, Math.max(1, wave), count);
+}
+
+/**
+ * Puts the rift of the coming wave in charge: `state.riftIndex`, the map's
+ * `rift` (which the Koloss and the info panel read), and the route the
+ * planning previews. Called when a match starts and whenever planning begins,
+ * so the player always plans against the rift that will attack (B2). Nothing
+ * changes on a map with one rift.
+ * @returns {boolean} True if the rift changed.
+ */
+export function syncRift(state) {
+  const index = riftForWave(state, state.wave + 1);
+  if (index === (state.riftIndex ?? 0)) return false;
+  state.riftIndex = index;
+  if (state.map.rifts) state.map.rift = state.map.rifts[index].gates[0];
+  state.route = currentRoute(state);
+  // The Koloss prediction and every cache of the maze key on this.
+  state.mapVersion += 1;
+  return true;
 }

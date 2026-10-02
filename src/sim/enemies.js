@@ -2,17 +2,21 @@
 
 import { enemyDef } from '../data/enemies.js';
 import { RULES } from '../data/rules.js';
-import { positionAt } from './route.js';
+import { positionAt, lineOf } from './route.js';
 import { enemySpeed } from './effects.js';
 
 /**
  * Spawns an enemy at distance `d` along the route of its kind. Health and
  * shield are scaled with the wave (data/waves.js).
  */
-export function spawnEnemy(state, type, { d = 0 } = {}) {
+export function spawnEnemy(state, type, { d = 0, lane = null } = {}) {
   const def = enemyDef(type);
   const scale = state.waveScale ?? 1;
-  const line = def.flying ? state.waveRoutes.flyer : state.waveRoutes.ground;
+  // Ground troops come out of the rift's gates in turn (M7b, B1); what hatches
+  // from a dying enemy stays on its parent's lane. One gate: always lane 0.
+  const lanes = state.waveRoutes.lanes ?? [state.waveRoutes.ground];
+  const laneIndex = def.flying ? 0 : (lane ?? state.laneTurn++) % lanes.length;
+  const line = def.flying ? state.waveRoutes.flyer : lanes[laneIndex];
   const health = def.health * scale;
   const shield = (def.shield ?? 0) * scale;
   const e = {
@@ -52,6 +56,8 @@ export function spawnEnemy(state, type, { d = 0 } = {}) {
     gildUntil: 0,
     /** Distance travelled along the route, in cells. */
     d,
+    /** The gate it came out of, i.e. which ground line it walks (sim/route.js, lineOf). */
+    lane: laneIndex,
     /**
      * A route of this creature's own, used instead of the wave's. Only the
      * Koloss has one: it drives at the spot it picked and, after the ram, walks
@@ -100,12 +106,12 @@ export function removeDead(state) {
     state.events.push({ type: 'kill', enemyId: e.id, enemyType: e.type, x: e.x, y: e.y, boss: e.boss });
     const death = enemyDef(e.type).death;
     if (death) {
-      for (let i = 0; i < death.count; i++) hatch.push({ type: death.type, d: Math.max(0, e.d - i * 0.15) });
+      for (let i = 0; i < death.count; i++) hatch.push({ type: death.type, d: Math.max(0, e.d - i * 0.15), lane: e.lane });
     }
   }
   state.enemies.length = write;
-  for (const { type, d } of hatch) {
-    spawnEnemy(state, type, { d });
+  for (const { type, d, lane } of hatch) {
+    spawnEnemy(state, type, { d, lane });
     state.waveStats.spawned += 1;
   }
 }
@@ -115,12 +121,11 @@ export function removeDead(state) {
  * @returns {number} Lives lost in this step.
  */
 export function updateEnemies(state, dt) {
-  const { ground, flyer } = state.waveRoutes;
   let lost = 0;
   let write = 0;
   for (let read = 0; read < state.enemies.length; read++) {
     const e = state.enemies[read];
-    const line = e.route ?? (e.flying ? flyer : ground);
+    const line = lineOf(state, e);
     e.d += enemySpeed(state, e) * dt;
     // A charging Koloss stops at the end of its run to ram, it does not leak.
     if (e.charging) {
