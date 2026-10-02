@@ -28,7 +28,7 @@ git show <commit>:docs/meilensteine/M3-kampf-und-inhalte.md
 | M5c | Update 6 — HUD, Menüs, letzte vier Spezialstellungen | 28.09.2026 |
 | M5d | Update 7 — Koloss-Verhalten, Stellungsgrafik, Gunship | 27.09.2026 |
 | **M6** | **Balancing und Feinschliff** — [M6-balancing.md](M6-balancing.md) | **in Arbeit** |
-| **M7a** | **Modus-Gerüst** — [M7a-modi.md](M7a-modi.md) | **in Arbeit** |
-| **M7b** | **Modus „King of the Hill"** — [M7b-king-of-the-hill.md](M7b-king-of-the-hill.md) | **nach M7a** |
+| M7a | Modus-Gerüst — [M7a-modi.md](M7a-modi.md) | 02.10.2026 |
+| **M7b** | **Modus „King of the Hill"** — [M7b-king-of-the-hill.md](M7b-king-of-the-hill.md) | **in Arbeit** |
 
 Der Stand steht in [`docs/PROGRESS.md`](../PROGRESS.md).

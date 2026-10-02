@@ -17,7 +17,8 @@ Version **0.9.1**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
 | M2 … M5c | Kapseln, Kampf, Präsentation, Speichern, HUD | 28.09.2026 |
 | M5d | Koloss, Stellungsgrafik, Gunship (Update 7) | 27.09.2026 |
 | **M6** | **Balancing und Feinschliff** | **in Arbeit** |
-| **M7a · M7b** | **Modus-Gerüst, Modus „King of the Hill"** | **in Arbeit, parallel zu M6** |
+| M7a | Modus-Gerüst | 02.10.2026 |
+| **M7b** | **Modus „King of the Hill"** | **in Arbeit, parallel zu M6** |
 
 **Arbeitsweise versioniert:** Rollen von Chat und Code sowie die Regeln für
 paralleles Arbeiten stehen in [`docs/ARBEITSWEISE.md`](ARBEITSWEISE.md);
@@ -193,13 +194,13 @@ in der Mitte, vier Risse; Studie `reference/studien/king-of-the-hill.html`).
 M7b erst nach M7a.
 
 - **Schritt 0 ✓** (02.10.) Aufträge und Studie abgelegt, Golden-Test auf `main`.
-- **M7a umgesetzt** (02.10., Zweig `modi`), wartet auf Abnahme und Zusammenführen:
+- **M7a ✓** (02.10., von Till abgenommen und nach `main` zusammengeführt):
   `src/data/modes.js` (`standard`, `standard-klon` nur mit `?debug`),
   `createGameState(seed, config)`, Protokollformat 2, Profilformat 2 mit
   Migration, `prefs.lastRun`, Modus-Bildschirm und Umschalter in der
   Bestenliste. Ohne `?debug` ist nichts davon sichtbar. GDD Abschnitt 15,
   `docs/SPEICHER.md` und ART.md nachgezogen.
-- **Als Nächstes:** M7b auf eigenem Zweig, erst wenn M7a auf `main` ist.
+- **Als Nächstes:** M7b auf eigenem Zweig.
 
 **Wo M7a vom Auftrag abweicht** (dort steht, dass der Code gilt):
 
