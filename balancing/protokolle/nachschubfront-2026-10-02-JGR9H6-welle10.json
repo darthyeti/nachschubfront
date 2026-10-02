@@ -1,0 +1,1593 @@
+{
+  "magic": "nachschubfront.protokoll",
+  "app": "0.9.4",
+  "exported": 1790928907455,
+  "match": {
+    "version": 1,
+    "id": 1790928427929,
+    "seed": "JGR9H6",
+    "ruleset": 6,
+    "supplyStart": 1,
+    "tainted": [],
+    "actions": [
+      {
+        "t": 476,
+        "w": 0,
+        "p": "planning",
+        "pt": 7.93,
+        "a": "zone",
+        "x": 13,
+        "y": 21,
+        "on": true
+      },
+      {
+        "t": 650,
+        "w": 0,
+        "p": "planning",
+        "pt": 10.83,
+        "a": "zone",
+        "x": 13,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 754,
+        "w": 0,
+        "p": "planning",
+        "pt": 12.57,
+        "a": "zone",
+        "x": 13,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 840,
+        "w": 0,
+        "p": "planning",
+        "pt": 14,
+        "a": "zone",
+        "x": 13,
+        "y": 16,
+        "on": true
+      },
+      {
+        "t": 903,
+        "w": 0,
+        "p": "planning",
+        "pt": 15.05,
+        "a": "zone",
+        "x": 11,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 1131,
+        "w": 0,
+        "p": "planning",
+        "pt": 18.85,
+        "a": "zone",
+        "x": 11,
+        "y": 14,
+        "on": true
+      },
+      {
+        "t": 2385,
+        "w": 0,
+        "p": "planning",
+        "pt": 39.75,
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 13,
+            "y": 21
+          },
+          {
+            "x": 13,
+            "y": 17
+          },
+          {
+            "x": 13,
+            "y": 18
+          },
+          {
+            "x": 13,
+            "y": 16
+          },
+          {
+            "x": 11,
+            "y": 15
+          },
+          {
+            "x": 11,
+            "y": 14
+          }
+        ]
+      },
+      {
+        "t": 3574,
+        "w": 0,
+        "p": "selection",
+        "pt": 14.55,
+        "a": "select",
+        "type": "merge",
+        "anchor": 4,
+        "size": 2
+      },
+      {
+        "t": 13662,
+        "w": 1,
+        "p": "planning",
+        "pt": 125.82,
+        "a": "zone",
+        "x": 12,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 13825,
+        "w": 1,
+        "p": "planning",
+        "pt": 128.53,
+        "a": "zone",
+        "x": 12,
+        "y": 15,
+        "on": false
+      },
+      {
+        "t": 13958,
+        "w": 1,
+        "p": "planning",
+        "pt": 130.75,
+        "a": "zone",
+        "x": 13,
+        "y": 15,
+        "on": true
+      },
+      {
+        "t": 14494,
+        "w": 1,
+        "p": "planning",
+        "pt": 139.68,
+        "a": "zone",
+        "x": 10,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 14833,
+        "w": 1,
+        "p": "planning",
+        "pt": 145.33,
+        "a": "zone",
+        "x": 8,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 14980,
+        "w": 1,
+        "p": "planning",
+        "pt": 147.78,
+        "a": "zone",
+        "x": 8,
+        "y": 11,
+        "on": false
+      },
+      {
+        "t": 15099,
+        "w": 1,
+        "p": "planning",
+        "pt": 149.77,
+        "a": "zone",
+        "x": 8,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 15255,
+        "w": 1,
+        "p": "planning",
+        "pt": 152.37,
+        "a": "zone",
+        "x": 7,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 15400,
+        "w": 1,
+        "p": "planning",
+        "pt": 154.78,
+        "a": "zone",
+        "x": 6,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 15500,
+        "w": 1,
+        "p": "planning",
+        "pt": 156.45,
+        "a": "zone",
+        "x": 6,
+        "y": 10,
+        "on": false
+      },
+      {
+        "t": 15620,
+        "w": 1,
+        "p": "planning",
+        "pt": 158.45,
+        "a": "zone",
+        "x": 6,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 15709,
+        "w": 1,
+        "p": "planning",
+        "pt": 159.93,
+        "a": "zone",
+        "x": 6,
+        "y": 9,
+        "on": false
+      },
+      {
+        "t": 15787,
+        "w": 1,
+        "p": "planning",
+        "pt": 161.23,
+        "a": "zone",
+        "x": 6,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 15889,
+        "w": 1,
+        "p": "planning",
+        "pt": 162.93,
+        "a": "zone",
+        "x": 6,
+        "y": 8,
+        "on": false
+      },
+      {
+        "t": 15990,
+        "w": 1,
+        "p": "planning",
+        "pt": 164.62,
+        "a": "zone",
+        "x": 4,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 16099,
+        "w": 1,
+        "p": "planning",
+        "pt": 166.43,
+        "a": "zone",
+        "x": 4,
+        "y": 7,
+        "on": false
+      },
+      {
+        "t": 16234,
+        "w": 1,
+        "p": "planning",
+        "pt": 168.68,
+        "a": "zone",
+        "x": 4,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 16474,
+        "w": 1,
+        "p": "planning",
+        "pt": 172.68,
+        "a": "zone",
+        "x": 5,
+        "y": 7,
+        "on": true
+      },
+      {
+        "t": 16741,
+        "w": 1,
+        "p": "planning",
+        "pt": 177.13,
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 13,
+            "y": 15
+          },
+          {
+            "x": 10,
+            "y": 11
+          },
+          {
+            "x": 8,
+            "y": 10
+          },
+          {
+            "x": 7,
+            "y": 9
+          },
+          {
+            "x": 4,
+            "y": 6
+          },
+          {
+            "x": 5,
+            "y": 7
+          }
+        ]
+      },
+      {
+        "t": 17782,
+        "w": 1,
+        "p": "selection",
+        "pt": 12.08,
+        "a": "select",
+        "type": "merge",
+        "anchor": 3,
+        "size": 2
+      },
+      {
+        "t": 19585,
+        "w": 2,
+        "p": "planning",
+        "pt": 8.48,
+        "a": "zone",
+        "x": 5,
+        "y": 8,
+        "on": true
+      },
+      {
+        "t": 19928,
+        "w": 2,
+        "p": "planning",
+        "pt": 14.2,
+        "a": "zone",
+        "x": 5,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 20012,
+        "w": 2,
+        "p": "planning",
+        "pt": 15.6,
+        "a": "zone",
+        "x": 5,
+        "y": 4,
+        "on": true
+      },
+      {
+        "t": 20151,
+        "w": 2,
+        "p": "planning",
+        "pt": 17.92,
+        "a": "zone",
+        "x": 5,
+        "y": 3,
+        "on": true
+      },
+      {
+        "t": 20264,
+        "w": 2,
+        "p": "planning",
+        "pt": 19.8,
+        "a": "zone",
+        "x": 5,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 20414,
+        "w": 2,
+        "p": "planning",
+        "pt": 22.3,
+        "a": "zone",
+        "x": 4,
+        "y": 5,
+        "on": true
+      },
+      {
+        "t": 20864,
+        "w": 2,
+        "p": "planning",
+        "pt": 29.8,
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 5,
+            "y": 8
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 5,
+            "y": 4
+          },
+          {
+            "x": 5,
+            "y": 3
+          },
+          {
+            "x": 5,
+            "y": 2
+          },
+          {
+            "x": 4,
+            "y": 5
+          }
+        ]
+      },
+      {
+        "t": 22001,
+        "w": 2,
+        "p": "selection",
+        "pt": 13.68,
+        "a": "select",
+        "type": "merge",
+        "anchor": 2,
+        "size": 2
+      },
+      {
+        "t": 24936,
+        "w": 3,
+        "p": "planning",
+        "pt": 18.77,
+        "a": "zone",
+        "x": 9,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 25135,
+        "w": 3,
+        "p": "planning",
+        "pt": 22.08,
+        "a": "zone",
+        "x": 8,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 25281,
+        "w": 3,
+        "p": "planning",
+        "pt": 24.52,
+        "a": "zone",
+        "x": 7,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 25551,
+        "w": 3,
+        "p": "planning",
+        "pt": 29.02,
+        "a": "zone",
+        "x": 6,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 25668,
+        "w": 3,
+        "p": "planning",
+        "pt": 30.97,
+        "a": "zone",
+        "x": 5,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 25773,
+        "w": 3,
+        "p": "planning",
+        "pt": 32.72,
+        "a": "zone",
+        "x": 5,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 26073,
+        "w": 3,
+        "p": "planning",
+        "pt": 37.72,
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 9,
+            "y": 11
+          },
+          {
+            "x": 8,
+            "y": 11
+          },
+          {
+            "x": 7,
+            "y": 11
+          },
+          {
+            "x": 6,
+            "y": 11
+          },
+          {
+            "x": 5,
+            "y": 10
+          },
+          {
+            "x": 5,
+            "y": 11
+          }
+        ]
+      },
+      {
+        "t": 27423,
+        "w": 3,
+        "p": "selection",
+        "pt": 17.23,
+        "a": "select",
+        "type": "merge",
+        "anchor": 4,
+        "size": 2
+      },
+      {
+        "t": 31480,
+        "w": 4,
+        "p": "planning",
+        "pt": 12.83,
+        "a": "zone",
+        "x": 6,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 31641,
+        "w": 4,
+        "p": "planning",
+        "pt": 15.52,
+        "a": "zone",
+        "x": 6,
+        "y": 1,
+        "on": true
+      },
+      {
+        "t": 31750,
+        "w": 4,
+        "p": "planning",
+        "pt": 17.33,
+        "a": "zone",
+        "x": 6,
+        "y": 1,
+        "on": false
+      },
+      {
+        "t": 31978,
+        "w": 4,
+        "p": "planning",
+        "pt": 21.13,
+        "a": "zone",
+        "x": 9,
+        "y": 1,
+        "on": true
+      },
+      {
+        "t": 32148,
+        "w": 4,
+        "p": "planning",
+        "pt": 23.97,
+        "a": "zone",
+        "x": 8,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 32321,
+        "w": 4,
+        "p": "planning",
+        "pt": 26.85,
+        "a": "zone",
+        "x": 7,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 32718,
+        "w": 4,
+        "p": "planning",
+        "pt": 33.47,
+        "a": "zone",
+        "x": 7,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 32803,
+        "w": 4,
+        "p": "planning",
+        "pt": 34.88,
+        "a": "zone",
+        "x": 8,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 33005,
+        "w": 4,
+        "p": "planning",
+        "pt": 38.25,
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 6,
+            "y": 2
+          },
+          {
+            "x": 9,
+            "y": 1
+          },
+          {
+            "x": 8,
+            "y": 2
+          },
+          {
+            "x": 7,
+            "y": 2
+          },
+          {
+            "x": 7,
+            "y": 13
+          },
+          {
+            "x": 8,
+            "y": 13
+          }
+        ]
+      },
+      {
+        "t": 34399,
+        "w": 4,
+        "p": "selection",
+        "pt": 17.97,
+        "a": "select",
+        "type": "merge",
+        "anchor": 5,
+        "size": 4
+      },
+      {
+        "t": 46761,
+        "w": 5,
+        "p": "planning",
+        "pt": 165.4,
+        "a": "zone",
+        "x": 9,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 46889,
+        "w": 5,
+        "p": "planning",
+        "pt": 167.53,
+        "a": "zone",
+        "x": 10,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 47593,
+        "w": 5,
+        "p": "planning",
+        "pt": 179.27,
+        "a": "zone",
+        "x": 10,
+        "y": 1,
+        "on": true
+      },
+      {
+        "t": 47654,
+        "w": 5,
+        "p": "planning",
+        "pt": 180.28,
+        "a": "zone",
+        "x": 12,
+        "y": 1,
+        "on": true
+      },
+      {
+        "t": 47762,
+        "w": 5,
+        "p": "planning",
+        "pt": 182.08,
+        "a": "zone",
+        "x": 13,
+        "y": 1,
+        "on": true
+      },
+      {
+        "t": 47925,
+        "w": 5,
+        "p": "planning",
+        "pt": 184.8,
+        "a": "zone",
+        "x": 3,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 48126,
+        "w": 5,
+        "p": "planning",
+        "pt": 188.15,
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 9,
+            "y": 13
+          },
+          {
+            "x": 10,
+            "y": 13
+          },
+          {
+            "x": 10,
+            "y": 1
+          },
+          {
+            "x": 12,
+            "y": 1
+          },
+          {
+            "x": 13,
+            "y": 1
+          },
+          {
+            "x": 3,
+            "y": 2
+          }
+        ]
+      },
+      {
+        "t": 49383,
+        "w": 5,
+        "p": "selection",
+        "pt": 15.68,
+        "a": "select",
+        "type": "merge",
+        "anchor": 1,
+        "size": 2
+      },
+      {
+        "t": 51014,
+        "w": 6,
+        "p": "planning",
+        "pt": 0.53,
+        "a": "zone",
+        "x": 5,
+        "y": 9,
+        "on": true
+      },
+      {
+        "t": 51453,
+        "w": 6,
+        "p": "planning",
+        "pt": 7.85,
+        "a": "zone",
+        "x": 2,
+        "y": 4,
+        "on": true
+      },
+      {
+        "t": 51554,
+        "w": 6,
+        "p": "planning",
+        "pt": 9.53,
+        "a": "zone",
+        "x": 2,
+        "y": 4,
+        "on": false
+      },
+      {
+        "t": 51690,
+        "w": 6,
+        "p": "planning",
+        "pt": 11.8,
+        "a": "zone",
+        "x": 4,
+        "y": 4,
+        "on": true
+      },
+      {
+        "t": 52121,
+        "w": 6,
+        "p": "planning",
+        "pt": 18.98,
+        "a": "zone",
+        "x": 4,
+        "y": 4,
+        "on": false
+      },
+      {
+        "t": 52323,
+        "w": 6,
+        "p": "planning",
+        "pt": 22.35,
+        "a": "zone",
+        "x": 3,
+        "y": 4,
+        "on": true
+      },
+      {
+        "t": 52677,
+        "w": 6,
+        "p": "planning",
+        "pt": 28.25,
+        "a": "zone",
+        "x": 4,
+        "y": 4,
+        "on": true
+      },
+      {
+        "t": 52900,
+        "w": 6,
+        "p": "planning",
+        "pt": 31.97,
+        "a": "zone",
+        "x": 4,
+        "y": 3,
+        "on": true
+      },
+      {
+        "t": 53262,
+        "w": 6,
+        "p": "planning",
+        "pt": 38,
+        "a": "zone",
+        "x": 4,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 53378,
+        "w": 6,
+        "p": "planning",
+        "pt": 39.93,
+        "a": "zone",
+        "x": 3,
+        "y": 3,
+        "on": true
+      },
+      {
+        "t": 53604,
+        "w": 6,
+        "p": "planning",
+        "pt": 43.7,
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 5,
+            "y": 9
+          },
+          {
+            "x": 3,
+            "y": 4
+          },
+          {
+            "x": 4,
+            "y": 4
+          },
+          {
+            "x": 4,
+            "y": 3
+          },
+          {
+            "x": 4,
+            "y": 2
+          },
+          {
+            "x": 3,
+            "y": 3
+          }
+        ]
+      },
+      {
+        "t": 54774,
+        "w": 6,
+        "p": "selection",
+        "pt": 14.23,
+        "a": "select",
+        "type": "merge",
+        "anchor": 0,
+        "size": 2
+      },
+      {
+        "t": 60619,
+        "w": 7,
+        "p": "planning",
+        "pt": 57.32,
+        "a": "zone",
+        "x": 11,
+        "y": 1,
+        "on": true
+      },
+      {
+        "t": 60781,
+        "w": 7,
+        "p": "planning",
+        "pt": 60.02,
+        "a": "zone",
+        "x": 8,
+        "y": 1,
+        "on": true
+      },
+      {
+        "t": 60965,
+        "w": 7,
+        "p": "planning",
+        "pt": 63.08,
+        "a": "zone",
+        "x": 8,
+        "y": 1,
+        "on": false
+      },
+      {
+        "t": 61303,
+        "w": 7,
+        "p": "planning",
+        "pt": 68.72,
+        "a": "zone",
+        "x": 9,
+        "y": 2,
+        "on": true
+      },
+      {
+        "t": 61592,
+        "w": 7,
+        "p": "planning",
+        "pt": 73.53,
+        "a": "zone",
+        "x": 5,
+        "y": 0,
+        "on": true
+      },
+      {
+        "t": 61650,
+        "w": 7,
+        "p": "planning",
+        "pt": 74.5,
+        "a": "zone",
+        "x": 6,
+        "y": 0,
+        "on": true
+      },
+      {
+        "t": 61716,
+        "w": 7,
+        "p": "planning",
+        "pt": 75.6,
+        "a": "zone",
+        "x": 4,
+        "y": 0,
+        "on": true
+      },
+      {
+        "t": 61782,
+        "w": 7,
+        "p": "planning",
+        "pt": 76.7,
+        "a": "zone",
+        "x": 3,
+        "y": 0,
+        "on": true
+      },
+      {
+        "t": 63050,
+        "w": 7,
+        "p": "planning",
+        "pt": 97.83,
+        "a": "supply"
+      },
+      {
+        "t": 63580,
+        "w": 7,
+        "p": "planning",
+        "pt": 106.67,
+        "a": "supply"
+      },
+      {
+        "t": 64863,
+        "w": 7,
+        "p": "planning",
+        "pt": 128.05,
+        "a": "bulwark",
+        "x": 13,
+        "y": 16
+      },
+      {
+        "t": 66973,
+        "w": 7,
+        "p": "planning",
+        "pt": 163.22,
+        "a": "demolish",
+        "x": 13,
+        "y": 17
+      },
+      {
+        "t": 67050,
+        "w": 7,
+        "p": "planning",
+        "pt": 164.5,
+        "a": "demolish",
+        "x": 13,
+        "y": 18
+      },
+      {
+        "t": 67388,
+        "w": 7,
+        "p": "planning",
+        "pt": 170.13,
+        "a": "demolish",
+        "x": 13,
+        "y": 15
+      },
+      {
+        "t": 67583,
+        "w": 7,
+        "p": "planning",
+        "pt": 173.38,
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 11,
+            "y": 1
+          },
+          {
+            "x": 9,
+            "y": 2
+          },
+          {
+            "x": 5,
+            "y": 0
+          },
+          {
+            "x": 6,
+            "y": 0
+          },
+          {
+            "x": 4,
+            "y": 0
+          },
+          {
+            "x": 3,
+            "y": 0
+          }
+        ]
+      },
+      {
+        "t": 68297,
+        "w": 7,
+        "p": "selection",
+        "pt": 6.63,
+        "a": "select",
+        "type": "merge",
+        "anchor": 2,
+        "size": 2
+      },
+      {
+        "t": 70636,
+        "w": 8,
+        "p": "planning",
+        "pt": 9.17,
+        "a": "zone",
+        "x": 11,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 70701,
+        "w": 8,
+        "p": "planning",
+        "pt": 10.25,
+        "a": "zone",
+        "x": 11,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 70755,
+        "w": 8,
+        "p": "planning",
+        "pt": 11.15,
+        "a": "zone",
+        "x": 11,
+        "y": 19,
+        "on": true
+      },
+      {
+        "t": 71021,
+        "w": 8,
+        "p": "planning",
+        "pt": 15.58,
+        "a": "zone",
+        "x": 13,
+        "y": 17,
+        "on": true
+      },
+      {
+        "t": 71077,
+        "w": 8,
+        "p": "planning",
+        "pt": 16.52,
+        "a": "zone",
+        "x": 13,
+        "y": 18,
+        "on": true
+      },
+      {
+        "t": 72869,
+        "w": 8,
+        "p": "planning",
+        "pt": 46.38,
+        "a": "zone",
+        "x": 23,
+        "y": 6,
+        "on": true
+      },
+      {
+        "t": 73016,
+        "w": 8,
+        "p": "planning",
+        "pt": 48.83,
+        "a": "zone",
+        "x": 23,
+        "y": 6,
+        "on": false
+      },
+      {
+        "t": 73477,
+        "w": 8,
+        "p": "planning",
+        "pt": 56.52,
+        "a": "zone",
+        "x": 1,
+        "y": 3,
+        "on": true
+      },
+      {
+        "t": 73683,
+        "w": 8,
+        "p": "planning",
+        "pt": 59.95,
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 11,
+            "y": 17
+          },
+          {
+            "x": 11,
+            "y": 18
+          },
+          {
+            "x": 11,
+            "y": 19
+          },
+          {
+            "x": 13,
+            "y": 17
+          },
+          {
+            "x": 13,
+            "y": 18
+          },
+          {
+            "x": 1,
+            "y": 3
+          }
+        ]
+      },
+      {
+        "t": 75172,
+        "w": 8,
+        "p": "selection",
+        "pt": 19.55,
+        "a": "select",
+        "type": "merge",
+        "anchor": 4,
+        "size": 2
+      },
+      {
+        "t": 78163,
+        "w": 9,
+        "p": "planning",
+        "pt": 14.7,
+        "a": "zone",
+        "x": 3,
+        "y": 10,
+        "on": true
+      },
+      {
+        "t": 78224,
+        "w": 9,
+        "p": "planning",
+        "pt": 15.72,
+        "a": "zone",
+        "x": 3,
+        "y": 11,
+        "on": true
+      },
+      {
+        "t": 78276,
+        "w": 9,
+        "p": "planning",
+        "pt": 16.58,
+        "a": "zone",
+        "x": 3,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 78343,
+        "w": 9,
+        "p": "planning",
+        "pt": 17.7,
+        "a": "zone",
+        "x": 4,
+        "y": 12,
+        "on": true
+      },
+      {
+        "t": 78560,
+        "w": 9,
+        "p": "planning",
+        "pt": 21.32,
+        "a": "zone",
+        "x": 4,
+        "y": 12,
+        "on": false
+      },
+      {
+        "t": 78708,
+        "w": 9,
+        "p": "planning",
+        "pt": 23.78,
+        "a": "zone",
+        "x": 5,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 78800,
+        "w": 9,
+        "p": "planning",
+        "pt": 25.32,
+        "a": "zone",
+        "x": 4,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 78879,
+        "w": 9,
+        "p": "planning",
+        "pt": 26.63,
+        "a": "zone",
+        "x": 7,
+        "y": 13,
+        "on": true
+      },
+      {
+        "t": 79521,
+        "w": 9,
+        "p": "planning",
+        "pt": 37.33,
+        "a": "salvo",
+        "zones": [
+          {
+            "x": 3,
+            "y": 10
+          },
+          {
+            "x": 3,
+            "y": 11
+          },
+          {
+            "x": 3,
+            "y": 12
+          },
+          {
+            "x": 5,
+            "y": 13
+          },
+          {
+            "x": 4,
+            "y": 13
+          },
+          {
+            "x": 7,
+            "y": 13
+          }
+        ]
+      },
+      {
+        "t": 81471,
+        "w": 9,
+        "p": "selection",
+        "pt": 27.23,
+        "a": "select",
+        "type": "recipe",
+        "anchor": 3,
+        "recipeId": "purgeShrine"
+      }
+    ],
+    "waves": [
+      {
+        "w": 1,
+        "spawned": 21,
+        "killed": 17,
+        "leaked": 4,
+        "lives": 16,
+        "requisition": 29,
+        "commandPoints": 0,
+        "towers": 1,
+        "byRank": [
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "specials": 0,
+        "supply": 1,
+        "route": 40.4,
+        "health": 750,
+        "damage": 642,
+        "commandDamage": 0,
+        "overkill": 163,
+        "rating": null
+      },
+      {
+        "w": 2,
+        "spawned": 12,
+        "killed": 12,
+        "leaked": 0,
+        "lives": 16,
+        "requisition": 65,
+        "commandPoints": 1,
+        "towers": 2,
+        "byRank": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "specials": 0,
+        "supply": 1,
+        "route": 41,
+        "health": 945,
+        "damage": 945,
+        "commandDamage": 0,
+        "overkill": 5,
+        "rating": null
+      },
+      {
+        "w": 3,
+        "spawned": 16,
+        "killed": 16,
+        "leaked": 0,
+        "lives": 16,
+        "requisition": 110,
+        "commandPoints": 2,
+        "towers": 3,
+        "byRank": [
+          0,
+          3,
+          0,
+          0,
+          0
+        ],
+        "specials": 0,
+        "supply": 1,
+        "route": 43.3,
+        "health": 1417,
+        "damage": 1417,
+        "commandDamage": 0,
+        "overkill": 51,
+        "rating": null
+      },
+      {
+        "w": 4,
+        "spawned": 13,
+        "killed": 12,
+        "leaked": 1,
+        "lives": 15,
+        "requisition": 162,
+        "commandPoints": 2,
+        "towers": 4,
+        "byRank": [
+          0,
+          4,
+          0,
+          0,
+          0
+        ],
+        "specials": 0,
+        "supply": 1,
+        "route": 45.1,
+        "health": 1865,
+        "damage": 2060,
+        "commandDamage": 0,
+        "overkill": 66,
+        "rating": null
+      },
+      {
+        "w": 5,
+        "spawned": 29,
+        "killed": 29,
+        "leaked": 0,
+        "lives": 15,
+        "requisition": 241,
+        "commandPoints": 3,
+        "towers": 5,
+        "byRank": [
+          0,
+          4,
+          1,
+          0,
+          0
+        ],
+        "specials": 0,
+        "supply": 1,
+        "route": 45.7,
+        "health": 3636,
+        "damage": 3636,
+        "commandDamage": 0,
+        "overkill": 93,
+        "rating": null
+      },
+      {
+        "w": 6,
+        "spawned": 46,
+        "killed": 46,
+        "leaked": 0,
+        "lives": 15,
+        "requisition": 309,
+        "commandPoints": 4,
+        "towers": 6,
+        "byRank": [
+          0,
+          5,
+          1,
+          0,
+          0
+        ],
+        "specials": 0,
+        "supply": 1,
+        "route": 45.7,
+        "health": 2919,
+        "damage": 2919,
+        "commandDamage": 0,
+        "overkill": 1122,
+        "rating": null
+      },
+      {
+        "w": 7,
+        "spawned": 44,
+        "killed": 44,
+        "leaked": 0,
+        "lives": 15,
+        "requisition": 423,
+        "commandPoints": 5,
+        "towers": 7,
+        "byRank": [
+          0,
+          6,
+          1,
+          0,
+          0
+        ],
+        "specials": 0,
+        "supply": 1,
+        "route": 46.8,
+        "health": 7672,
+        "damage": 7672,
+        "commandDamage": 0,
+        "overkill": 895,
+        "rating": null
+      },
+      {
+        "w": 8,
+        "spawned": 31,
+        "killed": 31,
+        "leaked": 0,
+        "lives": 15,
+        "requisition": 360,
+        "commandPoints": 6,
+        "towers": 8,
+        "byRank": [
+          0,
+          7,
+          1,
+          0,
+          0
+        ],
+        "specials": 0,
+        "supply": 3,
+        "route": 46.8,
+        "health": 4812,
+        "damage": 4812,
+        "commandDamage": 0,
+        "overkill": 833,
+        "rating": null
+      },
+      {
+        "w": 9,
+        "spawned": 26,
+        "killed": 26,
+        "leaked": 0,
+        "lives": 15,
+        "requisition": 465,
+        "commandPoints": 7,
+        "towers": 9,
+        "byRank": [
+          0,
+          8,
+          1,
+          0,
+          0
+        ],
+        "specials": 0,
+        "supply": 3,
+        "route": 46.8,
+        "health": 9572,
+        "damage": 10212,
+        "commandDamage": 0,
+        "overkill": 77,
+        "rating": null
+      },
+      {
+        "w": 10,
+        "spawned": 105,
+        "killed": 86,
+        "leaked": 15,
+        "lives": 0,
+        "requisition": 561,
+        "commandPoints": 7,
+        "towers": 9,
+        "byRank": [
+          0,
+          7,
+          1,
+          0,
+          0
+        ],
+        "specials": 1,
+        "supply": 3,
+        "route": 46.8,
+        "health": 26873,
+        "damage": 17992,
+        "commandDamage": 0,
+        "overkill": 580,
+        "rating": null
+      }
+    ],
+    "end": {
+      "phase": "defeat",
+      "wave": 10,
+      "lives": 0,
+      "kills": 319
+    }
+  }
+}

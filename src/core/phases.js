@@ -4,6 +4,7 @@
 
 import { standDown } from '../sim/combat.js';
 import { recordWave, recordEnd } from '../sim/record.js';
+import { updateKoloss } from '../sim/koloss.js';
 
 export const PHASES = ['planning', 'salvo', 'selection', 'wave', 'evaluation', 'defeat', 'victory'];
 
@@ -33,6 +34,12 @@ export function setPhase(state, to) {
     standDown(state);
     recordWave(state);
   }
+  // Leaving the planning, however it ends: the Koloss lane is fixed against the
+  // maze as the player left it. The per-step update alone would make it depend
+  // on whether a step ran after the last change — a replay applies a whole
+  // planning without one, and in King of the Hill the rift itself changes at
+  // the start of the planning.
+  if (state.phase === 'planning') updateKoloss(state);
   state.phase = to;
   state.phaseTime = 0;
   if (to === 'defeat' || to === 'victory') recordEnd(state, to);

@@ -7,7 +7,10 @@ import assert from 'node:assert/strict';
 import { createGameState } from '../../src/core/state.js';
 import { stepSimulation } from '../../src/sim/step.js';
 import { requestSalvo, chooseSelection, upgradeTower } from '../../src/sim/actions.js';
-import { grant } from '../../src/sim/debug.js';
+import { grant, setWave } from '../../src/sim/debug.js';
+import { driveDirection } from '../../src/sim/koloss.js';
+import { parseProtocol } from '../../src/storage/protocol.js';
+import { readFileSync } from 'node:fs';
 import { startLog } from '../../src/sim/record.js';
 import { replayMatch, compareWaves } from '../../src/sim/replay.js';
 import { playBotMatch } from '../tools/bot-player.mjs';
@@ -66,4 +69,30 @@ test('the same seed and configuration give the same bot match twice', () => {
   const b = run();
   assert.deepEqual(a.waves, b.waves);
   assert.deepEqual(a.log.actions, b.log.actions);
+});
+
+test('the Koloss lane follows the rift even if the planning ends without a step', () => {
+  // On A1 the rift of wave 34 lies on another edge than the one of wave 35. A
+  // replay applies a whole planning at once, so the per-step update never sees
+  // the new rift; leaving the planning has to fix the lane all the same.
+  const state = createGameState('A1', { mode: 'koth' });
+  setWave(state, 34);
+  stepSimulation(state, SIM_STEP);
+  const stale = state.koloss.lane;
+  setWave(state, 35);
+  assert.ok(requestSalvo(state));
+  const dir = driveDirection(state.map);
+  assert.notDeepEqual({ dx: stale.dx, dy: stale.dy }, dir);
+  assert.deepEqual({ dx: state.koloss.lane.dx, dy: state.koloss.lane.dy }, dir);
+});
+
+test('a played King of the Hill match replays wave for wave, Koloss included', () => {
+  // 75YZ4E, 02.10.2026, the first one played by hand: two Koloss waves, each
+  // after a change of rift. Before the lane was fixed on leaving the planning it
+  // came apart in wave 35.
+  const file = new URL('../../balancing/protokolle/nachschubfront-2026-10-02-75YZ4E-welle50.json', import.meta.url);
+  const { match: protocol } = parseProtocol(readFileSync(file, 'utf8'));
+  const played = replayMatch(protocol);
+  const fields = ['lives', 'spawned', 'killed', 'leaked', 'route', 'requisition'];
+  assert.deepEqual(compareWaves(protocol.waves, played.waves, fields), []);
 });
