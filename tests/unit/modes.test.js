@@ -54,7 +54,7 @@ test('from outside, an unknown id falls back for a player and throws in debug', 
 
 test('debug-only modes are offered only with ?debug', () => {
   assert.deepEqual(listSelectableModes(false).map((m) => m.id), ['standard']);
-  assert.deepEqual(listSelectableModes(true).map((m) => m.id), ['standard', 'standard-klon']);
+  assert.deepEqual(listSelectableModes(true).map((m) => m.id), ['standard', 'standard-klon', 'koth']);
 });
 
 test('every mode and difficulty is complete', () => {

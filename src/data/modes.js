@@ -9,6 +9,10 @@
 //
 // Names and descriptions are in src/data/strings.js under `modes.<id>`.
 
+import { MAP, KOTH_MAP } from './map.js';
+import { SALVO_SIZES } from './pods.js';
+import { MIN_RANK } from './ranks.js';
+
 export const MODES = {
   standard: {
     id: 'standard',
@@ -23,6 +27,10 @@ export const MODES = {
      * 'pod': a capsule of the salvo goes into it, GDD section 11.
      */
     upgrade: { kind: 'pod' },
+    /** Map layout and geometry (data/map.js). */
+    map: MAP,
+    /** Pods per salvo by wave (data/pods.js). */
+    salvo: SALVO_SIZES,
   },
   /**
    * The same rules as `standard` under another id. Exists only so the mode
@@ -35,6 +43,47 @@ export const MODES = {
     status: 'stable',
     debugOnly: true,
     upgrade: { kind: 'pod' },
+    map: MAP,
+    salvo: SALVO_SIZES,
+  },
+  /**
+   * King of the Hill (M7b): the bastion in the middle of the map, four rifts on
+   * the edges taking turns, a ban zone around the centre, and an upgrade that
+   * replaces the salvo. Debug only until it can be played through; then
+   * experimental until Till has played it (decision of 02.10.2026).
+   */
+  koth: {
+    id: 'koth',
+    rev: 1,
+    status: 'experimental',
+    debugOnly: true,
+    map: KOTH_MAP,
+    /** Which rift attacks when (sim/rifts.js): 'mixed' or 'cycle'. */
+    riftOrder: 'mixed',
+    /**
+     * Study values: 8 pods in wave 1 (standard: 6), then as in the standard
+     * mode. A stated deviation from GDD section 3 (decision of 02.10.2026).
+     */
+    salvo: [
+      { untilWave: 1, pods: 8, minRank: MIN_RANK },
+      { untilWave: 15, pods: 6, minRank: MIN_RANK },
+      { untilWave: 35, pods: 5, minRank: MIN_RANK },
+      { untilWave: Infinity, pods: 4, minRank: 2 },
+    ],
+    /**
+     * 'ladder': in planning, instead of a salvo, one emplacement goes up a rank
+     * for these prices (to Veteran, Elite, Held, Legende). From wave 1; the price
+     * alone governs how often (Till, B5).
+     */
+    upgrade: { kind: 'ladder', prices: [120, 300, 750, 1875] },
+    /** Study values; the standard mode starts on 0 requisition. */
+    start: { requisition: 30 },
+    /**
+     * Enemy health on top of the wave rules: the routes are about half as long
+     * as in the standard mode, and with its values wave 1 is lost. Placeholder
+     * from the study, calibrated in B7.
+     */
+    balance: { enemyHpFactor: 0.1 },
   },
 };
 

@@ -96,6 +96,10 @@ export const STRINGS = {
       name: 'Standard (Klon)',
       desc: 'Testmodus mit den Regeln von Standard und eigener Bestenliste. Nur im Debug-Modus.',
     },
+    koth: {
+      name: 'King of the Hill',
+      desc: 'Die Bastion steht mitten im Feld, und die Gegner brechen im Wechsel aus vier Rissen am Rand hervor: Mach alle vier Wege lang – der Kern um die Bastion bleibt frei.',
+    },
   },
 
   /** Difficulty names (src/data/modes.js); the choice appears once there are two. */

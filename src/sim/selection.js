@@ -124,10 +124,14 @@ export function selectionOptions(state) {
  *
  * - `pod`: a capsule of the salvo goes into a standing emplacement (GDD section
  *   11), offered in the selection phase.
+ * - `ladder`: an emplacement goes up a rank for a price in planning, instead of
+ *   the salvo (M7b, B5).
  * - `off`: no upgrades.
  */
 export const UPGRADE_KINDS = {
   pod: { selectionOptions: upgradeOptions },
+  // Instead of a salvo, in planning (M7b, B5); nothing is offered in the selection.
+  ladder: { selectionOptions: () => [] },
   off: { selectionOptions: () => [] },
 };
 
