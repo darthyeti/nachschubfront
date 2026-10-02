@@ -1464,6 +1464,17 @@ button.mode-card.on {
   padding: 1px 6px;
 }
 
+.mode-card-body {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.mode-card-sketch {
+  flex: 0 0 64px;
+  line-height: 0;
+}
+
 .mode-card-desc {
   color: var(--text);
   line-height: 1.3;
