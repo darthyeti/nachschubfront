@@ -125,18 +125,28 @@ export function selectionOptions(state) {
  * - `pod`: a capsule of the salvo goes into a standing emplacement (GDD section
  *   11), offered in the selection phase.
  * - `ladder`: an emplacement goes up a rank for a price in planning, instead of
- *   the salvo (M7b, B5).
+ *   the salvo (M7b, B5; sim/actions.js, upgradeTower).
+ * - `free`: the same without a price, a test lever.
+ *
+ * `planningCost(state, tower)` is the price of that upgrade in planning, or null
+ * where the rule offers none.
  * - `off`: no upgrades.
  */
 export const UPGRADE_KINDS = {
-  pod: { selectionOptions: upgradeOptions },
+  pod: { selectionOptions: upgradeOptions, planningCost: () => null },
   // Instead of a salvo, in planning (M7b, B5); nothing is offered in the selection.
-  ladder: { selectionOptions: () => [] },
-  off: { selectionOptions: () => [] },
+  ladder: {
+    selectionOptions: () => [],
+    planningCost: (state, tower) => state.mode.upgrade.prices[tower.rank - 1] ?? null,
+  },
+  // A test lever from the study: free upgrades early on replace the salvoes and
+  // spoil the game (B5). Never the value of a mode a player gets.
+  free: { selectionOptions: () => [], planningCost: () => 0 },
+  off: { selectionOptions: () => [], planningCost: () => null },
 };
 
 /** The upgrade rule of the running mode. */
-function upgradeKind(state) {
+export function upgradeKind(state) {
   const kind = state.mode?.upgrade?.kind ?? 'pod';
   const rule = UPGRADE_KINDS[kind];
   if (!rule) throw new Error(`Unknown upgrade kind: ${kind}`);

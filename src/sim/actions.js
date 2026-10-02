@@ -6,9 +6,10 @@ import { setPhase } from '../core/phases.js';
 import { currentRoute, checkPlacement } from './route.js';
 import { setBlocked } from './grid.js';
 import { beginWave, totalWaves } from './waves.js';
-import { fillZones, dropInvalidZones } from './zones.js';
+import { fillZones, dropInvalidZones, clearZones } from './zones.js';
 import { createPods, salvoRng } from './pods.js';
-import { applySelection, forfeitSalvo, salvoBuildable } from './selection.js';
+import { applySelection, forfeitSalvo, salvoBuildable, upgradeKind } from './selection.js';
+import { MAX_RANK } from '../data/ranks.js';
 import { addRubble } from './rubble.js';
 import { record, taint } from './record.js';
 
@@ -77,6 +78,57 @@ export function giveUpSalvo(state, options) {
   setPhase(state, 'wave');
   beginWave(state);
   return result;
+}
+
+/**
+ * Whether an emplacement can go up a rank instead of a salvo (M7b, B5): only in
+ * planning, only with no landing zone marked, never past Legende, never a
+ * special emplacement (it has no rank), and only for what the mode charges.
+ * @returns {{ok: true, cost: number, tower: object}
+ *   | {ok: false, reason: 'phase' | 'zones' | 'tower' | 'special' | 'max' | 'off' | 'funds'}}
+ */
+export function canUpgradeTower(state, towerId) {
+  if (!canRequestSalvo(state)) return { ok: false, reason: 'phase' };
+  if (state.zones.length > 0) return { ok: false, reason: 'zones' };
+  const tower = state.towers.find((t) => t.id === towerId);
+  if (!tower) return { ok: false, reason: 'tower' };
+  if (tower.special) return { ok: false, reason: 'special' };
+  if (tower.rank >= MAX_RANK) return { ok: false, reason: 'max' };
+  const cost = upgradeKind(state).planningCost(state, tower);
+  if (cost === null || cost === undefined) return { ok: false, reason: 'off' };
+  if (state.requisition < cost) return { ok: false, reason: 'funds' };
+  return { ok: true, cost, tower };
+}
+
+/**
+ * The round's action instead of a salvo: one emplacement goes up a rank. No
+ * salvo, no capsule, no new rubble, and the wave starts at once (B5).
+ * @returns {{ok: true, tower: object, cost: number} | {ok: false, reason: string}}
+ */
+export function upgradeTower(state, towerId) {
+  const check = canUpgradeTower(state, towerId);
+  if (!check.ok) return check;
+  const { tower, cost } = check;
+  state.requisition -= cost;
+  tower.rank += 1;
+  record(state, 'upgrade', { towerId });
+  state.events.push({ type: 'towerUpgraded', tower, cost });
+  setPhase(state, 'wave');
+  beginWave(state);
+  return { ok: true, tower, cost };
+}
+
+/**
+ * Starts the wave with nothing built and nothing raised. Only the replay uses
+ * it: a recorded upgrade that new numbers make impossible still started a wave,
+ * and leaving that out would stall the replay in planning.
+ */
+export function passRound(state) {
+  if (!canRequestSalvo(state)) return false;
+  clearZones(state);
+  setPhase(state, 'wave');
+  beginWave(state);
+  return true;
 }
 
 export function setSpeed(state, speed) {

@@ -66,7 +66,9 @@ test('phase transitions follow the round order', () => {
   assert.ok(canTransition('wave', 'evaluation'));
   assert.ok(canTransition('wave', 'defeat'));
   assert.ok(canTransition('evaluation', 'planning'));
-  assert.ok(!canTransition('planning', 'wave'));
+  // Only through the upgrade instead of a salvo (M7b, sim/actions.js upgradeTower).
+  assert.ok(canTransition('planning', 'wave'));
+  assert.ok(!canTransition('planning', 'evaluation'));
   assert.ok(!canTransition('defeat', 'planning'));
   const state = createGameState(SEED);
   assert.throws(() => setPhase(state, 'evaluation'));

@@ -23,7 +23,7 @@ import { createGameState } from '../core/state.js';
 import { stepSimulation } from './step.js';
 import { SIM_STEP } from '../data/settings.js';
 import { MIN_SUPPLY_LEVEL } from '../data/supply.js';
-import { requestSalvo, chooseSelection, toggleObstacle, giveUpSalvo } from './actions.js';
+import { requestSalvo, chooseSelection, toggleObstacle, giveUpSalvo, upgradeTower, passRound } from './actions.js';
 import { toggleZone, zoneIndexAt } from './zones.js';
 import { buySupply, demolish, buildBulwark } from './economy.js';
 import { useCommand } from './commands.js';
@@ -237,6 +237,14 @@ function apply(state, action) {
         return `selection refused (${result.reason}), the salvo was given up`;
       }
       return `selection refused: ${result.reason}`;
+    }
+    case 'upgrade': {
+      const result = upgradeTower(state, action.towerId);
+      if (result.ok) return true;
+      // Like a selection, it started the wave; the round goes on without it.
+      return passRound(state)
+        ? `upgrade refused (${result.reason}), the wave started without it`
+        : `upgrade refused: ${result.reason}`;
     }
     case 'forfeit': {
       // Forced: the player gave this salvo up, and under changed numbers one of

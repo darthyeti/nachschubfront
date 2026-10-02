@@ -1,4 +1,5 @@
 // Round phases (GDD section 3): planning -> salvo -> selection -> wave -> evaluation -> planning.
+// In a mode with the upgrade instead of a salvo (M7b, B5) planning may go straight to the wave.
 // End states: defeat, victory.
 
 import { standDown } from '../sim/combat.js';
@@ -8,7 +9,7 @@ export const PHASES = ['planning', 'salvo', 'selection', 'wave', 'evaluation', '
 
 /** Allowed transitions. Anything else is a programming error. */
 const NEXT = {
-  planning: ['salvo'],
+  planning: ['salvo', 'wave'],
   salvo: ['selection'],
   selection: ['wave'],
   wave: ['evaluation', 'defeat'],
