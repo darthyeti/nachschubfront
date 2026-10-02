@@ -17,6 +17,7 @@
 import { routeWith } from '../../src/sim/route.js';
 import { canMarkZone } from '../../src/sim/zones.js';
 import { RECIPES } from '../../src/data/recipes.js';
+import { KOTH_STRATEGIES } from './koth-strategies.mjs';
 
 /**
  * Cells worth considering for a landing zone: the free ground beside the route,
@@ -358,7 +359,9 @@ export const STRATEGIES = [
 ];
 
 export function strategyById(id) {
-  const found = STRATEGIES.find((s) => s.id === id);
-  if (!found) throw new Error(`Unknown strategy "${id}" (known: ${STRATEGIES.map((s) => s.id).join(', ')})`);
+  // King of the Hill brings strategies of its own (M7b, tests/tools/koth-strategies.mjs).
+  const all = [...STRATEGIES, ...KOTH_STRATEGIES];
+  const found = all.find((s) => s.id === id);
+  if (!found) throw new Error(`Unknown strategy "${id}" (known: ${all.map((s) => s.id).join(', ')})`);
   return found;
 }

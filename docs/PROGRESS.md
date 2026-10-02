@@ -200,7 +200,40 @@ M7b erst nach M7a.
   Migration, `prefs.lastRun`, Modus-Bildschirm und Umschalter in der
   Bestenliste. Ohne `?debug` ist nichts davon sichtbar. GDD Abschnitt 15,
   `docs/SPEICHER.md` und ART.md nachgezogen.
-- **Als Nächstes:** M7b auf eigenem Zweig.
+- **M7b umgesetzt** (02.10., Zweig `koth`), wartet auf Abnahme: King of the
+  Hill spielbar, nur mit `?debug` (`debugOnly: true`). Karte, Wege aus einem
+  Entfernungsfeld, Rissfolge, Sperrzone, Aufwertung statt Salve
+  (`upgrade.kind: 'ladder'`), Darstellung, Modus-Karte, Bots
+  (`npm run koth-bots`). GDD Abschnitt 15, ART, SPEICHER unverändert.
+- **Kalibrierung 1** ([`koth-1.md`](../balancing/runden/koth-1.md)): Werte
+  unverändert. Die Richtwerte des Auftrags sind erfüllt, aber alle Bots
+  verlieren früh — an der Abdeckung, nicht an der Gegnerstärke. **Es braucht
+  eine gespielte Partie** (`?debug&mode=koth`), dann entscheidet Till über
+  `debugOnly` und „Experimentell".
+
+**Wo M7b vom Auftrag abweicht:**
+
+- Geometrie, Sperrradius und Ruinen stehen in einem Kartendatensatz
+  (`KOTH_MAP` in `src/data/map.js`), nicht verteilt auf `map`, `rifts` und
+  `banRadius` im Modus-Datensatz: Der Kartengenerator bekommt so eine einzige
+  Quelle. Ruinen sind Einzelfelder (Ruine, Krater), wie in der Studie.
+- `map.rift` zeigt auf das erste Tor des angreifenden Risses und zieht mit
+  `state.riftIndex` mit (`syncRift`): Koloss und Infofeld kennen nur einen Riss
+  und lesen so den richtigen.
+- Geteilter Kern: Die Planung darf jetzt direkt in die Welle übergehen
+  (`src/core/phases.js`), nur über die Aufwertung.
+- Der Test „Feld mit Mittelpunkt genau auf Radius 4" ist so nicht möglich:
+  Kein Feldmittelpunkt liegt genau auf Radius 4. Geprüft wird die Grenze mit
+  einem Radius, der einen Mittelpunkt trifft.
+- Die Bedienung der Aufwertung folgt der Regel des Spiels: auf dem Tablet zwei
+  Tipper, mit der Maus ein Klick.
+- 60 fps mit 200 Gegnern gemessen auf dem M2 dieses Macs
+  (`npm run test:perf -- --mode koth`), auf dem iPad noch nicht.
+
+**Für M6 gemeldet, nicht geändert:** Zielwahl, Mörser-Vorhalt und
+Fähigkeiten lesen für den Koloss die Linie der Welle, nicht seine eigene
+(`waveLineOf` in `src/sim/route.js` hält das fest). Möglicherweise ein Fehler;
+eine Änderung verschiebt die Standardpartien und gehört in eine Balancing-Runde.
 
 **Wo M7a vom Auftrag abweicht** (dort steht, dass der Code gilt):
 
@@ -244,13 +277,14 @@ mit Spitze bei 14 (wie oben unter Runde 3 beschrieben).
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (474), darunter der Golden-Test (etwa 14 s) |
-| `npm run test:input` | 73 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
+| `npm test` | Unit-Tests (499), darunter der Golden-Test (etwa 14 s) |
+| `npm run test:input` | 77 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |
 | `npm run test:offline` · `test:webkit` | Service Worker · alles in WebKit |
 | `npm run replay -- <protokoll>` | Partie ohne Grafik nachspielen, `--data` mit geänderten Werten |
 | `npm run bots` · `calibrate` · `powercurve` | Bots über viele Seeds · Eichung · Kraftkurve |
+| `npm run koth-bots` | King of the Hill: die vier Bots der Studie, Sperrradius und LP-Faktor zum Durchprobieren |
 | `npm run playmatch -- <seed> --protocol <datei>` | eine Bot-Partie als Protokoll |
 | `npm run waves` · `sprites` · `studies` · `icons` | erzeugte Dateien neu schreiben |
 | `npm run precache` | `sw.js` neu schreiben — **vor jeder Veröffentlichung** |

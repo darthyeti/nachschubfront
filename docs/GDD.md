@@ -322,7 +322,27 @@ Eine neue Partie hat neben dem Seed eine **Lauf-Konfiguration**: Modus und Schwi
 - **Regeln, die sich zwischen Modi unterscheiden, sind Daten.** Der Modus-Datensatz in `src/data/modes.js` nennt für jede solche Regel eine Variante, die Simulation schlägt nach, was sie tut. Erste Regel dieser Art ist die Aufwertung (`upgrade.kind`): im Standard `'pod'`, die Regel aus Abschnitt 11.
 - Ein Modus hat einen eigenen Stand (`rev`). Er steigt, wenn eine Regeländerung in diesem Modus alte Ergebnisse unvergleichbar macht, so wie `RULESET_VERSION` für das ganze Spiel.
 
-Der zweite Modus, „King of the Hill" (Bastion in der Mitte, vier Risse), ist in Arbeit: `docs/meilensteine/M7b-king-of-the-hill.md`.
+### King of the Hill (experimentell)
+
+Auftrag: `docs/meilensteine/M7b-king-of-the-hill.md`, Studie `reference/studien/king-of-the-hill.html`. Bis zur Freigabe nur mit `?debug` wählbar.
+
+- **Karte 24 x 24, die Bastion in der Mitte** (2 x 2 Felder), **vier Risse** an den Kanten mit je zwei Torfeldern. Keine Signalfeuer. Bodengegner kommen abwechselnd aus den beiden Toren und laufen den kürzesten Weg zur Bastion (dieselben Bewegungsregeln wie Abschnitt 5); Flieger fliegen gerade von der Mitte des Risses zur Mitte der Bastion.
+- **Pro Welle greift ein Riss an.** Die Folge ist gemischt: Blöcke zu vier Wellen, jeder Riss einmal pro Block, nie derselbe zweimal hintereinander. Sie hängt nur am Seed. Die Planung zeigt den Riss der kommenden Welle samt Routenlänge, die Statusleiste auch den danach.
+- **Eine Landung, die irgendeinen Riss von der Bastion abschneidet, ist verboten** — auch einen, der gerade nicht angreift.
+- **Geschützt:** Bastion, Torfelder und je ein Feld Umkreis, dazu die **Sperrzone**: jedes Feld, dessen Mittelpunkt höchstens 4 Felder von der Kartenmitte entfernt ist. Dort kein Bau, keine Landung, keine Ruine. Sie richtet sich gegen den Ring um die Bastion, der sonst alle vier Arme zugleich abdeckt.
+- **Ruinen:** 12 bis 20 einzelne Felder aus dem Seed, jede gegen alle vier Risse geprüft. Mauerreste gibt es hier nicht.
+- **Aufwertung statt Salve:** In der Planung kann statt der Salve eine Stellung einen Rang steigen, für 120, 300, 750 oder 1875 Requisition (auf Veteran, Elite, Held, Legende). Nur ohne markierte Landezonen; keine Kapseln, keine neuen Trümmer, die Welle beginnt sofort. Ab Welle 1, der Preis regelt die Häufigkeit. **Das ist eine andere Regel als „Aufwertung statt Bau" in Abschnitt 11**, nur die Preise sind dieselben; der Standardmodus behält seine.
+
+**Abweichungen vom Standard**, alle als Werte des Modus (`src/data/modes.js`), keine im Standardmodus:
+
+| | Standard | King of the Hill | Grund |
+|---|---|---|---|
+| Kapseln in Welle 1 | 6 | 8 | Studienwert (Entscheidung 02.10.2026) |
+| Start-Requisition | 0 | 30 | Studienwert |
+| Gegner-Lebenspunkte | x 1 | x 0,1 | Die Wege sind etwa halb so lang; Platzhalter der Studie, siehe `balancing/runden/koth-1.md` |
+| Aufwertung | Kapsel in Stellung, ab Welle 30 | statt Salve, ab Welle 1 | siehe oben |
+
+Die Wellenregeln (Abschnitt 9) gelten unverändert, der Faktor kommt obendrauf.
 
 ### Ausblick: Kampagne
 

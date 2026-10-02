@@ -116,6 +116,19 @@ sondern die des Vorschlags.
 npm run powercurve -- --data balancing/runden/runde-2/vorschlag.json
 ```
 
+### King of the Hill (M7b)
+
+```
+npm run koth-bots                                     20 Seeds, Moduswerte
+npm run koth-bots -- --ban 4,3,0 --hp 0.1,0.02 --every 0,4
+```
+
+Die vier Strategien der Studie (Ring, Arm, Mischung, Ausgewogen,
+`tests/tools/koth-strategies.mjs`) über viele Seeds, mit Sperrradius,
+LP-Faktor und Aufwertungsrhythmus zum Durchprobieren — nur im Speicher,
+`src/data` bleibt unberührt. Auch diese Bots sind ungeeicht. Erste Messung:
+[`runden/koth-1.md`](runden/koth-1.md).
+
 ## Testeinstieg
 
 Im Spiel, nur mit `?debug`: **Hauptmenü → Testeinstieg**. Ein Protokoll wählen —

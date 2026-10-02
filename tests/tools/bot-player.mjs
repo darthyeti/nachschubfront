@@ -14,7 +14,9 @@
 import { createGameState } from '../../src/core/state.js';
 import { stepSimulation } from '../../src/sim/step.js';
 import { SIM_STEP } from '../../src/data/settings.js';
-import { requestSalvo, chooseSelection, giveUpSalvo } from '../../src/sim/actions.js';
+import { requestSalvo, chooseSelection, giveUpSalvo, canUpgradeTower, upgradeTower } from '../../src/sim/actions.js';
+import { upgradeKind } from '../../src/sim/selection.js';
+import { towerStats } from '../../src/sim/towers.js';
 import { toggleZone } from '../../src/sim/zones.js';
 import { zoneLimit } from '../../src/sim/zones.js';
 import { selectionOptions } from '../../src/sim/selection.js';
@@ -40,9 +42,12 @@ const BULWARK_FROM_WAVE = 30;
  * @param {number} [options.supply]  Supply level to start on, for the debug case.
  * @param {(line: object) => void} [options.onWave]
  * @param {{mode?: string, difficulty?: string}} [options.config]  Run configuration (M7a).
+ * @param {number} [options.upgradeEvery]  In a mode with the upgrade instead of a
+ *   salvo (M7b): every n-th wave from wave 3 the bot raises an emplacement
+ *   instead of calling a salvo, as the study's bots do. 0 never.
  * @returns {{log: object, state: object, waves: object[], stopped: string}}
  */
-export function playBotMatch({ seed, strategy = 'maze', supply = 1, onWave = null, config = undefined } = {}) {
+export function playBotMatch({ seed, strategy = 'maze', supply = 1, onWave = null, config = undefined, upgradeEvery = 0 } = {}) {
   const how = strategyById(strategy);
   const state = createGameState(seed, config);
   state.supplyLevel = supply;
@@ -52,19 +57,23 @@ export function playBotMatch({ seed, strategy = 'maze', supply = 1, onWave = nul
   let stopped = 'played out';
 
   for (let round = 0; round < totalWaves(); round++) {
-    spend(state);
-    mark(state, how);
-    if (!requestSalvo(state)) {
-      stopped = 'no salvo';
-      break;
-    }
-    if (!run(state, (s) => s.phase === 'selection', 90)) {
-      stopped = 'salvo did not land';
-      break;
-    }
-    if (!pick(state, how)) {
-      stopped = 'no choice was accepted';
-      break;
+    const coming = state.wave + 1;
+    const raised = upgradeEvery > 0 && coming >= 3 && coming % upgradeEvery === 0 && raise(state);
+    if (!raised) {
+      spend(state);
+      mark(state, how);
+      if (!requestSalvo(state)) {
+        stopped = 'no salvo';
+        break;
+      }
+      if (!run(state, (s) => s.phase === 'selection', 90)) {
+        stopped = 'salvo did not land';
+        break;
+      }
+      if (!pick(state, how)) {
+        stopped = 'no choice was accepted';
+        break;
+      }
     }
 
     // Through the wave, with the commands the bot is allowed to spend.
@@ -78,6 +87,30 @@ export function playBotMatch({ seed, strategy = 'maze', supply = 1, onWave = nul
   }
 
   return { log: state.log, state, waves: state.log.waves, stopped };
+}
+
+/**
+ * The upgrade instead of a salvo (M7b): the emplacement whose next rank adds
+ * the most damage, three times as much if it covers the coming arm.
+ * @returns {boolean} True if one was raised and the wave has started.
+ */
+function raise(state) {
+  if (!upgradeKind(state).inPlanning) return false;
+  const lane = state.route?.cells ?? [];
+  let best = null;
+  let bestGain = 0;
+  for (const tower of state.towers) {
+    if (!canUpgradeTower(state, tower.id).ok) continue;
+    const now = towerStats(tower);
+    const gain = towerStats({ ...tower, rank: tower.rank + 1 }).damage - now.damage;
+    const covers = lane.some((c) => Math.hypot(c.x - tower.x, c.y - tower.y) <= now.range);
+    const value = gain * (covers ? 3 : 1);
+    if (value > bestGain) {
+      bestGain = value;
+      best = tower;
+    }
+  }
+  return best !== null && upgradeTower(state, best.id).ok;
 }
 
 /** Steps until `until`, calling `each` on every step. */
@@ -127,7 +160,7 @@ function spend(state) {
   for (const heap of rubbleCells(state)) {
     if (state.requisition - 4 * nextRubbleCost(state) <= 0) break;
     if (!canDemolish(state, heap).ok) continue;
-    const after = routeWith(state.map, [])?.length ?? 0;
+    const after = routeWith(state.map, [], state.riftIndex ?? 0)?.length ?? 0;
     if (after < before) continue;
     const without = routeLengthWithout(state, heap);
     if (without !== null && without >= before) demolish(state, heap);
@@ -145,7 +178,7 @@ function routeLengthWithout(state, cell) {
   const before = obstacle.cells.map(({ x, y }) => grid.blocked[y * grid.size + x]);
   for (const { x, y } of obstacle.cells) grid.blocked[y * grid.size + x] = 0;
   try {
-    return routeWith(state.map, [])?.length ?? null;
+    return routeWith(state.map, [], state.riftIndex ?? 0)?.length ?? null;
   } finally {
     obstacle.cells.forEach(({ x, y }, i) => {
       grid.blocked[y * grid.size + x] = before[i];

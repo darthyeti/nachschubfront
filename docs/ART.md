@@ -285,6 +285,18 @@ Fünf Bildschirme, alle mit dem Skyline-Motiv aus dem Stiltest im Hintergrund, T
 
 **Fortsetzen ohne Zwischenspeicher.** Einen Spielstand mitten im Feldzug gibt es nicht (`docs/SPEICHER.md`). „Fortsetzen" führt deshalb in die laufende Partie zurück und ist ausgegraut, solange keine läuft — also auf dem kalten Titelbildschirm (Entscheidung vom 25.09.2026).
 
+## King of the Hill (M7b)
+
+Derselbe Zeichenstil, nur die Geometrie ist anders (`docs/meilensteine/M7b-king-of-the-hill.md`, B8).
+
+- **Risse:** jedes der zwei Torfelder eines Risses ist ein eigener Warp-Schlund wie im Standardmodus, etwas kleiner (0,8). Der angreifende Riss leuchtet und pulsiert, die drei übrigen glimmen nur und stehen still; bei `prefers-reduced-motion` pulsiert keiner.
+- **Beschriftung:** Nord, Ost, Süd, West in der Comic-Schrift jenseits des Kartenrands, entlang dieser Kante gedreht (Nord und Süd fallen nach rechts, Ost und West steigen), damit sie nie auf der Route liegen, die nach innen führt. Der angreifende Riss trägt seinen Namen größer und in Warp-Violett, in der Planung darunter die Routenlänge in Gold.
+- **Sperrzone:** schräg schraffiert in gedämpftem Rot, darunter ein leichter dunkler Schleier, Rand gestrichelt. Sie verdeckt den Boden nicht.
+- **Bastion:** dieselbe Burg über 2 x 2 Felder, etwa 45 % höher, sortiert nach ihrer vorderen Ecke.
+- **Statusleiste:** eine Plakette „Nord → Süd" (Riss dieser Welle, Riss der nächsten), nur bei mehreren Rissen.
+- **Aufwerten:** eine vierte Runenscheibe mit drei Rangwinkeln, der oberste golden. In ihrem Modus tragen die aufwertbaren Stellungen ihren Preis wie beim Abriss.
+- **Modus-Karte:** eine kleine Skizze der Geometrie neben dem Satz.
+
 ## Technische Umsetzung
 
 - **SVG als Quelle, Canvas als Ausgabe.** Die SVGs werden beim Start einmal in Offscreen-Canvas gerastert und danach nur noch per `drawImage` gezeichnet. Kein SVG-Zeichnen pro Frame.

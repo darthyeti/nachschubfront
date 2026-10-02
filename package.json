@@ -22,6 +22,7 @@
     "ringcheck": "node tests/tools/ringcheck.mjs",
     "replay": "node tests/tools/replay.mjs",
     "bots": "node tests/tools/bots.mjs",
+    "koth-bots": "node tests/tools/koth-bots.mjs",
     "calibrate": "node tests/tools/calibrate.mjs",
     "powercurve": "node tests/tools/powercurve.mjs"
   },
