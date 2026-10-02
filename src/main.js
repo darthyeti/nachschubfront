@@ -60,7 +60,7 @@ import { RULESET_VERSION, isRatedWave } from './data/rules.js';
 import { createRatingRow } from './ui/rating.js';
 import { prepareTestEntry } from './sim/testentry.js';
 import { registerServiceWorker } from './core/updates.js';
-import { sanitizeConfig } from './data/modes.js';
+import { sanitizeConfig, listSelectableModes } from './data/modes.js';
 
 const FLASH_SECONDS = 0.9;
 const STRESS_ENEMIES = 200;
@@ -720,10 +720,14 @@ const menus = createMenus(document.body, {
   onResume() {
     setSpeed(state, speedBeforeMenu);
   },
-  onStart(seed) {
+  onStart(seed, config = runConfig) {
+    const wanted = sanitizeConfig(config, { strict: debug });
     // The title screen shows the seed of the map already generated behind it, so
-    // starting with that seed just plays it instead of rolling a new one.
-    if (!seed || seed !== state.seed) newGame(seed);
+    // starting with that seed just plays it instead of rolling a new one — as
+    // long as it was generated for the mode that is to be played.
+    const sameRun = wanted.mode === state.mode.id && wanted.difficulty === state.difficulty;
+    if (!seed || seed !== state.seed || !sameRun) newGame(seed, wanted);
+    prefs.set('lastRun', { mode: wanted.mode, difficulty: wanted.difficulty });
     matchRunning = true;
     lastSpeed = speedBeforeMenu > 0 ? speedBeforeMenu : 1;
     setSpeed(state, lastSpeed);
@@ -737,6 +741,7 @@ const menus = createMenus(document.body, {
   },
   // The developer door of step 4. Only built with ?debug; a player never sees it.
   testEntry: debug,
+  modes: listSelectableModes(debug),
   onTestEntry: (protocol, wave) => startTestEntry(protocol, wave),
   /** Newest first, because the last match played is the one most likely wanted. */
   onTestProtocols: () => [...protocols.values.matches].reverse(),
@@ -832,6 +837,7 @@ function showEndScreen(victory) {
       [t.total, total],
     ],
     record: previous === null || total > previous.score ? 'new' : null,
+    mode: state.mode.id,
     previousBest: previous?.score ?? null,
   });
 }

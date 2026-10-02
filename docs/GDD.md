@@ -311,3 +311,19 @@ Regeln: Nichts darf ausschließlich über Hover erreichbar sein. Trefferflächen
 - Sprites für Gegner (Blender mit Toon-Shader) falls die Code-Grafik nicht reicht.
 - **Unbegrenzte Nachschubstufe (vorgemerkt, noch nicht umsetzen).** Aus der Auswertung von Spieltest 2 stammt die Idee, die Nachschubstufe über Stufe 8 hinaus weiterführbar zu machen: jede weitere Stufe eine leicht höhere Legende-Chance bei stark steigendem Preis, damit auch ganz späte Requisitionsüberschüsse gebunden werden. Mit Till nicht final abgestimmt und deshalb nicht Teil von v3. Separat aufgreifen, falls Bollwerk und teurere Kommandos allein nicht reichen.
 - ~~Aufwertung statt Bau~~ — **umgesetzt in Balancing-Runde 3 (29.09.2026), siehe Abschnitt 11.**
+
+## 15. Spielmodi
+
+Eine neue Partie hat neben dem Seed eine **Lauf-Konfiguration**: Modus und Schwierigkeit. Beides steht im Partie-Protokoll und am Bestwert; Bestenlisten werden je Modus, Modus-Stand und Schwierigkeit getrennt geführt, wie schon je Regelversion (M7a, `docs/SPEICHER.md`).
+
+- **Standard** ist das Spiel, das dieses Dokument beschreibt. Bis ein zweiter Modus wählbar ist, ändert sich für Spielerinnen und Spieler nichts: „Neue Partie" startet direkt.
+- **Mehr als ein Modus:** „Neue Partie" führt auf einen Bildschirm mit einer Karte je Modus (Name, ein Satz Beschreibung, Bestwert, Kennzeichen „Experimentell"). Antippen markiert nur, „Los" startet. Vorgewählt ist der zuletzt gespielte Modus.
+- **Schwierigkeit:** vorerst nur „Normal". Die Auswahl erscheint, sobald es eine zweite gibt; Zahlen dafür kommen erst nach der Abstimmung in M6.
+- **Regeln, die sich zwischen Modi unterscheiden, sind Daten.** Der Modus-Datensatz in `src/data/modes.js` nennt für jede solche Regel eine Variante, die Simulation schlägt nach, was sie tut. Erste Regel dieser Art ist die Aufwertung (`upgrade.kind`): im Standard `'pod'`, die Regel aus Abschnitt 11.
+- Ein Modus hat einen eigenen Stand (`rev`). Er steigt, wenn eine Regeländerung in diesem Modus alte Ergebnisse unvergleichbar macht, so wie `RULESET_VERSION` für das ganze Spiel.
+
+Der zweite Modus, „King of the Hill" (Bastion in der Mitte, vier Risse), ist in Arbeit: `docs/meilensteine/M7b-king-of-the-hill.md`.
+
+### Ausblick: Kampagne
+
+Eine Kampagne wäre später eine geordnete Folge von Lauf-Konfigurationen mit eigenem Speicherdokument (`nachschubfront:campaign`). Die einzelne Partie weiß nichts von ihr. Damit das möglich bleibt, darf die Lauf-Konfiguration später ein Feld für Übertragenes bekommen (etwa Startwerte aus der vorigen Partie); nichts im Protokollkopf oder im Bestenschlüssel geht davon aus, dass eine Partie für sich allein steht. Gebaut ist davon nichts.

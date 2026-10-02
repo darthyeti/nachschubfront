@@ -11,6 +11,7 @@ import { TEST_WAVES } from '../sim/testentry.js';
 import { validateSeed, randomSeed } from '../core/seed.js';
 import { PREF_DEFAULTS } from '../core/prefs.js';
 import { createRecordsScreen } from './records.js';
+import { createModeScreen } from './modes.js';
 
 const T = STRINGS.menu;
 const TS = STRINGS.settings;
@@ -75,7 +76,10 @@ function createOverlay(root, name, label) {
  * @param {HTMLElement} root
  * @param {object} options
  * @param {ReturnType<import('../core/prefs.js').createPrefs>} options.prefs
- * @param {(seed: string|null) => void} options.onStart  New match; null means a random seed.
+ * @param {(seed: string|null, config?: {mode: string, difficulty: string}) => void} options.onStart
+ *   New match; a null seed means a random one, no config the one played last.
+ * @param {object[]} [options.modes]  Selectable mode records (data/modes.js). With
+ *   more than one, a new match goes through the mode screen first.
  * @param {() => void} options.onResume
  * @param {(seed: string) => void} [options.onPreview]  Regenerates the map behind
  *   the screens from a seed, without starting the match.
@@ -97,6 +101,7 @@ export function createMenus(root, {
   testEntry = false,
   onTestEntry = null,
   onTestProtocols = null,
+  modes = [],
 }) {
   /** @type {'main'|'seed'|'pause'|'settings'|'records'|'end'|null} */
   let open = null;
@@ -108,6 +113,26 @@ export function createMenus(root, {
   let settingsReturn = 'main';
   /** The same for the records screen, which the end screen also opens. */
   let recordsReturn = 'main';
+  /** Where the mode screen came from, and the seed it is to start with. */
+  let modeReturn = 'main';
+  let modeSeed = null;
+  /** Only with a choice to make does a new match pass through the mode screen. */
+  const choosesMode = modes.length > 1;
+
+  /**
+   * Starts a new match from the title or the seed screen: straight away with one
+   * mode, as before M7a; through the mode screen with more.
+   */
+  function begin(startSeed, from) {
+    if (!choosesMode) {
+      close();
+      onStart(startSeed);
+      return;
+    }
+    modeSeed = startSeed;
+    modeReturn = from;
+    show('mode');
+  }
 
   // ---------- Main menu ----------
   const main = createOverlay(root, 'main', STRINGS.gameTitle);
@@ -117,10 +142,7 @@ export function createMenus(root, {
   // "Neue Partie" plays the map already generated behind this screen, as long
   // as nothing has been played on it. Once a match has run, it rolls a fresh
   // one instead of replaying the same map.
-  const startButton = button(T.start, 'primary menu-primary', () => {
-    close();
-    onStart(fresh ? seed : null);
-  });
+  const startButton = button(T.start, 'primary menu-primary', () => begin(fresh ? seed : null, 'main'));
   // There is no save in mid-campaign (docs/SPEICHER.md), so this leads back
   // into the running match and nowhere else.
   const resumeButton = button(T.resumeMatch, 'alt', () => {
@@ -185,8 +207,7 @@ export function createMenus(root, {
     button(T.seedStart, 'primary menu-primary', () => {
       const picked = takeSeed();
       if (picked === null) return;
-      close();
-      onStart(picked);
+      begin(picked, 'seed');
     }),
     button(T.seedApply, 'alt', () => {
       const picked = takeSeed();
@@ -462,6 +483,7 @@ export function createMenus(root, {
   const recordsScreen = createRecordsScreen(records.panel, {
     profile,
     canStore,
+    modes,
     onSeed(taken) {
       seedInput.value = taken;
       saySeed('');
@@ -470,10 +492,28 @@ export function createMenus(root, {
     onBack: () => show(recordsReturn),
   });
 
+  // ---------- Mode choice (M7a) ----------
+  const modeOverlay = choosesMode ? createOverlay(root, 'mode', T.modeTitle) : null;
+  const modeScreen = modeOverlay
+    ? createModeScreen(modeOverlay.panel, {
+        modes,
+        profile,
+        prefs,
+        onGo(config) {
+          close();
+          onStart(modeSeed, config);
+        },
+        onBack: () => show(modeReturn),
+      })
+    : null;
+
   // ---------- End screen ----------
   const end = createOverlay(root, 'end', TE.victory);
   const endTitle = el('h2', 'menu-title');
   const endDetail = el('p', 'menu-subtitle');
+  // Which mode it was, said only while there is more than one to tell apart.
+  const endMode = el('p', 'menu-hint');
+  endMode.hidden = true;
   const endScore = el('dl', 'menu-score');
   // One line under the score: either the new record or the one still standing.
   const endRecord = el('p', 'menu-record');
@@ -492,7 +532,7 @@ export function createMenus(root, {
     exportButton('end'),
     button(T.toMenu, 'alt', () => show('main')),
   );
-  end.panel.append(endTitle, endDetail, endScore, endRecord, endActions, exportSays.end);
+  end.panel.append(endTitle, endDetail, endMode, endScore, endRecord, endActions, exportSays.end);
 
   // ---------- Notices ----------
   // An update concerns the title screen and the pause screen, so each gets its
@@ -562,6 +602,7 @@ export function createMenus(root, {
 
   const screens = { main, seed: seedScreen, pause, settings, records, end };
   if (testScreen) screens.testEntry = testScreen;
+  if (modeOverlay) screens.mode = modeOverlay;
 
   function show(name, from) {
     if (from) {
@@ -570,6 +611,7 @@ export function createMenus(root, {
     }
     if (name === 'records') recordsScreen.refresh();
     if (name === 'testEntry') refreshTestEntry();
+    if (name === 'mode') modeScreen.refresh();
     for (const [key, screen] of Object.entries(screens)) screen.overlay.hidden = key !== name;
     const wasOpen = open !== null;
     open = name;
@@ -599,6 +641,8 @@ export function createMenus(root, {
         show(recordsReturn);
       } else if (name === 'seed' || name === 'testEntry') {
         show('main');
+      } else if (name === 'mode') {
+        show(modeReturn);
       }
     });
   }
@@ -619,8 +663,10 @@ export function createMenus(root, {
       }
     },
     /** Shows the result of a finished match. */
-    showEnd({ victory, wave, seed, lines, record = null, previousBest = null }) {
+    showEnd({ victory, wave, seed, lines, record = null, previousBest = null, mode = null }) {
       endSeed = seed;
+      endMode.hidden = !choosesMode || !mode;
+      endMode.textContent = mode ? TE.mode(STRINGS.modes[mode]?.name ?? mode) : '';
       endTitle.textContent = victory ? TE.victory : TE.defeat;
       endDetail.textContent = victory ? TE.victoryDetail : TE.defeatDetail(wave);
       end.overlay.dataset.result = victory ? 'victory' : 'defeat';

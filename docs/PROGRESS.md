@@ -193,7 +193,32 @@ in der Mitte, vier Risse; Studie `reference/studien/king-of-the-hill.html`).
 M7b erst nach M7a.
 
 - **Schritt 0 ✓** (02.10.) Aufträge und Studie abgelegt, Golden-Test auf `main`.
-- **Als Nächstes:** M7a auf dem Zweig `modi`, nach Abschluss schnell nach `main`.
+- **M7a umgesetzt** (02.10., Zweig `modi`), wartet auf Abnahme und Zusammenführen:
+  `src/data/modes.js` (`standard`, `standard-klon` nur mit `?debug`),
+  `createGameState(seed, config)`, Protokollformat 2, Profilformat 2 mit
+  Migration, `prefs.lastRun`, Modus-Bildschirm und Umschalter in der
+  Bestenliste. Ohne `?debug` ist nichts davon sichtbar. GDD Abschnitt 15,
+  `docs/SPEICHER.md` und ART.md nachgezogen.
+- **Als Nächstes:** M7b auf eigenem Zweig, erst wenn M7a auf `main` ist.
+
+**Wo M7a vom Auftrag abweicht** (dort steht, dass der Code gilt):
+
+- `onStart(seed, config)` statt `onStart(config)`: Das Menü reicht den Seed schon
+  durch, die Konfiguration kommt dazu. Ohne Konfiguration gilt die der letzten
+  Partie — so bleiben „Neue Partie" und „Gleicher Seed" auf dem Ende-Bildschirm
+  im gespielten Modus, ohne den Modus-Bildschirm noch einmal zu zeigen.
+- Die Einstellungen liegen in `src/core/prefs.js` (geteilt), nicht unter
+  `src/storage/`; `lastRun` steht deshalb dort.
+- Auch „Seed eingeben → Starten" führt über den Modus-Bildschirm, wenn es mehr
+  als einen Modus gibt. Der Auftrag nennt nur „Neue Partie".
+- Ende-Bildschirm und Bestenliste nennen den Modus nur, solange mehr als einer
+  wählbar ist — sonst wäre es eine sichtbare Änderung für alle.
+- Der Umschalter der Bestenliste wählt nur den Modus; die Schwierigkeit ist
+  „normal", bis es eine zweite gibt.
+- `startMatch` in `tests/tools/server.mjs` wählt mit `?debug` einen Modus und
+  drückt „Los", weil der Modus-Bildschirm sonst jede Browser-Prüfung aufhält.
+- Unbekannte Modus-IDs von außen (URL, Einstellungen): mit `?debug` ein Fehler,
+  sonst Standard mit einer Zeile in der Konsole (`sanitizeConfig`).
 
 **Golden-Test** (`tests/unit/golden.test.js`, Hashes in `golden.json`): Die
 sieben Protokolle aus `balancing/protokolle/`, unter den heutigen Regeln
@@ -218,8 +243,8 @@ mit Spitze bei 14 (wie oben unter Runde 3 beschrieben).
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (453), darunter der Golden-Test (etwa 14 s) |
-| `npm run test:input` | 64 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
+| `npm test` | Unit-Tests (474), darunter der Golden-Test (etwa 14 s) |
+| `npm run test:input` | 73 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |
 | `npm run test:offline` · `test:webkit` | Service Worker · alles in WebKit |

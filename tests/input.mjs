@@ -504,6 +504,8 @@ try {
       assert.match(await end.locator('.menu-score').textContent(), /Punkte/);
       // Every screen pauses the match.
       assert.equal((await game(page)).speed, 0);
+      // With ?debug there are two modes, so the result says which one it was (M7a).
+      assert.equal(await end.locator('.menu-hint').first().textContent(), 'Modus: Standard');
       await end.getByRole('button', { name: 'Neue Partie' }).tap();
       await frames(page);
       const s = await game(page);
@@ -1307,6 +1309,10 @@ try {
       await page.waitForSelector('.menu[data-menu="main"]:not([hidden])');
       await page.getByRole('button', { name: 'Neue Partie' }).tap();
       await page.waitForSelector('.menu[data-menu="main"]', { state: 'hidden' });
+      // ?debug offers two modes, so the mode screen comes in between (M7a).
+      await page.locator('.menu[data-menu="mode"] [data-mode="standard"]').tap();
+      await page.getByRole('button', { name: 'Los' }).tap();
+      await page.waitForSelector('.menu[data-menu="mode"]', { state: 'hidden' });
     });
 
     await check('a lost match lands in the list, in the statistics and in storage', async () => {
@@ -1319,11 +1325,10 @@ try {
       const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:profile')));
       assert.equal(stored.stats.matches, 1, 'the match is on disk, not only on screen');
       assert.equal(stored.stats.victories, 0);
-      assert.ok(
-        stored.best[String(RULESET_VERSION)]?.length === 1,
-        'filed under the current ruleset version',
-      );
-      assert.equal(stored.best[String(RULESET_VERSION)][0].seed, SEED);
+      const filed = stored.best[String(RULESET_VERSION)]?.['standard|1|normal'];
+      assert.ok(filed?.length === 1, 'filed under the current ruleset version, in the standard compartment');
+      assert.equal(filed[0].seed, SEED);
+      assert.equal(stored.version, 2);
 
       await page.getByRole('button', { name: 'Bestenliste' }).tap();
       await page.waitForSelector('.menu[data-menu="records"]:not([hidden])');
@@ -1527,6 +1532,101 @@ try {
       assert.ok(!('best' in prefs), 'settings and record stay two documents');
     });
 
+    await context.close();
+  }
+
+  // ---------- Mode screen (M7a) ----------
+  // Tablet sizes from the order, both ways round. Without ?debug there is one
+  // mode and nothing new to see; with it, the clone makes the screen appear.
+  for (const [label, viewport] of [
+    ['landscape', { width: 1024, height: 768 }],
+    ['portrait', { width: 768, height: 1024 }],
+  ]) {
+    console.log(`mode screen (tablet, ${label})`);
+    const context = await browser.newContext({ viewport, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+    const page = await context.newPage();
+    watchProblems(page, `modes-${label}`, problems);
+    const modeScreen = page.locator('.menu[data-menu="mode"]');
+
+    await check(`${label}: one mode, and "Neue Partie" starts as it always did`, async () => {
+      await page.goto(`${server.url}?seed=${SEED}`, { waitUntil: 'networkidle' });
+      await page.waitForSelector('body[data-ready]');
+      await page.getByRole('button', { name: 'Neue Partie' }).tap();
+      await page.waitForSelector('.menu[data-menu="main"]', { state: 'hidden' });
+      assert.equal(await modeScreen.count(), 0, 'no mode screen is even built');
+    });
+
+    await check(`${label}: with ?debug the mode screen comes first, every card a fair target`, async () => {
+      await page.goto(`${server.url}?seed=${SEED}&debug`, { waitUntil: 'networkidle' });
+      await page.waitForSelector('body[data-ready]');
+      await page.getByRole('button', { name: 'Neue Partie' }).tap();
+      await modeScreen.waitFor({ state: 'visible' });
+      const boxes = await modeScreen.locator('button').evaluateAll((list) =>
+        list.filter((b) => b.offsetParent).map((b) => [b.textContent, b.getBoundingClientRect()]),
+      );
+      for (const [text, box] of boxes) {
+        assert.ok(box.width >= 44 && box.height >= 44, `"${text}" is ${box.width} x ${box.height}`);
+      }
+      const cards = await modeScreen.locator('.mode-card').evaluateAll((list) => list.map((c) => c.getBoundingClientRect()));
+      assert.equal(cards.length, 2);
+      if (label === 'landscape') assert.equal(cards[0].top, cards[1].top, 'side by side');
+      else assert.ok(cards[1].top > cards[0].bottom, 'one above the other');
+      assert.ok(await modeScreen.locator('.mode-difficulty').isHidden(), 'one difficulty, no row for it');
+      assert.equal(await modeScreen.locator('.mode-card.on').getAttribute('data-mode'), 'standard');
+      await page.screenshot({ path: join(OUT, `modes-${label}.png`) });
+    });
+
+    await check(`${label}: a card only marks, "Los" starts in that mode, and it is remembered`, async () => {
+      await modeScreen.locator('[data-mode="standard-klon"]').tap();
+      assert.ok(await modeScreen.isVisible(), 'picking a card does not start the match');
+      assert.equal(await modeScreen.locator('.mode-card.on').getAttribute('data-mode'), 'standard-klon');
+      await modeScreen.getByRole('button', { name: 'Los' }).tap();
+      await modeScreen.waitFor({ state: 'hidden' });
+      const s = await game(page);
+      assert.equal(s.mode, 'standard-klon');
+      assert.ok(s.speed > 0, 'the match runs');
+      assert.equal(await page.evaluate(() => window.__nachschub.log().mode), 'standard-klon');
+      const prefs = await page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:prefs')));
+      assert.deepEqual(prefs.lastRun, { mode: 'standard-klon', difficulty: 'normal' });
+
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForSelector('body[data-ready]');
+      await page.getByRole('button', { name: 'Neue Partie' }).tap();
+      await modeScreen.waitFor({ state: 'visible' });
+      assert.equal(await modeScreen.locator('.mode-card.on').getAttribute('data-mode'), 'standard-klon', 'preselected');
+      await modeScreen.getByRole('button', { name: 'Zurück' }).tap();
+      await page.waitForSelector('.menu[data-menu="main"]:not([hidden])');
+    });
+
+    await check(`${label}: the records keep one list per mode`, async () => {
+      await page.getByRole('button', { name: 'Bestenliste' }).tap();
+      const records = page.locator('.menu[data-menu="records"]');
+      await records.waitFor({ state: 'visible' });
+      const switcher = records.locator('.records-modes');
+      assert.ok(await switcher.isVisible());
+      await switcher.getByRole('radio', { name: 'Standard (Klon)' }).tap();
+      assert.equal(await switcher.locator('button.on').textContent(), 'Standard (Klon)');
+      await records.getByRole('button', { name: 'Zurück' }).tap();
+    });
+
+    await context.close();
+  }
+
+  console.log('mode screen (narrow, 400 px)');
+  {
+    const context = await browser.newContext({ viewport: { width: 400, height: 740 }, hasTouch: true, isMobile: true });
+    const page = await context.newPage();
+    watchProblems(page, 'modes-narrow', problems);
+    await check('at 400 px nothing scrolls sideways', async () => {
+      await page.goto(`${server.url}?seed=${SEED}&debug`, { waitUntil: 'networkidle' });
+      await page.waitForSelector('body[data-ready]');
+      await page.getByRole('button', { name: 'Neue Partie' }).tap();
+      await page.locator('.menu[data-menu="mode"]').waitFor({ state: 'visible' });
+      const wide = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+      assert.equal(wide, false);
+      const panel = await page.locator('.menu[data-menu="mode"] .menu-panel').evaluate((p) => p.scrollWidth > p.clientWidth);
+      assert.equal(panel, false, 'and the panel does not overflow either');
+    });
     await context.close();
   }
 

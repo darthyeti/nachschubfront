@@ -8,6 +8,7 @@
 import { STRINGS } from '../data/strings.js';
 import { RULESET_VERSION } from '../data/rules.js';
 import { bestList, favouriteDoctrine, exportProfile, parseImport, summarize } from '../storage/profile.js';
+import { DEFAULT_CONFIG, runKey } from '../data/modes.js';
 
 const T = STRINGS.records;
 
@@ -50,14 +51,41 @@ function fileName(now = new Date()) {
  * @param {(seed: string) => void} options.onSeed   Carries a seed to the main menu.
  * @param {() => void} options.onBack
  * @param {boolean} options.canStore
+ * @param {object[]} [options.modes]  Selectable mode records; with more than one the
+ *   screen gets a switch, one list per mode (M7a).
  */
-export function createRecordsScreen(panel, { profile, onSeed, onBack, canStore = true }) {
+export function createRecordsScreen(panel, { profile, onSeed, onBack, canStore = true, modes = [] }) {
   panel.append(el('h2', 'menu-title', T.title));
   panel.append(el('p', 'menu-subtitle', T.intro));
   if (!canStore) panel.append(el('p', 'menu-warning', T.storageWarning));
   const locked = el('p', 'menu-warning', T.lockedWarning);
   locked.hidden = true;
   panel.append(locked);
+
+  // ---------- Mode switch (M7a) ----------
+  // One list per mode, and the switch only once there are two to switch between.
+  // The difficulty is the default one until there is a second one to choose.
+  let shownMode = modes.find((m) => m.id === DEFAULT_CONFIG.mode) ?? modes[0] ?? null;
+  const modeSwitch = el('div', 'menu-choice records-modes');
+  modeSwitch.setAttribute('role', 'radiogroup');
+  modeSwitch.setAttribute('aria-label', T.modeSwitch);
+  modeSwitch.hidden = modes.length < 2;
+  const modeButtons = modes.map((mode) => {
+    const b = button(STRINGS.modes[mode.id]?.name ?? mode.id, 'alt', () => {
+      shownMode = mode;
+      refresh();
+    });
+    b.dataset.mode = mode.id;
+    b.setAttribute('role', 'radio');
+    modeSwitch.append(b);
+    return b;
+  });
+  panel.append(modeSwitch);
+
+  /** The compartment the table shows. */
+  function shownKey() {
+    return shownMode ? runKey(shownMode.id, shownMode.rev, DEFAULT_CONFIG.difficulty) : undefined;
+  }
 
   // ---------- Best runs ----------
   const table = el('table', 'records-table');
@@ -295,7 +323,12 @@ export function createRecordsScreen(panel, { profile, onSeed, onBack, canStore =
   /** Redraws everything from the current profile. Called whenever it is shown. */
   function refresh() {
     const p = profile.values;
-    const list = bestList(p);
+    for (const b of modeButtons) {
+      const on = b.dataset.mode === shownMode?.id;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-checked', String(on));
+    }
+    const list = bestList(p, shownKey());
     fillTable(list);
     table.hidden = list.length === 0;
     empty.hidden = list.length > 0;

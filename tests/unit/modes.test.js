@@ -73,6 +73,16 @@ test('every mode and difficulty is complete', () => {
   }
 });
 
+test('the mode screen preselects the last run while its mode is still offered', async () => {
+  const { initialChoice } = await import('../../src/ui/modes.js');
+  const all = listSelectableModes(true);
+  const klon = { mode: 'standard-klon', difficulty: 'normal' };
+  assert.deepEqual(initialChoice(klon, all), klon);
+  assert.deepEqual(initialChoice(klon, listSelectableModes(false)), { ...DEFAULT_CONFIG });
+  assert.deepEqual(initialChoice({ mode: 'aus-der-zukunft', difficulty: 'albtraum' }, all), { ...DEFAULT_CONFIG });
+  assert.deepEqual(initialChoice(undefined, all), { ...DEFAULT_CONFIG });
+});
+
 test('the run key names mode, its revision and the difficulty', () => {
   assert.equal(runKey('standard', 1, 'normal'), 'standard|1|normal');
 });

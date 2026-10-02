@@ -12,12 +12,19 @@ export const ROOT = fileURLToPath(new URL('../..', import.meta.url));
  * Every browser script needs this before it can touch the HUD.
  * @param {import('playwright').Page} page
  */
-export async function startMatch(page) {
+export async function startMatch(page, mode = 'standard') {
   await page.waitForSelector('body[data-ready]');
   const start = page.getByRole('button', { name: 'Neue Partie' });
   await start.waitFor({ state: 'visible' });
   await start.click();
   await page.waitForSelector('.menu[data-menu="main"]', { state: 'hidden' });
+  // With ?debug there is more than one mode, and the mode screen comes first (M7a).
+  const modes = page.locator('.menu[data-menu="mode"]');
+  if (await modes.isVisible()) {
+    await modes.locator(`[data-mode="${mode}"]`).click();
+    await modes.getByRole('button', { name: 'Los' }).click();
+    await modes.waitFor({ state: 'hidden' });
+  }
 }
 
 const TYPES = {

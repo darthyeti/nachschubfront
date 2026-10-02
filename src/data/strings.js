@@ -98,8 +98,20 @@ export const STRINGS = {
     },
   },
 
+  /** Difficulty names (src/data/modes.js); the choice appears once there are two. */
+  difficulties: {
+    normal: 'Normal',
+  },
+
   menu: {
     subtitle: 'Grimdark Tower Defense',
+    modeTitle: 'Modus wählen',
+    modeIntro: 'Eine Karte antippen, dann mit „Los“ starten.',
+    modeGo: 'Los',
+    modeExperimental: 'Experimentell',
+    modeBest: (score, wave) => `Bestwert ${score} Punkte · Welle ${wave}`,
+    modeNoRun: 'Noch keine Partie',
+    difficultyLabel: 'Schwierigkeit',
     tagline: 'Halte den Riss. Baue das Labyrinth. Fünfzig Wellen.',
     start: 'Neue Partie',
     resumeMatch: 'Fortsetzen',
@@ -199,6 +211,7 @@ export const STRINGS = {
     seedTitle: (seed) => `Seed ${seed} ins Hauptmenü übernehmen`,
     taken: (seed) => `Seed ${seed} übernommen.`,
     olderRules: (n) => `Dazu ${n} ältere Läufe aus einer früheren Regelversion.`,
+    modeSwitch: 'Bestenliste für Modus',
 
     stats: 'Statistik',
     matches: 'Partien',
@@ -303,6 +316,7 @@ export const STRINGS = {
     again: 'Neue Partie',
     sameSeed: 'Gleicher Seed',
     records: 'Bestenliste',
+    mode: (name) => `Modus: ${name}`,
     newRecord: 'Neuer Bestwert für diesen Seed',
     previousBest: (score) => `Bisher bester Lauf auf diesem Seed: ${score} Punkte`,
   },

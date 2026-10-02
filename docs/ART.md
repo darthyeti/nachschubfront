@@ -281,6 +281,7 @@ Fünf Bildschirme, alle mit dem Skyline-Motiv aus dem Stiltest im Hintergrund, T
 | Pause | Halbtransparent über der laufenden Partie: Fortsetzen (golden), Einstellungen, Partie verlassen, darunter eine kompakte Statuszeile (Welle, Leben, Requisition) zur Orientierung |
 | Einstellungen | Regler für Musik- und Effektlautstärke, Schalter für reduzierte Bewegung, Sprachanzeige (fest Deutsch), Exportieren und Importieren des Spielstands, Zurück (golden) |
 | Ende | Titel Sieg oder Niederlage, Kennzahlen (Punkte, verbleibende Leben, Abschüsse, gegebenenfalls neuer Bestwert), Nochmal (golden) und Hauptmenü |
+| Modus wählen (M7a) | Nur, wenn mehr als ein Modus wählbar ist. Eine Karte je Modus als Textknopf-Platte: Name in Pirata One, ein Satz Beschreibung, Bestwert, rotes Kennzeichen „Experimentell". Die gewählte Karte bekommt einen goldenen Innenrand. Zwei Karten nebeneinander im Querformat, untereinander im Hochformat, ab fünf scrollt die Liste. Darunter „Los" (golden) und Zurück |
 
 **Fortsetzen ohne Zwischenspeicher.** Einen Spielstand mitten im Feldzug gibt es nicht (`docs/SPEICHER.md`). „Fortsetzen" führt deshalb in die laufende Partie zurück und ist ausgegraut, solange keine läuft — also auf dem kalten Titelbildschirm (Entscheidung vom 25.09.2026).
 
