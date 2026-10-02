@@ -49,14 +49,14 @@ export const MODES = {
   /**
    * King of the Hill (M7b): the bastion in the middle of the map, four rifts on
    * the edges taking turns, a ban zone around the centre, and an upgrade that
-   * replaces the salvo. Debug only until it can be played through; then
-   * experimental until Till has played it (decision of 02.10.2026).
+   * replaces the salvo. In the menu for everyone, marked experimental until
+   * Till has played it and released it (decision of 02.10.2026).
    */
   koth: {
     id: 'koth',
     rev: 1,
     status: 'experimental',
-    debugOnly: true,
+    debugOnly: false,
     map: KOTH_MAP,
     /** Which rift attacks when (sim/rifts.js): 'mixed' or 'cycle'. */
     riftOrder: 'mixed',

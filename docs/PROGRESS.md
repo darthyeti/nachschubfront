@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.9.1**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
+Version **0.9.5**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
 **M6 Balancing** und, parallel dazu, **M7 Spielmodi** (freigegeben 02.10.2026).
 
 | | | abgenommen |
@@ -18,7 +18,7 @@ Version **0.9.1**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
 | M5d | Koloss, Stellungsgrafik, Gunship (Update 7) | 27.09.2026 |
 | **M6** | **Balancing und Feinschliff** | **in Arbeit** |
 | M7a | Modus-Gerüst | 02.10.2026 |
-| **M7b** | **Modus „King of the Hill"** | **in Arbeit, parallel zu M6** |
+| M7b | Modus „King of the Hill" (im Menü als „Experimentell") | 02.10.2026 |
 
 **Arbeitsweise versioniert:** Rollen von Chat und Code sowie die Regeln für
 paralleles Arbeiten stehen in [`docs/ARBEITSWEISE.md`](ARBEITSWEISE.md);
@@ -198,18 +198,20 @@ M7b erst nach M7a.
   `src/data/modes.js` (`standard`, `standard-klon` nur mit `?debug`),
   `createGameState(seed, config)`, Protokollformat 2, Profilformat 2 mit
   Migration, `prefs.lastRun`, Modus-Bildschirm und Umschalter in der
-  Bestenliste. Ohne `?debug` ist nichts davon sichtbar. GDD Abschnitt 15,
-  `docs/SPEICHER.md` und ART.md nachgezogen.
-- **M7b umgesetzt** (02.10., Zweig `koth`), wartet auf Abnahme: King of the
-  Hill spielbar, nur mit `?debug` (`debugOnly: true`). Karte, Wege aus einem
-  Entfernungsfeld, Rissfolge, Sperrzone, Aufwertung statt Salve
+  Bestenliste. GDD Abschnitt 15, `docs/SPEICHER.md` und ART.md nachgezogen.
+- **M7b ✓** (02.10., von Till abgenommen und nach `main` zusammengeführt,
+  Version 0.9.5): King of the Hill steht **für alle im Menü, gekennzeichnet
+  „Experimentell"** (Entscheidung 02.10.: schon vor der Kalibrierung). Damit
+  führt „Neue Partie" jetzt immer über den Modus-Bildschirm. Karte, Wege aus
+  einem Entfernungsfeld, Rissfolge, Sperrzone, Aufwertung statt Salve
   (`upgrade.kind: 'ladder'`), Darstellung, Modus-Karte, Bots
-  (`npm run koth-bots`). GDD Abschnitt 15, ART, SPEICHER unverändert.
-- **Kalibrierung 1** ([`koth-1.md`](../balancing/runden/koth-1.md)): Werte
-  unverändert. Die Richtwerte des Auftrags sind erfüllt, aber alle Bots
-  verlieren früh — an der Abdeckung, nicht an der Gegnerstärke. **Es braucht
-  eine gespielte Partie** (`?debug&mode=koth`), dann entscheidet Till über
-  `debugOnly` und „Experimentell".
+  (`npm run koth-bots`). GDD Abschnitt 15 und ART nachgezogen.
+- **Offen für King of the Hill:** Kalibrierung 1
+  ([`koth-1.md`](../balancing/runden/koth-1.md)) hat keine Werte geändert. Die
+  Richtwerte des Auftrags sind erfüllt, aber alle Bots verlieren früh — an der
+  Abdeckung, nicht an der Gegnerstärke. **Es braucht eine gespielte Partie.**
+  Danach entscheidet Till, ob das Kennzeichen „Experimentell" fällt; wird dann
+  eine Regel des Modus geändert, steigt sein `rev` (eigene Bestenliste).
 
 **Wo M7b vom Auftrag abweicht:**
 

@@ -4,4 +4,4 @@
 // which build wrote it) and by the tool that builds the service worker's cache
 // name. Raise the middle number with every milestone, the last one for fixes in
 // between.
-export const APP_VERSION = '0.9.4';
+export const APP_VERSION = '0.9.5';

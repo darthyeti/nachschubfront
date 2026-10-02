@@ -1638,12 +1638,16 @@ try {
     watchProblems(page, `modes-${label}`, problems);
     const modeScreen = page.locator('.menu[data-menu="mode"]');
 
-    await check(`${label}: one mode, and "Neue Partie" starts as it always did`, async () => {
+    await check(`${label}: without ?debug a player chooses between Standard and King of the Hill`, async () => {
       await page.goto(`${server.url}?seed=${SEED}`, { waitUntil: 'networkidle' });
       await page.waitForSelector('body[data-ready]');
       await page.getByRole('button', { name: 'Neue Partie' }).tap();
-      await page.waitForSelector('.menu[data-menu="main"]', { state: 'hidden' });
-      assert.equal(await modeScreen.count(), 0, 'no mode screen is even built');
+      await modeScreen.waitFor({ state: 'visible' });
+      const ids = await modeScreen.locator('.mode-card').evaluateAll((list) => list.map((c) => c.dataset.mode));
+      assert.deepEqual(ids, ['standard', 'koth'], 'the clone stays a debug tool');
+      const badge = modeScreen.locator('[data-mode="koth"] .mode-card-badge');
+      assert.equal(await badge.textContent(), 'Experimentell');
+      await modeScreen.getByRole('button', { name: 'Zurück' }).tap();
     });
 
     await check(`${label}: with ?debug the mode screen comes first, every card a fair target`, async () => {

@@ -316,7 +316,7 @@ Regeln: Nichts darf ausschließlich über Hover erreichbar sein. Trefferflächen
 
 Eine neue Partie hat neben dem Seed eine **Lauf-Konfiguration**: Modus und Schwierigkeit. Beides steht im Partie-Protokoll und am Bestwert; Bestenlisten werden je Modus, Modus-Stand und Schwierigkeit getrennt geführt, wie schon je Regelversion (M7a, `docs/SPEICHER.md`).
 
-- **Standard** ist das Spiel, das dieses Dokument beschreibt. Bis ein zweiter Modus wählbar ist, ändert sich für Spielerinnen und Spieler nichts: „Neue Partie" startet direkt.
+- **Standard** ist das Spiel, das dieses Dokument beschreibt. Gibt es nur einen wählbaren Modus, startet „Neue Partie" direkt; seit Version 0.9.5 sind es zwei.
 - **Mehr als ein Modus:** „Neue Partie" führt auf einen Bildschirm mit einer Karte je Modus (Name, ein Satz Beschreibung, Bestwert, Kennzeichen „Experimentell"). Antippen markiert nur, „Los" startet. Vorgewählt ist der zuletzt gespielte Modus.
 - **Schwierigkeit:** vorerst nur „Normal". Die Auswahl erscheint, sobald es eine zweite gibt; Zahlen dafür kommen erst nach der Abstimmung in M6.
 - **Regeln, die sich zwischen Modi unterscheiden, sind Daten.** Der Modus-Datensatz in `src/data/modes.js` nennt für jede solche Regel eine Variante, die Simulation schlägt nach, was sie tut. Erste Regel dieser Art ist die Aufwertung (`upgrade.kind`): im Standard `'pod'`, die Regel aus Abschnitt 11.
@@ -324,7 +324,7 @@ Eine neue Partie hat neben dem Seed eine **Lauf-Konfiguration**: Modus und Schwi
 
 ### King of the Hill (experimentell)
 
-Auftrag: `docs/meilensteine/M7b-king-of-the-hill.md`, Studie `reference/studien/king-of-the-hill.html`. Bis zur Freigabe nur mit `?debug` wählbar.
+Auftrag: `docs/meilensteine/M7b-king-of-the-hill.md`, Studie `reference/studien/king-of-the-hill.html`. Seit Version 0.9.5 für alle im Menü, gekennzeichnet „Experimentell", bis Till ihn nach einer gespielten Partie freigibt.
 
 - **Karte 24 x 24, die Bastion in der Mitte** (2 x 2 Felder), **vier Risse** an den Kanten mit je zwei Torfeldern. Keine Signalfeuer. Bodengegner kommen abwechselnd aus den beiden Toren und laufen den kürzesten Weg zur Bastion (dieselben Bewegungsregeln wie Abschnitt 5); Flieger fliegen gerade von der Mitte des Risses zur Mitte der Bastion.
 - **Pro Welle greift ein Riss an.** Die Folge ist gemischt: Blöcke zu vier Wellen, jeder Riss einmal pro Block, nie derselbe zweimal hintereinander. Sie hängt nur am Seed. Die Planung zeigt den Riss der kommenden Welle samt Routenlänge, die Statusleiste auch den danach.
