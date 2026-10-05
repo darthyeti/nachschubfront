@@ -188,7 +188,12 @@ Vorher landeten 1 bis 3 Granaten einer Koloss-Welle auf ihm, jetzt 14 bis 49.
 Keine Balancing-Zahl geändert, aber das Spiel: Bestwerte aus Regelversion 6
 liegen in einer eigenen Liste.
 
-**Protokolle als Maßstab:** U4AZZQ und JGR9H6 spielen sich auch unter
+**Tills Partie 4RCC95** (05.10., Regelversion 7): Sieg mit 7 von 20, Verluste nur
+an Koloss (W35) und Boss (W40), Route 243 — die längste bisher. Requisition über
+4000 am Ende, alle neun Bewertungen „passt". Einzelheiten in `runde-4.md`. Die
+Partien der anderen Spieler stehen noch aus.
+
+**Protokolle als Maßstab:** 4RCC95 (Regelversion 7), U4AZZQ und JGR9H6 spielen sich auch unter
 Regelversion 7 Welle für Welle nach (in beiden entscheidet kein Mörser über den
 Koloss). 75YZ4E (King of the Hill) stimmt bis Welle 44; ab dem zweiten Koloss in
 Welle 45 stirbt er früher und reißt weniger ab. Die älteren gehören zu Regeln vor
@@ -269,7 +274,7 @@ Nachspielen nach einem Risswechsel die Spur der Vorrunde.
   sonst Standard mit einer Zeile in der Konsole (`sanitizeConfig`).
 
 **Golden-Test** (`tests/unit/golden.test.js`, Hashes in `golden.json`): Die
-neun Protokolle aus `balancing/protokolle/`, unter den heutigen Regeln
+zehn Protokolle aus `balancing/protokolle/`, unter den heutigen Regeln
 nachgespielt, und drei Bot-Partien müssen bitgleich bleiben. **Der Hash wird nur
 in einem Commit erneuert, der `RULESET_VERSION` anhebt oder ausdrücklich sagt,
 dass er das Spiel ändert** (`GOLDEN_WRITE=1 node --test tests/unit/golden.test.js`).

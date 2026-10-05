@@ -247,3 +247,41 @@ Nachschub, Verschmelzen, Labyrinth, Kommandos.
   vertretbar, solange das Spiel vorher zeigt, was man dagegen tut.
 - Eine Partie ist eine Partie. Eine zweite des neuen Spielers würde zeigen, ob
   er die Systeme nach der ersten Niederlage findet.
+
+---
+
+## Tills Partie unter Regelversion 7: 4RCC95 (05.10.2026)
+
+Version 0.9.6, die erste Partie mit Mörsern, die den Koloss treffen. Spielt sich
+Welle für Welle nach. **Sieg mit 7 von 20 Leben**, verloren nur an den beiden
+gesetzten Bedrohungen: Koloss in Welle 35 (−8) und Boss in Welle 40 (−5).
+
+| | U4AZZQ (01.10., Regel 6) | 4RCC95 (05.10., Regel 7) |
+|---|---|---|
+| Route bei Welle 30 | 132 | **206** |
+| Route am Ende | 133 | **243** |
+| Requisition bei Welle 34 / am Ende | 2007 / 2056 | **3484 / 4133** |
+| Reserve W1–W10 · W5–W30 · W31–W50 | 364 · 523 · 290 % | 335 · 459 · 336 % |
+| Leben am Ende | 20 | 7 |
+| Bewertungen | 49 von 49 „passt" | 9 von 9 „passt" |
+
+**Was auffällt:**
+
+- **Der längste Weg bisher.** Die Route wächst weiter (Welle 30: 57 → 132 →
+  206). Die Schere aus diesem Dokument öffnet sich von Tills Seite weiter — ohne
+  dass an den Werten gedreht wurde.
+- **Der Koloss ist wieder eine Bedrohung.** Vor Welle 35 baute Till 16 Bollwerke
+  in einer Planung, der Koloss riss die Route trotzdem von 219 auf 122 und kostete
+  8 Leben. Nach dem Mörser-Fix ist das kein Zielfehler mehr, sondern der Koloss,
+  wie er gemeint ist.
+- **Geld hat ab Welle 20 keine Bedeutung mehr**, deutlicher als je: über 3000
+  Requisition vor dem Koloss, über 4000 am Ende. Nachschubstufe 8 war in Welle 13
+  erreicht; die Aufwertung wurde zweimal genommen (vor Welle 30 und 41). Das ist
+  Befund 4 aus Runde 1, weiter offen.
+- **Die Bewertung sagt wieder „passt", diesmal glaubwürdig:** zwei echte
+  Verluste, die Reserve in der Mitte etwas niedriger als bei U4AZZQ. Mit zehn
+  statt fünfzig Fragen ist das Urteil aber nicht unterscheidungsfähiger
+  geworden — wie gut die Bewertungszeile misst, ist erst mit den Partien der
+  anderen zu sagen.
+
+**Nichts geändert.** Abgewartet werden die Partien der anderen Spieler.
