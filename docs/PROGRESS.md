@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.9.6**, Regelversion **7**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
+Version **0.9.7**, Regelversion **7**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
 **M6 Balancing** und, parallel dazu, **M7 Spielmodi** (freigegeben 02.10.2026).
 
 | | | abgenommen |
@@ -193,11 +193,24 @@ an Koloss (W35) und Boss (W40), Route 243 — die längste bisher. Requisition �
 4000 am Ende, alle neun Bewertungen „passt". Einzelheiten in `runde-4.md`. Die
 Partien der anderen Spieler stehen noch aus.
 
-**Protokolle als Maßstab:** 4RCC95 (Regelversion 7), U4AZZQ und JGR9H6 spielen sich auch unter
-Regelversion 7 Welle für Welle nach (in beiden entscheidet kein Mörser über den
-Koloss). 75YZ4E (King of the Hill) stimmt bis Welle 44; ab dem zweiten Koloss in
-Welle 45 stirbt er früher und reißt weniger ab. Die älteren gehören zu Regeln vor
-Runde 3.
+**Der dritte Spieler** (fünf Partien vom 05.10., Regelversion 7): Welle 10 bis 35,
+baut Labyrinthe wie Till, nutzt aber in keiner Partie ein Kommando und kauft
+Nachschub spät. Die Brutmutter (Welle 10) kostet in drei Partien 15 bis 20 Leben —
+ihre Spur wächst mit ihrer Lebensdauer und trifft gerade lange Routen. Flieger
+kommen trotz Luftabwehr durch, weil sie woanders steht. Einzelheiten in
+`runde-4.md`. **Noch nicht entschieden:** ob die Brutmutter-Spur geändert wird
+und wie Kommandos und Nachschub gefunden werden.
+
+**Nachspielen ist schrittgenau** (`a5d1ea7`): Die Planungsphasen warten bis zum
+aufgezeichneten Schritt, sonst begann jede Welle zu einer anderen Zeit und die
+Gleitkomma-Uhr verschob Wirkungsenden um einen Schritt. Verglichen werden auch
+Schaden, verschwendeter Schaden und Kommandopunkte (`FIELDS` in
+`tests/tools/reference.mjs`).
+
+**Protokolle als Maßstab:** die sechs vom 05.10. (4RCC95 und die fünf des dritten
+Spielers, Regelversion 7) und JGR9H6 — sie spielen sich in jedem Feld nach.
+U4AZZQ und 75YZ4E (Regelversion 6) weichen beim Koloss ab und sind kein Maßstab
+mehr; 75YZ4E stimmt bis Welle 44. Die älteren gehören zu Regeln vor Runde 3.
 
 ## M7: Spielmodi (parallel zu M6)
 
@@ -274,7 +287,7 @@ Nachspielen nach einem Risswechsel die Spur der Vorrunde.
   sonst Standard mit einer Zeile in der Konsole (`sanitizeConfig`).
 
 **Golden-Test** (`tests/unit/golden.test.js`, Hashes in `golden.json`): Die
-zehn Protokolle aus `balancing/protokolle/`, unter den heutigen Regeln
+fünfzehn Protokolle aus `balancing/protokolle/`, unter den heutigen Regeln
 nachgespielt, und drei Bot-Partien müssen bitgleich bleiben. **Der Hash wird nur
 in einem Commit erneuert, der `RULESET_VERSION` anhebt oder ausdrücklich sagt,
 dass er das Spiel ändert** (`GOLDEN_WRITE=1 node --test tests/unit/golden.test.js`).
@@ -296,7 +309,7 @@ mit Spitze bei 14 (wie oben unter Runde 3 beschrieben).
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (501), darunter der Golden-Test (etwa 14 s) |
+| `npm test` | Unit-Tests (503), darunter der Golden-Test (etwa 14 s) |
 | `npm run test:input` | 77 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |

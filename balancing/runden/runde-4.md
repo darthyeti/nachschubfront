@@ -285,3 +285,69 @@ gesetzten Bedrohungen: Koloss in Welle 35 (−8) und Boss in Welle 40 (−5).
   anderen zu sagen.
 
 **Nichts geändert.** Abgewartet werden die Partien der anderen Spieler.
+
+---
+
+## Der dritte Spieler: fünf Partien vom 05.10.2026
+
+Version 0.9.6, Regelversion 7, alle ohne Debug-Hebel. Wie viele Partien er
+vorher gespielt hat, ist nicht bekannt. Alle fünf spielen sich in jedem Feld nach
+(seit `a5d1ea7`; vorher wich DPBHKY in Welle 33 um einen Durchbruch ab).
+
+| Partie (Startzeit) | Ende | Route bei W10 | Nachschub gekauft | Kommandos | höchste Requisition |
+|---|---|---|---|---|---|
+| 3P6BA4 (12:05) | **Welle 18** | 62 | nie | 0 | 1581 |
+| 76NNFC (12:37) | Welle 15 | 79 | nie | 0 | 1437 |
+| DPBHKY (12:59) | **Welle 35** | 94 | 7× in Welle 26 | 0 | 2932 |
+| PLGDAA (20:29) | Welle 13 | 110 | 7× in Welle 12 | 0 | 1062 |
+| L4LJRJ (21:40) | Welle 10 | 85 | 2× in Welle 3 | 0 | 718 |
+
+**Er baut Labyrinthe**, und früh: Route 60 bis 110 bei Welle 10, so viel wie Till
+dort (97). Er verschmilzt fast jede Salve (70 von 91 Auswahlen) und setzt Bollwerke.
+Das trennt ihn vom zweiten Spieler (JGR9H6, Route 47).
+
+**Woran er verliert:**
+
+| Welle | wie oft | Leben | was durchkam |
+|---|---|---|---|
+| **10, Brutmutter** | in 3 von 5 Partien | 15, 15, 20 | 10 bis 16 Schwärmer und jedes Mal die Brutmutter selbst |
+| Fliegerwellen (13, 18, 33) | 3× | 5, 20, 9 | Aasflieger |
+| Bosse 20 und 30, Koloss 35 | je 1× | 5, 5, Rest | der Boss selbst |
+
+**Die Brutmutter ist die Wand, und sie trifft gerade das Labyrinth.** Ihre Spur
+setzt alle 3 Sekunden zwei Schwärmer aus, solange sie lebt. Wird sie schnell
+getötet, hat Welle 10 um 100 Gegner (3P6BA4, DPBHKY, Till: 89 bis 101), und es
+kommt keiner durch. Lebt sie lange, werden es 145 bis 175, und die letzten werden
+kurz vor der Bastion ausgesetzt, mit kaum noch Weg vor sich. PLGDAA hatte die
+längste Route (110) und Nachschubstufe 8 und verlor in Welle 10 trotzdem 15 Leben
+— 175 Gegner statt 101. Zusammen mit JGR9H6 haben **vier von sechs Partien
+neuer Spieler** in Welle 10 mindestens 15 Leben verloren.
+
+**Flieger: die Luftabwehr steht, aber am falschen Ort.** In Welle 18 von 3P6BA4
+konnten 11 von 18 Stellungen Luft treffen, und trotzdem kamen 20 Aasflieger
+durch. Flieger nehmen die gerade Linie zur Bastion, das Labyrinth liegt woanders.
+Die Kraftkurve erklärt verlorene Fliegerwellen mit fehlender Luftabwehr; hier ist
+es die Lage.
+
+**Was er nicht findet:**
+
+- **Kommandos: in keiner der fünf Partien ein einziges.** Bis zu 34
+  Kommandopunkte lagen am Ende ungenutzt.
+- **Nachschub erst spät, dann auf einmal.** Partie 3 kaufte alle sieben Stufen in
+  Welle 26, Partie 4 in Welle 12, erst Partie 5 in Welle 3. Er lernt es von
+  Partie zu Partie, aber erst nach dem Schaden; in den ersten beiden lag bis zu
+  1581 Requisition ungenutzt.
+
+**Bewertungen:** fast alles „passt", auch in Partien, die drei Wellen später
+verloren gingen. Das einzige „zu schwer" kam in Welle 30 (Warpherold, 5 Leben).
+
+### Was das heißt
+
+Die Gegnerstärke bleibt, wie entschieden. Zwei Punkte sind aber jetzt an
+Menschen belegt und keine Vermutung mehr:
+
+1. **Die Brutmutter bestraft eine lange Route**, weil ihre Spur mit ihrer
+   Lebensdauer wächst und am Ende des Weges aussetzt. Das ist eine Eigenheit
+   dieses Bosses, keine Frage der allgemeinen Stärke.
+2. **Kommandos und Nachschub werden nicht gefunden.** Kein Wert kann das
+   beheben, nur die Bedienführung.
