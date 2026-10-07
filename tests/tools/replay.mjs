@@ -21,6 +21,7 @@ import { applyOverride } from './data-override.mjs';
 import { STRINGS } from '../../src/data/strings.js';
 import { APP_VERSION } from '../../src/data/version.js';
 import { WAVES } from '../../src/data/waves.js';
+import { FIELDS } from './reference.mjs';
 
 const args = process.argv.slice(2);
 const file = args.find((a) => !a.startsWith('--'));
@@ -113,14 +114,7 @@ if (run.skipped.length > 0) {
 
 // The promise of the whole exercise: without changed numbers the replay has to
 // agree with the match it is replaying, wave for wave.
-const diff = compareWaves(protocol.waves, run.waves, [
-  'lives',
-  'spawned',
-  'killed',
-  'leaked',
-  'requisition',
-  'route',
-]);
+const diff = compareWaves(protocol.waves, run.waves, FIELDS);
 console.log('');
 if (!dataFile) {
   if (diff.length === 0) {

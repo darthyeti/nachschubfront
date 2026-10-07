@@ -31,7 +31,11 @@ import { setLives, setWave, grant, forcePod, toggleInvulnerable } from './debug.
 import { startLog, protocolConfig } from './record.js';
 import { RULESET_VERSION } from '../data/rules.js';
 
-/** Steps a replay may take before it is called stuck, about 100 minutes. */
+/**
+ * Steps a replay may take past the last recorded action before it is called
+ * stuck, about 100 minutes. Counted from that action, because the replay spends
+ * the player's planning time too and a long match runs to millions of steps.
+ */
 const MAX_STEPS = 360_000;
 
 /**
@@ -52,10 +56,23 @@ function when(state, action) {
     return state.wave > action.w ? 'past' : 'before';
   }
   if (!action.p || state.phase === action.p) {
-    // Inside a wave the second matters: a command early in the wave is a
-    // different decision from the same command late in it. The planning phases
-    // wait for the player, so there is nothing to wait for here.
-    if (action.p === 'wave' && action.pt !== undefined && state.phaseTime < action.pt) return 'before';
+    // Inside a wave the step into the wave matters: a command early in the
+    // wave is a different decision from the same command late in it. Counted
+    // in whole steps, because `pt` is rounded to the hundredth and a step is
+    // a sixtieth — compared as seconds, a command could land one step late.
+    if (action.p === 'wave' && action.pt !== undefined) {
+      if (Math.round(state.phaseTime / SIM_STEP) < Math.round(action.pt / SIM_STEP)) return 'before';
+    } else if (action.t !== undefined && state.tick < action.t) {
+      // The planning phases wait for the player, and so does the replay: up to
+      // the step the action was taken on. Nothing moves in them, but the clock
+      // does, and an effect that ends at "now + 1.5 s" ends one step sooner or
+      // later depending on how large "now" is — floating point. Without the
+      // wait every wave started at another time than in the match, and a
+      // played match drifted by a hit here and there until one wave came out
+      // with a different leak (DPBHKY, 05.10.2026). Under changed numbers the
+      // replay may already be past the step; then the action is due at once.
+      return 'before';
+    }
     return 'now';
   }
   const here = PHASE_ORDER.indexOf(state.phase);
@@ -102,7 +119,9 @@ export function replayMatch(protocol, { untilWave = Infinity, onWave = null, onS
   let seen = 0;
   let stopped = 'end of protocol';
 
-  while (steps < MAX_STEPS) {
+  const lastStep = actions.reduce((last, action) => Math.max(last, action.t ?? 0), 0);
+  const maxSteps = lastStep + MAX_STEPS;
+  while (steps < maxSteps) {
     // Everything whose moment has come. The queue keeps the recorded order, so
     // the head is always the next decision; an action whose round is already
     // over is dropped with a reason instead of firing in the wrong one.
@@ -153,7 +172,7 @@ export function replayMatch(protocol, { untilWave = Infinity, onWave = null, onS
       }
     }
   }
-  if (steps >= MAX_STEPS) stopped = 'step limit';
+  if (steps >= maxSteps) stopped = 'step limit';
 
   return { state, waves: state.log.waves, skipped, applied, stopped, steps };
 }

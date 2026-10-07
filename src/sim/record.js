@@ -88,7 +88,10 @@ export function record(state, action, data = null) {
   const log = state.log;
   if (!log) return;
   log.actions.push({
-    /** Simulation step, for the order and for reading the protocol. */
+    /**
+     * Simulation step: the order, and in the planning phases the moment the
+     * replay waits for, so every wave starts on the same step as in the match.
+     */
     t: state.tick,
     /**
      * Which round and which phase it belongs to. This, not the step, is what
@@ -101,8 +104,8 @@ export function record(state, action, data = null) {
     p: state.phase,
     /**
      * Seconds into the phase. It matters inside a wave, where a command at the
-     * eighth second is a different decision from one at the twentieth; in the
-     * planning phases, which wait for the player anyway, the replay ignores it.
+     * eighth second is a different decision from one at the twentieth, and it
+     * stays right when changed numbers move the start of the wave.
      */
     pt: Math.round(state.phaseTime * 100) / 100,
     a: action,

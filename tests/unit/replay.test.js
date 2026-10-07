@@ -14,6 +14,9 @@ import { useCommand } from '../../src/sim/commands.js';
 import { selectionOptions } from '../../src/sim/selection.js';
 import { startLog } from '../../src/sim/record.js';
 import { replayMatch, compareWaves } from '../../src/sim/replay.js';
+import { parseProtocol } from '../../src/storage/protocol.js';
+import { FIELDS } from '../tools/reference.mjs';
+import { readFileSync } from 'node:fs';
 import { playBotMatch } from '../../tests/tools/bot-player.mjs';
 import { RULESET_VERSION } from '../../src/data/rules.js';
 import { SIM_STEP } from '../../src/data/settings.js';
@@ -312,4 +315,16 @@ test('the replay plays a protocol in the mode it was recorded in (M7a)', () => {
   const legacy = { ...state.log, version: 1 };
   delete legacy.mode;
   assert.equal(replayMatch(legacy).state.mode.id, 'standard', 'a version-1 protocol is a standard match');
+});
+
+test('a played match replays in every number, not only in lives and kills', () => {
+  // DPBHKY, 05.10.2026. Before the replay waited for the recorded step in the
+  // planning phases, every wave started at another time than in the match; the
+  // floating-point clock then ended a slow or a stun one step sooner or later,
+  // and the match drifted by a hit here and there until wave 33 came out with
+  // one leak fewer.
+  const file = new URL('../../balancing/protokolle/nachschubfront-2026-10-05-DPBHKY-welle35.json', import.meta.url);
+  const { match } = parseProtocol(readFileSync(file, 'utf8'));
+  const played = replayMatch(match);
+  assert.deepEqual(compareWaves(match.waves, played.waves, FIELDS), []);
 });

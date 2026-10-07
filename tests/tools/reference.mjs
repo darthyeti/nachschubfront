@@ -21,8 +21,16 @@ import { replayMatch, compareWaves } from '../../src/sim/replay.js';
 import { APP_VERSION } from '../../src/data/version.js';
 import { RULESET_VERSION } from '../../src/data/rules.js';
 
-/** The fields that decide whether it is the same match. */
-const FIELDS = ['lives', 'spawned', 'killed', 'leaked'];
+/**
+ * The fields that decide whether it is the same match. Damage and overkill
+ * belong to it: a replay that drifts by a hit here and there agrees on lives
+ * and kills for dozens of waves and then, one day, on a leak it does not
+ * (DPBHKY, 05.10.2026) — the drift has to show long before that.
+ */
+export const FIELDS = [
+  'lives', 'spawned', 'killed', 'leaked', 'requisition', 'route',
+  'commandPoints', 'damage', 'commandDamage', 'overkill',
+];
 
 /**
  * Replays a protocol and says whether the result may be used as a reference.
