@@ -14,6 +14,7 @@ import { applyBurn, applySlow, applyStun } from './effects.js';
 const GILD_LINGER_SECONDS = 0.15;
 import { launchShell } from './projectiles.js';
 import { bannerBonus } from './commands.js';
+import { length as vectorLength } from '../core/exact.js';
 
 /** Reload time in seconds, or null for weapons that fire continuously. */
 function period(stats) {
@@ -37,7 +38,7 @@ function aimAt(tower, point) {
   const centre = towerCentre(tower);
   const dx = point.x - centre.x;
   const dy = point.y - centre.y;
-  const length = Math.hypot(dx, dy) || 1;
+  const length = vectorLength(dx, dy) || 1;
   return { centre, ux: dx / length, uy: dy / length, length };
 }
 
@@ -186,11 +187,11 @@ function fireCone(state, tower, stats, dt) {
   const target = bestTarget(state, tower, stats);
   if (!target) return false;
   const { centre, ux, uy } = aimAt(tower, target);
-  const cos = Math.cos(stats.def.coneHalfAngle);
+  const cos = stats.def.coneCos;
   for (const e of targetsInRange(state, tower, stats)) {
     const dx = e.x - centre.x;
     const dy = e.y - centre.y;
-    const length = Math.hypot(dx, dy);
+    const length = vectorLength(dx, dy);
     // The cone opens from the muzzle; anything sitting on top of it is hit too.
     if (length > 0.2 && (dx * ux + dy * uy) / length < cos) continue;
     hit(tower, stats, e, stats.damage * dt, state);

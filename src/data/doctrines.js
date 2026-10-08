@@ -15,10 +15,11 @@ export const DOCTRINES = {
     targets: ['ground'],
     /**
      * The cone hits every enemy inside the range whose direction is within this
-     * angle of the aim (radians, about 40 degrees to each side). The GDD only
-     * says "cone", the width is ours.
+     * angle of the aim: 0.7 radians, about 40 degrees to each side. The GDD only
+     * says "cone", the width is ours. Kept as its cosine, written out, because
+     * Math.cos is not the same to the last bit in every engine (core/exact.js).
      */
-    coneHalfAngle: 0.7,
+    coneCos: 0.7648421872844885,
     burn: { damagePerSecond: 6, seconds: 3 },
   },
   autocannon: {

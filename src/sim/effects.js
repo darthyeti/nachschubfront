@@ -62,7 +62,7 @@ function nearestUnburnt(state, from, range) {
   let bestDistance = Infinity;
   for (const e of state.enemies) {
     if (e.dead || e === from || isBurning(state, e)) continue;
-    const d = (e.x - from.x) ** 2 + (e.y - from.y) ** 2;
+    const d = (e.x - from.x) * (e.x - from.x) + (e.y - from.y) * (e.y - from.y);
     if (d > r2) continue;
     if (d < bestDistance - 1e-9 || (Math.abs(d - bestDistance) <= 1e-9 && best && e.id < best.id)) {
       bestDistance = d;

@@ -13,6 +13,7 @@
 import { findPath, distanceField, descend } from './pathfinding.js';
 import { inBounds, isBlocked, setBlocked } from './grid.js';
 import { isRubble } from './rubble.js';
+import { length as vectorLength } from '../core/exact.js';
 
 /** Rift, beacons in order, bastion: the chain of the standard map. */
 export function waypoints(map) {
@@ -172,7 +173,7 @@ export function createPolyline(points) {
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1];
     const b = points[i];
-    cumulative.push(cumulative[i - 1] + Math.hypot(b.x - a.x, b.y - a.y));
+    cumulative.push(cumulative[i - 1] + vectorLength(b.x - a.x, b.y - a.y));
   }
   return { points, cumulative, length: cumulative[cumulative.length - 1] };
 }
@@ -272,7 +273,7 @@ export function nearestDistanceOn(line, x, y) {
     const u = length2 > 0 ? Math.max(0, Math.min(1, ((x - a.x) * vx + (y - a.y) * vy) / length2)) : 0;
     const px = a.x + vx * u;
     const py = a.y + vy * u;
-    const distance = (px - x) ** 2 + (py - y) ** 2;
+    const distance = (px - x) * (px - x) + (py - y) * (py - y);
     if (distance < bestDistance) {
       bestDistance = distance;
       best = cumulative[i - 1] + Math.sqrt(length2) * u;

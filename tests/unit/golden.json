@@ -1,9 +1,9 @@
 {
   "protocol nachschubfront-2026-09-28-7CT7LQ-welle16-wenig labyrinth.json": "5465a99521c35789a14dce1a5d34e01b3df2e21c9c076a5388a6a2992bd8bd11",
   "protocol nachschubfront-2026-09-28-8425CM-welle35.json": "8b6a1bfd3016779acb6ea6a4eba52756e3cd0e002532e26adca272a89f22812f",
-  "protocol nachschubfront-2026-09-28-EFDXE8-welle50.json": "4be4de2d019bbf3940fa97929bfaf2ef3e125f545ce53d30476988d50b07164d",
+  "protocol nachschubfront-2026-09-28-EFDXE8-welle50.json": "687fdc61cd1a0bf5378c683cb918cc4d33bd03552782fc0c75ac235ac36c7f54",
   "protocol nachschubfront-2026-09-28-MZGGZJ-welle50.json": "a5f99052ee4ded2acde001dbb71c064ffc84a0b10e396f9bd1ce6b9c33e1c91f",
-  "protocol nachschubfront-2026-09-29-ASQ7XY-welle50.json": "d34b88ab60ec192403ab592ad35e2bf1bce0989b8eaa72ef46a3274cc373c691",
+  "protocol nachschubfront-2026-09-29-ASQ7XY-welle50.json": "c9ac4a25c578d9db75177088398dd53ebf330ea2cc6a0e34bb3359ad0531bbee",
   "protocol nachschubfront-2026-09-29-WFQZ4M-welle50.json": "e79de341a1d8a2d94917421f007f5636cb0094d6ad7c0aab246e2673510a65a7",
   "protocol nachschubfront-2026-10-01-U4AZZQ-welle50.json": "72934e150a1b94db05b4ae2b186367d0120bf9e40c4ee6c99f2375451effd8f5",
   "protocol nachschubfront-2026-10-02-75YZ4E-welle50.json": "27244fc6226961f47a3f804aad63f3ec0be2b3d46fa8e2e007ff7a4da6e75826",
@@ -14,6 +14,7 @@
   "protocol nachschubfront-2026-10-05-DPBHKY-welle35.json": "02353203e408e225de3b705dfe7e65ef2a4be067ac5a0a370ae6d607e0c32164",
   "protocol nachschubfront-2026-10-05-L4LJRJ-welle10.json": "71f70b2a067198f360b75df2de56ec33e9a0bf57d8cd0c24e2ebcfc5a52ea23e",
   "protocol nachschubfront-2026-10-05-PLGDAA-welle13.json": "c5dec59683cd9f8e8368ed401ce49ccca839954045fb5399389242df56db1f2a",
+  "protocol nachschubfront-2026-10-08-7EJY6Y-welle18.json": "f7d5860e881f30a3e2b031d67281e9d096836f52d9d196fa2d78f5d3f177edc0",
   "bot simple GOLDEN": "c8dc5b38b49ff0c6c01123ab5e1de23203302d138f2845ff8ac2a00024a1a6cc",
   "bot firepower GOLDEN": "9480a9f9cbfde4267b3567bc560c955584622480bf51a5a1d991f5615b1b0a31",
   "bot recipes GOLDEN": "ef5af22234bb6e1ab574d4a00f9bbaa6c3472e32afff7cc0af49d8c882a913d4"

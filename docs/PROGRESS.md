@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.9.7**, Regelversion **7**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
+Version **0.9.8**, Regelversion **7**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
 **M6 Balancing** und, parallel dazu, **M7 Spielmodi** (freigegeben 02.10.2026).
 
 | | | abgenommen |
@@ -207,6 +207,11 @@ Gleitkomma-Uhr verschob Wirkungsenden um einen Schritt. Verglichen werden auch
 Schaden, verschwendeter Schaden und Kommandopunkte (`FIELDS` in
 `tests/tools/reference.mjs`).
 
+**Gleich in jeder Engine** (Version 0.9.8): Die Simulation rechnet nur mit
+Grundrechenarten und `Math.sqrt` (`src/core/exact.js`, Test in
+`determinism.test.js`). `Math.hypot`, `Math.cos` und `**` rundet jede Engine auf
+ihre Weise; eine Partie aus Safari (7EJY6Y) wich deshalb in Node ab.
+
 **Protokolle als Maßstab:** die sechs vom 05.10. (4RCC95 und die fünf des dritten
 Spielers, Regelversion 7) und JGR9H6 — sie spielen sich in jedem Feld nach.
 U4AZZQ und 75YZ4E (Regelversion 6) weichen beim Koloss ab und sind kein Maßstab
@@ -287,7 +292,7 @@ Nachspielen nach einem Risswechsel die Spur der Vorrunde.
   sonst Standard mit einer Zeile in der Konsole (`sanitizeConfig`).
 
 **Golden-Test** (`tests/unit/golden.test.js`, Hashes in `golden.json`): Die
-fünfzehn Protokolle aus `balancing/protokolle/`, unter den heutigen Regeln
+sechzehn Protokolle aus `balancing/protokolle/`, unter den heutigen Regeln
 nachgespielt, und drei Bot-Partien müssen bitgleich bleiben. **Der Hash wird nur
 in einem Commit erneuert, der `RULESET_VERSION` anhebt oder ausdrücklich sagt,
 dass er das Spiel ändert** (`GOLDEN_WRITE=1 node --test tests/unit/golden.test.js`).
@@ -309,12 +314,13 @@ mit Spitze bei 14 (wie oben unter Runde 3 beschrieben).
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (503), darunter der Golden-Test (etwa 14 s) |
+| `npm test` | Unit-Tests (504), darunter der Golden-Test (etwa 14 s) |
 | `npm run test:input` | 77 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |
 | `npm run test:offline` · `test:webkit` | Service Worker · alles in WebKit |
 | `npm run replay -- <protokoll>` | Partie ohne Grafik nachspielen, `--data` mit geänderten Werten |
+| `npm run replay:engine -- <protokoll> --browser webkit` | dasselbe in einer Browser-Engine, Feld für Feld |
 | `npm run bots` · `calibrate` · `powercurve` | Bots über viele Seeds · Eichung · Kraftkurve |
 | `npm run koth-bots` | King of the Hill: die vier Bots der Studie, Sperrradius und LP-Faktor zum Durchprobieren |
 | `npm run playmatch -- <seed> --protocol <datei>` | eine Bot-Partie als Protokoll |

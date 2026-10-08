@@ -21,6 +21,7 @@
     "precache": "node tests/tools/make-precache.mjs",
     "ringcheck": "node tests/tools/ringcheck.mjs",
     "replay": "node tests/tools/replay.mjs",
+    "replay:engine": "node tests/tools/engine-replay.mjs",
     "bots": "node tests/tools/bots.mjs",
     "koth-bots": "node tests/tools/koth-bots.mjs",
     "calibrate": "node tests/tools/calibrate.mjs",

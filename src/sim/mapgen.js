@@ -11,6 +11,7 @@
 import { MAP } from '../data/map.js';
 import { createGrid, setBlocked, isBlocked } from './grid.js';
 import { routeExists } from './route.js';
+import { length as vectorLength } from '../core/exact.js';
 
 /** Rotates local (u, v) into map coordinates for the given edge (0-3, quarter turns). */
 function toMap(u, v, edge, size) {
@@ -94,7 +95,7 @@ function banZone(size, radius) {
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       // Inclusive: a cell whose centre lies exactly on the radius is banned.
-      if (Math.hypot(x + 0.5 - mid, y + 0.5 - mid) <= radius + 1e-9) banned[y * size + x] = 1;
+      if (vectorLength(x + 0.5 - mid, y + 0.5 - mid) <= radius + 1e-9) banned[y * size + x] = 1;
     }
   }
   return banned;

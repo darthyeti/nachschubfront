@@ -8,6 +8,7 @@ import { damageEnemy } from './damage.js';
 import { applyStun } from './effects.js';
 import { inBounds } from './grid.js';
 import { record } from './record.js';
+import { length as vectorLength } from '../core/exact.js';
 
 /**
  * The wave a command is measured against: during planning that is the wave the
@@ -124,7 +125,7 @@ export function bombRun(from, to, command) {
   const count = command.bombs;
   const dx = to.x - from.x;
   const dy = to.y - from.y;
-  const length = Math.hypot(dx, dy) || 1;
+  const length = vectorLength(dx, dy) || 1;
   // Across the line, for the alternating offset.
   const ax = -dy / length;
   const ay = dx / length;
@@ -190,7 +191,7 @@ function updateAirstrike(state, hit, dt) {
 export function clampLine(from, to, maxLength) {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
-  const len = Math.hypot(dx, dy);
+  const len = vectorLength(dx, dy);
   if (len <= maxLength || len === 0) return { x: to.x, y: to.y };
   return { x: from.x + (dx / len) * maxLength, y: from.y + (dy / len) * maxLength };
 }

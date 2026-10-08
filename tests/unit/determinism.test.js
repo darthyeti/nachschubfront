@@ -10,6 +10,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
 import { createGameState } from '../../src/core/state.js';
 import { salvoRng, rollPod, upcomingWave } from '../../src/sim/pods.js';
 import { DOCTRINES } from '../../src/data/doctrines.js';
@@ -129,4 +130,25 @@ test('the supply ladder is an input to the draw, on purpose', () => {
     undo();
   }
   assert.equal(podPrint('BASTION'), before, 'and the values are back');
+});
+
+test('the simulation uses no arithmetic an engine may round its own way', () => {
+  // + - * / and Math.sqrt are the same to the bit everywhere; Math.hypot, the
+  // trigonometry, exp, log and ** are left to the engine. A match recorded on
+  // an iPad (WebKit) has to replay in node (7EJY6Y, 08.10.2026). Comments are
+  // stripped first, so a doc comment may still name them.
+  const banned = /Math\.(hypot|sin|cos|tan|asin|acos|atan2?|exp|expm1|log(1p|2|10)?|pow|cbrt|sinh|cosh|tanh)\b|[\w)\]]\s*\*\*\s*[\w(]/;
+  const offenders = [];
+  for (const dir of ['sim', 'core']) {
+    const root = new URL(`../../src/${dir}/`, import.meta.url);
+    for (const name of readdirSync(root).filter((f) => f.endsWith('.js'))) {
+      const code = readFileSync(new URL(name, root), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+      code.split('\n').forEach((line, i) => {
+        if (banned.test(line)) offenders.push(`src/${dir}/${name}:${i + 1}: ${line.trim()}`);
+      });
+    }
+  }
+  assert.deepEqual(offenders, []);
 });
