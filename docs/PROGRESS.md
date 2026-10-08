@@ -201,6 +201,12 @@ kommen trotz Luftabwehr durch, weil sie woanders steht. Einzelheiten in
 `runde-4.md`. **Noch nicht entschieden:** ob die Brutmutter-Spur geändert wird
 und wie Kommandos und Nachschub gefunden werden.
 
+**Der vierte Spieler** (7EJY6Y, 08.10., Safari): Niederlage in Welle 18 an
+Fliegern (19 Leben in einer Welle), nachdem er Welle 8 und 13 „zu leicht" nannte.
+Sechs Rezepte in 18 Wellen kosten ihn ein Drittel der Stellungen; kein Kommando.
+**Über drei neue Spieler und sieben Partien:** kein einziges Kommando, viermal
+die Brutmutter, dreimal Flieger. Die Fluglinie wird in der Planung nicht gezeigt.
+
 **Nachspielen ist schrittgenau** (`a5d1ea7`): Die Planungsphasen warten bis zum
 aufgezeichneten Schritt, sonst begann jede Welle zu einer anderen Zeit und die
 Gleitkomma-Uhr verschob Wirkungsenden um einen Schritt. Verglichen werden auch
@@ -213,7 +219,7 @@ Grundrechenarten und `Math.sqrt` (`src/core/exact.js`, Test in
 ihre Weise; eine Partie aus Safari (7EJY6Y) wich deshalb in Node ab.
 
 **Protokolle als Maßstab:** die sechs vom 05.10. (4RCC95 und die fünf des dritten
-Spielers, Regelversion 7) und JGR9H6 — sie spielen sich in jedem Feld nach.
+Spielers, Regelversion 7), 7EJY6Y und JGR9H6 — sie spielen sich in jedem Feld nach.
 U4AZZQ und 75YZ4E (Regelversion 6) weichen beim Koloss ab und sind kein Maßstab
 mehr; 75YZ4E stimmt bis Welle 44. Die älteren gehören zu Regeln vor Runde 3.
 

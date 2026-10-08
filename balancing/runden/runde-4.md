@@ -351,3 +351,51 @@ Menschen belegt und keine Vermutung mehr:
    dieses Bosses, keine Frage der allgemeinen Stärke.
 2. **Kommandos und Nachschub werden nicht gefunden.** Kein Wert kann das
    beheben, nur die Bedienführung.
+
+---
+
+## Der vierte Spieler: 7EJY6Y (08.10.2026)
+
+Version 0.9.7, Regelversion 7, gespielt in Safari. Spielt sich seit `b9ab038`
+in Node und WebKit in jedem Feld nach (vorher wich Welle 8 im verschwendeten
+Schaden ab, weil `Math.hypot` und `Math.cos` je Engine anders runden).
+
+**Niederlage in Welle 18**, einer Fliegerwelle: 19 der 20 Leben in dieser einen
+Welle. Davor ging ein einziges verloren, in Welle 1. Bewertet hat er Welle 8 und
+13 mit **„zu leicht"** — fünf Wellen vor dem Ende.
+
+| | |
+|---|---|
+| Route | 51 bis 77, ab Welle 8 kaum noch länger |
+| Nachschub | früh gefunden: Stufe 8 in Welle 16 (gekauft in den Wellen 3, 7, 9, 10, 16) |
+| Rezepte | **6 in 18 Wellen** (Gewitterturm, Reinigungsschrein, Glutkessel, Sturmbatterie, zweimal Belagerungsmörser) |
+| Stellungen bei Welle 18 | **12** (Till 17, der dritte Spieler 18) |
+| gegen Luft | 6 von 12; beide Belagerungsmörser, Schrein, Kessel und zwei Mörser treffen keine Flieger |
+| Kommandos | **keines**, 19 Punkte ungenutzt |
+
+**Rezepte kosten ihn Stellungen.** Jedes Rezept frisst drei; mit sechs Rezepten
+steht er bei Welle 18 bei zwölf Stellungen, ein Drittel weniger als die anderen.
+Die Spezialstellungen schießen in den Wellen 10 bis 12 weit über (bis 23 400
+verschwendeter Schaden in einer Welle von 24 400). Auch der Rezept-Bot ist der
+schwächste aller Bots (Median Welle 7) — die Rezepte sind für einen neuen Spieler
+eine Falle, kein Werkzeug.
+
+**Flieger, zum dritten Mal.** Mit 3P6BA4 (Welle 18) und PLGDAA (Welle 13) endet
+jetzt die dritte Partie eines neuen Spielers in einer Fliegerwelle. Soweit der
+Code zeigt, wird die Fluglinie in der Planung nicht dargestellt (`render/` kennt
+sie nicht): Der Spieler sieht das Labyrinth, das die Flieger überfliegen, aber
+nicht den Weg, den sie nehmen.
+
+### Über alle neuen Spieler (drei Spieler, sieben Partien)
+
+| | |
+|---|---|
+| Kommandos benutzt | **0 in 7 Partien** |
+| Brutmutter (Welle 10) kostet ≥ 15 Leben | 4 von 7 |
+| Partie endet in einer Fliegerwelle | 3 von 7 (Welle 13, 18, 18) |
+| „zu leicht" oder „passt" kurz vor einer Niederlage | in jeder Partie, die bewertet wurde |
+| längste Partie | Welle 35 |
+
+**Die Bewertungszeile taugt bei neuen Spielern nicht als Messgerät:** Sie
+bewerten, was gerade war, nicht was kommt — und die Niederlagen kommen in einer
+einzigen Welle, nicht schleichend.
