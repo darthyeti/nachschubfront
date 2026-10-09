@@ -7,6 +7,10 @@
  * scores are stored with this number (M5) so the two never end up in one list.
  * Raise it whenever a change makes old results incomparable.
  *
+ * 8 since 09.10.2026: balancing round 5 capped the brood mother's trail at 30
+ * swarmers. Uncapped it grew with how long she lived, and on a long maze she
+ * lived long.
+ *
  * 7 since 02.10.2026: the mortar's lead and the choice of target read the
  * Koloss on its own line. Before, they read it on the wave's line, and the
  * shells landed where it was not (1 to 3 of a Koloss wave's shells on it).
@@ -27,7 +31,7 @@
  * first fix replayed to a defeat in wave 35 where the player had won in wave 50.
  * Matches from 2 are therefore neither comparable nor replayable here.
  */
-export const RULESET_VERSION = 7;
+export const RULESET_VERSION = 8;
 
 /**
  * True while the numbers are still being tuned (M6). It turns on what only a

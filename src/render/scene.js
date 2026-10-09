@@ -36,6 +36,8 @@ import {
   drawPodHighlight,
 } from './pods.js';
 import { previewRoute } from '../sim/zones.js';
+import { flyerPolyline } from '../sim/route.js';
+import { waveFlies } from '../sim/waves.js';
 import { towerAt, towerStats } from '../sim/towers.js';
 import { demolishTarget, nextBulwarkCost } from '../sim/economy.js';
 import { PLANNING_PHASES } from '../core/phases.js';
@@ -181,6 +183,54 @@ function drawRoutePreview(ctx, route, t, reducedMotion) {
   ctx.lineWidth = 3;
   ctx.stroke();
   ctx.setLineDash([]);
+}
+
+/**
+ * The line the flyers of the coming wave take: straight over the maze, which is
+ * why it has to be shown. Pale and dotted, so it never reads as the route the
+ * ground troops walk; an arrowhead at the bastion says which way (balancing
+ * round 5: three of seven matches of new players ended in a flyer wave with
+ * the anti-air standing beside the maze, not under this line).
+ */
+function drawFlyerLine(ctx, line, t, reducedMotion) {
+  const pts = line.points.map(({ x, y }) => iso(x, y));
+  const trace = () => {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  };
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  trace();
+  ctx.strokeStyle = 'rgba(26,20,16,.45)';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  trace();
+  ctx.setLineDash([2, 9]);
+  ctx.lineDashOffset = reducedMotion ? 0 : -t * 30;
+  ctx.strokeStyle = C.bone;
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Arrowhead on the last leg, a little short of the bastion.
+  const [ax, ay] = pts[pts.length - 2];
+  const [bx, by] = pts[pts.length - 1];
+  const len = Math.hypot(bx - ax, by - ay) || 1;
+  const ux = (bx - ax) / len;
+  const uy = (by - ay) / len;
+  const tipX = bx - ux * 34;
+  const tipY = by - uy * 34;
+  ctx.beginPath();
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(tipX - ux * 14 - uy * 8, tipY - uy * 14 + ux * 8);
+  ctx.lineTo(tipX - ux * 14 + uy * 8, tipY - uy * 14 - ux * 8);
+  ctx.closePath();
+  ctx.fillStyle = C.bone;
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 2;
+  ctx.fill();
+  ctx.stroke();
 }
 
 function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
@@ -439,6 +489,10 @@ export function createSceneRenderer(sprites) {
     // While zones are marked the preview shows the route they will force.
     const route = previewRoute(state);
     if (PLANNING_PHASES.has(state.phase) && route) drawRoutePreview(ctx, route, t, ui.reducedMotion);
+    // Before a wave with flyers, the line they take over it.
+    if (PLANNING_PHASES.has(state.phase) && waveFlies(state.wave + 1)) {
+      drawFlyerLine(ctx, flyerPolyline(state.map, state.riftIndex ?? 0), t, ui.reducedMotion);
+    }
 
     // The demolish mode takes the map over: no zones are marked while it runs.
     let demolishable = null;

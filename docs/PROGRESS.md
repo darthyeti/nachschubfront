@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.9.8**, Regelversion **7**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
+Version **0.9.9**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
 **M6 Balancing** und, parallel dazu, **M7 Spielmodi** (freigegeben 02.10.2026).
 
 | | | abgenommen |
@@ -205,7 +205,14 @@ und wie Kommandos und Nachschub gefunden werden.
 Fliegern (19 Leben in einer Welle), nachdem er Welle 8 und 13 „zu leicht" nannte.
 Sechs Rezepte in 18 Wellen kosten ihn ein Drittel der Stellungen; kein Kommando.
 **Über drei neue Spieler und sieben Partien:** kein einziges Kommando, viermal
-die Brutmutter, dreimal Flieger. Die Fluglinie wird in der Planung nicht gezeigt.
+die Brutmutter, dreimal Flieger. Die Fluglinie wurde in der Planung nicht gezeigt.
+
+**Runde 5 umgesetzt** (09.10., Regelversion 8, Version 0.9.9):
+[`runde-5.md`](../balancing/runden/runde-5.md). Die Brutmutter setzt höchstens 30
+Schwärmer aus. Dazu Bedienführung: ein goldener Ring ruft an benutzbare
+Kommandos (bis zum ersten der Partie) und an den Nachschub (ab doppeltem Preis),
+und vor Fliegerwellen zeigt die Planung die Fluglinie. **Gebraucht werden
+Partien der neuen Spieler unter 0.9.9.**
 
 **Nachspielen ist schrittgenau** (`a5d1ea7`): Die Planungsphasen warten bis zum
 aufgezeichneten Schritt, sonst begann jede Welle zu einer anderen Zeit und die
@@ -218,10 +225,9 @@ Grundrechenarten und `Math.sqrt` (`src/core/exact.js`, Test in
 `determinism.test.js`). `Math.hypot`, `Math.cos` und `**` rundet jede Engine auf
 ihre Weise; eine Partie aus Safari (7EJY6Y) wich deshalb in Node ab.
 
-**Protokolle als Maßstab:** die sechs vom 05.10. (4RCC95 und die fünf des dritten
-Spielers, Regelversion 7), 7EJY6Y und JGR9H6 — sie spielen sich in jedem Feld nach.
-U4AZZQ und 75YZ4E (Regelversion 6) weichen beim Koloss ab und sind kein Maßstab
-mehr; 75YZ4E stimmt bis Welle 44. Die älteren gehören zu Regeln vor Runde 3.
+**Protokolle als Maßstab** (Regelversion 8): 4RCC95 und 7EJY6Y — sie spielen sich
+in jedem Feld nach, ihre Brutmutter starb vor der Obergrenze. Die übrigen der
+neuen Spieler weichen ab Welle 10 ab, die älteren gehören zu früheren Regeln.
 
 ## M7: Spielmodi (parallel zu M6)
 
@@ -320,7 +326,7 @@ mit Spitze bei 14 (wie oben unter Runde 3 beschrieben).
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (504), darunter der Golden-Test (etwa 14 s) |
+| `npm test` | Unit-Tests (509), darunter der Golden-Test (etwa 14 s) |
 | `npm run test:input` | 77 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |

@@ -317,14 +317,18 @@ test('the replay plays a protocol in the mode it was recorded in (M7a)', () => {
   assert.equal(replayMatch(legacy).state.mode.id, 'standard', 'a version-1 protocol is a standard match');
 });
 
-test('a played match replays in every number, not only in lives and kills', () => {
-  // DPBHKY, 05.10.2026. Before the replay waited for the recorded step in the
-  // planning phases, every wave started at another time than in the match; the
-  // floating-point clock then ended a slow or a stun one step sooner or later,
-  // and the match drifted by a hit here and there until wave 33 came out with
-  // one leak fewer.
-  const file = new URL('../../balancing/protokolle/nachschubfront-2026-10-05-DPBHKY-welle35.json', import.meta.url);
-  const { match } = parseProtocol(readFileSync(file, 'utf8'));
-  const played = replayMatch(match);
-  assert.deepEqual(compareWaves(match.waves, played.waves, FIELDS), []);
+test('played matches replay in every number, not only in lives and kills', () => {
+  // 4RCC95 (05.10.2026) drifted in damage and overkill before the replay
+  // waited for the recorded step in the planning phases: every wave began at
+  // another time, and the floating-point clock ended a slow or a stun one step
+  // sooner or later. 7EJY6Y (08.10.2026) was played in Safari and drifted until
+  // the simulation kept to arithmetic that is exact in every engine. Both were
+  // recorded under ruleset 7 and stay the same under 8: their brood mothers
+  // died before the cap on her trail came into play.
+  for (const name of ['2026-10-05-4RCC95-welle50', '2026-10-08-7EJY6Y-welle18']) {
+    const file = new URL(`../../balancing/protokolle/nachschubfront-${name}.json`, import.meta.url);
+    const { match } = parseProtocol(readFileSync(file, 'utf8'));
+    const played = replayMatch(match);
+    assert.deepEqual(compareWaves(match.waves, played.waves, FIELDS), [], name);
+  }
 });

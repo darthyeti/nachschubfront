@@ -173,7 +173,7 @@ Tempo in Feldern pro Sekunde.
 
 | Welle | Boss | Idee |
 |---|---|---|
-| 10 | Brutmutter | Fleisch, setzt unterwegs Schwärmer frei |
+| 10 | Brutmutter | Fleisch, setzt unterwegs Schwärmer frei (alle 3 s zwei, höchstens 30) |
 | 20 | Kolossbrecher | Panzer, extrem viele Lebenspunkte |
 | 30 | Warp-Herold | Warp-Schild, springt gelegentlich ein Stück entlang der Route vor |
 | 40 | Schwarmkönigin | Fliegend, von Aasfliegern begleitet |

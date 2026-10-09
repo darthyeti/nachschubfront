@@ -37,6 +37,7 @@ const BUBBLE_MS = 4000;
  * @property {string|null} [note]     small line under the disc, normally the price
  * @property {boolean} [enabled]      false greys the disc out without changing its state
  * @property {boolean} [on]           the mode this disc switches is currently running
+ * @property {boolean} [calling]      a pulsing ring: this is the disc to press now (ui/nudges.js)
  */
 
 /**
@@ -175,6 +176,7 @@ export function createRuneButton({ iconName, label, hint, bubbleExtra, side = 't
       b.dataset.state = next.state;
       b.disabled = next.enabled === false;
       b.classList.toggle('on', next.on === true);
+      b.classList.toggle('calling', next.calling === true);
 
       const waveText = next.state === 'cooldown' && next.waves != null ? String(next.waves) : '';
       waves.textContent = waveText;

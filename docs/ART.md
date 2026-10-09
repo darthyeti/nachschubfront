@@ -232,6 +232,8 @@ Die Werte 62 Prozent statt der früheren 40 und der Pfeil sind nach einem Test a
 
 **Geräumte Trümmerfelder.** Ein im Abbruchmodus geräumtes Feld behält denselben gestrichelten Goldring wie eine Zielmarkierung, nur schwächer (geringere Deckkraft), bis die Planungsphase endet oder eine Kapsel darauf landet. So findet man das freigeräumte Feld beim Anfordern der nächsten Salve wieder.
 
+**Fluglinie.** Hat die kommende Welle Flieger, zeigt die Planung (samt Salve und Auswahl) ihre Linie: knochenweiß gepunktet über dunkler Unterlage, langsam laufend, mit einer Pfeilspitze kurz vor der Bastion. Bewusst anders als die goldene gestrichelte Bodenroute, damit beide nie verwechselt werden. Bei `prefers-reduced-motion` steht sie still. Grund (Balancing-Runde 5): Drei von sieben Partien neuer Spieler endeten in einer Fliegerwelle, die Luftabwehr stand am Labyrinth statt unter der Linie.
+
 ## HUD
 
 Referenz: `reference/konzept/hud/hud-uebersicht.svg` zeigt alle Knöpfe im Zusammenhang. Das Blatt ist eine reine Ansichtszeichnung ohne IDs; Runenscheibe, Plattenleiste und die Symbole der Statusleiste werden im Code nachgebaut, nicht als Sprite importiert.
@@ -249,6 +251,13 @@ Drei Zustände, für jede Scheibe gleich:
 | Gesperrt | Ganze Scheibe abgedunkelt, kleines Schloss-Symbol, goldenes Zahlen-Badge oben rechts nennt die Welle der Freischaltung |
 
 **Bedienung.** Klick oder Tippen löst die Aktion aus. Langes Drücken (am Desktop: Hover) zeigt eine kurze Erklärung als Sprechblase — dieselbe Regel wie bei Stellungen und Gegnern (GDD Abschnitt 13). Das lange Drücken darf die Aktion nicht zusätzlich auslösen. Bei einer neu freigeschalteten Scheibe blitzt die Beschriftung einmalig auf und verschwindet von selbst; danach ist sie nur noch über langes Drücken zu erreichen.
+
+**Ruf.** Eine Scheibe, die jetzt gedrückt werden sollte, trägt einen goldenen Ring am Rand und einen zweiten, der alle 1,6 Sekunden aus ihm herauswächst und verblasst (`src/ui/nudges.js`). Kein Leuchtfilter, nur Ringe; bei `prefers-reduced-motion` bleibt nur der feste Ring. Er steht nur, solange die Bedingung gilt:
+
+- **Kommandos:** benutzbar, und in dieser Partie wurde noch kein Kommando eingesetzt. Mit dem ersten Kommando verstummt die ganze Leiste.
+- **Nachschub:** in der Planung kaufbar, und es liegt mindestens das Doppelte des Preises bereit.
+
+Grund (Balancing-Runde 5): Drei neue Spieler setzten in sieben Partien kein einziges Kommando ein und kauften Nachschub spät oder nie, obwohl beides die ganze Zeit sichtbar war.
 
 ### Untere Leiste
 

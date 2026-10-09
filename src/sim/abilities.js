@@ -37,8 +37,15 @@ export function updateAbilities(state, dt) {
 
     if (def.spawnTrail && e.abilityTimer >= def.spawnTrail.intervalSeconds) {
       e.abilityTimer = 0;
-      for (let i = 0; i < def.spawnTrail.count; i++) {
-        hatch.push({ type: def.spawnTrail.type, d: Math.max(0, e.d - 0.2 - i * 0.15) });
+      const trail = def.spawnTrail;
+      // Only so many in all (balancing round 5). Without a cap the trail grew
+      // with how long she lived and dropped its last swarmers just short of the
+      // bastion, so a long maze fed her instead of beating her.
+      const dropped = e.dropped ?? 0;
+      const count = Math.min(trail.count, (trail.maxCount ?? Infinity) - dropped);
+      e.dropped = dropped + Math.max(0, count);
+      for (let i = 0; i < count; i++) {
+        hatch.push({ type: trail.type, d: Math.max(0, e.d - 0.2 - i * 0.15) });
       }
     }
 

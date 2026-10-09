@@ -1,6 +1,7 @@
 // Wave spawning. Wave definitions live in data/waves.js.
 
 import { WAVES } from '../data/waves.js';
+import { enemyDef } from '../data/enemies.js';
 import { updateKoloss, spawnKoloss } from './koloss.js';
 import { freezeRoutes } from './route.js';
 import { spawnEnemy } from './enemies.js';
@@ -23,6 +24,11 @@ export function totalWaves() {
 
 export function waveDef(wave) {
   return WAVES[wave - 1] ?? null;
+}
+
+/** Whether anything in the wave flies, i.e. ignores the maze. */
+export function waveFlies(wave) {
+  return waveDef(wave)?.groups.some((group) => enemyDef(group.type).flying) ?? false;
 }
 
 /** Starts the next wave: freezes routes and queues its spawns. */

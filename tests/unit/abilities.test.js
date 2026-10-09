@@ -86,6 +86,16 @@ test('the brood mother drops swarmers as she walks', () => {
   assert.ok(state.enemies.slice(1).every((e) => e.type === 'swarmer' && e.d < boss.d));
 });
 
+test('the brood mother stops dropping once she has dropped her share', () => {
+  // Balancing round 5: uncapped, a long life on a long maze brought up to 175
+  // enemies into wave 10 and the last of them just short of the bastion.
+  const state = battlefield();
+  put(state, 'broodmother', 1);
+  const { intervalSeconds, maxCount } = BOSSES.broodmother.spawnTrail;
+  for (let i = 0; i < 60; i++) updateAbilities(state, intervalSeconds);
+  assert.equal(state.enemies.filter((e) => e.type === 'swarmer').length, maxCount);
+});
+
 test('the warp herald jumps ahead along the route', () => {
   const state = battlefield();
   const boss = put(state, 'warpherald', 5);

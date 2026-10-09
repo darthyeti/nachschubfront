@@ -69,8 +69,14 @@ export const BOSSES = {
     flying: false,
     sprite: 'burster',
     scale: 1.8,
-    /** Releases swarmers while it walks. */
-    spawnTrail: { type: 'swarmer', count: 2, intervalSeconds: 3 },
+    /**
+     * Releases swarmers while it walks, 30 at most (balancing round 5,
+     * 09.10.2026). Uncapped, a brood mother that lived long on a long maze
+     * brought 145 to 175 enemies into wave 10 instead of 90 and dropped the
+     * last of them just short of the bastion: four of seven matches of new
+     * players lost 15 lives or more here.
+     */
+    spawnTrail: { type: 'swarmer', count: 2, intervalSeconds: 3, maxCount: 30 },
   },
   colossusbreaker: {
     boss: true,

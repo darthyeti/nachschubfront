@@ -14,6 +14,7 @@ import { RANK_COLORS } from '../data/ranks.js';
 import { supplyWeights, MAX_SUPPLY_LEVEL } from '../data/supply.js';
 import { previewRoute, zoneLimit } from '../sim/zones.js';
 import { canBuySupply, nextSupplyCost, nextRubbleCost, nextBulwarkCost } from '../sim/economy.js';
+import { supplyCalls } from './nudges.js';
 import { RULES } from '../data/rules.js';
 
 const T = STRINGS.hud;
@@ -289,6 +290,7 @@ export function createHud(root, { debug, onAction }) {
         badge: String(state.supplyLevel),
         note: supplyTop ? null : String(supplyCost),
         enabled: canBuySupply(state).ok,
+        calling: supplyCalls(state),
       });
 
       // Affording a demolition is a condition for *entering* the mode, never for

@@ -1880,6 +1880,36 @@ button.mode-card.on {
 }
 
 /* The mode this disc switches is running: a gold ring around the whole thing. */
+/* A disc that calls for attention (ui/nudges.js): a gold ring on the rim that
+   stays, and a second one that swells out of it and fades, every 1.6 s. No glow
+   filter, only rings. */
+.rune.calling .rune-disc::before,
+.rune.calling .rune-disc::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 3px solid var(--gold);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.rune.calling .rune-disc::after {
+  animation: rune-calling 1.6s ease-out infinite;
+}
+
+@keyframes rune-calling {
+  0% { opacity: 0.9; transform: scale(1); }
+  70% { opacity: 0; transform: scale(1.4); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Standing still: only the ring on the rim. */
+  .rune.calling .rune-disc::after {
+    display: none;
+  }
+}
+
 .rune.on .rune-disc {
   filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0)) drop-shadow(0 0 3px var(--btn));
 }

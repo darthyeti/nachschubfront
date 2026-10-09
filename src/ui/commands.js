@@ -10,6 +10,7 @@ import { COMMANDS } from '../data/commands.js';
 import { commandStatus, currentWave } from '../sim/commands.js';
 import { el } from './controls.js';
 import { createRuneButton, commandFace } from './runeButton.js';
+import { commandCalls } from './nudges.js';
 
 const T = STRINGS.commandBar;
 
@@ -77,8 +78,10 @@ export function createCommandBar(root, { onPick }) {
       });
       if (!show) return;
       for (const { command, disc } of discs) {
-        const face = commandFace(commandStatus(state, command.id));
+        const status = commandStatus(state, command.id);
+        const face = commandFace(status);
         face.on = ui.commandTarget === command.id;
+        face.calling = !face.on && commandCalls(state, status);
         disc.update(face);
       }
     },
