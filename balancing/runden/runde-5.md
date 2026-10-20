@@ -67,6 +67,6 @@ Einzelheiten in `docs/ART.md` („Ruf", „Fluglinie").
 
 ## Wie es weitergeht
 
-Neue Partien der neuen Spieler unter Version 0.9.9. Zu prüfen: ob Kommandos und
+Neue Partien der neuen Spieler unter Version 0.9.10 (mit Erklärung der Kommandoleiste). Zu prüfen: ob Kommandos und
 Nachschub jetzt gefunden werden, ob Welle 10 noch die Wand ist, und ob die
 Fliegerwellen ihren Schrecken behalten.

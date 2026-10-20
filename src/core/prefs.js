@@ -30,6 +30,8 @@ export const PREF_DEFAULTS = {
    * default when it is not.
    */
   lastRun: { mode: 'standard', difficulty: 'normal' },
+  /** The note on the command rail has been shown on this device (ui/intro.js). */
+  commandIntroSeen: false,
 };
 
 const isId = (value) => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,31}$/.test(value);
@@ -48,6 +50,7 @@ export function sanitizePrefs(raw) {
   if (MOTIONS.includes(raw.motion)) out.motion = raw.motion;
   if (typeof raw.installHintDismissed === 'boolean') out.installHintDismissed = raw.installHintDismissed;
   if (typeof raw.rateWaves === 'boolean') out.rateWaves = raw.rateWaves;
+  if (typeof raw.commandIntroSeen === 'boolean') out.commandIntroSeen = raw.commandIntroSeen;
   const last = raw.lastRun;
   if (last && typeof last === 'object' && isId(last.mode) && isId(last.difficulty)) {
     out.lastRun = { mode: last.mode, difficulty: last.difficulty };

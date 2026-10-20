@@ -330,6 +330,9 @@ export const STRINGS = {
       'Gefragt wird an zehn von fünfzig Wellen — wer fünfzigmal gefragt wird, tippt, ' +
       'wer zehnmal gefragt wird, überlegt. Die Antworten wandern ins Partie-Protokoll ' +
       'und helfen beim Abstimmen der Werte.',
+    intros: 'Hinweise',
+    introsReset: 'Erneut zeigen',
+    introsHint: 'Die Erklärung zur Kommandoleiste erscheint auf jedem Gerät nur einmal. Hier lässt sie sich für die nächste Partie wieder einschalten.',
     percent: (v) => `${Math.round(v * 100)} %`,
     storageWarning: 'Einstellungen können in diesem Browser nicht gespeichert werden.',
   },
@@ -491,6 +494,17 @@ export const STRINGS = {
     },
     blocked: 'blockiert',
     walkable: 'begehbar',
+  },
+
+  /** The note the first time the command rail turns up (ui/intro.js). */
+  commandIntro: {
+    title: 'Kommandos',
+    lines: [
+      'Rechts am Rand ist die Kommandoleiste erschienen. Kommandos greifen direkt ins Gefecht ein — als Erstes der Orbitalschlag: Ziel markieren, nach zwei Sekunden schwerer Flächenschaden.',
+      'Bezahlt wird mit Kommandopunkten, oben in der Leiste beim Stern. Es gibt sie für Bosse und für jede Welle ohne Durchbruch.',
+      'Scheibe antippen, dann das Ziel auf der Karte. Die meisten Kommandos wirken nur während der Welle — sobald eine Scheibe einsatzbereit ist, trägt sie einen goldenen Ring. Langes Drücken erklärt jede Scheibe, weitere kommen in späteren Wellen dazu.',
+    ],
+    ok: 'OK',
   },
 
   commandBar: {

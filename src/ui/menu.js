@@ -445,6 +445,13 @@ export function createMenus(root, {
   });
   settings.panel.append(ratingGroup, el('p', 'menu-hint', TS.ratingHint));
 
+  // The one-time notes (ui/intro.js): seen once per device, back on from here.
+  settings.panel.append(el('h3', 'menu-section', TS.intros));
+  const introRow = el('div', 'menu-choice');
+  const introReset = button(TS.introsReset, 'alt', () => prefs.set('commandIntroSeen', false));
+  introRow.append(introReset);
+  settings.panel.append(introRow, el('p', 'menu-hint', TS.introsHint));
+
   // Fixed for now, but named, so nobody has to guess whether it can be changed.
   settings.panel.append(el('h3', 'menu-section', TS.language));
   const languageRow = el('p', 'menu-readout', TS.languageValue);
@@ -472,6 +479,7 @@ export function createMenus(root, {
     }
     for (const b of motionButtons) b.classList.toggle('on', b.dataset.motion === values.motion);
     for (const b of ratingButtons) b.classList.toggle('on', (b.dataset.rate === 'on') === values.rateWaves);
+    introReset.disabled = !values.commandIntroSeen;
   }
   prefs.onChange(syncSettings);
   syncSettings(prefs.values);

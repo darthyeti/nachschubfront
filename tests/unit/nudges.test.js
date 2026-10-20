@@ -6,6 +6,7 @@ import { createGameState } from '../../src/core/state.js';
 import { commandStatus } from '../../src/sim/commands.js';
 import { nextSupplyCost } from '../../src/sim/economy.js';
 import { commandCalls, supplyCalls, SUPPLY_SURPLUS } from '../../src/ui/nudges.js';
+import { railVisible, railOrder } from '../../src/ui/commands.js';
 
 function planning() {
   const state = createGameState('NUDGE');
@@ -46,4 +47,15 @@ test('a real command reads its usability from the simulation', () => {
   state.commandPoints = 100;
   const status = commandStatus(state, 'prioritySupply');
   assert.equal(commandCalls(state, status), status.usable);
+});
+
+test('the rail turns up with the first command within reach, in the planning and the wave', () => {
+  const state = planning();
+  const first = railOrder()[0].fromWave;
+  state.wave = first - 2;
+  assert.equal(railVisible(state), false, 'a column of padlocks is not shown');
+  state.wave = first - 1;
+  assert.equal(railVisible(state), true, 'the planning before the wave it unlocks in');
+  state.phase = 'selection';
+  assert.equal(railVisible(state), false);
 });

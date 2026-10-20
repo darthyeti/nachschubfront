@@ -267,7 +267,11 @@ Der Zonenzähler steht auf dem Salve-Knopf, nicht mehr in der Statusleiste. Die 
 
 ### Rechte Kommandoleiste
 
-Eigene senkrechte Leiste am rechten Bildschirmrand, ausschließlich Runenscheiben ohne Text. Die Reihenfolge von oben nach unten ist die Freischalt-Reihenfolge (Orbitalschlag, Stasisfeld, Luftschlag, Heiliges Banner). Zustände wie oben. Kommen später weitere Kommandos dazu, wird die Leiste ab einer Anzahl scrollbar, die auf dem Tablet-Querformat noch ganz sichtbar ist.
+Eigene senkrechte Leiste am rechten Bildschirmrand, ausschließlich Runenscheiben ohne Text. Die Reihenfolge von oben nach unten ist die Freischalt-Reihenfolge (Orbitalschlag, Stasisfeld, Priorisierter Nachschub, Heiliges Banner, Luftschlag). Zustände wie oben. Scrollbar wird sie nur auf Bildschirmen unter 700 px Höhe: Eine scrollbare Leiste schneidet alles ab, was über ihren Rand ragt — die Sprechblase links und den Ruf-Ring —, und bekam für den Ring allein Scrollbalken.
+
+**Scheibengröße:** 72 px (seit Runde 5, vorher 58 px) — auf dem Tablet waren die Scheiben auf einen Blick zu klein.
+
+**Erklärung beim ersten Erscheinen.** Taucht die Leiste zum ersten Mal auf, hält das Spiel an und eine bildschirmfüllende Meldung im Rahmen der Menüs erklärt sie: Symbol des Orbitalschlags, Überschrift „Kommandos", drei Absätze (was Kommandos sind, woher die Punkte kommen, wie man eines einsetzt), ein Knopf „OK". Einmal pro Gerät (`commandIntroSeen` in den Einstellungen), in den Einstellungen unter „Hinweise" wieder einschaltbar (`src/ui/intro.js`). Mit `?debug` erscheint sie nur zusammen mit `&intro`, damit die Browser-Prüfungen nicht an ihr hängen bleiben.
 
 ### Obere Statusleiste
 

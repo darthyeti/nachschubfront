@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.9.9**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
+Version **0.9.10**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
 **M6 Balancing** und, parallel dazu, **M7 Spielmodi** (freigegeben 02.10.2026).
 
 | | | abgenommen |
@@ -212,7 +212,14 @@ die Brutmutter, dreimal Flieger. Die Fluglinie wurde in der Planung nicht gezeig
 Schwärmer aus. Dazu Bedienführung: ein goldener Ring ruft an benutzbare
 Kommandos (bis zum ersten der Partie) und an den Nachschub (ab doppeltem Preis),
 und vor Fliegerwellen zeigt die Planung die Fluglinie. **Gebraucht werden
-Partien der neuen Spieler unter 0.9.9.**
+Partien der neuen Spieler unter 0.9.10.**
+
+**Nach Runde 5, Bedienung** (20.10., Till): Runenscheiben 72 statt 58 px; die
+Kommandoleiste scrollt nur noch unter 700 px Bildschirmhöhe (vorher Scrollbalken
+durch den Ruf-Ring, und die Sprechblasen wurden abgeschnitten); beim ersten
+Erscheinen der Leiste hält eine bildschirmfüllende Meldung mit „OK" das Spiel an
+und erklärt sie — einmal pro Gerät, in den Einstellungen wieder einschaltbar
+(`src/ui/intro.js`).
 
 **Nachspielen ist schrittgenau** (`a5d1ea7`): Die Planungsphasen warten bis zum
 aufgezeichneten Schritt, sonst begann jede Welle zu einer anderen Zeit und die
@@ -326,7 +333,7 @@ mit Spitze bei 14 (wie oben unter Runde 3 beschrieben).
 
 | Befehl | Zweck |
 |---|---|
-| `npm test` | Unit-Tests (509), darunter der Golden-Test (etwa 14 s) |
+| `npm test` | Unit-Tests (511), darunter der Golden-Test (etwa 14 s) |
 | `npm run test:input` | 77 Browser-Checks, Touch und Maus (`-- --browser webkit` für Safari) |
 | `npm run test:perf` | 200 Gegner, prüft 60 fps und dass im Betrieb nichts gerastert wird |
 | `npm run test:battle` | spielt eine lange Partie im Browser, scheitert an jedem Konsolenfehler |

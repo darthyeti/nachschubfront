@@ -23,6 +23,15 @@ export function railOrder(commands = COMMANDS) {
     a[0].fromWave - b[0].fromWave || a[1] - b[1]).map(([c]) => c);
 }
 
+/**
+ * Whether the rail is on screen: once the first command is within reach, in the
+ * planning and in the wave. Before that it would only be a column of padlocks.
+ */
+export function railVisible(state) {
+  const anyUnlocked = currentWave(state) >= railOrder()[0].fromWave;
+  return anyUnlocked && (state.phase === 'planning' || state.phase === 'wave');
+}
+
 /** The line under a command's name: what stands between the player and using it. */
 export function commandNote(status) {
   if (!status.unlocked) return T.fromWave(status.command.fromWave);
@@ -69,9 +78,7 @@ export function createCommandBar(root, { onPick }) {
 
     /** @param {object} ui  Render-side state; `commandTarget` is the command being aimed. */
     update(state, ui) {
-      // Before the first unlock the rail would only be a row of padlocks.
-      const anyUnlocked = currentWave(state) >= railOrder()[0].fromWave;
-      const show = anyUnlocked && (state.phase === 'planning' || state.phase === 'wave');
+      const show = railVisible(state);
       set('show', show, (v) => {
         panel.hidden = !v;
         if (!v) for (const { disc } of discs) disc.hideBubble();

@@ -19,3 +19,9 @@ test('a broken last run falls back to the default', () => {
     assert.deepEqual(sanitizePrefs({ lastRun: bad }).lastRun, PREF_DEFAULTS.lastRun);
   }
 });
+
+test('the note on the command rail is remembered per device, and only as a yes or no', () => {
+  assert.equal(sanitizePrefs({}).commandIntroSeen, false, 'not seen on a fresh device');
+  assert.equal(sanitizePrefs({ commandIntroSeen: true }).commandIntroSeen, true);
+  assert.equal(sanitizePrefs({ commandIntroSeen: 'yes' }).commandIntroSeen, false, 'junk falls back');
+});

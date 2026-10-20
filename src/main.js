@@ -38,7 +38,8 @@ import { attachKeyboard } from './input/keyboard.js';
 import { createHud } from './ui/hud.js';
 import { createSelectionPanel, pressAction } from './ui/selection.js';
 import { createCodex } from './ui/codex.js';
-import { createCommandBar } from './ui/commands.js';
+import { createCommandBar, railVisible } from './ui/commands.js';
+import { createIntro } from './ui/intro.js';
 import { createInfoPanel } from './ui/info.js';
 import { createDebugPanel } from './ui/debug.js';
 import { createMenus } from './ui/menu.js';
@@ -516,6 +517,9 @@ function onCellTap(cell, pointerType) {
 }
 
 function onAction(action) {
+  // The note on the command rail holds the game; nothing behind it may move it
+  // on, not a key for the speed and not the menu.
+  if (intro.open) return;
   if (action.startsWith('speed')) {
     const speed = Number(action.slice(5));
     if (speed > 0) lastSpeed = speed;
@@ -606,6 +610,26 @@ const rating = createRatingRow(hud.bottom, {
 });
 const commandBar = createCommandBar(hudRoot, { onPick: pickCommand });
 hud.help.setCommandDiscs(commandBar.helpTargets);
+
+// The note on the command rail (round 5): once per device, the first time the
+// rail turns up in a running match. It stops the game like the pause menu does.
+// The browser checks open the page with ?debug and would find it in their way,
+// so there it only comes with &intro.
+const intro = createIntro(document.body);
+const introsWanted = !debug || params.has('intro');
+
+function showCommandIntroIfDue() {
+  if (!introsWanted || prefs.values.commandIntroSeen || intro.open) return;
+  if (!matchRunning || menus.open || !railVisible(state)) return;
+  hud.help.close();
+  if (state.speed > 0) speedBeforeMenu = state.speed;
+  setSpeed(state, 0);
+  const T = STRINGS.commandIntro;
+  intro.show({ title: T.title, lines: T.lines, ok: T.ok, iconName: 'orbitalStrike' }, () => {
+    prefs.set('commandIntroSeen', true);
+    setSpeed(state, speedBeforeMenu);
+  });
+}
 const debugPanel = debug
   ? createDebugPanel(document.getElementById('hud'), {
       onAction: (action, value) => {
@@ -945,6 +969,7 @@ function frame(now) {
   ui.commandLine = aimed?.target === 'line' ? { halfWidth: aimed.halfWidth, maxLength: aimed.maxLength } : null;
 
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);
+  showCommandIntroIfDue();
   if (codex.open) hud.help.close();
   hud.update(state, ui, { totalWaves: totalWaves(), canStart: canRequestSalvo(state) });
   menus.setStatus({
