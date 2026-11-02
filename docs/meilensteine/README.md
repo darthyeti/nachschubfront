@@ -30,5 +30,6 @@ git show <commit>:docs/meilensteine/M3-kampf-und-inhalte.md
 | **M6** | **Balancing und Feinschliff** — [M6-balancing.md](M6-balancing.md) | **in Arbeit** |
 | M7a | Modus-Gerüst — [M7a-modi.md](M7a-modi.md) | 02.10.2026 |
 | M7b | Modus „King of the Hill" — [M7b-king-of-the-hill.md](M7b-king-of-the-hill.md) | 02.10.2026 |
+| **M8** | **Optik: Farbtrennung, Licht, Blockgelände, Rahmen, Trümmer** — [M8-optik.md](M8-optik.md) | **Entwurf** |
 
 Der Stand steht in [`docs/PROGRESS.md`](../PROGRESS.md).
