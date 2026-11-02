@@ -21,6 +21,8 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:
 .hud .row{display:flex;gap:6px;align-items:center;margin-top:8px;pointer-events:auto;flex-wrap:wrap}
 .hud input{font-family:inherit;font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--text);background:#241a14;
   border:2px solid var(--ink);border-radius:5px;padding:0 10px;min-height:44px;width:9em;box-sizing:border-box}
+.hud .wear{display:flex;align-items:center;gap:8px;min-height:44px;box-sizing:border-box}
+.hud .wear input{width:150px;min-height:44px;padding:0;margin:0;background:none;border:0;text-transform:none;letter-spacing:0}
 .hud .chip{font-size:15px;color:var(--muted);background:rgba(24,18,14,.8);border:2px solid var(--ink);border-radius:5px;padding:4px 8px}
 .bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--safe-bottom));display:flex;gap:6px;align-items:center;
   background:#241a14;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:8px;border-radius:8px;flex-wrap:wrap;justify-content:center;
@@ -50,6 +52,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2
     <input id="seed" value="BASTION" maxlength="16" spellcheck="false" autocomplete="off" aria-label="Seed">
     <button id="dice">Neu würfeln</button>
     <span class="chip" id="stats"></span>
+    <label class="chip wear" for="wear">Abnutzung <input type="range" id="wear" min="0" max="100" value="70"> <span id="wearOut">70 %</span></label>
   </div>
 </div>
 <div class="tag" id="tagL" hidden>Heute</div>

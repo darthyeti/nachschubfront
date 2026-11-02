@@ -6,13 +6,21 @@
 // are the game's own drawing functions in both views; what is new is the ground, the light,
 // the colours, the frame and the shadows underneath the figures.
 //
+// Biomes: in the game the biome changes per match with the seed, never within one map. The
+// buttons here only exist so that all three can be compared on the same map.
+//
+// The terrain comes from the seed alone and does not follow the route: the player changes the
+// route every round. Enemies follow the height of the ground, a ramp marks where the route
+// crosses a step, and the trampled trail along the route grows with every passing enemy.
+//
 // Open /reference/studien/optik-studie.html over HTTP (also works on GitHub Pages).
 
 import { createRng, seedFromString } from '../../src/core/random.js';
 import { generateMap } from '../../src/sim/mapgen.js';
 import { MAP } from '../../src/data/map.js';
-import { computeRoute, groundPolyline, positionAt } from '../../src/sim/route.js';
-import { isBlocked } from '../../src/sim/grid.js';
+import { computeRoute, groundPolyline, positionAt, checkPlacement, nearestDistanceOn } from '../../src/sim/route.js';
+import { isBlocked, setBlocked } from '../../src/sim/grid.js';
+import { PODS } from '../../src/data/pods.js';
 import { CAMERA } from '../../src/data/settings.js';
 import { DOCTRINE_COLORS, DOCTRINE_IDS } from '../../src/data/doctrines.js';
 import { ALL_ENEMIES } from '../../src/data/enemies.js';
@@ -32,6 +40,7 @@ import {
   drawBeacon,
   drawBeaconLabel,
 } from '../../src/render/objects.js';
+import { POD_SPRITE_DEFS, createPodRenderer, drawPodTarget, drawPodHologram } from '../../src/render/pods.js';
 import { createSpriteCache } from '../../src/render/sprites/rasterizer.js';
 import { allTowerDefs, drawTowerSprite, drawSpecialRing } from '../../src/render/towerSprites.js';
 import { ENEMY_SPRITE_DEFS, createEnemySpriteRenderer } from '../../src/render/enemySprites.js';
@@ -76,6 +85,26 @@ const HORIZON_NEW = 0.4;
 const BACKDROP_DARKEN = 0.32;
 const VIGNETTE_NEW = 0.82;
 const VIGNETTE_TODAY = 0.62;
+/** Trampled trail: width of the three layers in cells, their opacity factors (times the wear). */
+const TRAIL_WIDTHS = [0.55, 0.42, 0.28];
+const TRAIL_ALPHAS = [0.7, 0.7, 0.7];
+/** Raggedness of the trail edges as a fraction of the layer width, and spacing of its samples in cells. */
+const TRAIL_RAG = 0.3;
+const TRAIL_SAMPLE = 0.5;
+/** Wear gained per passing enemy and lost per second on sections that are no longer walked. */
+const WEAR_PER_PASS = 0.04;
+const WEAR_FADE_PER_SECOND = 0.02;
+/** Wear every section starts with (the slider overrides it). */
+const WEAR_START = 0.7;
+/** Ramp where the route crosses a step: width and run (in cells) on the lower field. */
+const RAMP_WIDTH = 0.6;
+const RAMP_RUN = 0.65;
+/** Enemies blend from one field height to the next over this fraction of a cell on each side of the border. */
+const ENEMY_BLEND = 0.25;
+/** Terrain is rebuilt for a changed trail at most this often (ms). */
+const TRAIL_REBUILD_MS = 350;
+/** Supply pod demo: seconds of one drop loop. */
+const POD_LOOP_SECONDS = 8;
 /** Walking speed of the demo enemies in cells per second. */
 const ENEMY_SPEED = 1.1;
 
@@ -117,8 +146,8 @@ const PALETTES = {
   // What the game draws today, for "colour separation" switched off.
   today: {
     ground: ['#5f4e3e', '#65533f', '#5a4a3b', '#6a5743', '#61503f'],
-    path: null,
-    pathEdge: null,
+    path: '#44362a',
+    pathEdge: '#2f251c',
     cliff: ['#8d7f6b', '#4a3a2d', '#302419'],
     stone: C.stone.slice(),
     decor: '#4f7a24',
@@ -271,76 +300,136 @@ const NEIGHBOURS_4 = [[0, 1], [1, 0], [0, -1], [-1, 0]];
 const NEIGHBOURS_4_ALT = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 const NEIGHBOURS_DIAG = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
 
+const POD_LIST = [['laser', 3], ['flame', 2], ['psi', 4], ['mortar', 1]];
+/** Pod 0..2 stand still in these stages (seconds after impact), pod 3 plays the drop in a loop. */
+const POD_STAGES = [0, PODS.openDelaySeconds + PODS.openSeconds * 0.45, PODS.openDelaySeconds + PODS.openSeconds + 3];
+const IMPACT = PODS.warnSeconds + PODS.fallSeconds;
+
+function setRoute(scene) {
+  scene.route = computeRoute(scene.map);
+  scene.line = groundPolyline(scene.route);
+  scene.routeSet = new Uint8Array(SIZE * SIZE);
+  for (const c of scene.route.cells) scene.routeSet[c.y * SIZE + c.x] = 1;
+  scene.version = (scene.version ?? 0) + 1;
+}
+
 function buildScene(seed) {
   const map = generateMap(createRng(seed).fork('map'), MAP);
-  const route = computeRoute(map);
-  const line = groundPolyline(route);
-  const routeSet = new Uint8Array(SIZE * SIZE);
-  for (const c of route.cells) routeSet[c.y * SIZE + c.x] = 1;
+  const scene = { seed, map, towers: [], pods: [], enemies: [], detour: null, version: 0 };
+  setRoute(scene);
+  const { route, line, routeSet } = scene;
 
-  // Emplacements: one per evenly spaced route index, on a free cell next to the route.
+  // Emplacements and pods: one per evenly spaced route index, on a free cell next to the route.
   const taken = new Set();
   const anchorCells = new Set([map.rift, map.bastion, ...map.beacons].map((p) => `${p.x},${p.y}`));
   const free = (x, y) =>
     x >= 0 && y >= 0 && x < SIZE && y < SIZE &&
     !isBlocked(map.grid, x, y) && !map.protected[y * SIZE + x] && !routeSet[y * SIZE + x] &&
     !taken.has(`${x},${y}`) && !anchorCells.has(`${x},${y}`);
-  const towers = [];
-  const n = TOWER_LIST.length;
-  for (let k = 0; k < n && towers.length < n; k++) {
-    const base = Math.floor(((k + 0.5) * route.cells.length) / n);
-    let spot = null;
-    for (let shift = 0; shift < route.cells.length && !spot; shift++) {
+  const apart = (x, y, gap) => ![...taken].some((key) => {
+    const [tx, ty] = key.split(',').map(Number);
+    return Math.max(Math.abs(tx - x), Math.abs(ty - y)) <= gap;
+  });
+  const place = (k, n, phase, gap = 0) => {
+    const base = Math.floor(((k + phase) * route.cells.length) / n);
+    for (let shift = 0; shift < route.cells.length; shift++) {
       const c = route.cells[(base + shift) % route.cells.length];
       const order = k % 2 ? NEIGHBOURS_4_ALT : NEIGHBOURS_4;
       for (const [dx, dy] of [...order, ...NEIGHBOURS_DIAG]) {
-        if (free(c.x + dx, c.y + dy)) {
-          spot = { x: c.x + dx, y: c.y + dy };
-          break;
+        if (free(c.x + dx, c.y + dy) && apart(c.x + dx, c.y + dy, gap)) {
+          taken.add(`${c.x + dx},${c.y + dy}`);
+          return { x: c.x + dx, y: c.y + dy };
         }
       }
     }
-    if (!spot) continue;
-    taken.add(`${spot.x},${spot.y}`);
-    const [doctrine, rank, special] = TOWER_LIST[k];
-    towers.push({ x: spot.x, y: spot.y, doctrine, rank, special, flash: 0 });
-  }
+    return null;
+  };
+  TOWER_LIST.forEach(([doctrine, rank, special], k) => {
+    const spot = place(k, TOWER_LIST.length, 0.5);
+    if (spot) scene.towers.push({ ...spot, doctrine, rank, special, flash: 0 });
+  });
+  POD_LIST.forEach(([doctrine, rank], k) => {
+    const spot = place(k, 22, 13 + k, 1);
+    if (!spot) return;
+    const loop = k === POD_LIST.length - 1;
+    scene.pods.push({ index: k, ...spot, doctrine, rank, loop, landed: true, t: IMPACT + (loop ? 0 : POD_STAGES[k]) });
+  });
+  // Emplacements and pods block their cells, so a new route walks around them.
+  for (const o of [...scene.towers, ...scene.pods]) setBlocked(map.grid, o.x, o.y, true);
 
-  const enemies = ENEMY_LIST.map((type, i) => ({
+  scene.enemies = ENEMY_LIST.map((type, i) => ({
     id: i + 1,
     type,
     flying: ALL_ENEMIES[type].flying,
     x: 0, y: 0, dx: 1, dy: 0, d: 9, flash: 0,
     offset: (i * line.length) / ENEMY_LIST.length,
+    lastSample: -1,
   }));
+  return scene;
+}
 
-  return { seed, map, route, line, routeSet, towers, enemies };
+/** Toggles a heap of rubble on a route cell in the middle of the way (and re-routes). */
+function toggleDetour() {
+  const { map } = scene;
+  if (scene.detour) {
+    const { x, y } = scene.detour.cells[0];
+    setBlocked(map.grid, x, y, false);
+    map.obstacles.splice(map.obstacles.indexOf(scene.detour), 1);
+    scene.detour = null;
+  } else {
+    const cells = scene.route.cells;
+    const mid = Math.floor(cells.length / 2);
+    let pick = null;
+    for (let k = 0; k < cells.length && !pick; k++) {
+      for (const idx of [mid + k, mid - k]) {
+        const c = cells[idx];
+        if (c && idx > 2 && idx < cells.length - 3 && checkPlacement(map, [c]).ok) {
+          pick = c;
+          break;
+        }
+      }
+    }
+    if (!pick) return;
+    scene.detour = { kind: 'rubble', cells: [{ x: pick.x, y: pick.y }], variant: 1 };
+    map.obstacles.push(scene.detour);
+    setBlocked(map.grid, pick.x, pick.y, true);
+  }
+  // Enemies keep their place: they are bound to the new line where they stand.
+  const before = scene.enemies.map((e) => ({ x: e.x, y: e.y }));
+  setRoute(scene);
+  scene.enemies.forEach((e, i) => {
+    const d = nearestDistanceOn(scene.line, before[i].x, before[i].y);
+    e.offset = (((d - simT * ENEMY_SPEED) % scene.line.length) + scene.line.length) % scene.line.length;
+    e.lastSample = -1;
+  });
+  trail.addStrand(scene.line);
 }
 
 // =====================================================================================
 // Terrain: height field and occluders
 // =====================================================================================
 
+/** A few puddles of the biome's decor, from the seed and the original map only. */
+function pickPuddles(scene, craters, rng) {
+  const puddles = new Set();
+  const decorRng = rng.fork('decor');
+  for (let tries = 0, want = Math.round(SIZE / 5); puddles.size < want && tries < 200; tries++) {
+    const x = decorRng.int(0, SIZE - 1);
+    const y = decorRng.int(0, SIZE - 1);
+    const i = y * SIZE + x;
+    if (craters[i] || scene.map.protected[i] || isBlocked(scene.map.grid, x, y)) continue;
+    puddles.add(i);
+  }
+  return puddles;
+}
+
 function buildHeights(scene, blocks) {
-  const { map, routeSet } = scene;
+  const { map } = scene;
   const rng = createRng(`optik:${scene.seed}`);
   const level = new Int8Array(SIZE * SIZE);
   const craters = new Uint8Array(SIZE * SIZE);
   for (const o of map.obstacles) if (o.kind === 'crater') for (const c of o.cells) craters[c.y * SIZE + c.x] = 1;
-  const zone = new Uint8Array(SIZE * SIZE);
-  for (let y = 0; y < SIZE; y++) {
-    for (let x = 0; x < SIZE; x++) {
-      if (!routeSet[y * SIZE + x]) continue;
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          const nx = x + dx;
-          const ny = y + dy;
-          if (nx >= 0 && ny >= 0 && nx < SIZE && ny < SIZE) zone[ny * SIZE + nx] = 1;
-        }
-      }
-    }
-  }
-  if (!blocks) return { level, craters, zone, rng };
+  if (!blocks) return { level, craters, rng, puddles: pickPuddles(scene, craters, rng) };
 
   // Value noise on a lattice of NOISE_CELLS cells, bilinear with a smoothed fade, stretched
   // to 0..1 and cut into three levels.
@@ -399,12 +488,9 @@ function buildHeights(scene, blocks) {
     }
     level.set(next);
   }
-  // The whole route and its eight neighbours lie on the level of the rift.
-  const riftLevel = level[map.rift.y * SIZE + map.rift.x];
-  for (let i = 0; i < level.length; i++) if (zone[i]) level[i] = riftLevel;
   // Craters are set one level lower instead of being painted.
   for (let i = 0; i < level.length; i++) if (craters[i]) level[i] -= 1;
-  return { level, craters, zone, rng };
+  return { level, craters, rng, puddles: pickPuddles(scene, craters, rng) };
 }
 
 /** Boxes that cast shadows: rectangles in cell units with their top above the cell's ground. */
@@ -426,6 +512,7 @@ function buildOccluders(scene) {
       }
     });
   }
+  for (const o of map.obstacles) if (o.kind === 'rubble') add(o.cells[0].x, o.cells[0].y, 0.18, 0.2, 0.82, 0.8, 14);
   add(map.bastion.x, map.bastion.y, 0.08, 0.08, 0.92, 0.92, 36);
   for (const b of map.beacons) {
     add(b.x, b.y, 0.2, 0.2, 0.8, 0.8, 8);
@@ -562,6 +649,214 @@ function paintOldShadow(g) {
   g.restore();
 }
 
+// ---------- Trampled trail ----------
+// The trail follows groundPolyline(route): three slightly shifted ribbons with ragged edges, no
+// ink outline. Every section (a sample every TRAIL_SAMPLE cells) reads its wear from a field of
+// half-cell fields, so the wear stays where the ground was walked when the route changes, and
+// the old trail remains as a pale scar while it fades. The ribbons are painted in cell order
+// into the terrain cache (clipped to the cell's top face), so higher blocks in front of the
+// trail cover it correctly; the cache is rebuilt when the quantised wear changes.
+
+const FIELD = 2;
+const FIELD_W = SIZE * FIELD;
+const trail = {
+  field: new Float32Array(FIELD_W * FIELD_W).fill(WEAR_START),
+  strands: [],
+  current: new Uint8Array(FIELD_W * FIELD_W),
+  cells: new Map(),
+  fieldIndex(x, y) {
+    const fx = Math.max(0, Math.min(FIELD_W - 1, Math.floor(x * FIELD)));
+    const fy = Math.max(0, Math.min(FIELD_W - 1, Math.floor(y * FIELD)));
+    return fy * FIELD_W + fx;
+  },
+  reset(line) {
+    this.field.fill(WEAR_START);
+    this.strands = [];
+    this.addStrand(line);
+  },
+  addStrand(line) {
+    const rng = createRng(`optik:trail:${scene.seed}:${this.strands.length}`);
+    const pts = [];
+    const out = { x: 0, y: 0, dx: 1, dy: 0 };
+    for (let d = 0; d < line.length + TRAIL_SAMPLE * 0.5; d += TRAIL_SAMPLE) {
+      positionAt(line, Math.min(d, line.length), out);
+      pts.push({ x: out.x, y: out.y });
+    }
+    const samples = pts.map((p, i) => {
+      const a = pts[Math.max(0, i - 1)];
+      const b = pts[Math.min(pts.length - 1, i + 1)];
+      const len = Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2) || 1;
+      const nx = -(b.y - a.y) / len;
+      const ny = (b.x - a.x) / len;
+      const layers = TRAIL_WIDTHS.map((w) => {
+        const shift = (rng.next() - 0.5) * 0.06;
+        const l = (w / 2) * (1 + TRAIL_RAG * (rng.next() * 2 - 1));
+        const r = (w / 2) * (1 + TRAIL_RAG * (rng.next() * 2 - 1));
+        return [p.x + nx * (shift + l), p.y + ny * (shift + l), p.x - nx * (r - shift), p.y - ny * (r - shift)];
+      });
+      return { fi: this.fieldIndex(p.x, p.y), layers };
+    });
+    const strand = { samples };
+    this.strands.push(strand);
+    this.current.fill(0);
+    for (const sm of samples) this.current[sm.fi] = 1;
+    // Which cells each ribbon segment touches.
+    this.cells.clear();
+    for (const st of this.strands) {
+      for (let i = 0; i + 1 < st.samples.length; i++) {
+        for (let l = 0; l < TRAIL_WIDTHS.length; l++) {
+          const quad = [...st.samples[i].layers[l].slice(0, 2), ...st.samples[i + 1].layers[l].slice(0, 2),
+            ...st.samples[i + 1].layers[l].slice(2), ...st.samples[i].layers[l].slice(2)];
+          const touched = new Set();
+          for (let k = 0; k < 8; k += 2) {
+            const cx = Math.max(0, Math.min(SIZE - 1, Math.floor(quad[k])));
+            const cy = Math.max(0, Math.min(SIZE - 1, Math.floor(quad[k + 1])));
+            touched.add(cy * SIZE + cx);
+          }
+          for (const c of touched) {
+            if (!this.cells.has(c)) this.cells.set(c, []);
+            this.cells.get(c).push({ st, i, l, quad, current: st === strand });
+          }
+        }
+      }
+    }
+  },
+  /** Wear of a ribbon segment, or 0 where an old strand lies on ground that is walked again. */
+  wearOf(seg) {
+    const fi = seg.st.samples[seg.i].fi;
+    if (seg.st !== this.strands[this.strands.length - 1] && this.current[fi]) return 0;
+    return this.field[fi];
+  },
+  setAll(v) {
+    this.field.fill(v);
+  },
+  pass(sampleIndex) {
+    const st = this.strands[this.strands.length - 1];
+    const sm = st.samples[Math.min(st.samples.length - 1, sampleIndex)];
+    this.field[sm.fi] = Math.min(1, this.field[sm.fi] + WEAR_PER_PASS);
+  },
+  fade(dt) {
+    for (let i = 0; i < this.field.length; i++) {
+      if (!this.current[i] && this.field[i] > 0) this.field[i] = Math.max(0, this.field[i] - WEAR_FADE_PER_SECOND * dt);
+    }
+  },
+  /** A number that changes when the quantised wear of any drawn segment changes. */
+  signature() {
+    let h = this.strands.length;
+    const last = this.strands[this.strands.length - 1];
+    for (const st of this.strands) {
+      for (const sm of st.samples) {
+        const q = st !== last && this.current[sm.fi] ? 0 : Math.round(this.field[sm.fi] * 10);
+        h = (h * 31 + q) | 0;
+      }
+    }
+    return h;
+  },
+};
+
+function paintTrailInCell(g, cellIndex, hz, pal) {
+  const segs = trail.cells.get(cellIndex);
+  if (!segs) return;
+  const x = cellIndex % SIZE;
+  const y = Math.floor(cellIndex / SIZE);
+  const groups = new Map();
+  for (const seg of segs) {
+    const q = Math.round(trail.wearOf(seg) * 10);
+    if (q <= 0) continue;
+    const key = q * 4 + seg.l;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(seg.quad);
+  }
+  if (!groups.size) return;
+  g.save();
+  g.beginPath();
+  diamond(x, y, hz).forEach(([px, py], k) => (k ? g.lineTo(px, py) : g.moveTo(px, py)));
+  g.closePath();
+  g.clip();
+  const lift = (hz / STEP) * LEVEL_LIGHTEN;
+  const colour = shade(pal.path, lift);
+  const [r, gr, b] = colour.match(/\d+/g).map(Number);
+  for (const [key, quads] of groups) {
+    const q = Math.floor(key / 4);
+    const l = key % 4;
+    g.beginPath();
+    for (const quad of quads) {
+      for (let k = 0; k < 8; k += 2) {
+        const p = P(quad[k], quad[k + 1], hz);
+        if (k) g.lineTo(p[0], p[1]);
+        else g.moveTo(p[0], p[1]);
+      }
+      g.closePath();
+    }
+    g.fillStyle = `rgba(${r},${gr},${b},${(q / 10) * TRAIL_ALPHAS[l]})`;
+    g.fill();
+  }
+  g.restore();
+}
+
+/** Ramps: where consecutive route cells differ in level, an earth wedge on the lower field against the step. */
+function rampsFor(scene, H) {
+  const out = new Map();
+  const cells = scene.route.cells;
+  for (let k = 0; k + 1 < cells.length; k++) {
+    const a = cells[k];
+    const b = cells[k + 1];
+    const la = H.level[a.y * SIZE + a.x];
+    const lb = H.level[b.y * SIZE + b.x];
+    if (la === lb) continue;
+    const low = la < lb ? a : b;
+    const high = la < lb ? b : a;
+    const lowLevel = Math.min(la, lb);
+    let dx = high.x - low.x;
+    let dy = high.y - low.y;
+    if (dx !== 0 && dy !== 0) {
+      // Diagonal step: the ramp goes up the axis neighbour that really is higher.
+      const hx = H.level[low.y * SIZE + low.x + dx];
+      const hy = H.level[(low.y + dy) * SIZE + low.x];
+      if (hx > lowLevel) dy = 0;
+      else if (hy > lowLevel) dx = 0;
+      else continue;
+    }
+    const nx = low.x + dx;
+    const ny = low.y + dy;
+    if (nx < 0 || ny < 0 || nx >= SIZE || ny >= SIZE) continue;
+    const i = low.y * SIZE + low.x;
+    if (!out.has(i)) out.set(i, []);
+    out.get(i).push({ dx, dy, hi: H.level[ny * SIZE + nx] * STEP });
+  }
+  return out;
+}
+
+function paintRamp(g, x, y, hz, r, pal) {
+  const ex = x + 0.5 + r.dx * 0.5;
+  const ey = y + 0.5 + r.dy * 0.5;
+  const lx = -r.dy * (RAMP_WIDTH / 2);
+  const ly = r.dx * (RAMP_WIDTH / 2);
+  const ix = ex - r.dx * RAMP_RUN;
+  const iy = ey - r.dy * RAMP_RUN;
+  const A = P(ex + lx, ey + ly, r.hi);
+  const B = P(ex - lx, ey - ly, r.hi);
+  const Cc = P(ix - lx, iy - ly, hz);
+  const D = P(ix + lx, iy + ly, hz);
+  g.beginPath();
+  g.moveTo(A[0], A[1]);
+  g.lineTo(B[0], B[1]);
+  g.lineTo(Cc[0], Cc[1]);
+  g.lineTo(D[0], D[1]);
+  g.closePath();
+  g.fillStyle = shade(pal.path, ((hz + r.hi) / 2 / STEP) * LEVEL_LIGHTEN - 8);
+  g.fill();
+  // Ink only on the two sides, none along the top where the ramp meets the step.
+  g.strokeStyle = rgba(pal.pathEdge, 0.8);
+  g.lineWidth = 1.6;
+  g.beginPath();
+  g.moveTo(A[0], A[1]);
+  g.lineTo(D[0], D[1]);
+  g.moveTo(B[0], B[1]);
+  g.lineTo(Cc[0], Cc[1]);
+  g.stroke();
+}
+
 /** Everything static of the "new" ground: shadow or frame, slab, terrain blocks, decor, cast shadows. */
 function paintTerrain(g, scene, H, occ, pal, opt) {
   const N = SIZE;
@@ -569,6 +864,7 @@ function paintTerrain(g, scene, H, occ, pal, opt) {
   g.lineJoin = 'round';
   g.lineCap = 'round';
   const lvl = (x, y) => H.level[y * N + x];
+  const ramps = rampsFor(scene, H);
   const z = (x, y) => lvl(x, y) * STEP;
 
   if (opt.frame) paintFrame(g);
@@ -601,16 +897,7 @@ function paintTerrain(g, scene, H, occ, pal, opt) {
     mark(scene.map.bastion, 'rgba(225,70,35,.3)');
   }
 
-  // A few puddles of the biome's decor on free ground.
-  const puddles = new Set();
-  const decorRng = H.rng.fork('decor');
-  for (let tries = 0, want = Math.round(N / 5); puddles.size < want && tries < 200; tries++) {
-    const x = decorRng.int(0, N - 1);
-    const y = decorRng.int(0, N - 1);
-    const i = y * N + x;
-    if (H.zone[i] || H.craters[i] || isBlocked(scene.map.grid, x, y) || scene.map.protected[i]) continue;
-    puddles.add(i);
-  }
+  const puddles = H.puddles;
 
   for (let s = 0; s <= 2 * N - 2; s++) {
     for (let x = Math.max(0, s - N + 1); x <= Math.min(N - 1, s); x++) {
@@ -618,13 +905,11 @@ function paintTerrain(g, scene, H, occ, pal, opt) {
       const i = y * N + x;
       const L = H.level[i];
       const hz = L * STEP;
-      const isRoute = scene.routeSet[i] === 1;
       const isPit = opt.blocks && H.craters[i] === 1;
 
       // ---- top face
       let top;
       if (isPit) top = pal.pit;
-      else if (isRoute && pal.path) top = shade(pal.path, rng.pick([-5, 0, 0, 5]) + L * LEVEL_LIGHTEN);
       else top = shade(rng.pick(pal.ground), L * LEVEL_LIGHTEN);
       poly(g, diamond(x, y, hz), top, 'rgba(26,20,16,.25)', 1);
       if (isPit) {
@@ -633,29 +918,8 @@ function paintTerrain(g, scene, H, occ, pal, opt) {
       }
       if (tint[i]) poly(g, diamond(x, y, hz), tint[i], null);
 
-      // Darker hem where a route cell meets a non-route neighbour.
-      if (isRoute && pal.pathEdge) {
-        g.save();
-        g.beginPath();
-        diamond(x, y, hz).forEach(([px, py], k) => (k ? g.lineTo(px, py) : g.moveTo(px, py)));
-        g.closePath();
-        g.clip();
-        g.strokeStyle = pal.pathEdge;
-        g.lineWidth = 6;
-        const edges = [[0, -1, x, y, x + 1, y], [1, 0, x + 1, y, x + 1, y + 1], [0, 1, x, y + 1, x + 1, y + 1], [-1, 0, x, y, x, y + 1]];
-        for (const [dx, dy, ax, ay, bx, by] of edges) {
-          const nx = x + dx;
-          const ny = y + dy;
-          if (nx >= 0 && ny >= 0 && nx < N && ny < N && scene.routeSet[ny * N + nx]) continue;
-          const a = P(ax, ay, hz);
-          const b = P(bx, by, hz);
-          g.beginPath();
-          g.moveTo(a[0], a[1]);
-          g.lineTo(b[0], b[1]);
-          g.stroke();
-        }
-        g.restore();
-      }
+      // The trampled trail lies on the ground, under every shadow.
+      paintTrailInCell(g, i, hz, pal);
 
       // ---- pebbles, cracks, puddles
       if (!isPit && rng.chance(0.4)) {
@@ -703,6 +967,8 @@ function paintTerrain(g, scene, H, occ, pal, opt) {
         const hn = z(x + 1, y);
         wall(g, 'x', x, y, hz, hn, cliffR, lineOf(cliffR), stoneOf(cliffR), layerZs(hz, hn), rng);
       }
+
+      for (const r of ramps.get(i) ?? []) paintRamp(g, x, y, hz, r, pal);
 
       if (!opt.light) continue;
 
@@ -971,6 +1237,7 @@ const camera = createCamera();
 const bounds = mapBounds(SIZE);
 const cache = createSpriteCache();
 const drawEnemy = createEnemySpriteRenderer(cache);
+const drawPod = createPodRenderer(cache);
 
 /** 'today' | 'new'; `compare` splits the screen. */
 const ui = {
@@ -982,12 +1249,14 @@ const ui = {
   frame: true,
   biome: 'ash',
   paused: false,
+  wear: 50,
   split: 0.5,
 };
 let scene = null;
 let heights = null;
 let occluders = null;
 let simT = 0;
+let podClock = 0;
 
 const view = createCanvasView(canvas, (v) => {
   fitCamera(camera, v, bounds, { top: 100, bottom: 96, side: 16 }, { ...CAMERA, minCellPx: 0 });
@@ -998,8 +1267,19 @@ function biomeOfSeed(seed) {
   return BIOMES[seedFromString(seed) % 3][0];
 }
 
+let trailApplied = 0;
+let trailAppliedAt = 0;
+let wearInput = null;
+
 function setSeed(seed) {
   scene = buildScene(seed);
+  trail.reset(scene.line);
+  trailApplied = trail.signature();
+  ui.wear = Math.round(WEAR_START * 100);
+  if (wearInput) {
+    wearInput.value = String(ui.wear);
+    document.getElementById('wearOut').textContent = `${ui.wear} %`;
+  }
   ui.biome = biomeOfSeed(seed);
   heights = null; // rebuilt per block switch below
   refreshButtons();
@@ -1044,6 +1324,7 @@ for (const [id, name] of BIOMES) {
   addButton(id, name, () => { ui.biome = id; ui.colors = true; refreshButtons(); });
 }
 sep();
+addButton('detour', 'Weg umleiten', () => { toggleDetour(); trailAppliedAt = -1e9; refreshButtons(); });
 addButton('pause', 'Pause', () => { ui.paused = !ui.paused; refreshButtons(); });
 
 function toggle(key) {
@@ -1063,6 +1344,7 @@ function refreshButtons() {
   buttons.new.classList.toggle('on', !compare && ui.view === 'new');
   buttons.compare.classList.toggle('on', compare);
   for (const k of ['light', 'colors', 'blocks', 'frame', 'pause']) buttons[k].classList.toggle('on', k === 'pause' ? ui.paused : ui[k]);
+  buttons.detour.classList.toggle('on', Boolean(scene?.detour));
   for (const [id] of BIOMES) buttons[id].classList.toggle('on', ui.biome === id);
   splitEl.hidden = !compare;
   tagL.hidden = !compare;
@@ -1107,6 +1389,14 @@ window.addEventListener('resize', positionSplit);
 
 const seedInput = document.getElementById('seed');
 const stats = document.getElementById('stats');
+wearInput = document.getElementById('wear');
+const wearOut = document.getElementById('wearOut');
+wearInput.addEventListener('input', () => {
+  ui.wear = Number(wearInput.value);
+  wearOut.textContent = `${ui.wear} %`;
+  trail.setAll(ui.wear / 100);
+  trailAppliedAt = -1e9;
+});
 seedInput.addEventListener('change', () => setSeed(seedInput.value.trim().toUpperCase() || DEFAULT_SEED));
 seedInput.addEventListener('keydown', (ev) => {
   if (ev.key === 'Enter') seedInput.blur();
@@ -1139,7 +1429,7 @@ const backdropToday = createBackdropLayer();
 const groundToday = createGroundLayer();
 const vignetteToday = createVignette(VIGNETTE_TODAY);
 
-const KIND = { obstacle: 0, rift: 1, beacon: 2, bastion: 3, tower: 4, enemy: 6 };
+const KIND = { obstacle: 0, rift: 1, beacon: 2, bastion: 3, tower: 4, pod: 5, enemy: 6 };
 
 /** Depth-sorted list of everything that stands on the map, same keys as scene.js. */
 function collectItems(skipCraters) {
@@ -1150,6 +1440,7 @@ function collectItems(skipCraters) {
     o.cells.forEach((c, i) => items.push([c.x + c.y + 1, KIND.obstacle, o, i]));
   }
   for (const t of towers) items.push([t.x + t.y + 1, KIND.tower, t, 0]);
+  for (const p of scene.pods) items.push([p.x + p.y + 1, KIND.pod, p, 0]);
   items.push([map.rift.x + map.rift.y + 1, KIND.rift, map.rift, 0]);
   items.push([map.bastion.x + map.bastion.y + 1, KIND.bastion, map.bastion, 1]);
   map.beacons.forEach((b, i) => items.push([b.x + b.y + 1, KIND.beacon, b, i]));
@@ -1168,6 +1459,7 @@ function drawFigure(c, kind, o, i, t, dt) {
   else if (kind === KIND.bastion) drawBastion(c, o, t, i);
   else if (kind === KIND.beacon) drawBeacon(c, o, t);
   else if (kind === KIND.tower) drawTowerSprite(c, cache, o, camera.zoom, view.dpr, t, dt, reduceMotion);
+  else if (kind === KIND.pod) drawPod(c, o, t, { zoom: camera.zoom, dpr: view.dpr, heat: o.loop ? undefined : 0 });
   else drawEnemy(c, o, t, enemyView(dt));
 }
 
@@ -1182,8 +1474,10 @@ function drawToday(t, now, dt) {
   drawRiftGlow(ctx, map.rift, t);
   drawBastionGlow(ctx, map.bastion, t, 1);
   for (const tw of towers) if (tw.special) drawSpecialRing(ctx, tw);
+  for (const p of scene.pods) drawPodTarget(ctx, p, t);
   for (const [, kind, o, i] of collectItems(false)) drawFigure(ctx, kind, o, i, t, dt);
   map.beacons.forEach((b, i) => drawBeaconLabel(ctx, b, i + 1));
+  for (const p of scene.pods) drawPodHologram(ctx, p, t);
   vignetteToday(ctx, view);
 }
 
@@ -1232,11 +1526,29 @@ function silhouetteShadow(c, sx, sy, lift, drawFn) {
   c.restore();
 }
 
+function levelAt(cx, cy) {
+  return heights.level[Math.max(0, Math.min(SIZE - 1, cy)) * SIZE + Math.max(0, Math.min(SIZE - 1, cx))] * STEP;
+}
+
+/** Height of the field under a world point. */
 function liftAt(x, y) {
   if (!ui.blocks || !heights) return 0;
-  const cx = Math.max(0, Math.min(SIZE - 1, Math.floor(x)));
-  const cy = Math.max(0, Math.min(SIZE - 1, Math.floor(y)));
-  return heights.level[cy * SIZE + cx] * STEP;
+  return levelAt(Math.floor(x), Math.floor(y));
+}
+
+/**
+ * Height for something that walks: the field height, blended linearly into the neighbour's over
+ * ENEMY_BLEND of a cell on each side of the border (a step of 12 px is taken like a kerb).
+ */
+function liftSmooth(x, y) {
+  if (!ui.blocks || !heights) return 0;
+  const cx = Math.floor(x);
+  const cy = Math.floor(y);
+  const fx = x - cx;
+  const fy = y - cy;
+  const weight = (f) => (f < ENEMY_BLEND ? 0.5 * (1 - f / ENEMY_BLEND) : f > 1 - ENEMY_BLEND ? 0.5 * (1 - (1 - f) / ENEMY_BLEND) : 0);
+  const h0 = levelAt(cx, cy);
+  return h0 + weight(fx) * (levelAt(fx < 0.5 ? cx - 1 : cx + 1, cy) - h0) + weight(fy) * (levelAt(cx, fy < 0.5 ? cy - 1 : cy + 1) - h0);
 }
 
 function drawFoundation(c, tw) {
@@ -1257,7 +1569,11 @@ function drawNew(t, now, dt) {
   else backdropToday.draw(ctx, view, camera, scene.seed);
 
   heights = buildHeightsCached();
-  const key = `${scene.seed}|${ui.biome}|${+ui.light}${+ui.colors}${+ui.blocks}${+ui.frame}`;
+  if (now - trailAppliedAt > TRAIL_REBUILD_MS) {
+    trailApplied = trail.signature();
+    trailAppliedAt = now;
+  }
+  const key = `${scene.seed}|${ui.biome}|${+ui.light}${+ui.colors}${+ui.blocks}${+ui.frame}|${scene.version}|${trailApplied}`;
   terrain.draw(ctx, camera, view, key, now, (g) => {
     paintTerrain(g, scene, heights, occluders, pal, ui);
   });
@@ -1275,6 +1591,12 @@ function drawNew(t, now, dt) {
   drawBastionGlow(ctx, map.bastion, t, 1);
   if (ui.colors) drawBastionGlow(ctx, map.bastion, t, 1.2);
   ctx.restore();
+  for (const p of scene.pods) {
+    ctx.save();
+    ctx.translate(0, -liftAt(p.x, p.y));
+    drawPodTarget(ctx, p, t);
+    ctx.restore();
+  }
   for (const tw of towers) {
     const lift = liftAt(tw.x, tw.y);
     ctx.save();
@@ -1288,18 +1610,23 @@ function drawNew(t, now, dt) {
       const [sx, sy] = iso(tw.x + 0.5, tw.y + 0.5);
       silhouetteShadow(ctx, sx, sy, liftAt(tw.x, tw.y), (c) => drawTowerSprite(c, cache, tw, camera.zoom, view.dpr, t, 0, reduceMotion));
     }
+    for (const p of scene.pods) {
+      if (!p.landed) continue;
+      const [sx, sy] = iso(p.x + 0.5, p.y + 0.5);
+      silhouetteShadow(ctx, sx, sy, liftAt(p.x, p.y), (c) => drawPod(c, p, t, { zoom: camera.zoom, dpr: view.dpr, heat: 0 }));
+    }
     for (const e of scene.enemies) {
       const [sx, sy] = iso(e.x, e.y);
-      silhouetteShadow(ctx, sx, sy, liftAt(e.x, e.y), (c) => drawEnemy(c, e, t, enemyView(0)));
+      silhouetteShadow(ctx, sx, sy, liftSmooth(e.x, e.y), (c) => drawEnemy(c, e, t, enemyView(0)));
     }
   }
 
   // Depth-sorted figures, each lifted onto the height of its cell.
   const skipCraters = ui.blocks;
   for (const [, kind, o, i] of collectItems(skipCraters)) {
-    const cell = kind === KIND.obstacle ? o.cells[i] : kind === KIND.enemy ? { x: o.x, y: o.y } : o;
+    const cell = kind === KIND.obstacle ? o.cells[i] : o;
     ctx.save();
-    ctx.translate(0, -liftAt(cell.x, cell.y));
+    ctx.translate(0, -(kind === KIND.enemy ? liftSmooth(o.x, o.y) : liftAt(cell.x, cell.y)));
     drawFigure(fctx, kind, o, i, t, dt);
     ctx.restore();
   }
@@ -1309,16 +1636,27 @@ function drawNew(t, now, dt) {
     drawBeaconLabel(ctx, b, i + 1);
     ctx.restore();
   });
+  for (const p of scene.pods) {
+    ctx.save();
+    ctx.translate(0, -liftAt(p.x, p.y));
+    drawPodHologram(ctx, p, t);
+    ctx.restore();
+  }
   vignetteNew(ctx, view);
 }
 
 let heightsKey = '';
+let occludersKey = '';
 let heightsCache = null;
 function buildHeightsCached() {
   const key = `${scene.seed}|${+ui.blocks}`;
   if (key !== heightsKey) {
     heightsKey = key;
     heightsCache = buildHeights(scene, ui.blocks);
+  }
+  const occKey = `${scene.seed}|${scene.version}`;
+  if (occKey !== occludersKey) {
+    occludersKey = occKey;
     occluders = buildOccluders(scene);
   }
   return heightsCache;
@@ -1333,12 +1671,27 @@ function frame(now) {
   const dt = lastNow === null ? 0 : Math.min(0.05, (now - lastNow) / 1000);
   lastNow = now;
   const running = !ui.paused && !reduceMotion;
-  if (running) simT += dt;
-  // Enemies walk the route in a loop at a fixed speed.
+  if (running) {
+    simT += dt;
+    podClock += dt;
+    trail.fade(dt);
+  }
+  // Enemies walk the route in a loop at a fixed speed; each new section they enter wears the trail.
   const { line, enemies } = scene;
   for (const e of enemies) {
     const d = (e.offset + simT * ENEMY_SPEED) % line.length;
     positionAt(line, d, e);
+    const idx = Math.floor(d / TRAIL_SAMPLE);
+    if (idx !== e.lastSample) {
+      if (e.lastSample >= 0 && running) trail.pass(idx);
+      e.lastSample = idx;
+    }
+  }
+  // The looping pod replays the drop; with reduced motion it stands open.
+  for (const p of scene.pods) {
+    if (!p.loop) continue;
+    p.t = reduceMotion ? IMPACT + POD_STAGES[2] : podClock % POD_LOOP_SECONDS;
+    p.landed = p.t >= IMPACT;
   }
   const t = now / 1000;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1375,13 +1728,23 @@ window.__optik = {
   ui,
   camera: () => ({ ...camera }),
   levels: () => (heights ? Array.from(heights.level) : null),
+  trail,
+  scene: () => scene,
+  toggleDetour: () => { toggleDetour(); trailAppliedAt = -1e9; refreshButtons(); },
+  focus: (x, y, zoom) => {
+    const [wx, wy] = iso(x, y);
+    camera.x = wx;
+    camera.y = wy;
+    camera.zoom = zoom;
+  },
+  setPodClock: (v) => { podClock = v; },
   towers: () => scene.towers.map((t) => ({ ...t })),
   setSeed: (s) => { seedInput.value = s; setSeed(s); },
 };
 
 setSeed(DEFAULT_SEED);
 refreshButtons();
-cache.preload([...allTowerDefs(), ...ENEMY_SPRITE_DEFS], camera.zoom, view.dpr).then(() => {
+cache.preload([...allTowerDefs(), ...ENEMY_SPRITE_DEFS, ...POD_SPRITE_DEFS], camera.zoom, view.dpr).then(() => {
   document.body.dataset.ready = 'true';
 });
 requestAnimationFrame(frame);
