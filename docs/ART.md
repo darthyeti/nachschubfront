@@ -6,6 +6,7 @@ Für Bunker, Aufsätze, Spezialstellungen, Koloss und Gunship sind seit v5 die b
 
 - `stellungen-simulation.html`: Bunker mit allen Rängen, sechs Standard-Aufsätze, Spezialbasis, sechs Spezialwaffen inklusive Effekten.
 - `koloss-studie.html`: Koloss, Zielvorhersage, Durchbruch, Bollwerk-Stopp, Luftschlag mit Gunship, alle vier Fahrtrichtungen.
+- `truemmer-studie.html`: Entwurf für Ruinen, Mauern, Krater und Kapsel-Trümmer (Baukasten, acht Varianten je Art) neben den heutigen Hindernissen und dem Bollwerk. Studie, noch nicht im Spiel; die Übernahme gehört zu M8.
 
 Stand: v5 (Bunker-Baukasten mit allen fünf Rängen, überarbeitete Aufsätze aller sechs Doktrinen, Spezialbasis und neue Rollen der Spezialwaffen, Koloss und Gunship als drehbare Modelle).
 
