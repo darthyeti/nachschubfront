@@ -311,6 +311,16 @@ Derselbe Zeichenstil, nur die Geometrie ist anders (`docs/meilensteine/M7b-king-
 - **Aufwerten:** eine vierte Runenscheibe mit drei Rangwinkeln, der oberste golden. In ihrem Modus tragen die aufwertbaren Stellungen ihren Preis wie beim Abriss.
 - **Modus-Karte:** eine kleine Skizze der Geometrie neben dem Satz.
 
+## Gelände, Licht und Biome
+
+Auftrag und Begründung in `docs/meilensteine/M8-optik.md`, Referenz `reference/studien/optik-studie.html`. Die Zahlen stehen als benannte Konstanten in `src/render/biomes.js` und `src/render/trail.js`. Dieser Abschnitt wächst mit den Schritten von M8; bisher gelten Biome, Fundament und Spur.
+
+**Biome.** Eine Partie hat ein Biom (Asche, Rost, Gift), bestimmt aus dem Seed (`biomeOf`: `seedFromString(String(seed)) % 3`, Reihenfolge `ash`, `rust`, `toxic`) und nie innerhalb einer Karte gewechselt. Es ist reine Darstellung und zieht nichts aus einem Spielzufallsstrom. Eine Palette (`paletteOf`) hat Boden (3 Töne), Weg, Wegkante, Klippe (3), Stein (3), Dekor, Platte (2) und Krater. Boden, Plattenseiten, Dekor und die Hindernisse (Ruine, Mauer, Krater, Kapsel-Trümmer, Bollwerk) lesen ihre Farben daraus, nicht aus `C`; der Ziegel-Akzent bleibt `C.brick`. Bastion, Riss und Signalfeuer behalten ihre eigenen Farben, sie sind die Anker der Karte. Pfützen sind nur im Biom Gift giftgrün, sonst dunkle Flecken in der Dekorfarbe. `src/render/palette.js` bleibt die Palette der Figuren.
+
+**Fundament.** Jede Stellung steht auf einer Raute knapp innerhalb ihres Feldes in der Leitfarbe ihrer Doktrin (Deckkraft 0,35, Tuschekontur 2 px). Sie liegt im Bodendurchgang vor den tiefensortierten Objekten, der goldene Bodenring der Rezept-Stellungen darüber.
+
+**Spur.** Der Weg ist, was die Gegner hinterlassen, keine gefärbte Kachel. Je Teilstück der aktuellen Route (zwischen zwei aufeinanderfolgenden Zellen) hält `src/render/trail.js` eine Abnutzung von 0 bis 1: sie wächst, wenn ein Bodengegner (nicht Flieger, nicht Koloss) das Stück betritt, und sinkt auf Stücken, die nicht mehr zur Route gehören; unter einem Mindestwert wird das Stück vergessen. Eine Umleitung lässt die alte Spur also stehen und verblassen, die neue wächst. Die Abnutzung ist Darstellungszustand neben `ui`: nicht im Spielzustand, nicht gespeichert, nicht aufgezeichnet, in jeder neuen Partie 0. Gezeichnet werden drei versetzte, ausgefranste Streifen in der Wegfarbe des Bioms, ohne Kontur, im Bodendurchgang nach dem Boden und vor den Markern; der Zufall der Ränder kommt aus einem eigenen, vom Seed abgeleiteten Strom, damit Standbilder gleich bleiben. Die gestrichelte Goldroute der Planung bleibt die Vorschau und liegt über der Spur.
+
 ## Technische Umsetzung
 
 - **SVG als Quelle, Canvas als Ausgabe.** Die SVGs werden beim Start einmal in Offscreen-Canvas gerastert und danach nur noch per `drawImage` gezeichnet. Kein SVG-Zeichnen pro Frame.
