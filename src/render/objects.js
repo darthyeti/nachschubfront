@@ -353,7 +353,7 @@ export function drawBeacon(ctx, p, t) {
   const { x, y } = p;
   const [sx, sy] = iso(x + 0.5, y + 0.5);
   shadow(ctx, sx, sy + 3, 22, 10, 0.3);
-  box(ctx, x + 0.2, y + 0.2, 0.6, 0.6, 8, 0, pal.stone.map((c) => shade(c, -8)), 2);
+  box(ctx, x + 0.2, y + 0.2, 0.6, 0.6, 8, 0, ['#80735f', '#5f5446', '#433a31'], 2);
   box(ctx, x + 0.32, y + 0.32, 0.36, 0.36, 30, 8, C.stone, 2);
   // Fire bowl and flame.
   const [fx, fy] = iso(x + 0.5, y + 0.5, 38);
