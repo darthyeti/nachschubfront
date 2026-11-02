@@ -71,7 +71,10 @@ Seit dem 02.11.2026 läuft der Code über GitHub, der Leitstand bedient ihn.
   Code berührt, bekommt ein Issue; die Karte im Board verweist darauf.
 - **Ein Zweig je Aufgabe:** `claude/<nr>-<name>`, abgezweigt von `origin/main`,
   `<nr>` ist die Issue-Nummer. Der Leitstand verteilt die Arbeit auf Agenten
-  (`.claude/agents/entwickler.md`) oder eigene Sitzungen, je Bereich.
+  (`.claude/agents/entwickler.md`) oder eigene Sitzungen, je Bereich. Der
+  Leitstand selbst läuft mit dem stärksten Modell; die Agenten mit klar
+  umrissenen Aufträgen (`entwickler`, `pruefer`) laufen mit Sonnet
+  (`model: sonnet` in ihrer Frontmatter), das reicht dafür (Till, 02.11.2026).
 - **Ein Pull Request je Zweig**, nach der Vorlage
   (`.github/pull_request_template.md`): Issue, was und warum, gelaufene Tests,
   und ob die Änderung Tills Blick im Browser braucht. Vor dem Vorlegen liest der
