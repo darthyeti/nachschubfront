@@ -6,6 +6,7 @@ Für Bunker, Aufsätze, Spezialstellungen, Koloss und Gunship sind seit v5 die b
 
 - `stellungen-simulation.html`: Bunker mit allen Rängen, sechs Standard-Aufsätze, Spezialbasis, sechs Spezialwaffen inklusive Effekten.
 - `koloss-studie.html`: Koloss, Zielvorhersage, Durchbruch, Bollwerk-Stopp, Luftschlag mit Gunship, alle vier Fahrtrichtungen.
+- `optik-studie.html`: dieselbe Karte heute (echte Spielmodule) und neu (Licht und Schlagschatten, Farbtrennung, Blockgelände, Diorama-Rahmen, drei Biome), Bausteine einzeln schaltbar, Vergleich mit ziehbarer Trennlinie; Standbilder in `reference/konzept/optik/`. Entscheidungsgrundlage für M8, noch keine Regel.
 
 Stand: v5 (Bunker-Baukasten mit allen fünf Rängen, überarbeitete Aufsätze aller sechs Doktrinen, Spezialbasis und neue Rollen der Spezialwaffen, Koloss und Gunship als drehbare Modelle).
 

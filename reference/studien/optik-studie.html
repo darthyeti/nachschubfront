@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nachschubfront: Optik-Studie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:wght@500;700&family=Pirata+One&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1c1410;--plate:#3e372d;--gold:#e8c872;--text:#eadfc4;--muted:#b5a385;--ink:#000;box-sizing:border-box;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;overflow:hidden;
+  overscroll-behavior:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:fixed;left:calc(16px + var(--safe-left));top:calc(12px + var(--safe-top));max-width:calc(100% - 32px);pointer-events:none}
+.hud h1{font-family:'Pirata One',Georgia,serif;font-weight:400;font-size:clamp(26px,3.6vw,40px);margin:0;line-height:1;text-shadow:3px 3px 0 #000}
+.hud p{margin:4px 0 0;font-size:15px;color:var(--muted);max-width:min(640px,90vw)}
+.hud .row{display:flex;gap:6px;align-items:center;margin-top:8px;pointer-events:auto;flex-wrap:wrap}
+.hud input{font-family:inherit;font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--text);background:#241a14;
+  border:2px solid var(--ink);border-radius:5px;padding:0 10px;min-height:44px;width:9em;box-sizing:border-box}
+.hud .wear{display:flex;align-items:center;gap:8px;min-height:44px;box-sizing:border-box}
+.hud .wear input{width:150px;min-height:44px;padding:0;margin:0;background:none;border:0;text-transform:none;letter-spacing:0}
+.hud .chip{font-size:15px;color:var(--muted);background:rgba(24,18,14,.8);border:2px solid var(--ink);border-radius:5px;padding:4px 8px}
+.bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + var(--safe-bottom));display:flex;gap:6px;align-items:center;
+  background:#241a14;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:8px;border-radius:8px;flex-wrap:wrap;justify-content:center;
+  width:max-content;max-width:calc(100% - 24px - var(--safe-left) - var(--safe-right))}
+.bar .sep{width:2px;align-self:stretch;background:#000;opacity:.5;margin:0 2px}
+.bar .lab{color:var(--muted);font-size:15px;margin:0 2px}
+button{font-family:inherit;font-weight:700;font-size:16px;color:var(--text);background:var(--plate);border:2px solid var(--ink);border-radius:5px;
+  padding:7px 12px;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(232,200,114,.35);min-height:44px;min-width:44px}
+button.on{background:var(--gold);color:#1a1410}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+/* Draggable divider of the comparison. The handle is 44 px wide so a finger can find it. */
+.split{position:fixed;top:0;bottom:0;width:44px;margin-left:-22px;touch-action:none;cursor:ew-resize}
+.split[hidden]{display:none}
+.split::before{content:"";position:absolute;left:21px;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 0 1px #000}
+.split .knob{position:absolute;left:4px;top:50%;width:36px;height:36px;margin-top:-18px;border-radius:50%;background:var(--gold);border:2px solid #000;
+  box-sizing:border-box;color:#1a1410;font-weight:700;font-size:18px;line-height:32px;text-align:center}
+.tag{position:fixed;top:calc(64px + var(--safe-top));font-family:'Bangers',Impact,sans-serif;font-size:22px;color:var(--gold);text-shadow:2px 2px 0 #000;pointer-events:none}
+.tag[hidden]{display:none}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Isometrische Karte als Studie: dieselbe Szene im heutigen Zustand und mit neuem Licht, neuen Farben und Blockgelände"></canvas>
+<div class="hud" id="hud">
+  <h1>Optik-Studie</h1>
+  <p>Dieselbe Karte, links wie heute (echte Spielmodule), rechts neu gezeichnet. Die vier Bausteine lassen sich einzeln zuschalten. Ziehen verschiebt, Mausrad oder zwei Finger zoomen.</p>
+  <div class="row">
+    <input id="seed" value="BASTION" maxlength="16" spellcheck="false" autocomplete="off" aria-label="Seed">
+    <button id="dice">Neu würfeln</button>
+    <span class="chip" id="stats"></span>
+    <label class="chip wear" for="wear">Abnutzung <input type="range" id="wear" min="0" max="100" value="70"> <span id="wearOut">70 %</span></label>
+  </div>
+</div>
+<div class="tag" id="tagL" hidden>Heute</div>
+<div class="tag" id="tagR" hidden>Neu</div>
+<div class="split" id="split" hidden role="slider" aria-label="Trennlinie zwischen Heute und Neu" aria-valuemin="0" aria-valuemax="100"><div class="knob">↔</div></div>
+<div class="bar" id="bar"></div>
+<script type="module" src="optik-studie.js"></script>
+</body>
+</html>

@@ -14,3 +14,6 @@ tests/output/
 /UPDATE.md
 /ART-update-v2.md
 /M4d-feinschliff-sprint2.md
+
+# Worktrees of agents running in a cloud session; they belong to the session, not to the repository.
+.claude/worktrees/
