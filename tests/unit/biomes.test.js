@@ -1,6 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createRng } from '../../src/core/random.js';
+import { generateMap } from '../../src/sim/mapgen.js';
+import { MAP } from '../../src/data/map.js';
 import { BIOME_IDS, PALETTES, biomeOf, paletteOf } from '../../src/render/biomes.js';
+
+test('the game streams stay where they were after asking for a biome', () => {
+  const seed = 'BASTION';
+  const snapshot = () => {
+    const rng = createRng(seed).fork('pods').fork('1');
+    return {
+      map: JSON.stringify(generateMap(createRng(seed).fork('map'), MAP)),
+      pods: [rng.next(), rng.next(), rng.next(), rng.next(), rng.next()],
+    };
+  };
+  const before = snapshot();
+  paletteOf(biomeOf(seed));
+  assert.deepEqual(snapshot(), before);
+});
 
 test('the biome of a seed is fixed across versions', () => {
   assert.equal(biomeOf('BASTION'), 'toxic');

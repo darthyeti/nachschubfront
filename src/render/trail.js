@@ -78,6 +78,23 @@ function sectionIndexAt(line, d, from) {
   return i;
 }
 
+/**
+ * Follows one enemy along its line. `memo` ({line, index, d}) is updated in place. Returns the
+ * index of the section it entered, or -1 if it entered none: it stayed in its section, or its
+ * line was replaced or it moved backwards (the Koloss swaps the lines mid-wave and resets `d`),
+ * in which case the section is searched again from the start and nothing is counted.
+ */
+export function followEnemy(memo, line, d) {
+  const fresh = memo.line === undefined;
+  const reset = !fresh && (memo.line !== line || d < memo.d);
+  const index = sectionIndexAt(line, d, fresh || reset ? 0 : memo.index);
+  const entered = !reset && (fresh || index !== memo.index);
+  memo.line = line;
+  memo.index = index;
+  memo.d = d;
+  return entered ? index : -1;
+}
+
 export function createTrail() {
   /** @type {Map<string, number>} */
   const wear = new Map();
@@ -159,10 +176,10 @@ export function createTrail() {
         if (e.flying || e.koloss) continue;
         const line = routes?.lanes?.[e.lane ?? 0] ?? routes?.ground;
         if (!line || line.points.length < 2) continue;
-        const prev = entered.get(e);
-        const i = sectionIndexAt(line, e.d, prev === undefined ? 0 : prev);
-        if (prev === i) continue;
-        entered.set(e, i);
+        let memo = entered.get(e);
+        if (!memo) entered.set(e, (memo = {}));
+        const i = followEnemy(memo, line, e.d);
+        if (i < 0) continue;
         const a = line.points[i];
         const b = line.points[i + 1];
         passed.push(keyOf({ x: Math.floor(a.x), y: Math.floor(a.y) }, { x: Math.floor(b.x), y: Math.floor(b.y) }));
@@ -172,7 +189,7 @@ export function createTrail() {
 
     /** Draws the trail on the ground, in world coordinates (the camera is already applied). */
     draw(ctx, palette, art, seed) {
-      if (!wear.size) return;
+      if (art !== 'sprites' || !wear.size) return;
       if (seed !== geometrySeed) {
         geometry = new Map();
         geometrySeed = seed;
