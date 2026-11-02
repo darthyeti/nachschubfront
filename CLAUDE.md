@@ -35,7 +35,7 @@ Die abgeschlossenen Meilensteine stehen als Tabelle in `docs/meilensteine/README
 ```
 index.html            Einstieg, Canvas, HUD-Container
 manifest.webmanifest  PWA
-sw.js                 Service Worker (erzeugt, npm run precache)
+sw.js                 Service Worker (Cache-Block entsteht beim Veröffentlichen, npm run precache)
 src/
   main.js             Start, Spielschleife
   core/               Zustand, Phasen, Zufallsgenerator, Ereignisse
@@ -101,4 +101,8 @@ Sprites (Details in `docs/ART.md`):
 - **Die Geschichte gehört in die Commits, nicht in `docs/PROGRESS.md`.** Dort steht nur, was jetzt gilt: Stand, offene Punkte, bekannte Probleme, Regeln, die weiter gelten. Wer wissen will, warum etwas so ist, liest `git log`. Die Datei war einmal auf 531 Zeilen gewachsen, weil jeder Arbeitsblock sie verlängert hat.
 - Abweichungen vom GDD oder vom Arbeitsauftrag nicht stillschweigend umsetzen, sondern vorschlagen und begründen. Auch wenn ein Auftrag etwas verlangt, was nicht eintreten kann, wird das gesagt und nicht umgedeutet.
 - Balancing-Werte nicht eigenmächtig ändern. Auffälligkeiten melden und Vorschläge machen.
-- Vor einer Veröffentlichung: Versionsnummer in `src/data/version.js` erhöhen und `npm run precache` laufen lassen.
+- Vor einer Veröffentlichung: Versionsnummer in `src/data/version.js` erhöhen. Den Cache-Block in `sw.js` schreibt die Veröffentlichung selbst (`npm run precache` im Pages-Workflow); im Repository bleibt der Platzhalterblock. Ein von Hand erzeugter Block wird nicht committet (`npm run precache -- --placeholder` stellt ihn zurück).
+
+## GitHub und Cloud-Sitzungen
+
+Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“. Kurz: Issues sind die Aufgabenliste, ein Zweig `claude/<nr>-<name>` je Aufgabe, ein Pull Request je Zweig nach der Vorlage, Pflicht-Check `schnell`, Vorschau für das Spielgefühl mit dem Label `spielgefuehl`. Der Leitstand (Cloud-Hauptsitzung) pusht, öffnet Pull Requests und mergt; eine lokale Sitzung pusht nur, wenn Till es tut. Cloud-Sitzungen richtet `.claude/hooks/session-start.sh` ein (Abhängigkeiten, Chromium, volle Historie). Agenten für Umsetzung und Prüfung stehen in `.claude/agents/`.

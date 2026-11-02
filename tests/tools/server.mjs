@@ -39,10 +39,22 @@ const TYPES = {
   '.woff2': 'font/woff2',
 };
 
-/** Starts the server on a free port. Resolves to { url, close }. */
-export async function startServer() {
+/**
+ * Starts the server on a free port. Resolves to { url, close }.
+ *
+ * `files` maps a request path ('/sw.js') to the text to answer with instead of
+ * the file on disk. It is read on every request, so a script may change an
+ * entry while the server runs. The offline check serves a published worker that
+ * way; the repository only holds the placeholder.
+ */
+export async function startServer({ files = {} } = {}) {
   const server = createServer(async (req, res) => {
     const path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    if (Object.hasOwn(files, path)) {
+      res.writeHead(200, { 'Content-Type': TYPES[extname(path)] ?? 'application/octet-stream' });
+      res.end(files[path]);
+      return;
+    }
     let file = normalize(join(ROOT, path));
     if (!file.startsWith(ROOT)) {
       res.writeHead(403).end();

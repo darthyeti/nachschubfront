@@ -197,13 +197,19 @@ deutschen Meldung abgelehnt, nicht erst im Nachspielen.
 
 Der dritte Speicher ist der Cache des Service Workers (`sw.js`).
 
-- Die Precache-Liste schreibt `npm run precache`. Von Hand ändert sie niemand.
+- Die Precache-Liste schreibt `npm run precache`, und zwar beim Veröffentlichen
+  (Pages-Workflow, je Kopie `--root`). Im Repository trägt `sw.js` einen
+  Platzhalter (`BUILD = ''`): Der Worker cacht dann nichts und beantwortet
+  keine Anfrage, lokal sieht man immer die Dateien auf der Platte. Von Hand
+  ändert den Block niemand.
 - Der Cache heißt `nachschubfront-<Version>-<Build>`. `Build` ist ein Hash über
   Namen **und** Inhalte aller ausgelieferten Dateien. Ein geändertes Byte ergibt
   einen neuen Cache; der alte fliegt beim `activate` weg.
-- `tests/unit/precache.test.js` scheitert, sobald sw.js und die Dateien
-  auseinanderlaufen, und läuft dabei den echten Importgraphen ab `src/main.js`
-  ab. Das ist die Stelle, die dafür sorgt, dass Updates ankommen.
+- `tests/unit/precache.test.js` prüft den Generator (Version, Hash, vollständige
+  Liste, läuft dabei den echten Importgraphen ab `src/main.js` ab) und dass im
+  Repository der Platzhalter steht. `tests/offline.mjs` prüft den erzeugten
+  Worker im Browser. Das sind die Stellen, die dafür sorgen, dass Updates
+  ankommen.
 - Der Worker übernimmt **nie** von selbst (kein `skipWaiting` beim Installieren).
   Ein fertiger neuer Build meldet sich als Zeile im Haupt- und Pausenmenü; erst
   „Neu laden" lässt ihn ans Ruder. Eine laufende Partie wird nicht unterbrochen

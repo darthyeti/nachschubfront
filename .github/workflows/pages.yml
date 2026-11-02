@@ -1,0 +1,87 @@
+# Veröffentlichung auf GitHub Pages. main liegt im Wurzelordner, jeder offene
+# Pull Request mit dem Label spielgefuehl als Vorschau unter pr/<nr>/. Die
+# Seite wird bei jedem Lauf als Ganzes neu gebaut (tools/pages-site.sh), und
+# erst beim Bauen bekommt jede Kopie ihren Service-Worker-Block
+# (npm run precache); im Repository bleibt der Platzhalter.
+#
+# pull_request_target, damit der Lauf mit den Rechten von main kommentieren und
+# veröffentlichen darf. Code aus dem Pull Request wird dabei nie ausgeführt:
+# der Generator läuft aus dem Stand von main über die Kopie, und Vorschauen
+# gibt es nur für Zweige dieses Repositorys, nicht für Forks.
+
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled, closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  site:
+    # Für einen Pull Request nur, wenn das Label im Spiel ist: gesetzt, gerade
+    # entfernt oder der Pull Request geschlossen (dann verschwindet die Vorschau).
+    if: >-
+      github.event_name != 'pull_request_target' ||
+      contains(github.event.pull_request.labels.*.name, 'spielgefuehl') ||
+      github.event.action == 'unlabeled' ||
+      github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Seite bauen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/pages-site.sh site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
+      - name: Vorschau im Pull Request vermerken
+        if: github.event_name == 'pull_request_target' && contains(github.event.pull_request.labels.*.name, 'spielgefuehl')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          CLOSED: ${{ github.event.action == 'closed' }}
+          PAGE_URL: ${{ steps.deploy.outputs.page_url }}
+        run: |
+          marker='<!-- pages-vorschau -->'
+          if [ "$CLOSED" = "true" ]; then
+            body="$marker
+          Die Vorschau unter \`pr/$NUMBER/\` ist mit dem Schließen entfernt worden."
+          else
+            body="$marker
+          **Vorschau zum Spielgefühl:** ${PAGE_URL}pr/${NUMBER}/?debug (Stand \`${SHA:0:7}\`)
+
+          Wird bei jedem Push neu erzeugt. Ein schon installierter Service Worker übernimmt den neuen Stand erst nach „Neu laden“ im Menü."
+          fi
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n 1)
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" > /dev/null
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$NUMBER/comments" -f body="$body" > /dev/null
+          fi

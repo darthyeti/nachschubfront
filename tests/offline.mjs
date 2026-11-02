@@ -6,16 +6,21 @@
 
 import * as playwright from 'playwright';
 import assert from 'node:assert/strict';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ROOT, startServer, watchProblems, browserName, launchBrowser, startMatch } from './tools/server.mjs';
 import { collectPrecache } from './tools/precache-list.mjs';
+import { buildWorker } from './tools/make-precache.mjs';
 
 const OUT = join(ROOT, 'tests', 'output');
 const SEED = 'BASTION';
 
 await mkdir(OUT, { recursive: true });
-const server = await startServer();
+// The repository holds sw.js with the placeholder block. What a player gets is
+// the worker the publishing step generates, so that is what is served here.
+const published = (await buildWorker()).next;
+const served = { '/sw.js': published };
+const server = await startServer({ files: served });
 const engine = browserName();
 const browser = await launchBrowser(playwright, engine);
 console.log(`engine: ${engine}`);
@@ -37,8 +42,6 @@ const context = await browser.newContext({
 const page = await context.newPage();
 watchProblems(page, 'offline', problems);
 
-const WORKER = join(ROOT, 'sw.js');
-const original = await readFile(WORKER, 'utf8');
 /** Stands in for the next build's content hash. */
 const FAKE_BUILD = 'ffffffffffff';
 
@@ -62,9 +65,9 @@ try {
   });
 
   await check('a new build announces itself and only takes over when asked', async () => {
-    // A second build, faked by giving the worker a different cache name. The
-    // sources stay untouched; sw.js is put back in the finally below.
-    await writeFile(WORKER, original.replace(/const BUILD = '[0-9a-f]+';/, `const BUILD = '${FAKE_BUILD}';`));
+    // A second build, faked by giving the served worker a different cache
+    // name. Nothing on disk changes.
+    served['/sw.js'] = published.replace(/const BUILD = '[0-9a-f]+';/, `const BUILD = '${FAKE_BUILD}';`);
     const before = await page.evaluate(async () => (await caches.keys())[0]);
 
     await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
@@ -120,7 +123,6 @@ try {
     assert.ok(loaded.length > 0, 'no web font survived going offline');
   });
 } finally {
-  await writeFile(WORKER, original);
   await browser.close();
   server.close();
 }

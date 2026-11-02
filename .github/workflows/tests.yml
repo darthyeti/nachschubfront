@@ -1,0 +1,89 @@
+# Prüfungen. "schnell" ist der Pflicht-Check für jeden Pull Request und jeden
+# Push auf main; "voll" läuft nachts, von Hand oder mit dem Label voller-lauf
+# und nimmt WebKit, Screenshots, Battle und Perf dazu.
+#
+# Die Eingabe-Prüfung wartet in echten Sekunden auf eine Welle bei 1x
+# (docs/PROGRESS.md, Bekannte Probleme). Darum laufen die Browser-Prüfungen
+# nacheinander, nie parallel.
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  schnell:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit-Tests
+        run: npm test
+      - name: Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Eingabe (Chromium)
+        run: node tests/input.mjs
+      - name: Offline (Chromium)
+        run: node tests/offline.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: schnell-output
+          path: tests/output
+          if-no-files-found: ignore
+
+  voll:
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'voller-lauf'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Unit-Tests
+        run: npm test
+      - name: Chromium und WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Eingabe (Chromium)
+        run: node tests/input.mjs
+      - name: Offline (Chromium)
+        run: node tests/offline.mjs
+      - name: Eingabe (WebKit)
+        run: node tests/input.mjs --browser webkit
+      - name: Offline (WebKit)
+        run: node tests/offline.mjs --browser webkit
+      - name: Screenshots
+        run: node tests/screenshots.mjs
+      - name: Battle
+        run: node tests/battle.mjs
+      - name: Perf
+        # Headless Chromium ohne GPU schafft keine 60 fps; der Lauf meldet, er entscheidet nicht.
+        continue-on-error: true
+        run: node tests/perf.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: voll-output
+          path: tests/output
+          if-no-files-found: ignore

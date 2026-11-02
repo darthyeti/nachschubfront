@@ -71,7 +71,7 @@ Erzeugte Dateien neu schreiben (die Ausgaben nicht von Hand ändern):
 | `npm run studies` | SVGs aus dem Zeichencode der Studien |
 | `npm run waves` | `src/data/waves.js` aus `tests/tools/wave-rules.mjs` |
 | `npm run icons` | Platzhalter-Icons |
-| `npm run precache` | `sw.js` — **vor jeder Veröffentlichung** |
+| `npm run precache` | Cache-Block in `sw.js`; tut die Veröffentlichung selbst, lokal nur zum Ausprobieren (`-- --placeholder` stellt zurück) |
 
 Balancing (M6, Einzelheiten in [balancing/README.md](balancing/README.md)):
 

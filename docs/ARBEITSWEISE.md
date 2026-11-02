@@ -63,6 +63,35 @@ ist, welche Entscheidungen weiter wirken. Was erledigt ist und warum, steht nich
 dort, sondern in den Commit-Nachrichten. Die Datei bleibt kurz; Abgeschlossenes
 wird gestrichen, nicht angehängt.
 
+## GitHub
+
+Seit dem 02.11.2026 läuft der Code über GitHub, der Leitstand bedient ihn.
+
+- **Issues sind die Aufgabenliste.** Jede Aufgabe A-nn aus dem Leitstand, die
+  Code berührt, bekommt ein Issue; die Karte im Board verweist darauf.
+- **Ein Zweig je Aufgabe:** `claude/<nr>-<name>`, abgezweigt von `origin/main`,
+  `<nr>` ist die Issue-Nummer. Der Leitstand verteilt die Arbeit auf Agenten
+  (`.claude/agents/entwickler.md`) oder eigene Sitzungen, je Bereich.
+- **Ein Pull Request je Zweig**, nach der Vorlage
+  (`.github/pull_request_template.md`): Issue, was und warum, gelaufene Tests,
+  und ob die Änderung Tills Blick im Browser braucht. Vor dem Vorlegen liest der
+  Prüfer (`.claude/agents/pruefer.md`) das Diff gegen die Regeln.
+- **CI** (`.github/workflows/tests.yml`): Der Job `schnell` (Unit-Tests,
+  Eingabe- und Offline-Prüfung in Chromium) ist Pflicht-Check für jeden Pull
+  Request und jeden Push auf `main`. Der Job `voll` (WebKit, Screenshots, Battle,
+  Perf) läuft nachts, von Hand oder mit dem Label `voller-lauf`.
+- **Pages-Vorschau** (`.github/workflows/pages.yml`, `tools/pages-site.sh`):
+  `main` liegt im Wurzelordner, jeder offene Pull Request mit dem Label
+  `spielgefuehl` unter `pr/<nr>/`; der Link kommt als Kommentar
+  (`?debug` angehängt). Erst beim Bauen bekommt jede Kopie ihren
+  Service-Worker-Block (`npm run precache`), im Repository bleibt `sw.js` mit
+  dem Platzhalter, der nichts cacht.
+- **Zusammenführen** per Squash-Merge, nachdem der Check grün ist und, wenn das
+  Spielgefühl betroffen ist, Till im Board freigegeben hat. Der Leitstand pusht
+  und mergt; was lokal entsteht, pusht weiter Till.
+- **Veröffentlichen** heißt: Version in `src/data/version.js` anheben,
+  `docs/PROGRESS.md` nachziehen, nach `main` mergen. Den Rest tut Pages.
+
 ## Leitstand
 
 Seit dem 02.11.2026 laufen Entscheidungen, Aufgaben und Protokolle über ein
@@ -74,11 +103,12 @@ Rollen darin:
 
 - **Till** (Spieldesigner) beantwortet Akten, legt Themen ab und liefert
   Protokolle als Datei ab. Er entscheidet, der Leitstand schlägt vor.
-- **Der Leitstand** (die Code-Hauptsitzung) legt Akten und Aufgaben an, liest
-  Antworten, Themen und Protokolle aus, plant die Arbeit, verteilt sie auf
-  parallele Sitzungen oder Agenten (je Bereich, siehe Tabelle oben) und trägt
-  den Stand nach. Er ist die einzige Stelle, die `fragen`, `aufgaben` und
-  `meta` schreibt.
+- **Der Leitstand** (die Code-Hauptsitzung in der Cloud) legt Akten und
+  Aufgaben an, liest Antworten, Themen und Protokolle aus, plant die Arbeit,
+  verteilt sie auf parallele Sitzungen oder Agenten (je Bereich, siehe Tabelle
+  oben), pusht, öffnet Pull Requests, mergt und trägt den Stand nach. Er ist
+  die einzige Stelle, die `fragen`, `aufgaben` und `meta` schreibt. Stündlich
+  sieht er im Board nach, ob es Neues gibt.
 
 Was im Speicher des Artefakts liegt (Sammlung → Bedeutung):
 
