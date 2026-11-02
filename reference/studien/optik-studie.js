@@ -53,9 +53,9 @@ import { attachPointerInput } from '../../src/input/pointer.js';
 /** Height of one terrain level in world pixels (levels 0, 1, 2). A crater sits one level lower. */
 const STEP = 12;
 /** Value-noise lattice spacing in cells: bigger gives bigger plateaus. */
-const NOISE_CELLS = 4;
+const NOISE_CELLS = 11;
 /** The stretched noise is cut at these two values into level 0, 1 and 2. */
-const LEVEL_CUTS = [0.4, 0.64];
+const LEVEL_CUTS = [0.4, 0.66];
 /** Light from the top left behind: a body of height h (px) throws its shadow this many cells in +x, +y per 32 px. */
 const LIGHT = { x: 0.55, y: 0.25 };
 /** Block shadows on the ground (colour of ink, no outline). */
@@ -105,6 +105,9 @@ const ENEMY_BLEND = 0.25;
 const TRAIL_REBUILD_MS = 350;
 /** Supply pod demo: seconds of one drop loop. */
 const POD_LOOP_SECONDS = 8;
+/** Zoom of the "Stufen" view and the speed of the enemies while it is on. */
+const STEP_ZOOM = 1.8;
+const STEP_SLOWMO = 1 / 3;
 /** Walking speed of the demo enemies in cells per second. */
 const ENEMY_SPEED = 1.1;
 
@@ -317,7 +320,10 @@ function buildScene(seed) {
   const map = generateMap(createRng(seed).fork('map'), MAP);
   const scene = { seed, map, towers: [], pods: [], enemies: [], detour: null, version: 0 };
   setRoute(scene);
+  // Heights of the full terrain: for the step count, for keeping the steps clear and for the capsule rubble.
+  scene.full = buildHeights(scene, true);
   const { route, line, routeSet } = scene;
+  const crossCells = routeCrossings(scene).flatMap((c) => [route.cells[c.i], route.cells[c.i + 1]]);
 
   // Emplacements and pods: one per evenly spaced route index, on a free cell next to the route.
   const taken = new Set();
@@ -325,7 +331,8 @@ function buildScene(seed) {
   const free = (x, y) =>
     x >= 0 && y >= 0 && x < SIZE && y < SIZE &&
     !isBlocked(map.grid, x, y) && !map.protected[y * SIZE + x] && !routeSet[y * SIZE + x] &&
-    !taken.has(`${x},${y}`) && !anchorCells.has(`${x},${y}`);
+    !taken.has(`${x},${y}`) && !anchorCells.has(`${x},${y}`) &&
+    crossCells.every((c) => Math.max(Math.abs(c.x - x), Math.abs(c.y - y)) > 2);
   const apart = (x, y, gap) => ![...taken].some((key) => {
     const [tx, ty] = key.split(',').map(Number);
     return Math.max(Math.abs(tx - x), Math.abs(ty - y)) <= gap;
@@ -357,6 +364,8 @@ function buildScene(seed) {
   // Emplacements and pods block their cells, so a new route walks around them.
   for (const o of [...scene.towers, ...scene.pods]) setBlocked(map.grid, o.x, o.y, true);
 
+  placeCapsuleRubble(scene, taken);
+
   scene.enemies = ENEMY_LIST.map((type, i) => ({
     id: i + 1,
     type,
@@ -366,6 +375,80 @@ function buildScene(seed) {
     lastSample: -1,
   }));
   return scene;
+}
+
+/**
+ * Heaps of rubble where a salvo of capsules lay and was not taken: groups of RUBBLE_GROUP cells
+ * beside the route and beside emplacements, from the seed. The first group sits at a step, the
+ * second on ground of another level than the way next to it. They block their cells like in the game.
+ */
+const RUBBLE_GROUPS = [2, 2, 2];
+function placeCapsuleRubble(scene, taken) {
+  const { map, routeSet, full } = scene;
+  const rng = createRng(`optik:rubble:${scene.seed}`);
+  const lv = (x, y) => full.level[y * SIZE + x];
+  const inside = (x, y) => x >= 0 && y >= 0 && x < SIZE && y < SIZE;
+  const ok = (x, y) => inside(x, y) && !routeSet[y * SIZE + x] && !taken.has(`${x},${y}`) && checkPlacement(map, [{ x, y }]).ok;
+  const around = (x, y, set) => {
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if ((dx || dy) && inside(x + dx, y + dy)) set(x + dx, y + dy);
+  };
+  const seen = new Set();
+  const candidates = [];
+  const consider = (x, y) => {
+    if (!seen.has(`${x},${y}`) && ok(x, y)) {
+      seen.add(`${x},${y}`);
+      candidates.push({ x, y });
+    }
+  };
+  for (const c of scene.route.cells) around(c.x, c.y, consider);
+  for (const t of scene.towers) around(t.x, t.y, consider);
+  const atStep = (c) => NEIGHBOURS_4.some(([dx, dy]) => inside(c.x + dx, c.y + dy) && lv(c.x + dx, c.y + dy) !== lv(c.x, c.y));
+  const offWay = (c) => {
+    let other = false;
+    around(c.x, c.y, (x, y) => { if (routeSet[y * SIZE + x] && lv(x, y) !== lv(c.x, c.y)) other = true; });
+    return other;
+  };
+  const far = (c, used) => used.filter(Boolean).every((u) => Math.max(Math.abs(u.x - c.x), Math.abs(u.y - c.y)) > 3);
+  const used = [];
+  const pickFrom = (list) => (list.length ? rng.pick(list) : null);
+  const anchors = [pickFrom(candidates.filter(atStep)) ?? pickFrom(candidates)];
+  used.push(anchors[0]);
+  anchors.push(pickFrom(candidates.filter((c) => offWay(c) && far(c, used))) ?? pickFrom(candidates.filter((c) => far(c, used))));
+  used.push(anchors[1]);
+  anchors.push(pickFrom(candidates.filter((c) => far(c, used))));
+  anchors.forEach((a, g) => {
+    if (!a) return;
+    const group = [];
+    const put = (c) => {
+      taken.add(`${c.x},${c.y}`);
+      setBlocked(map.grid, c.x, c.y, true);
+      map.obstacles.push({ kind: 'rubble', cells: [{ x: c.x, y: c.y }], variant: rng.int(0, 3), capsule: true });
+      group.push(c);
+    };
+    if (!ok(a.x, a.y)) return;
+    put(a);
+    for (let guard = 0; group.length < RUBBLE_GROUPS[g] && guard < 20; guard++) {
+      const base = group[group.length - 1];
+      const next = [...NEIGHBOURS_4, ...NEIGHBOURS_DIAG].map(([dx, dy]) => ({ x: base.x + dx, y: base.y + dy })).find((c) => ok(c.x, c.y));
+      if (!next) break;
+      put(next);
+    }
+  });
+}
+
+/** Number of level changes along the route (the full terrain, whatever is switched on). */
+function routeCrossings(scene) {
+  const cells = scene.route.cells;
+  const cum = scene.line.cumulative;
+  const out = [];
+  for (let i = 0; i + 1 < cells.length; i++) {
+    const a = cells[i];
+    const b = cells[i + 1];
+    const la = scene.full.level[a.y * SIZE + a.x];
+    const lb = scene.full.level[b.y * SIZE + b.x];
+    if (la !== lb) out.push({ i, x: (a.x + b.x) / 2 + 0.5, y: (a.y + b.y) / 2 + 0.5, hz: ((la + lb) / 2) * STEP, d: (cum[i] + cum[i + 1]) / 2 });
+  }
+  return out;
 }
 
 /** Toggles a heap of rubble on a route cell in the middle of the way (and re-routes). */
@@ -1249,6 +1332,7 @@ const ui = {
   frame: true,
   biome: 'ash',
   paused: false,
+  steps: false,
   wear: 50,
   split: 0.5,
 };
@@ -1265,6 +1349,30 @@ const view = createCanvasView(canvas, (v) => {
 
 function biomeOfSeed(seed) {
   return BIOMES[seedFromString(seed) % 3][0];
+}
+
+let stepIndex = -1;
+let stepTarget = null;
+let note = '';
+let noteUntil = 0;
+
+/** Moves the camera to the next crossing of a step on the route and slows the enemies down. */
+function gotoStep() {
+  const list = routeCrossings(scene);
+  if (!list.length) {
+    ui.steps = false;
+    stepTarget = null;
+    note = 'Keine Stufe auf diesem Weg';
+    noteUntil = performance.now() + 4000;
+    refreshButtons();
+    return;
+  }
+  stepIndex = ui.steps ? (stepIndex + 1) % list.length : 0;
+  ui.steps = true;
+  const c = list[stepIndex];
+  const [wx, wy] = iso(c.x, c.y, c.hz);
+  stepTarget = { x: wx, y: wy, zoom: STEP_ZOOM };
+  refreshButtons();
 }
 
 let trailApplied = 0;
@@ -1325,6 +1433,8 @@ for (const [id, name] of BIOMES) {
 }
 sep();
 addButton('detour', 'Weg umleiten', () => { toggleDetour(); trailAppliedAt = -1e9; refreshButtons(); });
+addButton('steps', 'Stufen', () => gotoStep(), 'steps');
+addButton('overview', 'Übersicht', () => { ui.steps = false; stepTarget = null; fitCamera(camera, view, bounds, { top: 100, bottom: 96, side: 16 }, { ...CAMERA, minCellPx: 0 }); refreshButtons(); });
 addButton('pause', 'Pause', () => { ui.paused = !ui.paused; refreshButtons(); });
 
 function toggle(key) {
@@ -1343,6 +1453,7 @@ function refreshButtons() {
   buttons.today.classList.toggle('on', !compare && ui.view === 'today');
   buttons.new.classList.toggle('on', !compare && ui.view === 'new');
   buttons.compare.classList.toggle('on', compare);
+  buttons.steps.classList.toggle('on', ui.steps);
   for (const k of ['light', 'colors', 'blocks', 'frame', 'pause']) buttons[k].classList.toggle('on', k === 'pause' ? ui.paused : ui[k]);
   buttons.detour.classList.toggle('on', Boolean(scene?.detour));
   for (const [id] of BIOMES) buttons[id].classList.toggle('on', ui.biome === id);
@@ -1411,6 +1522,7 @@ document.getElementById('dice').addEventListener('click', () => {
 
 attachPointerInput(canvas, {
   onPan(dx, dy) {
+    stepTarget = null;
     panBy(camera, dx, dy);
     clampCamera(camera, bounds, CAMERA);
   },
@@ -1672,7 +1784,7 @@ function frame(now) {
   lastNow = now;
   const running = !ui.paused && !reduceMotion;
   if (running) {
-    simT += dt;
+    simT += ui.steps ? dt * STEP_SLOWMO : dt;
     podClock += dt;
     trail.fade(dt);
   }
@@ -1718,7 +1830,15 @@ function frame(now) {
     drawNew(t, now, dt);
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  stats.textContent = `Seed ${scene.seed} · Zoom ${camera.zoom.toFixed(2)}`;
+  if (stepTarget) {
+    camera.x += (stepTarget.x - camera.x) * 0.12;
+    camera.y += (stepTarget.y - camera.y) * 0.12;
+    camera.zoom += (stepTarget.zoom - camera.zoom) * 0.12;
+    if (Math.abs(stepTarget.x - camera.x) + Math.abs(stepTarget.y - camera.y) < 0.5) stepTarget = null;
+  }
+  const n = routeCrossings(scene).length;
+  const info = performance.now() < noteUntil ? ` · ${note}` : '';
+  stats.textContent = `Seed ${scene.seed} · Zoom ${camera.zoom.toFixed(2)} · Weg: ${n} Stufen${info}`;
   requestAnimationFrame(frame);
 }
 
@@ -1731,6 +1851,13 @@ window.__optik = {
   trail,
   scene: () => scene,
   toggleDetour: () => { toggleDetour(); trailAppliedAt = -1e9; refreshButtons(); },
+  crossings: () => routeCrossings(scene),
+  gotoStep,
+  atCrossing: (k, e = 0) => {
+    const c = routeCrossings(scene)[k];
+    simT = (c.d - scene.enemies[e].offset) / ENEMY_SPEED;
+    simT += scene.line.length / ENEMY_SPEED * 10;
+  },
   focus: (x, y, zoom) => {
     const [wx, wy] = iso(x, y);
     camera.x = wx;
