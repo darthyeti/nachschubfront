@@ -23,6 +23,8 @@ import {
 import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
 import { createBackdropLayer } from './backdrop.js';
 import { createAtmosphere } from './atmosphere.js';
+import { biomeOf, paletteOf, FOUNDATION_ALPHA, FOUNDATION_INSET } from './biomes.js';
+import { createTrail } from './trail.js';
 import { snapToAxis } from '../sim/commands.js';
 import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
 import { laneStart } from '../sim/koloss.js';
@@ -441,6 +443,21 @@ function cells(length) {
   return STRINGS.hud.riftLength(length.toFixed(1).replace('.', ','));
 }
 
+/**
+ * The plate an emplacement stands on: a diamond just inside its cell in the guide colour of its
+ * doctrine, so an emplacement never melts into the ground. Lies under the gold ring.
+ */
+function drawFoundation(ctx, tower) {
+  cellPath(ctx, tower.x, tower.y, FOUNDATION_INSET);
+  ctx.globalAlpha = FOUNDATION_ALPHA;
+  ctx.fillStyle = DOCTRINE_COLORS[tower.doctrine];
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = C.ink;
+  ctx.stroke();
+}
+
 export function createSceneRenderer(sprites) {
   const drawVignette = createVignette();
   const backdrop = createBackdropLayer();
@@ -455,11 +472,15 @@ export function createSceneRenderer(sprites) {
    * @param {object} ui  Render-side state: hover cell, flashes, reduced motion, art mode.
    * @param {object} ground  Ground layer from createGroundLayer().
    */
+  const trail = createTrail();
+
   return function renderScene(ctx, view, cam, state, ui, ground, t) {
     const { map } = state;
     const dt = lastT === null ? 0 : Math.min(0.05, Math.max(0, t - lastT));
     lastT = t;
     atmosphere.update(dt, view, ui.reducedMotion);
+    const palette = paletteOf(biomeOf(state.seed));
+    trail.update(state, dt);
 
     // An explosion shakes the whole picture: the camera stays where it is, only
     // this frame is drawn from a nudged one.
@@ -473,6 +494,9 @@ export function createSceneRenderer(sprites) {
     applyCamera(ctx, shaken, view);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
+
+    // What the enemies have trampled, on the ground under everything else.
+    trail.draw(ctx, palette, ui.art, state.seed);
 
     if (map.rifts) {
       riftLayout(map).forEach((r, i) => {
@@ -526,6 +550,7 @@ export function createSceneRenderer(sprites) {
     // it lies flat on the ground and must never end up on a neighbour's socket
     // (docs/ART.md). After the scorch marks, so a burnt cell does not hide it.
     if (ui.art === 'sprites') {
+      for (const tower of state.towers) drawFoundation(ctx, tower);
       for (const tower of state.towers) if (tower.special) drawSpecialRing(ctx, tower);
     }
 
@@ -615,7 +640,7 @@ export function createSceneRenderer(sprites) {
     const enemyView = { zoom: cam.zoom, dpr: view.dpr, reducedMotion: ui.reducedMotion, simTime: state.time, dt };
 
     for (const [, kind, o, i] of items) {
-      if (kind === KIND_OBSTACLE) drawObstacleCell(ctx, o, i);
+      if (kind === KIND_OBSTACLE) drawObstacleCell(ctx, o, i, palette);
       else if (kind === KIND_RIFT) {
         // i: 0 the single rift of the standard map, 1 the attacking one, 2 a quiet one.
         if (i === 0) drawRift(ctx, o, t);
