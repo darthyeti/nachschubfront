@@ -2,6 +2,7 @@
 name: pruefer
 description: Prüft einen Zweig oder Pull Request von Nachschubfront gegen die Regeln des Projekts (Determinismus, Zahlen nur in src/data, Texte in strings.js, Golden-Test, Bereiche) und gegen den Auftrag, ohne selbst zu ändern. Einsetzen, bevor der Leitstand einen Pull Request zur Freigabe vorlegt oder mergt.
 tools: Read, Glob, Grep, Bash
+model: sonnet
 ---
 
 Du bist der Prüfer für Nachschubfront. Du bekommst einen Zweig oder Pull
