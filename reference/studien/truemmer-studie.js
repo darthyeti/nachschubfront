@@ -35,6 +35,8 @@ const PLATE = ['#8b857c', '#6f6a63', '#4a4642'];
 const PIT = '#1c1511';
 const lerp = (a, b, t) => a + (b - a) * t;
 
+/** Round drafts (the first version) instead of the diamond-filling ones; toggled by the "Rund" button. */
+let round = false;
 /** Seed offset of "Neu würfeln"; 0 gives exactly the fixed seeds of the study. */
 let reroll = 0;
 const rngFor = (art, variant, extra = '') => createRng(`truemmer:${art}:${variant}${extra}${reroll ? `:${reroll}` : ''}`);
@@ -636,11 +638,30 @@ function drawNewWallCell(ctx, ob, index) {
 }
 // ---------- Craters: irregular rim, dark floor, one feature each ----------
 
+/** Irregular diamond filling a cell (r = 1 is the full cell): edges with chips and breakouts, corners cut deeper. */
+function blobD(rng, sx, sy, r, jit, perEdge, chip) {
+  const hw = 32 * r;
+  const hh = 16 * r;
+  const corners = [[0, -hh], [hw, 0], [0, hh], [-hw, 0]];
+  const pts = [];
+  for (let i = 0; i < 4; i++) {
+    const a = corners[i];
+    const b = corners[(i + 1) % 4];
+    for (let k = 0; k < perEdge; k++) {
+      const t = k / perEdge;
+      let f = 1 - rng.range(0, k === 0 ? chip : jit);
+      if (rng.chance(0.14)) f -= 0.1;
+      pts.push([sx + lerp(a[0], b[0], t) * f, sy + lerp(a[1], b[1], t) * f]);
+    }
+  }
+  return pts;
+}
+
 /** Rim, pit wall and floor of one crater, drawn flat on the ground around screen point (sx, sy). */
 function craterBase(ctx, sx, sy, rng, o = {}) {
   const r = o.r ?? 1;
-  const rimCol = o.rim ?? ['#3a2e25', '#5d4b3b'];
-  const outer = blobS(rng, sx, sy, 30 * r, 15 * r, 16, 0.12);
+  const rimCol = round ? o.rim ?? ['#3a2e25', '#5d4b3b'] : o.rimF ?? ['#6b5a46', '#a08968'];
+  const outer = round ? blobS(rng, sx, sy, 30 * r, 15 * r, 16, 0.12) : blobD(rng, sx, sy, 0.97 * r, 0.1, 4, 0.16);
   poly(ctx, outer, rimCol[0], INK, 2.5);
   const lift = o.lift ?? 2;
   const top = scalePts(outer, sx, sy, 0.94, -lift);
@@ -650,15 +671,16 @@ function craterBase(ctx, sx, sy, rng, o = {}) {
     out.pit = scalePts(outer, sx, sy, 0.7, -lift + 0.5);
     poly(ctx, out.pit, PIT, INK, 1.8);
   } else {
-    out.pit = scalePts(outer, sx, sy, 0.62, -lift);
+    out.pit = scalePts(outer, sx, sy, round ? 0.62 : 0.68, -lift);
     poly(ctx, out.pit, '#2b211a', INK, 2);
-    out.floor = scalePts(outer, sx, sy, 0.46, 0);
+    out.floor = scalePts(outer, sx, sy, round ? 0.46 : 0.52, 0);
     poly(ctx, out.floor, PIT, INK, 1.6);
   }
   // Lit lip on the near half of the rim.
   ctx.beginPath();
-  for (let i = 1; i < top.length / 2; i++) (i === 1 ? ctx.moveTo(top[i][0], top[i][1]) : ctx.lineTo(top[i][0], top[i][1]));
-  ctx.strokeStyle = o.lip ?? '#8e7760';
+  const [i0, i1] = round ? [1, top.length / 2 - 1] : [4, 12];
+  for (let i = i0; i <= i1; i++) (i === i0 ? ctx.moveTo(top[i][0], top[i][1]) : ctx.lineTo(top[i][0], top[i][1]));
+  ctx.strokeStyle = round ? o.lip ?? '#8e7760' : o.lipF ?? '#d9c39a';
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
   ctx.stroke();
@@ -669,7 +691,12 @@ function rimStones(rng, n, r = 1, pals = [CONC, STONE]) {
   const out = [];
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + rng.range(-0.3, 0.3);
-    out.push({ a, dx: Math.cos(a) * 0.37 * r, dy: Math.sin(a) * 0.37 * r, w: rng.range(0.1, 0.18), d: rng.range(0.1, 0.16), h: rng.range(3, 9), pal: rng.pick(pals) });
+    // Field mode: along the square's edges, so the stones sit on the wall of the diamond.
+    const q = (i / n) * 4 + rng.range(-0.15, 0.15);
+    const e = ((Math.floor(q) % 4) + 4) % 4;
+    const f = q - Math.floor(q);
+    const sq = [[-0.37 + 0.74 * f, -0.37], [0.37, -0.37 + 0.74 * f], [0.37 - 0.74 * f, 0.37], [-0.37, 0.37 - 0.74 * f]][e];
+    out.push({ a, dx: round ? Math.cos(a) * 0.37 * r : sq[0], dy: round ? Math.sin(a) * 0.37 * r : sq[1], w: rng.range(0.1, 0.18), d: rng.range(0.1, 0.16), h: rng.range(3, 9), pal: rng.pick(pals) });
   }
   return out.sort((p, q) => p.dx + p.dy - (q.dx + q.dy));
 }
@@ -702,7 +729,7 @@ function craterEmbers(ctx, ox, oy, rng) {
 function craterSlag(ctx, ox, oy, rng) {
   const [sx, sy] = iso(ox + 0.5, oy + 0.5);
   const stones = rimStones(rng, 6, 1, [GLASS]);
-  const c = craterBase(ctx, sx, sy, rng, { rim: ['#241d19', '#3a302a'], lip: '#7a6c64' });
+  const c = craterBase(ctx, sx, sy, rng, { rim: ['#241d19', '#3a302a'], lip: '#7a6c64', rimF: ['#4e4036', '#8a7562'], lipF: '#bda78c' });
   ctx.beginPath();
   c.pit.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
   ctx.closePath();
@@ -748,6 +775,12 @@ function craterWreck(ctx, ox, oy, rng) {
 
 function craterDouble(ctx, ox, oy, rng) {
   const [sx, sy] = iso(ox + 0.5, oy + 0.5);
+  if (!round) {
+    craterBase(ctx, sx - 12.8, sy, rng, { r: 0.62 });
+    craterBase(ctx, sx + 12.8, sy, rng, { r: 0.62 });
+    box(ctx, ox + 0.5 - 0.07, oy + 0.5 - 0.07, 0.14, 0.14, 7, 0, CONC, 1.6);
+    return;
+  }
   craterBase(ctx, sx - 12, sy - 3, rng, { r: 0.64 });
   box(ctx, ox + 0.5 - 0.06, oy + 0.5 - 0.5, 0.12, 0.12, 6, 0, CONC, 1.6);
   craterBase(ctx, sx + 13, sy + 3, rng, { r: 0.66 });
@@ -757,7 +790,7 @@ function craterDouble(ctx, ox, oy, rng) {
 
 function craterWater(ctx, ox, oy, rng) {
   const [sx, sy] = iso(ox + 0.5, oy + 0.5);
-  craterBase(ctx, sx, sy, rng, { r: 0.98, water: true, lift: 1, rim: ['#43372c', '#665643'], lip: '#9a8466' });
+  craterBase(ctx, sx, sy, rng, { r: 0.98, water: true, lift: 1, rim: ['#43372c', '#665643'], lip: '#9a8466', rimF: ['#6f5f4a', '#b09c7a'], lipF: '#dcc9a2' });
   ctx.lineCap = 'round';
   ctx.strokeStyle = 'rgba(170,195,200,0.8)';
   ctx.lineWidth = 2;
@@ -781,7 +814,7 @@ function craterBones(ctx, ox, oy, rng) {
   boneBar(ctx, [sx - 7, sy + 0.5], [sx + 4, sy - 2.5]);
   boneBar(ctx, [sx - 5, sy + 3.5], [sx + 6, sy + 0.5]);
   drawRimStones(ctx, ox, oy, stones, true);
-  boneBar(ctx, [sx - 25, sy + 5], [sx - 14, sy + 10]);
+  boneBar(ctx, [sx - 22, sy + 3], [sx - 12, sy + 8]);
   skull(ctx, sx + 14, sy + 7);
 }
 
@@ -792,8 +825,9 @@ function craterShards(ctx, ox, oy, rng) {
   for (let i = 0; i < 11; i++) {
     const a = (i / 11) * Math.PI * 2 + rng.range(-0.2, 0.2);
     const len = rng.range(8, 16);
-    const bx = sx + Math.cos(a) * 31;
-    const by = sy + Math.sin(a) * 15.5;
+    const R = round ? 31 : 1.02 / (Math.abs(Math.cos(a)) / 32 + Math.abs(Math.sin(a)) / 16);
+    const bx = sx + Math.cos(a) * R;
+    const by = sy + Math.sin(a) * (round ? 15.5 : R);
     const tx = bx + Math.cos(a) * len * 1.3;
     const ty = by + Math.sin(a) * len * 0.65 - rng.range(0, 3);
     shards.push({ a, bx, by, tx, ty, col: cols[i % 4], front: Math.sin(a) > 0 });
@@ -1086,6 +1120,192 @@ const CAPSULE_REMAINS = [
   { name: 'Ausgeschlachtet', draw: capStripped },
 ];
 
+
+// ---------- Capsule remains, diamond-filling (default) ----------
+// The field is one cell and the remains fill it: a scorched, frayed diamond of
+// dark ground, the broken heat shield as a segment, half ring or tilted disc
+// (still the sign of a capsule), the core stump in every variant, and flaps,
+// struts, cables, bands and the roof disc spread out to the corners. Nothing
+// leaves the cell, nothing is scaled, heights stay under 16 px.
+
+const Z0 = 0.5;
+const FLAT = Z0 + 2.2;
+
+function scorchField(ctx, ox, oy, rng) {
+  const [sx, sy] = iso(ox + 0.5, oy + 0.5);
+  const outer = blobD(rng, sx, sy, 0.985, 0.13, 6, 0.2);
+  poly(ctx, outer, '#352d26', INK, 2.2);
+  poly(ctx, scalePts(outer, sx, sy, 0.8, 0), 'rgba(12,8,6,0.5)', null);
+  poly(ctx, scalePts(outer, sx, sy, 0.5, 0), 'rgba(12,8,6,0.4)', null);
+  ctx.beginPath();
+  for (let i = 0; i < 7; i++) {
+    const a = rng.range(0, Math.PI * 2);
+    const r0 = rng.range(0.35, 0.55);
+    ctx.moveTo(sx + Math.cos(a) * 32 * r0, sy + Math.sin(a) * 16 * r0);
+    ctx.lineTo(sx + Math.cos(a) * 32 * (r0 + 0.3), sy + Math.sin(a) * 16 * (r0 + 0.3));
+  }
+  ctx.strokeStyle = 'rgba(12,8,6,0.55)';
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+/** Broken heat shield: an arc of the ring between ri and ro, angles in grid space (0 = +x, clockwise on screen). */
+function shieldArc(ctx, cx, cy, a0, a1, ro, ri, rng, th = 3) {
+  const n = 7;
+  const P = (a, r) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r, Z0 + th];
+  const pts = [];
+  for (let i = 0; i <= n; i++) pts.push(P(lerp(a0, a1, i / n), ro));
+  pts.push(P(a1 + rng.range(-0.08, 0.02), (ro + ri) / 2));
+  for (let i = n; i >= 0; i--) pts.push(P(lerp(a0, a1, i / n), ri));
+  pts.push(P(a0 + rng.range(-0.02, 0.08), (ro + ri) / 2));
+  const p = plate(ctx, pts, '#5a5046', '#2a2622', th, 2);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++) (i ? ctx.lineTo(p[i][0], p[i][1]) : ctx.moveTo(p[i][0], p[i][1]));
+  ctx.strokeStyle = '#a99a82';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++) {
+    const q = iso(...P(lerp(a0, a1, i / n), (ro + ri) / 2));
+    if (i) ctx.lineTo(q[0], q[1]);
+    else ctx.moveTo(q[0], q[1]);
+  }
+  ctx.strokeStyle = 'rgba(10,6,4,0.55)';
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+  for (const k of [0.25, 0.75]) {
+    const q = iso(...P(lerp(a0, a1, k), ro - 0.045));
+    ell(ctx, q[0], q[1], 1.4, 0.9, '#8a8479', null);
+  }
+}
+
+/** A heat shield disc, tilted: a rotated ellipse leaning in a corner. */
+function shieldDisc(ctx, gx, gy, z, rot, k = 1) {
+  const [sx, sy] = iso(gx, gy, z);
+  const rx = 45.25 * 0.3 * k;
+  const ry = 22.63 * 0.3 * k;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(rot);
+  ell(ctx, 0, 3.4, rx, ry, '#2a2622', INK, 2);
+  ell(ctx, 0, 0, rx, ry, '#5a5046', INK, 2);
+  ell(ctx, 0, 0, rx * 0.66, ry * 0.66, null, 'rgba(10,6,4,0.55)', 2);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx * 0.93, ry * 0.93, 0, 0.3, Math.PI - 0.3);
+  ctx.strokeStyle = '#a99a82';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+const bolt = (ctx, gx, gy) => {
+  const [x, y] = iso(gx, gy, Z0 + 1);
+  ell(ctx, x, y, 2.6, 1.6, '#a8a195', INK, 1.1);
+};
+
+/** The flaps of the field version point at the diamond's tips: th = 45 degrees steps in grid space. */
+const flapF = (ctx, cx, cy, th, rng, o = {}) => flap(ctx, cx, cy, th, rng, { ri: 0.25, ro: 0.55, wi: 0.16, wo: 0.26, zi: FLAT, zo: FLAT, ...o });
+const PI = Math.PI;
+
+function fieldFresh(ctx, ox, oy, rng) {
+  const cx = ox + 0.5;
+  const cy = oy + 0.5;
+  scorchField(ctx, ox, oy, rng);
+  shieldArc(ctx, cx, cy, PI, PI * 1.5, 0.47, 0.28, rng);
+  flapF(ctx, cx, cy, PI * 1.75, rng);
+  flapF(ctx, cx, cy, PI * 0.75, rng, { broken: true });
+  coreStump(ctx, cx, cy, Z0, 7, rng, 0.2);
+  roofDisc(ctx, cx, cy, Z0 + 9.5, -0.2, 0.9);
+  flapF(ctx, cx, cy, PI * 0.25, rng);
+}
+
+function fieldRoofOff(ctx, ox, oy, rng) {
+  const cx = ox + 0.5;
+  const cy = oy + 0.5;
+  scorchField(ctx, ox, oy, rng);
+  shieldArc(ctx, cx, cy, PI * 0.5, PI * 1.5, 0.47, 0.27, rng);
+  flapF(ctx, cx, cy, PI * 1.75, rng);
+  coreStump(ctx, cx, cy, Z0, 7, rng, 0.2);
+  cable(ctx, [cx + 0.05, cy + 0.02, Z0 + 6], [cx + 0.3, cy + 0.26, Z0 + 1], [4, 6]);
+  roofDisc(ctx, cx + 0.22, cy + 0.2, FLAT, 0.5, 1.05);
+}
+
+function fieldStruts(ctx, ox, oy, rng) {
+  const cx = ox + 0.5;
+  const cy = oy + 0.5;
+  scorchField(ctx, ox, oy, rng);
+  shieldDisc(ctx, cx + 0.22, cy - 0.22, Z0 + 4, 0.7, 0.85);
+  flapF(ctx, cx, cy, PI * 0.75, rng, { broken: true });
+  coreStump(ctx, cx, cy, Z0, 7, rng, 0.2);
+  strut(ctx, [[cx - 0.05, cy + 0.12, Z0 + 1], [cx - 0.2, cy + 0.28, Z0 + 1], [cx - 0.3, cy + 0.38, Z0 + 6]]);
+  strut(ctx, [[cx + 0.06, cy + 0.14, Z0 + 1], [cx + 0.25, cy + 0.24, Z0 + 1], [cx + 0.34, cy + 0.12, Z0 + 7]]);
+}
+
+function fieldLeaning(ctx, ox, oy, rng) {
+  const cx = ox + 0.5;
+  const cy = oy + 0.5;
+  scorchField(ctx, ox, oy, rng);
+  shieldArc(ctx, cx, cy, PI, PI * 1.5, 0.47, 0.3, rng);
+  warnPiece(ctx, cx + 0.3, cy - 0.22, FLAT, 0.5);
+  coreStump(ctx, cx, cy, Z0, 6, rng, 0.2);
+  warnPiece(ctx, cx - 0.28, cy + 0.2, FLAT, 0.6);
+  flapF(ctx, cx, cy, PI * 0.25, rng, { zi: Z0 + 9, zo: FLAT, ri: 0.2, ro: 0.5 });
+}
+
+function fieldRoofDown(ctx, ox, oy, rng) {
+  const cx = ox + 0.5;
+  const cy = oy + 0.5;
+  scorchField(ctx, ox, oy, rng);
+  shieldArc(ctx, cx, cy, PI * 1.5, PI * 2, 0.47, 0.3, rng);
+  coreStump(ctx, cx - 0.14, cy - 0.12, Z0, 5, rng, 0.18);
+  strut(ctx, [[cx - 0.34, cy + 0.3, Z0 + 1], [cx - 0.1, cy + 0.36, Z0 + 1], [cx, cy + 0.28, Z0 + 4]], 2.8);
+  roofDisc(ctx, cx + 0.08, cy + 0.14, FLAT, 0.1, 1.2);
+}
+
+function fieldCables(ctx, ox, oy, rng) {
+  const cx = ox + 0.5;
+  const cy = oy + 0.5;
+  scorchField(ctx, ox, oy, rng);
+  shieldArc(ctx, cx, cy, PI * 0.5, PI, 0.47, 0.3, rng);
+  cable(ctx, [cx - 0.05, cy - 0.1, Z0 + 6], [cx - 0.36, cy - 0.36, Z0 + 0.5], [-4, 6]);
+  cable(ctx, [cx + 0.1, cy - 0.05, Z0 + 6], [cx + 0.38, cy - 0.34, Z0 + 0.5], [4, 7]);
+  coreStump(ctx, cx, cy, Z0, 8, rng, 0.2);
+  cable(ctx, [cx + 0.12, cy + 0.08, Z0 + 6], [cx + 0.38, cy + 0.38, Z0 + 0.5], [6, 4]);
+  cable(ctx, [cx + 0.0, cy + 0.12, Z0 + 5], [cx + 0.02, cy + 0.42, Z0 + 0.5], [-6, 6]);
+  bolt(ctx, cx + 0.32, cy + 0.02);
+  bolt(ctx, cx - 0.1, cy - 0.34);
+}
+
+function fieldBands(ctx, ox, oy, rng) {
+  const cx = ox + 0.5;
+  const cy = oy + 0.5;
+  scorchField(ctx, ox, oy, rng);
+  shieldArc(ctx, cx, cy, PI * 1.25, PI * 1.75, 0.47, 0.35, rng, 2.4);
+  warnPiece(ctx, cx - 0.3, cy - 0.04, FLAT, 2.4);
+  strut(ctx, [[cx - 0.36, cy + 0.3, Z0 + 1], [cx - 0.04, cy + 0.2, Z0 + 1], [cx + 0.3, cy + 0.12, Z0 + 5]]);
+  coreStump(ctx, cx, cy, Z0, 5, rng, 0.2);
+  warnPiece(ctx, cx + 0.3, cy + 0.12, FLAT, 0.3, 0.3, 0.1);
+  strut(ctx, [[cx - 0.2, cy + 0.38, Z0 + 1], [cx + 0.1, cy + 0.3, Z0 + 3], [cx + 0.3, cy + 0.4, Z0 + 1]], 2.8);
+  warnPiece(ctx, cx - 0.08, cy + 0.32, FLAT + 1, 1.2, 0.28, 0.1);
+}
+
+function fieldStripped(ctx, ox, oy, rng) {
+  const cx = ox + 0.5;
+  const cy = oy + 0.5;
+  scorchField(ctx, ox, oy, rng);
+  flapF(ctx, cx, cy, PI * 1.25, rng, { broken: true, ri: 0.3, ro: 0.5, wi: 0.14, wo: 0.22 });
+  coreStump(ctx, cx, cy, Z0, 4, rng, 0.2);
+  shieldArc(ctx, cx, cy, PI * 0.25, PI * 0.75, 0.47, 0.36, rng, 2.4);
+  bolt(ctx, cx + 0.3, cy - 0.2);
+  bolt(ctx, cx - 0.3, cy - 0.08);
+  bolt(ctx, cx + 0.34, cy + 0.12);
+}
+
+const CAPSULE_FIELD = [fieldFresh, fieldRoofOff, fieldStruts, fieldLeaning, fieldRoofDown, fieldCables, fieldBands, fieldStripped];
+
 /** The kit's entry point, shaped like the game's drawObstacleCell: one obstacle, one of its cells. */
 function drawNewCell(ctx, ob, index) {
   const { x, y } = ob.cells[index];
@@ -1093,6 +1313,7 @@ function drawNewCell(ctx, ob, index) {
   if (ob.kind === 'wall') return drawNewWallCell(ctx, ob, index);
   const list = ob.kind === 'ruin' ? RUINS : ob.kind === 'crater' ? CRATERS : CAPSULE_REMAINS;
   if (ob.kind !== 'rubble') return list[v % list.length].draw(ctx, x, y, rngFor(ob.kind, v));
+  if (!round) return CAPSULE_FIELD[v % CAPSULE_FIELD.length](ctx, x, y, rngFor(ob.kind, v));
   // The remains are drawn flat and low; scaled up about the cell centre so that the
   // heat shield stays readable at the smallest zoom. Heights stay under 16 px.
   const [sx, sy] = iso(x + 0.5, y + 0.5);
@@ -1199,7 +1420,7 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha: false });
 installPageGuards(canvas);
 
-const state = { mode: 'sheet', scene: 'new', names: true, grid: false, silhouette: false, vertical: false };
+const state = { round: false, mode: 'sheet', scene: 'new', names: true, grid: false, silhouette: false, vertical: false };
 let sheet = buildSheet(state.vertical);
 const camera = createCamera();
 const limits = { ...CAMERA, minZoom: 0.25, maxZoom: 3, minCellPx: 0 };
@@ -1247,6 +1468,24 @@ function sceneEntries(t) {
   return out;
 }
 
+/** Gold outline of every cell an obstacle, emplacement or beacon occupies: shows that a rubble field fills exactly its diamond. */
+function drawOccupied() {
+  const cells = state.mode === 'scene'
+    ? [...SCENE_OBJECTS.flatMap((o) => o.cells), ...SCENE_TOWERS, SCENE_BEACON]
+    : sheet.items.flatMap((it) => it.cells);
+  ctx.beginPath();
+  for (const { x, y } of cells) {
+    const pts = [iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)];
+    pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+    ctx.closePath();
+  }
+  ctx.strokeStyle = 'rgba(242,193,78,0.95)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
 function drawGrid(size) {
   ctx.beginPath();
   for (let y = 0; y < size; y++) {
@@ -1284,6 +1523,7 @@ function frame(now) {
   if (state.silhouette) ctx.filter = 'brightness(0)';
   for (const e of entries) e.draw();
   ctx.filter = 'none';
+  if (state.grid) drawOccupied();
 
   if (state.mode === 'sheet') {
     for (const h of sheet.heads) {
@@ -1335,6 +1575,9 @@ btn('mode-scene').addEventListener('click', () => {
 });
 toggle('names', 'names');
 toggle('grid', 'grid');
+toggle('round', 'round', () => {
+  round = state.round;
+});
 toggle('silhouette', 'silhouette');
 toggle('vertical', 'vertical', () => {
   sheet = buildSheet(state.vertical);
@@ -1359,6 +1602,7 @@ btn('reroll').addEventListener('click', () => {
   invalidate();
 });
 btn('names').classList.add('on');
+btn('round').classList.remove('on');
 btn('scene-new').classList.add('on');
 btn('mode-sheet').classList.add('on');
 for (const el of hudBar.querySelectorAll('[data-for]')) el.hidden = el.dataset.for !== state.mode;
