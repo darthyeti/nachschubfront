@@ -29,6 +29,14 @@ Protokolle laufen über das Artefakt
 paralleles Arbeiten stehen in [`docs/ARBEITSWEISE.md`](ARBEITSWEISE.md);
 `CLAUDE.md` verweist darauf.
 
+**GitHub (seit 02.11.2026):** Issues als Aufgabenliste, ein Zweig
+`claude/<nr>-<name>` und ein Pull Request je Aufgabe, Pflicht-Check `schnell`
+(Unit-Tests, Eingabe und Offline in Chromium), nächtlicher Lauf `voll` (WebKit,
+Screenshots, Battle, Perf). Pages baut `main` in den Wurzelordner und jeden
+Pull Request mit Label `spielgefuehl` nach `pr/<nr>/`; den Cache-Block in
+`sw.js` schreibt erst die Veröffentlichung, im Repository steht der
+Platzhalter. Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“.
+
 **Hilfe-Ebene (Version 0.9.4):** Der „?“-Knopf unten links über der Versionszahl
 öffnet eine Ebene, die jedes Symbol der Leisten und, sobald sie steht, jede Scheibe
 der Kommandoleiste mit einer Sprechblase und gestrichelter Linie erklärt
@@ -349,7 +357,7 @@ mit Spitze bei 14 (wie oben unter Runde 3 beschrieben).
 | `npm run koth-bots` | King of the Hill: die vier Bots der Studie, Sperrradius und LP-Faktor zum Durchprobieren |
 | `npm run playmatch -- <seed> --protocol <datei>` | eine Bot-Partie als Protokoll |
 | `npm run waves` · `sprites` · `studies` · `icons` | erzeugte Dateien neu schreiben |
-| `npm run precache` | `sw.js` neu schreiben — **vor jeder Veröffentlichung** |
+| `npm run precache` | Cache-Block in `sw.js` schreiben; tut die Veröffentlichung selbst (`--root <Kopie>`), lokal nur zum Ausprobieren, `-- --placeholder` stellt zurück |
 
 Einzelheiten zu den Balancing-Werkzeugen: [`balancing/README.md`](../balancing/README.md).
 
@@ -391,8 +399,8 @@ Silhouette der sechs; der Glutkessel ist deutlich kleiner als die übrigen fünf
 - `docs/ART.md` nennt für die Kapsel „Höhe etwa doppelte Fußbreite", die
   Zeichnung `pod-b` ist das 1,2-fache. Umgesetzt ist die Zeichnung, weil M4c die
   Skizzen für verbindlich erklärt.
-- Die Versionsnummer wird von Hand gepflegt (`src/data/version.js`). Der
-  Unit-Test erinnert an `npm run precache`, nicht an die Erhöhung.
+- Die Versionsnummer wird von Hand gepflegt (`src/data/version.js`). Nichts
+  erinnert an die Erhöhung; der Cache-Block kommt seit dem 02.11. von selbst.
 
 ## Bekannte Probleme
 
