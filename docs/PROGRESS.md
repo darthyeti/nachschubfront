@@ -20,6 +20,11 @@ Version **0.9.10**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenomme
 | M7a | Modus-Gerüst | 02.10.2026 |
 | M7b | Modus „King of the Hill" (im Menü als „Experimentell") | 02.10.2026 |
 
+**Leitstand (seit 02.11.2026):** Entscheidungen, Aufgaben und abgelieferte
+Protokolle laufen über das Artefakt
+<https://claude.ai/artifact/FeLG9xnf4koUpNy1FbWyUd>; Rollen und Ablauf in
+[`docs/ARBEITSWEISE.md`](ARBEITSWEISE.md), Abschnitt „Leitstand".
+
 **Arbeitsweise versioniert:** Rollen von Chat und Code sowie die Regeln für
 paralleles Arbeiten stehen in [`docs/ARBEITSWEISE.md`](ARBEITSWEISE.md);
 `CLAUDE.md` verweist darauf.

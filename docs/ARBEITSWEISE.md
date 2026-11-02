@@ -62,3 +62,39 @@ Arbeiten am leichtesten brechen:
 ist, welche Entscheidungen weiter wirken. Was erledigt ist und warum, steht nicht
 dort, sondern in den Commit-Nachrichten. Die Datei bleibt kurz; Abgeschlossenes
 wird gestrichen, nicht angehängt.
+
+## Leitstand
+
+Seit dem 02.11.2026 laufen Entscheidungen, Aufgaben und Protokolle über ein
+gemeinsames Artefakt, den **Leitstand**:
+<https://claude.ai/artifact/FeLG9xnf4koUpNy1FbWyUd> (privat, Besitzer Till).
+Vorbild ist das Entscheidungs-Artefakt aus Holdup.
+
+Rollen darin:
+
+- **Till** (Spieldesigner) beantwortet Akten, legt Themen ab und liefert
+  Protokolle als Datei ab. Er entscheidet, der Leitstand schlägt vor.
+- **Der Leitstand** (die Code-Hauptsitzung) legt Akten und Aufgaben an, liest
+  Antworten, Themen und Protokolle aus, plant die Arbeit, verteilt sie auf
+  parallele Sitzungen oder Agenten (je Bereich, siehe Tabelle oben) und trägt
+  den Stand nach. Er ist die einzige Stelle, die `fragen`, `aufgaben` und
+  `meta` schreibt.
+
+Was im Speicher des Artefakts liegt (Sammlung → Bedeutung):
+
+| Sammlung | Schreibt | Inhalt |
+|---|---|---|
+| `fragen` | Leitstand | Entscheidungsakten E-nn: Titel, Lage, Optionen, Empfehlung, `status`, `ergebnis` |
+| `antworten` | Till | Wahl und Text je Akte, Schlüssel ist die Akten-ID |
+| `aufgaben` | Leitstand | Aufgaben A-nn mit `status` (geplant, laeuft, pruefung, wartet, erledigt), `wer`, `haengt_an` |
+| `protokolle` | Till | abgelieferte Partien: Dateien als Asset-IDs, Text, `status` (neu, gelesen, ausgewertet), `ergebnis` |
+| `themen` | Till | freie Themen, `status` (neu, uebernommen), `antwort` |
+| `meta/leitstand` | Leitstand | wann der Leitstand zuletzt gelesen hat |
+
+Ablauf jeder Leitstand-Sitzung: zuerst `antworten`, `themen` und `protokolle`
+lesen (ArtifactData), neue Protokolldateien aus den Assets nach
+`balancing/protokolle/` holen und nachspielen, dann Akten schließen
+(`ergebnis`), Aufgaben fortschreiben und `meta/leitstand` stempeln. Was
+daraus im Repository landet, gilt wie bisher: `docs/PROGRESS.md` hält den
+Stand, die Commits die Geschichte. Der Leitstand ersetzt keine Freigabe im
+Chat, er hält sie fest.
