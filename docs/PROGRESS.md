@@ -7,17 +7,11 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.10.5**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
-**M6 Balancing** und **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md), von Till
-freigegeben am 02.11.2026): C1 (Farbtrennung, drei Biome, Fundament, Spur), C2 (Licht und
-Schatten, sichtbares Fundament, Saum der Spur) und C3 (Blockgelände: drei Höhenstufen aus dem
-Seed, Klippen, Rampen, alles auf Feldhöhe, Treffer auf Feldhöhe), C4 (Diorama-Rahmen: Stahlgrundplatte,
-Tischschatten, höherer Horizont, Schleier, Vignette 0,82, Start-Ausschnitt mit Grundplatte) C5 (Trümmer
-aus dem Baukasten: acht Varianten je Art nach Feldposition, Krater und Kapsel-Trümmer feldfüllend, Zwischenspeicher
-je Feld) und C5b (neue Kapsel nach Entwurf B der Studie: Landung mit Hitzeschleier, Druckwellen, Brocken, Rauch, der
-nach 3,5 s verflogen ist; Auswahl mit Eckwinkel-Rahmen, angehobenen Klappen, hellerem Kern; Lichtsäule hinter der
-Kapsel) sind umgesetzt, **C1 bis C5b sind damit gebaut, C6 (Leistung und Geräte) ist offen**; C3 bis C5b warten auf Tills
-Blick im Browser, C3 und C4 auch auf dem iPad (Tippen auf hohe Felder). Das
+Version **0.10.5**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
+03.11.2026 **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md)): Farbtrennung und drei Biome,
+Licht und Schatten, Blockgelände, Diorama-Rahmen, Trümmer aus dem Baukasten, die neue Kapsel. Offen ist
+**M6 Balancing**. Von M8 steht noch Tills Prüfung auf dem iPad aus (Leistung, Speicher, Tippen auf hohe
+Felder); er holt sie nach (Akte E-16). Das
 Höhenfeld ist reine Darstellung (`src/render/terrain.js`), die Simulation rechnet weiter auf der
 flachen Karte. Offen im Blick: King of the Hill hat eine Bastion über 2 x 2 Felder, die auf
 verschiedenen Stufen liegen können (das Feld behält seine Stufe, wie beauftragt). **M7 Spielmodi**
@@ -32,7 +26,7 @@ ruht seit dem 02.11.2026 (Entscheidung E-02), bis der Grafik-Rework steht.
 | **M6** | **Balancing und Feinschliff** | **in Arbeit** |
 | M7a | Modus-Gerüst | 02.10.2026 |
 | M7b | Modus „King of the Hill" (im Menü als „Experimentell") | 02.10.2026 |
-| **M8** | **Optik** (Studien `optik-studie.html`, `truemmer-studie.html` abgenommen) | **Entwurf** |
+| M8 | Optik: Biome, Licht, Gelände, Rahmen, Trümmer, Kapsel | 03.11.2026 |
 
 **Leitstand (seit 02.11.2026):** Entscheidungen, Aufgaben und abgelieferte
 Protokolle laufen über das Artefakt

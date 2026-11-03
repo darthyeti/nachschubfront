@@ -1,6 +1,6 @@
 # M8: Optik
 
-Status: **Entwurf, wartet auf Tills Freigabe (Akte E-08)**. Läuft parallel zu M6; M7 ruht (Entscheidung 02.11.2026, E-02).
+Status: **abgenommen am 03.11.2026** (Akte E-16; die Prüfung auf dem iPad holt Till nach). Freigegeben am 02.11.2026 (E-08), umgesetzt in C1 bis C5b, Version 0.10.0 bis 0.10.5. Läuft parallel zu M6; M7 ruht (Entscheidung 02.11.2026, E-02).
 Referenz: `reference/studien/optik-studie.html` (dieselbe Karte heute und neu, vier Bausteine schaltbar, Standbilder in `reference/konzept/optik/`). Die Trümmer-Entwürfe aus `reference/studien/truemmer-studie.html` kommen als eigener Schritt dazu, sobald Akte E-07 entschieden ist.
 
 ## Entscheidungen vom 02.11.2026
