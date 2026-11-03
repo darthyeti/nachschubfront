@@ -75,7 +75,12 @@ try {
         for (let i = 0; i < 12; i++) await page.keyboard.press('+');
       }
       // Let new raster levels finish, then the counter must stay put.
-      await page.waitForTimeout(1500);
+      // On a slow (software) renderer a new level can take longer than a fixed wait, so wait
+      // for the counter to stand still for 1.5 s, at most 40 s.
+      let seen = -1;
+      for (let i = 0; i < 26 && seen !== (seen = (await page.evaluate(() => window.__nachschub.sprites())).rasterized); i++) {
+        await page.waitForTimeout(1500);
+      }
       const before = (await page.evaluate(() => window.__nachschub.sprites())).rasterized;
       const gaps = (await sampleFrames(page, SAMPLE_FRAMES)).slice(10).sort((a, b) => a - b);
       const after = (await page.evaluate(() => window.__nachschub.sprites())).rasterized;

@@ -7,10 +7,11 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.10.0**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
+Version **0.10.1**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
 **M6 Balancing** und **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md), von Till
-freigegeben am 02.11.2026): C1 (Farbtrennung, drei Biome, Fundament, Spur) ist umgesetzt und
-wartet auf Tills Blick im Browser, C2 bis C5 sind offen. **M7 Spielmodi** ruht seit dem
+freigegeben am 02.11.2026): C1 (Farbtrennung, drei Biome, Fundament, Spur) und C2 (Licht und
+Schatten, sichtbares Fundament, Saum der Spur) sind umgesetzt, C2 wartet auf Tills Blick im
+Browser; C3 bis C5 sind offen. **M7 Spielmodi** ruht seit dem
 02.11.2026 (Entscheidung E-02), bis der Grafik-Rework steht.
 
 | | | abgenommen |
