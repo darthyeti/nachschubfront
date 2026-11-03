@@ -26,6 +26,7 @@ import {
 import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
 import { createBackdropLayer } from './backdrop.js';
 import { createAtmosphere } from './atmosphere.js';
+import { warmKit } from './rubbleCache.js';
 import {
   biomeOf,
   paletteOf,
@@ -718,6 +719,8 @@ export function createSceneRenderer(sprites) {
       const [px, py] = iso(gx, gy);
       return px >= area.x0 && px <= area.x1 && py >= area.y0 && py <= area.y1;
     };
+    warmKit(map.obstacles, palette, view.dpr);
+    const obstacleRaster = { zoom: cam.zoom, dpr: view.dpr };
     items.length = 0;
     for (const o of map.obstacles) {
       for (let i = 0; i < o.cells.length; i++) {
@@ -766,7 +769,7 @@ export function createSceneRenderer(sprites) {
     }
 
     function drawItem(kind, o, i) {
-      if (kind === KIND_OBSTACLE) drawObstacleCell(ctx, o, i, palette);
+      if (kind === KIND_OBSTACLE) drawObstacleCell(ctx, o, i, palette, obstacleRaster);
       else if (kind === KIND_RIFT) {
         // i: 0 the single rift of the standard map, 1 the attacking one, 2 a quiet one.
         if (i === 0) drawRift(ctx, o, t);
