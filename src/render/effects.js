@@ -64,6 +64,8 @@ const POD = {
   roof: POD_ANCHORS.top * SPRITE_SCALE.pod * POD_OPEN_SCALE,
   /** Height of the seams of the shell, where the bolts blow. */
   seam: 42 * SPRITE_SCALE.pod,
+  /** How far an opened segment reaches from the centre, in SVG units (the study's petal reach). */
+  petalReach: 60.57,
   /** How far out a segment throws its dust when it lies down, as a share of its reach. */
   slamReach: 0.9,
   /** Particles of the landing, by kind; the second number is for prefers-reduced-motion. */
@@ -508,7 +510,7 @@ export function createEffects() {
         const petal = POD_PETALS.find((p) => p.id === POD_PETAL_ORDER[mark.slams]);
         mark.slams += 1;
         jolt(2);
-        const reach = 60.57 * POD.openScale * POD.slamReach;
+        const reach = POD.petalReach * POD.openScale * POD.slamReach;
         const px = sx + Math.cos(petal.angle) * reach;
         const py = sy + Math.sin(petal.angle) * reach * 0.5;
         for (let i = 0, n = reducedMotion ? 2 : 3; i < n; i++) {
