@@ -8,8 +8,9 @@
 // "Heute" draws the same scene with the game's own function (drawTowerSprite), which mirrors
 // a top towards the target instead of turning it.
 //
-// "Acht Richtungen" draws the weapon from eight pre-rendered stages instead of building it
-// each frame, so the cost and the look of the two ways can be compared.
+// Three ways to draw a weapon: "Drehbar" builds it every frame; "Hybrid 16" draws a resting
+// weapon from one of sixteen pre-rendered stages and builds only the ones that move or shoot;
+// "Nur 16 Stufen" draws every weapon from a stage. This makes cost and look comparable.
 //
 // Everything animated runs on a fixed-step simulation of this study (`simStep`), so the
 // stills are reproducible (`window.__rework`). Nothing here touches src/; the study only reads it.
@@ -37,7 +38,7 @@ import { allTowerDefs, drawTowerSprite } from '../../src/render/towerSprites.js'
 import { ENEMY_SPRITE_DEFS, createEnemySpriteRenderer } from '../../src/render/enemySprites.js';
 import { attachPointerInput } from '../../src/input/pointer.js';
 import { installPageGuards } from '../../src/input/guards.js';
-import { makeFrame, buildWeapon, renderModel, restPose, drawBunker, MUZZLE, MOUNT_Z, K, ROCKET_ORDER, WEAPON_SCALE as SC } from './stellungen-rework-modell.js';
+import { makeFrame, buildWeapon, renderModel, restPose, drawBunker, MUZZLE, MOUNT_Z, BUNKER_HALF, CASING_PORT, K, ROCKET_ORDER, WEAPON_SCALE as SC } from './stellungen-rework-modell.js';
 
 const INK = C.ink;
 const TAU = Math.PI * 2;
@@ -51,7 +52,7 @@ const TURN = { autocannon: 5.5, flame: 4, mortar: 2.4, rocket: 2.6, tesla: 5, la
 const ALIGN = 0.14;
 /** Seconds the target needs for one lap, and the lap's distance from the middle of the group (cells). */
 const LAP_SECONDS = 22;
-const ORBIT = { eine: 3.2, drei: 4.4, alle: 5.8 };
+const ORBIT = { eine: 3.2, drei: 4.4, alle: 5.8, viele: 6 };
 /** Where a shot lands on the target, px above the ground. */
 const HIT_Z = 12;
 const GRAVITY = 620;
@@ -87,7 +88,7 @@ const state = {
   rocket: false,
   fire: true,
   orbit: true,
-  eight: false,
+  mode: 'hybrid', // live | hybrid | stages
   silhouette: false,
   biome: 'ash',
   paused: false,
@@ -100,6 +101,8 @@ const BIOME_LABEL = { ash: 'Asche', rust: 'Rost', toxic: 'Gift' };
 
 const LAYOUTS = {
   eine: [[6, 6]],
+  // Thirty emplacements for the cost of many weapons at once.
+  viele: Array.from({ length: 30 }, (_, i) => [2 + (i % 6) * 2, 2 + Math.floor(i / 6) * 2]),
   drei: [[4, 8], [6, 6], [8, 4]],
   // A ring around the middle of the map: from there every direction is aimed at once.
   alle: [[4, 9], [7, 10], [10, 9], [10, 5], [7, 4], [4, 5]],
@@ -117,7 +120,7 @@ let clock = 0;
 
 function buildTowers() {
   const cells = LAYOUTS[state.layout];
-  const doctrines = state.layout === 'alle' ? DOCTRINE_IDS : cells.map(() => state.doctrine);
+  const doctrines = state.layout === 'alle' ? DOCTRINE_IDS : state.layout === 'viele' ? cells.map((_, i) => DOCTRINE_IDS[i % 6]) : cells.map(() => state.doctrine);
   towers = cells.map(([cx, cy], i) => {
     const doctrine = doctrines[i];
     return {
@@ -186,13 +189,41 @@ function setTarget(x, y) {
 
 // ---------- the muzzle of a tower, in the world ----------
 
-/** Angle the weapon is drawn at: the turned one, or the nearest of eight stages. */
+/** Number of pre-rendered directions of the hybrid and of the pure stage mode. */
+const STAGES = 16;
+const STEP = TAU / STAGES;
+
+/**
+ * A weapon is "busy" while anything about it moves or shoots: then it is built and drawn
+ * every frame. A resting weapon (hybrid) is a pre-rendered stage.
+ */
+function isBusy(tw) {
+  return (
+    !tw.aligned ||
+    tw.firing ||
+    tw.recoil > 0.01 ||
+    tw.flashT > 0 ||
+    tw.charge > 0 ||
+    tw.beam > 0 ||
+    tw.bolt > 0 ||
+    tw.jet > 0.03 ||
+    tw.pulses.length > 0 ||
+    tw.salvo.loaded.some((l) => !l)
+  );
+}
+
+/** True when this weapon is drawn from a stage this frame. */
+function useStage(tw) {
+  return state.mode === 'stages' || (state.mode === 'hybrid' && !tw.busy);
+}
+
+/** Angle the weapon is drawn at: the turned one, or the nearest of the sixteen stages. */
 function shownTheta(tw) {
-  return state.eight ? Math.round(tw.theta / (TAU / 8)) * (TAU / 8) : tw.theta;
+  return useStage(tw) ? Math.round(tw.theta / STEP) * STEP : tw.theta;
 }
 
 function poseOf(tw, live = true) {
-  const p = restPose(DOCTRINE_COLORS[tw.doctrine]);
+  const p = restPose(DOCTRINE_COLORS[tw.doctrine], state.rank);
   if (!live) return p;
   p.recoil = tw.recoil;
   p.spin = tw.spin;
@@ -426,6 +457,7 @@ function updateTower(tw, dt) {
   // What the game's own tower sprite reads: a reload counter that jumps up on a shot.
   tw.cooldown = tw.cd;
   if (kind === 'flame') tw.cooldown = 0;
+  tw.busy = isBusy(tw);
 }
 
 const norm2 = (d) => {
@@ -440,12 +472,12 @@ function shootAutocannon(tw) {
   const side = makeFrame(tw.theta, 0, SC).s;
   // A case leaves the ejection port on the side of the housing and falls.
   const Fs = makeFrame(shownTheta(tw), MOUNT_Z, SC);
-  const [px, py] = Fs.world(0.0, 0.125);
+  const [px, py] = Fs.world(CASING_PORT[0], CASING_PORT[1]);
   emit({
     kind: 'casing',
     x: tw.x + px,
     y: tw.y + py,
-    z: MOUNT_Z + 13 * SC,
+    z: MOUNT_Z + CASING_PORT[2] * SC,
     vx: side[0] * rng.range(0.9, 1.5),
     vy: side[1] * rng.range(0.9, 1.5),
     vz: rng.range(90, 170),
@@ -491,10 +523,10 @@ function shootRocket(tw, tube) {
   sparkBurst(m.x, m.y, m.z, 4, 140, 0.25);
 }
 
-// ---------- caches: the bunker, the eight stages ----------
+// ---------- caches: the bunker, the sixteen stages ----------
 
 const bunkerCache = new Map();
-const eightCache = new Map();
+const stageCache = new Map();
 const stats = { bakes: 0 };
 
 /** The scale steps of the sprites: 0.5, 1, 2 times the pixel ratio (docs/ART.md). */
@@ -506,10 +538,10 @@ function bunkerSprite(rank, accent, step, dpr) {
   const key = `${rank}|${accent}|${step}|${dpr}`;
   let s = bunkerCache.get(key);
   if (!s) {
-    const w = 100;
-    const h = 100;
-    const ox = 50;
-    const oy = 75;
+    const w = 84;
+    const h = 84;
+    const ox = 42;
+    const oy = 62;
     const canvas = document.createElement('canvas');
     canvas.width = Math.ceil(w * step * dpr);
     canvas.height = Math.ceil(h * step * dpr);
@@ -523,25 +555,25 @@ function bunkerSprite(rank, accent, step, dpr) {
   return s;
 }
 
-/** One of the eight stages of a weapon, drawn at rest at the angle k * 45 degrees. */
-function eightStage(kind, accent, k, step, dpr) {
-  const key = `${kind}|${accent}|${k}|${step}|${dpr}`;
-  let s = eightCache.get(key);
+/** One of the sixteen stages of a weapon, drawn at rest at the angle k * 22.5 degrees. */
+function stageOf(kind, accent, rank, k, step, dpr) {
+  const key = `${kind}|${accent}|${rank}|${k}|${step}|${dpr}`;
+  let s = stageCache.get(key);
   if (!s) {
-    const w = 170;
-    const h = 150;
-    const ox = 85;
-    const oy = 120;
+    const w = 100;
+    const h = 100;
+    const ox = 50;
+    const oy = 74;
     const canvas = document.createElement('canvas');
     canvas.width = Math.ceil(w * step * dpr);
     canvas.height = Math.ceil(h * step * dpr);
     const g = canvas.getContext('2d');
     g.setTransform(step * dpr, 0, 0, step * dpr, ox * step * dpr, oy * step * dpr);
-    const F = makeFrame((k * TAU) / 8, MOUNT_Z, SC);
-    const built = buildWeapon(kind, F, restPose(accent));
+    const F = makeFrame(k * STEP, MOUNT_Z, SC);
+    const built = buildWeapon(kind, F, restPose(accent, rank));
     renderModel(g, built.parts);
     s = { canvas, w, h, ox, oy, samples: built.samples, F };
-    eightCache.set(key, s);
+    stageCache.set(key, s);
     stats.bakes += 1;
   }
   return s;
@@ -587,7 +619,7 @@ function drawFoundation(c, tw) {
 /** Ground shadow of bunker and weapon in one fill, so nothing is darkened twice. */
 function drawShadow(c, tw, samples) {
   c.beginPath();
-  addShadowPath(c, rectCorners(tw.x - 0.47, tw.y - 0.47, tw.x + 0.47, tw.y + 0.47), MOUNT_Z);
+  addShadowPath(c, rectCorners(tw.x - BUNKER_HALF, tw.y - BUNKER_HALF, tw.x + BUNKER_HALF, tw.y + BUNKER_HALF), MOUNT_Z);
   if (samples) {
     const pts = samples.map(([lx, ly, z]) => {
       const F = samples.F;
@@ -606,14 +638,14 @@ function drawShadow(c, tw, samples) {
   c.fillStyle = SHADOW_COLOR;
   c.fill();
   // Dark foot on the ground along both near sides, as for every block (docs/ART.md).
-  footStrip(c, tw.x + 0.47, tw.y - 0.47, tw.x + 0.47, tw.y + 0.47, 1, 0);
-  footStrip(c, tw.x - 0.47, tw.y + 0.47, tw.x + 0.47, tw.y + 0.47, 0, 1);
+  footStrip(c, tw.x + BUNKER_HALF, tw.y - BUNKER_HALF, tw.x + BUNKER_HALF, tw.y + BUNKER_HALF, 1, 0);
+  footStrip(c, tw.x - BUNKER_HALF, tw.y + BUNKER_HALF, tw.x + BUNKER_HALF, tw.y + BUNKER_HALF, 0, 1);
 }
 
 function weaponSamples(tw, kind) {
-  if (state.eight) {
-    const k = ((Math.round(tw.theta / (TAU / 8)) % 8) + 8) % 8;
-    const s = eightStage(kind, DOCTRINE_COLORS[tw.doctrine], k, stepOf(camera.zoom), view.dpr);
+  if (useStage(tw)) {
+    const k = ((Math.round(tw.theta / STEP) % STAGES) + STAGES) % STAGES;
+    const s = stageOf(kind, DOCTRINE_COLORS[tw.doctrine], state.rank, k, stepOf(camera.zoom), view.dpr);
     const out = s.samples.slice();
     out.F = s.F;
     return out;
@@ -622,7 +654,7 @@ function weaponSamples(tw, kind) {
   const F = makeFrame(tw.theta, 0, SC);
   if (!tw.shadowParts || tw.shadowKind !== kind) {
     tw.shadowKind = kind;
-    tw.shadowParts = buildWeapon(kind, makeFrame(0, 0, SC), restPose('#fff')).samples;
+    tw.shadowParts = buildWeapon(kind, makeFrame(0, 0, SC), restPose('#fff', 3)).samples;
   }
   const out = tw.shadowParts.slice();
   out.F = F;
@@ -640,9 +672,9 @@ function drawWeapon(c, tw) {
   if (!front && !state.silhouette) drawFx(c, tw, mw, 'back');
   c.save();
   c.translate(ox, oy);
-  if (state.eight) {
-    const k = ((Math.round(tw.theta / (TAU / 8)) % 8) + 8) % 8;
-    const s = eightStage(kind, accent, k, stepOf(camera.zoom), view.dpr);
+  if (useStage(tw)) {
+    const k = ((Math.round(tw.theta / STEP) % STAGES) + STAGES) % STAGES;
+    const s = stageOf(kind, accent, state.rank, k, stepOf(camera.zoom), view.dpr);
     const F = s.F;
     // The recoil pushes the whole stage back along the line of the barrel.
     const push = tw.recoil * (kind === 'rocket' ? 0 : 5);
@@ -1145,19 +1177,18 @@ const NOTES = {
 
 function refresh() {
   for (const v of ['neu', 'heute']) $(`v-${v}`).classList.toggle('on', state.view === v);
-  for (const l of ['eine', 'drei', 'alle']) $(`l-${l}`).classList.toggle('on', state.layout === l);
+  for (const l of ['eine', 'drei', 'alle', 'viele']) $(`l-${l}`).classList.toggle('on', state.layout === l);
   for (const id of DOCTRINE_IDS) {
     const b = $(`d-${id}`);
-    b.classList.toggle('on', state.doctrine === id && state.layout !== 'alle');
-    b.disabled = state.layout === 'alle';
+    b.classList.toggle('on', state.doctrine === id && state.layout !== 'alle' && state.layout !== 'viele');
+    b.disabled = state.layout === 'alle' || state.layout === 'viele';
   }
   for (let r = 1; r <= 5; r++) $(`r-${r}`).classList.toggle('on', state.rank === r);
   $('m-mortar').classList.toggle('on', !state.rocket);
   $('m-rocket').classList.toggle('on', state.rocket);
   $('fire').classList.toggle('on', state.fire);
   $('orbit').classList.toggle('on', state.orbit);
-  $('turn').classList.toggle('on', !state.eight);
-  $('eight').classList.toggle('on', state.eight);
+  for (const m of ['live', 'hybrid', 'stages']) $(`mode-${m}`).classList.toggle('on', state.mode === m);
   $('silhouette').classList.toggle('on', state.silhouette);
   $('biome').textContent = `Boden: ${BIOME_LABEL[state.biome]}`;
   $('pause').classList.toggle('on', state.paused);
@@ -1177,7 +1208,7 @@ for (const v of ['neu', 'heute']) {
     refresh();
   });
 }
-for (const l of ['eine', 'drei', 'alle']) {
+for (const l of ['eine', 'drei', 'alle', 'viele']) {
   $(`l-${l}`).addEventListener('click', () => {
     state.layout = l;
     rebuild();
@@ -1193,7 +1224,7 @@ for (const id of DOCTRINE_IDS) {
   b.textContent = { autocannon: 'Autokanone', flame: 'Flamme', mortar: 'Mörser', psi: 'Psi', tesla: 'Tesla', laser: 'Laser' }[id];
   b.addEventListener('click', () => {
     state.doctrine = id;
-    if (state.layout === 'alle') state.layout = 'drei';
+    if (state.layout === 'alle' || state.layout === 'viele') state.layout = 'drei';
     rebuild();
   });
   $('doctrines').append(b);
@@ -1227,14 +1258,12 @@ $('orbit').addEventListener('click', () => {
   }
   refresh();
 });
-$('turn').addEventListener('click', () => {
-  state.eight = false;
-  refresh();
-});
-$('eight').addEventListener('click', () => {
-  state.eight = true;
-  refresh();
-});
+for (const m of ['live', 'hybrid', 'stages']) {
+  $(`mode-${m}`).addEventListener('click', () => {
+    state.mode = m;
+    refresh();
+  });
+}
 $('biome').addEventListener('click', () => {
   state.biome = BIOMES[(BIOMES.indexOf(state.biome) + 1) % BIOMES.length];
   refresh();
@@ -1373,7 +1402,7 @@ window.__rework = {
   state: () => ({ ...state }),
   target: () => ({ x: target.x, y: target.y }),
   particles: () => particles,
-  stats: () => ({ ...stats, eight: eightCache.size, bunkers: bunkerCache.size, perf: { draw: perf.draw, models: perf.models } }),
+  stats: () => ({ ...stats, stages: stageCache.size, live: towers.filter((t) => !useStage(t)).length, bunkers: bunkerCache.size, perf: { draw: perf.draw, models: perf.models } }),
   /** Muzzle of each tower on screen and in the model, to check it sits at the end of the barrel. */
   muzzles: () => towers.map((tw) => ({ kind: tw.kind, theta: tw.theta, ...muzzleWorld(tw) })),
 };
