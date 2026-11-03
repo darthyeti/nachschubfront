@@ -65,19 +65,23 @@ Referenz: `reference/konzept/stellungen/spezialstellungen.png` und die Studie im
 
 ### Ränge
 
-Die Rangstufen bauen aufeinander auf, jede Stufe behält alles der vorherigen. Seit v5 sitzen sie am Bunker selbst, nicht mehr an einem Sockel darunter:
+Die Rangstufen bauen aufeinander auf, jede Stufe behält alles der vorherigen. Sie sitzen am Bunker selbst. Seit 0.11.0 (M9, D1) ist das der neue Bunker der Studie `stellungen-rework.html` im Stil der Kapsel (facettierte Betonplatte, Stahlkanten, Nieten, Gefahrenband, zwei Schießscharten, achteckige Dachplatte), auf 74 % der ersten Fassung verkleinert (`BUNKER_BASE_SCALE` in `src/data/art.js`). **Sandsäcke gibt es nicht mehr**; die Ränge sind Zierrat und Farbe am Bunker:
 
-| Rang | Zusatz |
+| Rang | Zierrat und Farbe |
 |---|---|
-| Rekrut | Nackter Bunker |
-| Veteran | Sandsäcke vor beiden sichtbaren Seiten |
-| Elite | Angenietete Panzerplatten an beiden Seiten |
-| Held | Zinnen auf den oberen Kanten, Totenkopf-Emblem an der Frontkante |
-| Legende | Goldene Kanten an Dach und Frontkante |
+| 1 Rekrut | schlicht, nur die Doktrinlampe auf der Dachecke |
+| 2 Veteran | kräftiger Rand in der Doktrinfarbe (das Band reicht tiefer an der Wand herunter als bei den höheren Rängen, damit der Rang bei kleinstem Zoom von Rang 3 zu unterscheiden bleibt), Stahlschutz an der Nahecke, ein Winkel |
+| 3 Elite | dunkle Platten mit Doktrinzeichen neben den Schießscharten, Dachplatte in der Doktrinfarbe, zwei Winkel |
+| 4 Held | Zinnen, Totenkopf-Plakette, Antenne, drei Winkel |
+| 5 Legende | Goldkanten und Goldnieten, zweite Antenne, vier goldene Winkel |
 
-Referenz: `reference/konzept/stellungen/bunker-raenge-und-spezialbasis.png`.
+Die Doktrinfarbe (`DOCTRINE_COLORS`) steckt in der Zeichnung (Rand, Winkel, Zeichen, Dachplatte, Lampe), und ein SVG kennt keinen Farbparameter. Deshalb gibt es **einen Bunker je Doktrin und Rang**: 30 Symbole `bunker-<doktrin>-<rang>` in `reference/konzept/stellungen/bunker-raenge.svg`. Gerastert wird nur, was im Spiel vorkommt; kein Filter pro Bild. Die Lampe leuchtet mit zwei flachen, halbtransparenten Scheiben, weil die Aufnahme des Exports keine Verläufe kennt. Das Fundament in der Doktrinfarbe (M8, C1) bleibt, ebenso der Silhouettenschatten (M8, C2) und das Treffer-Aufblitzen über die helle Variante.
 
-**Keine Fahne mehr beim Held.** Das wehende Banner aus v2 war auf Tablet-Größe nicht erkennbar und ist durch die Zinnen und den Totenkopf ersetzt. Damit entfallen auch die Winkel am Sockel: Der Rang ist am Bunker selbst abzulesen, nicht an einer Markierung darunter. Die Spezialstellungen haben wie bisher keinen Rang und tragen nur die Goldkanten.
+Der Aufsatz sitzt bis D2 unverändert (und gespiegelt zum Ziel) auf der Dachplatte; sein Ankerpunkt liegt auf der Dachhöhe des neuen Bunkers (`BUNKER_ROOF_HEIGHT`, 28 mal 0,74 Weltpixel). Die Spezialstellungen stehen weiter auf der Spezialbasis. Das Standbild des Zustands: `reference/konzept/stellungen/d1-raenge-1x.png` und `d1-raenge-klein.png` (alle Doktrinen mal alle Ränge im Spiel bei Zoom 0,95 und 0,4, erzeugt mit `node tests/tools/rank-sheet.mjs`).
+
+Referenz der Studie: `reference/konzept/stellungen/rework-raenge.png`; die Spezialbasis zeigt `bunker-raenge-und-spezialbasis.png` (die Bunker darauf sind die der ersten Fassung).
+
+**Keine Fahne mehr beim Held.** Das wehende Banner aus v2 war auf Tablet-Größe nicht erkennbar und ist durch die Zinnen und den Totenkopf ersetzt. Der Rang ist am Bunker selbst abzulesen, nicht an einer Markierung darunter. Die Spezialstellungen haben wie bisher keinen Rang und tragen nur die Goldkanten.
 
 #### Rangabzeichen im Auswahldialog
 
@@ -367,7 +371,7 @@ Auftrag und Begründung in `docs/meilensteine/M8-optik.md`, Referenz `reference/
 
 - **SVG als Quelle, Canvas als Ausgabe.** Die SVGs werden beim Start einmal in Offscreen-Canvas gerastert und danach nur noch per `drawImage` gezeichnet. Kein SVG-Zeichnen pro Frame.
 - **Ausnahme: drehbare Modelle.** Figuren, die in mehreren Achsrichtungen stimmen müssen — Koloss und Gunship — sind kein SVG, sondern werden aus einfachen Körpern in lokalen Koordinaten aufgebaut (siehe „Drehbare Modelle" unten). Sie werden auch nicht gerastert, sondern pro Bild gezeichnet: Es gibt höchstens einen von jedem auf dem Feld, ihre beweglichen Teile (Laufrollen, Rückstoß, Flak) gehören zum Modell, und zwischengespeichert werden die Schattierungsfarben. Genau das schreibt Abschnitt „Drehbare Modelle" als Leistungsregel fest.
-- **Bunker und Aufsätze kommen aus dem Zeichencode der Studie**, aber als SVG: Der Zeichencode aus `reference/studien/stellungen-simulation.html` wird einmalig nach `reference/konzept/stellungen/` exportiert und läuft danach durch dieselbe Pipeline wie jede andere Figur (`npm run sprites`). Sie sind statisch, also bleibt die SVG-Regel für sie in Kraft.
+- **Bunker und Aufsätze kommen aus dem Zeichencode der Studie**, aber als SVG: Der Zeichencode aus `reference/studien/stellungen-simulation.html` (Aufsätze, Spezialbasis, Spezialwaffen) und seit 0.11.0 für den Standardbunker aus `reference/studien/stellungen-rework-modell.js` (`drawBunker`, je Doktrin und Rang) wird einmalig nach `reference/konzept/stellungen/` exportiert und läuft danach durch dieselbe Pipeline wie jede andere Figur (`npm run sprites`). Sie sind statisch, also bleibt die SVG-Regel für sie in Kraft.
 - **Rasterstufen nach Zoom.** Pro Figur werden wenige Auflösungsstufen vorgehalten (etwa 0,5x, 1x, 2x mal devicePixelRatio) und die passende gewählt, damit beim Zoomen nichts unscharf wird.
 - **Statische Teile als Sprite, Bewegung im Code.** Bunker, Gehäuse, Körper, Köpfe und Klingen kommen aus dem SVG. Was sich bewegt, wird wie im Stiltest per Code gezeichnet: schwenkende Waffen, Flammen, Blitze, Insektenbeine im Laufzyklus, Flügelschlag.
 - Die Zerlegung ist in M4 passiert (`tests/tools/split-towers.py` und `split-enemies.py`, beides einmalige Eingriffe in `reference/konzept/`). Die Symbolbibliothek trägt seitdem pro Figur mehrere Teile:
