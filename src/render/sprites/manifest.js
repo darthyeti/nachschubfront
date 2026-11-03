@@ -15,41 +15,61 @@ export const SPRITE_SCALE = {
   /** Enemies share one scale so their relative sizes from the concept sheet are kept. */
   enemy: 0.42,
   /**
-   * The capsule's heat shield (66 SVG units wide). It used to cover 90 % of a
-   * cell like an emplacement's base; since v3 it is a fifth smaller, so up to
-   * six capsules on neighbouring landing zones no longer hide one another
-   * (docs/ART.md, "Größe und Falldauer").
+   * The capsule (draft B of the capsule study, 0.10.5), exported at the study's own
+   * scale: its heat shield is 51 SVG units across, the landing lugs 70. At 0.8 the
+   * closed capsule is as wide as the old one was (docs/ART.md, "Größe und
+   * Falldauer"), so up to six capsules on neighbouring landing zones do not hide
+   * one another.
    */
-  pod: (64 * 0.9 * 0.8) / 66,
+  pod: 0.8,
 };
 
 /**
  * The supply pod (docs/ART.md, "Nachschubkapsel"). Closed it is one piece; open
- * it is a core, which since M4d keeps the roof on top, and four wall segments
- * that fold down around it, named for the direction they fall in.
+ * it is the heat shield, a core that keeps collar and roof on top, and four wall
+ * segments that fall outwards like petals, numbered as the study numbers them.
  *
  * `hinge` is the midpoint of the edge a segment shares with the core, in SVG
- * units (printed by tests/tools/split-pod-open.py). A segment grows out of that
- * point while it opens, which is what turns the standing wall into the lying
- * plate. `layer` says whether it is drawn behind or in front of the core.
+ * units (printed by `npm run studies`, "Anker der Kapsel"). A segment grows out
+ * of that point while it opens, which is what turns the standing wall into the
+ * lying plate. `layer` says whether it is drawn behind or in front of the core,
+ * `angle` is the direction it falls in on the ground (0 right, clockwise), the
+ * way the landing dust and the slam are placed.
  */
 export const POD_PETALS = [
-  { id: 'pod-petal-bl', hinge: [-12.5, -5.6], layer: 'back' },
-  { id: 'pod-petal-br', hinge: [12.5, -5.6], layer: 'back' },
-  { id: 'pod-petal-fr', hinge: [12.5, 5.6], layer: 'front' },
-  { id: 'pod-petal-fl', hinge: [-12.5, 5.6], layer: 'front' },
+  { id: 'pod-petal-0', hinge: [12.01, -1.64], layer: 'front', angle: 0.35 },
+  { id: 'pod-petal-1', hinge: [-4.32, 2.2], layer: 'front', angle: 1.92 },
+  { id: 'pod-petal-2', hinge: [-12.01, -5.96], layer: 'back', angle: 3.49 },
+  { id: 'pod-petal-3', hinge: [4.32, -9.8], layer: 'back', angle: 5.06 },
 ];
 
 /**
- * The order the segments blow open in. Opposite corners first, so the capsule
- * does not unpeel tidily round the circle.
+ * The order the segments blow open in (the study's order for draft B): a
+ * segment, then the opposite one, so the capsule does not unpeel tidily round
+ * the circle.
  */
-export const POD_PETAL_ORDER = ['pod-petal-br', 'pod-petal-fr', 'pod-petal-bl', 'pod-petal-fl'];
+export const POD_PETAL_ORDER = ['pod-petal-0', 'pod-petal-2', 'pod-petal-1', 'pod-petal-3'];
 
 /**
- * The opened pod is drawn this much smaller than the sketch. Open, it spans
- * almost two cells, and neighbouring emplacements would disappear under it
- * (docs/ART.md).
+ * Where the code-drawn parts sit, in SVG units of the closed capsule (also
+ * printed by `npm run studies`): the brake nozzles on the roof tower, the two
+ * collar lamps, the rings of light round the core (height above the foot), the
+ * core's radius and the height of the roof.
+ */
+export const POD_ANCHORS = {
+  nozzles: [[12.51, -56.65], [-4.51, -52.64]],
+  lamps: [[9.3, -50.46], [-9.3, -50.46]],
+  rings: [12.35, 19.95, 27.55],
+  coreRadius: 6.48,
+  top: 76,
+  coreTop: 54.15,
+  shieldRadius: 25.65,
+};
+
+/**
+ * The opened pod is drawn this much smaller than the closed one. Open, its
+ * segments span almost two cells, and neighbouring emplacements would disappear
+ * under it (docs/ART.md).
  */
 export const POD_OPEN_SCALE = 0.85;
 

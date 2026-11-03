@@ -10,6 +10,8 @@
 // <g> symbols, and a <use> per sheet. `npm run sprites` takes it from there,
 // exactly as it does for the hand-drawn sheets.
 //
+// The capsule (draft B of reference/studien/kapsel-studie.html) is exported the same way.
+//
 // Usage: npm run studies   (then npm run sprites)
 
 import { chromium } from 'playwright';
@@ -184,8 +186,11 @@ const tips = await page.evaluate(() =>
 );
 console.log('Wirkungsanker (Studie, skaliert):', JSON.stringify(tips));
 
-for (const [sheet, path] of Object.entries(SHEETS)) {
-  const figures = collected[sheet];
+/**
+ * Writes one concept sheet: a shared <style>, the clip paths and one <g> per
+ * figure in <defs>, and a <use> each so the sheet can be looked at.
+ */
+async function writeSheet(path, figures, source) {
   // Clip regions become their own defs, one per distinct outline and named
   // after the figure that uses it, so two sheets never collide on an id.
   const clips = new Map();
@@ -206,7 +211,7 @@ for (const [sheet, path] of Object.entries(SHEETS)) {
   // in a browser; the importer measures each symbol on its own.
   const uses = figures.map((f, i) => `<use href="#${f.id}" x="${i * 140}" y="0"/>`).join('\n  ');
   const body = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-90} ${-160} ${figures.length * 140 + 40} 260">
-  <title>Erzeugt aus reference/studien/stellungen-simulation.html - nicht von Hand ändern, npm run studies</title>
+  <title>Erzeugt aus ${source} - nicht von Hand ändern, npm run studies</title>
   <style>${STYLE}</style>
   <defs>
     ${defs}
@@ -217,6 +222,45 @@ for (const [sheet, path] of Object.entries(SHEETS)) {
   await writeFile(join(ROOT, path), body);
   console.log(`${path}: ${figures.length} symbols`);
 }
+
+for (const [sheet, path] of Object.entries(SHEETS)) {
+  await writeSheet(path, collected[sheet], 'reference/studien/stellungen-simulation.html');
+}
+
+// ---------- The supply capsule ----------
+// Draft B of reference/studien/kapsel-studie.html (docs/ART.md, "Nachschubkapsel").
+// The study exposes its parts through window.__kapselExport; each is drawn once
+// on a recording context. The doctrine colour is not part of them (it is code in
+// the game), and neither is anything that moves.
+const capsule = await browser.newPage();
+capsule.on('pageerror', (e) => {
+  throw e;
+});
+await capsule.goto(`${server.url}reference/studien/kapsel-studie.html`);
+await capsule.waitForSelector('body[data-ready]');
+await capsule.addScriptTag({ content: `window.__installRecorder = ${installRecorder.toString()};` });
+const capsuleFigures = [];
+const capsulePart = async (id, part, index) => {
+  const shapes = await capsule.evaluate(
+    ([name, i]) => {
+      const ctx = document.createElement('canvas').getContext('2d');
+      const recorder = window.__installRecorder(ctx);
+      window.__kapselExport.draw(ctx, name, i);
+      return recorder.take();
+    },
+    [part, index],
+  );
+  if (shapes.length === 0) throw new Error(`${id}: nothing was drawn`);
+  capsuleFigures.push({ id, shapes });
+  console.log(`  ${id}: ${shapes.length} shapes`);
+};
+await capsulePart('pod-shell', 'shell');
+await capsulePart('pod-base', 'base');
+await capsulePart('pod-core', 'core');
+for (let i = 0; i < 4; i++) await capsulePart(`pod-petal-${i}`, 'petal', i);
+await writeSheet('reference/konzept/kapsel/kapsel.svg', capsuleFigures, 'reference/studien/kapsel-studie.html (Entwurf B)');
+// Hinges, nozzles and lamps for src/render/sprites/manifest.js and pods.js, in the same units.
+console.log('Anker der Kapsel (Studie, mal S):', JSON.stringify(await capsule.evaluate(() => window.__kapselExport.geometry())));
 
 await browser.close();
 await server.close();

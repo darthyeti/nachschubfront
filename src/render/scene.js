@@ -49,7 +49,7 @@ import {
   drawClearedMarker,
   drawPodTarget,
   drawPodHologram,
-  drawPodHighlight,
+  drawPodFrame,
 } from './pods.js';
 import { previewRoute } from '../sim/zones.js';
 import { flyerPolyline } from '../sim/route.js';
@@ -753,7 +753,15 @@ export function createSceneRenderer(sprites) {
     items.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 
     // One view object for all enemies, instead of one per creature per frame.
-    const enemyView = { zoom: cam.zoom, dpr: view.dpr, reducedMotion: ui.reducedMotion, simTime: state.time, dt };
+    const enemyView = {
+      zoom: cam.zoom,
+      dpr: view.dpr,
+      reducedMotion: ui.reducedMotion,
+      simTime: state.time,
+      dt,
+      // The capsule the player has picked lifts its segments (docs/ART.md, "Nachschubkapsel").
+      selectedPod: state.phase === 'selection' ? state.pods[ui.podSelected] : null,
+    };
 
     for (const [, kind, o, i] of items) {
       // Everything stands on its field: the drawing is raised by the height of the ground under
@@ -801,7 +809,7 @@ export function createSceneRenderer(sprites) {
         if (!pod) continue;
         const lift = cellLift(pod.x, pod.y);
         ctx.translate(0, -lift);
-        drawPodHighlight(ctx, pod, { selected: index === ui.podSelected, t, reducedMotion: ui.reducedMotion });
+        drawPodFrame(ctx, pod, { selected: index === ui.podSelected, t, reducedMotion: ui.reducedMotion });
         ctx.translate(0, lift);
       }
     }
