@@ -90,6 +90,9 @@ function visibleArea(cam, view) {
   };
 }
 
+/** Opacity of the vignette at the corners (docs/ART.md, frame). */
+const VIGNETTE_STRENGTH = 0.82;
+
 function createVignette() {
   const canvas = document.createElement('canvas');
   let key = '';
@@ -104,7 +107,7 @@ function createVignette() {
       const h = canvas.height;
       const g = v.createRadialGradient(w / 2, h * 0.52, Math.min(w, h) * 0.3, w / 2, h * 0.52, Math.max(w, h) * 0.75);
       g.addColorStop(0, 'rgba(0,0,0,0)');
-      g.addColorStop(1, 'rgba(0,0,0,.62)');
+      g.addColorStop(1, `rgba(0,0,0,${VIGNETTE_STRENGTH})`);
       v.fillStyle = g;
       v.fillRect(0, 0, w, h);
     }
