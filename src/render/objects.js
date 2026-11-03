@@ -4,22 +4,24 @@
 import { iso } from './iso.js';
 import { poly, box, ell, shadow, comicText } from './draw.js';
 import { C } from './palette.js';
+import { paletteOf, shade } from './biomes.js';
 import { lateralOffset } from './enemySprites.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { BOSSES } from '../data/enemies.js';
 import { RANK_COUNT } from './sprites/manifest.js';
 
-const STONE = C.stone;
+const ASH = paletteOf('ash');
 const RUIN_HEIGHTS = [34, 44, 52, 40];
 const WALL_HEIGHTS = [18, 26, 22, 30];
 
 // ---------- Obstacles ----------
 
-function drawRuin(ctx, x, y, variant) {
+function drawRuin(ctx, x, y, variant, pal) {
+  const STONE = pal.stone;
   const h = RUIN_HEIGHTS[variant % RUIN_HEIGHTS.length];
   const [sx, sy] = iso(x + 0.5, y + 0.5);
   shadow(ctx, sx + 10, sy + 4, 34, 14, 0.3);
-  box(ctx, x + 0.05, y + 0.05, 0.9, 0.9, 12, 0, ['#80735f', '#5f5446', '#433a31']);
+  box(ctx, x + 0.05, y + 0.05, 0.9, 0.9, 12, 0, pal.stone.map((c) => shade(c, -8)));
   box(ctx, x + 0.22, y + 0.22, 0.56, 0.56, h, 12, STONE);
   box(ctx, x + 0.22, y + 0.22, 0.28, 0.3, 14, 12 + h, STONE, 2);
   box(ctx, x + 0.5, y + 0.5, 0.28, 0.28, 7, 12 + h, STONE, 2);
@@ -32,24 +34,25 @@ function drawRuin(ctx, x, y, variant) {
   poly(ctx, [iso(xa, fy, z0), iso(xb, fy, z0), iso(xb, fy, z1), iso((xa + xb) / 2, fy, z1 + 6), iso(xa, fy, z1)], C.ink, C.ink, 2);
 }
 
-function drawCrater(ctx, x, y, variant) {
+function drawCrater(ctx, x, y, variant, pal) {
   const [sx, sy] = iso(x + 0.5, y + 0.5);
   const r = 0.9 + (variant % 2) * 0.08;
   // Raised rim of rubble around a dark pit.
-  ell(ctx, sx, sy, 30 * r, 15 * r, '#4a3c30', C.ink, 2.5);
-  ell(ctx, sx, sy + 1.5, 21 * r, 9.5 * r, '#1c1511', C.ink, 2);
+  ell(ctx, sx, sy, 30 * r, 15 * r, pal.stone[1], C.ink, 2.5);
+  ell(ctx, sx, sy + 1.5, 21 * r, 9.5 * r, pal.pit, C.ink, 2);
   ctx.beginPath();
   ctx.ellipse(sx, sy, 30 * r, 15 * r, 0, 0.25, Math.PI - 0.25);
-  ctx.strokeStyle = '#8e7760';
+  ctx.strokeStyle = pal.stone[0];
   ctx.lineWidth = 2;
   ctx.stroke();
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2 + variant;
-    box(ctx, x + 0.5 + Math.cos(a) * 0.36 - 0.08, y + 0.5 + Math.sin(a) * 0.36 - 0.08, 0.16, 0.16, 5 + ((i * 3 + variant) % 4) * 2, 0, [C.concL, C.conc, C.concD], 1.6);
+    box(ctx, x + 0.5 + Math.cos(a) * 0.36 - 0.08, y + 0.5 + Math.sin(a) * 0.36 - 0.08, 0.16, 0.16, 5 + ((i * 3 + variant) % 4) * 2, 0, pal.stone, 1.6);
   }
 }
 
-function drawWallCell(ctx, x, y, variant, index, horizontal) {
+function drawWallCell(ctx, x, y, variant, index, horizontal, pal) {
+  const STONE = pal.stone;
   const h = WALL_HEIGHTS[(variant + index) % WALL_HEIGHTS.length];
   const [sx, sy] = iso(x + 0.5, y + 0.5);
   shadow(ctx, sx + 6, sy + 3, 28, 11, 0.25);
@@ -70,11 +73,11 @@ const RUBBLE = [
   [[0.22, 0.24, 0.5, 0.26, 9, false], [0.36, 0.56, 0.3, 0.26, 11, true]],
 ];
 
-function drawRubble(ctx, x, y, variant) {
+function drawRubble(ctx, x, y, variant, pal) {
   const [sx, sy] = iso(x + 0.5, y + 0.5);
   shadow(ctx, sx, sy + 2, 28, 12, 0.22);
   for (const [px, py, w, d, h, brick] of RUBBLE[variant % RUBBLE.length]) {
-    box(ctx, x + px, y + py, w, d, h, 0, brick ? ['#a2684a', '#834f36', '#5e3826'] : [C.concL, C.conc, C.concD], 2);
+    box(ctx, x + px, y + py, w, d, h, 0, brick ? C.brick : pal.stone, 2);
   }
 }
 
@@ -85,7 +88,7 @@ function drawRubble(ctx, x, y, variant) {
  * only the bulwark stops a Koloss. No guide colour, no rank; it belongs to no
  * doctrine.
  */
-function drawBulwark(ctx, x, y) {
+function drawBulwark(ctx, x, y, pal) {
   const hw = 0.46;
   const cx = x + 0.5;
   const cy = y + 0.5;
@@ -94,11 +97,11 @@ function drawBulwark(ctx, x, y) {
   const top = [iso(cx - hw, cy - hw, h), iso(cx + hw, cy - hw, h), iso(cx + hw, cy + hw, h), iso(cx - hw, cy + hw, h)];
   const [gx, gy] = iso(cx, cy);
   shadow(ctx, gx, gy, 30, 12, 0.3);
-  poly(ctx, [b[0], b[1], top[2], top[3]], '#6b6154', C.ink, 2.6);
-  poly(ctx, [b[1], b[2], top[1], top[2]], '#4a433a', C.ink, 2.6);
-  poly(ctx, top, '#8a7d6a', C.ink, 2.6);
+  poly(ctx, [b[0], b[1], top[2], top[3]], pal.stone[1], C.ink, 2.6);
+  poly(ctx, [b[1], b[2], top[1], top[2]], pal.stone[2], C.ink, 2.6);
+  poly(ctx, top, pal.stone[0], C.ink, 2.6);
   // Two struts up the front face.
-  ctx.strokeStyle = '#3a332b';
+  ctx.strokeStyle = shade(pal.stone[2], -16);
   ctx.lineWidth = 3;
   ctx.lineCap = 'round';
   for (const u of [0.25, 0.75]) {
@@ -125,15 +128,15 @@ function drawBulwark(ctx, x, y) {
 }
 
 /** Draws one cell of an obstacle; multi-cell walls are depth-sorted per cell. */
-export function drawObstacleCell(ctx, obstacle, index) {
+export function drawObstacleCell(ctx, obstacle, index, palette = ASH) {
   const { x, y } = obstacle.cells[index];
-  if (obstacle.kind === 'ruin') drawRuin(ctx, x, y, obstacle.variant);
-  else if (obstacle.kind === 'crater') drawCrater(ctx, x, y, obstacle.variant);
-  else if (obstacle.kind === 'rubble') drawRubble(ctx, x, y, obstacle.variant);
-  else if (obstacle.kind === 'bulwark') drawBulwark(ctx, x, y);
+  if (obstacle.kind === 'ruin') drawRuin(ctx, x, y, obstacle.variant, palette);
+  else if (obstacle.kind === 'crater') drawCrater(ctx, x, y, obstacle.variant, palette);
+  else if (obstacle.kind === 'rubble') drawRubble(ctx, x, y, obstacle.variant, palette);
+  else if (obstacle.kind === 'bulwark') drawBulwark(ctx, x, y, palette);
   else {
     const horizontal = obstacle.cells.length > 1 && obstacle.cells[1].y === obstacle.cells[0].y;
-    drawWallCell(ctx, x, y, obstacle.variant, index, horizontal);
+    drawWallCell(ctx, x, y, obstacle.variant, index, horizontal, palette);
   }
 }
 
@@ -351,7 +354,7 @@ export function drawBeacon(ctx, p, t) {
   const [sx, sy] = iso(x + 0.5, y + 0.5);
   shadow(ctx, sx, sy + 3, 22, 10, 0.3);
   box(ctx, x + 0.2, y + 0.2, 0.6, 0.6, 8, 0, ['#80735f', '#5f5446', '#433a31'], 2);
-  box(ctx, x + 0.32, y + 0.32, 0.36, 0.36, 30, 8, STONE, 2);
+  box(ctx, x + 0.32, y + 0.32, 0.36, 0.36, 30, 8, C.stone, 2);
   // Fire bowl and flame.
   const [fx, fy] = iso(x + 0.5, y + 0.5, 38);
   ell(ctx, fx, fy, 13, 6.5, C.steelD, C.ink, 2);

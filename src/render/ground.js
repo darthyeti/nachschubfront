@@ -7,6 +7,7 @@ import { iso, mapBounds } from './iso.js';
 import { worldToScreen } from './camera.js';
 import { poly, ell } from './draw.js';
 import { C } from './palette.js';
+import { biomeOf, paletteOf, shade } from './biomes.js';
 
 /** Largest offscreen backing store in pixels (iPad Safari caps canvas memory). */
 const MAX_PIXELS = 12_000_000;
@@ -14,9 +15,8 @@ const MAX_PIXELS = 12_000_000;
 const SETTLE_MS = 160;
 const SLAB_DEPTH = 30;
 
-const DIRT = ['#5f4e3e', '#65533f', '#5a4a3b', '#6a5743', '#61503f'];
-
-function drawGround(g, size, rng) {
+function drawGround(g, size, rng, biome) {
+  const pal = paletteOf(biome);
   g.lineJoin = 'round';
   g.lineCap = 'round';
   const N = size;
@@ -37,9 +37,9 @@ function drawGround(g, size, rng) {
   // Slab sides with strata lines and embedded stones.
   const left = [iso(0, N, 0), iso(N, N, 0), iso(N, N, -SLAB_DEPTH), iso(0, N, -SLAB_DEPTH)];
   const right = [iso(N, N, 0), iso(N, 0, 0), iso(N, 0, -SLAB_DEPTH), iso(N, N, -SLAB_DEPTH)];
-  poly(g, left, '#4a3a2d', C.ink, 3);
-  poly(g, right, '#302419', C.ink, 3);
-  for (const [face, col, stone] of [[0, '#3a2d23', '#5c4a3a'], [1, '#241b14', '#3f3126']]) {
+  poly(g, left, pal.slab[0], C.ink, 3);
+  poly(g, right, pal.slab[1], C.ink, 3);
+  for (const [face, col, stone] of [[0, shade(pal.slab[0], -14), shade(pal.slab[0], 22)], [1, shade(pal.slab[1], -10), shade(pal.slab[1], 18)]]) {
     for (const z of [-11, -21]) {
       g.strokeStyle = col;
       g.lineWidth = 2;
@@ -64,15 +64,15 @@ function drawGround(g, size, rng) {
   // Tiles with pebbles and cracks.
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
-      poly(g, [iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)], rng.pick(DIRT), 'rgba(26,20,16,.25)', 1);
+      poly(g, [iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)], rng.pick(pal.ground), 'rgba(26,20,16,.25)', 1);
       if (rng.chance(0.4)) {
         for (let i = 0; i < 3; i++) {
           const p = iso(x + 0.2 + rng.next() * 0.6, y + 0.2 + rng.next() * 0.6);
-          ell(g, p[0], p[1], 1.5 + rng.next() * 1.8, 1 + rng.next(), '#4a3c30', null);
+          ell(g, p[0], p[1], 1.5 + rng.next() * 1.8, 1 + rng.next(), shade(pal.ground[0], -22), null);
         }
       }
       if (rng.chance(0.25)) {
-        g.strokeStyle = '#3b2f25';
+        g.strokeStyle = shade(pal.ground[0], -36);
         g.lineWidth = 1.4;
         g.beginPath();
         let p = iso(x + 0.2 + rng.next() * 0.6, y + 0.2 + rng.next() * 0.6);
@@ -91,9 +91,15 @@ function drawGround(g, size, rng) {
   for (let i = 0; i < Math.round(N / 5); i++) {
     const [x, y] = spot();
     const p = iso(x + 0.5, y + 0.5);
-    ell(g, p[0], p[1], 20, 9, '#4f7a24', C.ink, 2);
-    ell(g, p[0] - 4, p[1] - 2, 9, 3.5, '#8fc24a', null);
-    ell(g, p[0] + 7, p[1] + 2, 2.5, 1.5, C.toxicL, null);
+    if (biome === 'toxic') {
+      ell(g, p[0], p[1], 20, 9, '#4f7a24', C.ink, 2);
+      ell(g, p[0] - 4, p[1] - 2, 9, 3.5, '#8fc24a', null);
+      ell(g, p[0] + 7, p[1] + 2, 2.5, 1.5, C.toxicL, null);
+    } else {
+      // Dry biomes: a dark stain instead of a toxic puddle.
+      ell(g, p[0], p[1], 18, 8, pal.decor, null);
+      ell(g, p[0] - 3, p[1] - 1.5, 9, 3.5, shade(pal.decor, 16), null);
+    }
   }
   for (let i = 0; i < Math.round(N / 2); i++) {
     const [x, y] = spot();
@@ -140,7 +146,7 @@ export function createGroundLayer() {
     canvas.height = Math.ceil(h * scale);
     g.setTransform(scale, 0, 0, scale, -b.x0 * scale, -b.y0 * scale);
     g.clearRect(b.x0, b.y0, w, h);
-    drawGround(g, size, createRng(`ground:${seed}`));
+    drawGround(g, size, createRng(`ground:${seed}`), biomeOf(seed));
     built = { size, seed, zoom, dpr, bounds: b };
   }
 
