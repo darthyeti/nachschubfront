@@ -8,7 +8,7 @@ Für Bunker, Aufsätze, Spezialstellungen, Koloss und Gunship sind seit v5 die b
 - `koloss-studie.html`: Koloss, Zielvorhersage, Durchbruch, Bollwerk-Stopp, Luftschlag mit Gunship, alle vier Fahrtrichtungen.
 - `optik-studie.html`: dieselbe Karte heute (echte Spielmodule) und neu (Licht und Schlagschatten, Farbtrennung, Blockgelände, Diorama-Rahmen, drei Biome), Bausteine einzeln schaltbar, Vergleich mit ziehbarer Trennlinie; Standbilder in `reference/konzept/optik/`. Entscheidungsgrundlage für M8, noch keine Regel.
 - `truemmer-studie.html`: Entwurf für Ruinen, Mauern, Krater und Kapsel-Trümmer (Baukasten, acht Varianten je Art) neben den heutigen Hindernissen und dem Bollwerk. Der Baukasten ist seit M8 C5 im Spiel (`src/render/rubbleKit.js`); die Studie bleibt als Entwurfsblatt.
-- `kapsel-studie.html`: Rework der Nachschubkapsel (Auftrag A-14): die Landung als Schleife mit Zeitregler und Zeitlupe (Glühen, Bremstriebwerke, Druckwelle, Trümmer, Rauch und Staub, die verfliegen, Sprengbolzen, Klappen) und der Auswahlmodus, heute mit den echten Spielfunktionen neben drei Entwürfen (A schwer, B schlank, C Segmente); Standbilder `studie-*.png` in `reference/konzept/kapsel/`. Studie, noch nicht im Spiel.
+- `kapsel-studie.html`: Rework der Nachschubkapsel (Auftrag A-14): die Landung als Schleife mit Zeitregler und Zeitlupe (Glühen, Bremstriebwerke, Druckwelle, Trümmer, Rauch und Staub, die verfliegen, Sprengbolzen, Klappen) und der Auswahlmodus, heute mit den echten Spielfunktionen neben drei Entwürfen (A schwer, B schlank, C Segmente); Standbilder `studie-*.png` in `reference/konzept/kapsel/`. Entwurf B ist seit M8 C5b die Kapsel im Spiel (`reference/konzept/kapsel/kapsel.svg` wird aus dieser Studie erzeugt, `npm run studies`); die Studie bleibt als Entwurfsblatt, ihre Schaltfläche „Heute“ zeigt jetzt die neue Kapsel.
 
 Stand: v5 (Bunker-Baukasten mit allen fünf Rängen, überarbeitete Aufsätze aller sechs Doktrinen, Spezialbasis und neue Rollen der Spezialwaffen, Koloss und Gunship als drehbare Modelle).
 
@@ -127,39 +127,49 @@ Der Dämonenprinz wechselt im Kampf alle vier Sekunden die Rüstungsart. Sichtba
 
 ## Nachschubkapsel
 
-Ersetzt die frühere Kapselform (schlanker Zylinder mit Kegelspitze, wirkte wie eine Rakete). Konzept: `reference/konzept/kapsel/kapsel-geschlossen.svg` (Variante `pod-b`) und `kapsel-geoeffnet.svg` (`open-b`). Die Blätter zeigen daneben verworfene Entwürfe (`pod-a`, `pod-c`, `open-a`, `open-c`); verbindlich sind `pod-b` und `open-b`.
+Seit M8 C5b (Version 0.10.5) ist **Entwurf B der Kapsel-Studie** die Nachschubkapsel: schlank, mit Bremsturm auf dem Dach und Landestützen am Hitzeschild. Quelle ist der Zeichencode von `reference/studien/kapsel-studie.js`; `npm run studies` führt ihn über den Rekorder (`tests/tools/canvas-to-svg.mjs`) aus und schreibt `reference/konzept/kapsel/kapsel.svg`, `npm run sprites` macht daraus `src/render/sprites/pods.js`. Die Blätter der ersten Kapsel (Kegelstumpf, M4c) liegen in `reference/konzept/kapsel/historie/` und werden nicht mehr eingelesen. Maße, Farben und Formen aus der Studie übernehmen, nicht nachempfinden.
 
-### Geschlossen
+### Teile
 
-- **Kegelstumpf, facettiert.** Unten deutlich breiter als oben, flaches Dach statt Spitze. Die Wand besteht aus ebenen Facetten mit sichtbaren Kanten, nicht aus einer gerundeten Fläche.
-- Verhältnis als Richtwert: Fußbreite zu Kopfbreite etwa 5 zu 3, Höhe etwa doppelte Fußbreite.
-- Vier Wandsegmente. Die Segmentfugen laufen als kräftige Kanten von oben nach unten. Von vorn sind drei Facetten zu sehen: die helle linke, die mittlere und die dunkle rechte.
-- Am Fuß ein umlaufendes Warnband (Gefahrenstreifen), darunter der verrußte Hitzeschildrand.
-- Unter dem Dach ein rotes Band, auf dem vorderen Segment eine dunkle Lukenplatte mit Emblem.
-- Auf dem Dach drei bis vier Bremsdüsen, am Fuß zwei orangefarbene Positionsleuchten.
-- Nieten entlang der Segmentkanten.
+| Sprite | Inhalt |
+|---|---|
+| `pod-shell` | die ganze geschlossene Kapsel: Hitzeschild mit zwei Landestützen, vier Wandsegmente mit Fugen, Kern, Düsenkranz und Dach |
+| `pod-base` | der Hitzeschild allein; er bleibt unter den Segmenten liegen |
+| `pod-core` | der stehende Kern mit Kragen, Bremsdüsen und Dach |
+| `pod-petal-0` bis `-3` | je ein Wandsegment, flach liegend, in der Reihenfolge der Studie nummeriert |
 
-### Geöffnet
+Alles ist farbneutral und kalt gezeichnet. Code bleiben: das Leuchten im Kern (drei Lichtringe, Halo, Dachlicht), die Lichtsäule, das Hologramm, die Positionslampen am Kragen (sie blinken), der Glühschein des Hitzeschilds und alles, was sich bewegt. Die Anker (Scharniere der Segmente, Düsen, Lampen, Ringhöhen) druckt `npm run studies` als „Anker der Kapsel“; sie stehen in `src/render/sprites/manifest.js` (`POD_PETALS`, `POD_ANCHORS`).
 
-- **Das Dach bleibt stehen.** Nur der untere Teil der vier Segmente klappt nach außen; das Dach mit den Bremsdüsen bleibt oben auf dem stehenden Kern. Die Kapsel wirkt dadurch wie eine dauerhafte Station und nicht wie Trümmer. Das ersetzt die erste Fassung aus M4c, bei der zu wenig von der Kapsel übrig blieb.
-- Die vier abgeklappten Segmentteile liegen flach nach außen, Ecken abgeschrägt, mit Scharnierbolzen in der Mitte jedes Segments.
-- Der stehende Kern trägt weiter das rote Band unter dem Dach und leuchtet in der Farbe der Doktrin, darüber die Lichtsäule zum Hologramm.
-- Geöffnet greift die Kapsel sichtbar auf die Nachbarfelder über. Die geöffnete Darstellung deshalb etwa 15 Prozent kleiner zeichnen als die Skizze, damit benachbarte Stellungen nicht verdeckt werden.
-- Die Kapsel darf im geschlossenen Zustand auch auf der kleinsten Zoomstufe nicht mit einer Stellung zu verwechseln sein: Stellungen stehen auf dem Rautensockel, die Kapsel auf ihrem eigenen runden Hitzeschild.
+### Größe
 
-### Größe und Falldauer (v3)
+- Geschlossen **0,8 Weltpixel je SVG-Einheit** (`SPRITE_SCALE.pod`): rund 54 px breit mit den Stützen, etwa 67 px hoch. Das ist so breit wie die Kapsel vor 0.10.5 und höher; bis zu sechs Kapseln auf Nachbarfeldern verdecken einander weiter nicht.
+- **Geöffnet 15 Prozent kleiner** (`POD_OPEN_SCALE` 0,85): die liegenden Segmente reichen etwa 41 px weit und decken damit keine Nachbarstellung zu. Beim Aufbrechen wächst die Gruppe aus Schild, Kern und Segmenten von der geschlossenen auf die offene Größe, während die Hülle verblasst.
+- Unterscheidbar von einer Stellung: Stellungen sind ein Rautenbunker mit Aufsatz, die Kapsel ein schlanker, nach oben verjüngter Turm auf rundem Schild mit Stützen; geöffnet ein dünner Kern auf flachen Platten. Prüfen in `tests/sprites.html` (Silhouette bei 0,5x).
 
-- **Etwa 20 Prozent kleiner** als bisher, geschlossen wie geöffnet. Bei bis zu sechs Kapseln pro Salve überlappten benachbarte Landezonen einander und verdeckten sich gegenseitig.
-- **Der Fall dauert länger**, gut das Doppelte, damit die Salve geordneter wirkt und einzelne Einschläge auseinanderzuhalten sind. Bremstriebwerke, Einschlag, Öffnen und Hologramm ziehen proportional mit und werden nicht gestaucht. Die Staffelung zwischen zwei Kapseln steigt nur leicht, damit eine Salve nicht doppelt so lange dauert wie vorher (Entscheidung vom 24.09.2026).
-- **Das Hologramm schrumpft um denselben Fünftel** und schwebt auf vier verschiedenen Höhen: Die Höhe ergibt sich aus dem Feld (zwei Schritte nach rechts, drei nach unten, modulo vier), sodass alle vier Nachbarn eines Feldes auf verschiedenen Ebenen stehen. Sonst schreiben Kapseln auf benachbarten Feldern ihre Beschriftung übereinander — die Zeile ist breiter als eine Zelle, die kleinere Kapsel allein löst das nicht (Entscheidung vom 24.09.2026).
+### Ablauf
+
+Alle Zeiten der Simulation bleiben (`src/data/pods.js`: Warnung 0,5 s, Fall 1,15 s, Öffnen ab 0,9 s nach dem Einschlag, Hologramm ab 1,55 s). Was darum herum geschieht, ist Darstellung; die Zahlen stehen in `src/render/podTiming.js`, `pods.js` und `effects.js`, nicht in den Daten.
+
+1. **Zielmarke**, wie bisher.
+2. **Fall:** erst gleichförmig, dann bremst er (`podHeight`, 72 Prozent freier Flug). Um die Kapsel ein **Hitzeschleier** aus drei durchscheinenden Schichten mit **Schweif**, Funkenstreifen und glühendem Bug unter dem Schild. Im letzten Drittel brennen die zwei **Bremsdüsen** auf dem Turm, bis kurz (0,14 s) nach dem Aufsetzen. Schatten als wachsende Ellipse.
+3. **Aufschlag:** weißglühender Blitz am Boden und **Feuerball hinter der Kapsel** (kurz, 0,2 bis 0,4 s, im Bodendurchgang gezeichnet, damit die Kapsel früh aus dem Feuer tritt), **zwei Druckwellen-Ringe** auf Feldhöhe (Radius bis 170 und 118 px, mit blassem Fülllicht), ein Kranz Staub, Rauchwolken, **Erde und Brocken** (springen, prallen ab, bleiben liegen), Funken, der Schriftzug beim ersten Einschlag, Bildschütteln und Blitz über das Bild (beides mit `prefers-reduced-motion` gedämpft oder aus). Zurück bleibt ein **Brandfleck** mit Rissen, die glühen, solange der Boden abkühlt.
+4. **Sprengbolzen** 0,54 s nach dem Aufsetzen: Funken, Bolzen, ein Dampfstoß an jeder Naht. Die Hülle glüht nach (2,8 s).
+5. **Segmente** brechen ab 0,9 s nacheinander auf (Reihenfolge der Studie: ein Segment, dann das gegenüber). Jedes wächst aus seinem Scharnier und **schlägt mit Staub und zwei Brocken auf**, wenn es liegt. Das Leuchten im Kern geht an, sobald die Segmente unten sind. **Dampf aus dem Dach**, sechs Stöße.
+6. **Hologramm** ab 1,55 s. Die **Lichtsäule steht hinter der Kapsel**: sie wird mit der Kapsel gezeichnet (nicht mehr über allem), färbt die Figur also nicht ein. Das Schild mit Rang und Namen bleibt darüber.
+
+### Rauch
+
+Rauch, Staub und Dampf sind Partikel mit Lebensdauer. Sie **breiten sich aus** (schnelles Wachsen, das abbremst), **hellen auf** (die Farbe läuft von dunkel nach hell: Ruß, Staub, Dampf haben je eine eigene Rampe) und **werden durchsichtig**; die Deckkraft fällt gegen 0. **Nach 3,5 s (`SMOKE_SECONDS`) ist alles verflogen**: keine Wolke darf länger leben, und eine Verzögerung zählt mit. Obergrenzen: 520 Partikel insgesamt, davon höchstens 240 Wolken (`MAX_PUFFS`); eine Salve von sechs liegt bei etwa 230. Brocken und Funken zählen nur zur Gesamtgrenze. Ein Unit-Test (`tests/unit/pod-landing.test.js`) hält die 3,5 s und die Grenze fest.
+
+### Auswahl
+
+- **Eckwinkel-Rahmen auf der Zelle**, auf Feldhöhe, als Überlagerung nach den Figuren (`drawPodFrame`, ersetzt den Ring `drawPodHighlight`): die gewählte Kapsel mit goldenen Winkeln in den Ecken der Raute, leichtem Puls und blassem Fülllicht, die übrigen mit gestricheltem Rahmen. Mit `prefers-reduced-motion` ohne Puls und ohne laufende Striche.
+- **Die gewählte Kapsel hebt ihre Klappen** (6 SVG-Einheiten, 5 Prozent größer), der **Kern leuchtet heller** (Ringe, Halo, heller Überzug) und die **Lichtsäule ist kräftiger** (drei Schichten, aufsteigende Funken). Das Heben geht weich (`FOCUS_EASE`), nicht in einem Bild.
+- Die Zwei-Tipp-Regel der Auswahl bleibt unverändert; die Eingabe ist nicht angefasst.
 
 ### Farbe im Kern und Leuchten
 
 Kern-Leuchten, Lichtsäule und Hologramm tragen die Leitfarbe der Doktrin und bleiben deshalb Code, nicht Sprite. Die Sprites selbst sind farbneutral.
-
-### Ablauf
-
-Die Sequenz bleibt wie in M4 umgesetzt: Zielmarkierung, Absturz, Bremstriebwerke, Einschlag, Dampf, Sprengbolzen, Öffnen, Hologramm. Geändert wird nur die Form. Der geschlossene Zustand ist von M4c unverändert.
 
 ## Koloss
 
@@ -369,7 +379,7 @@ Auftrag und Begründung in `docs/meilensteine/M8-optik.md`, Referenz `reference/
 
   Für die Stellungen tritt seit v5 der Bunker-Baukasten an die Stelle dieser Aufteilung: ein Bunkerteil je Rangstufe und ein Aufsatz je Doktrin. Der Aufsatz dreht sich nicht, er wird zum Ziel hin gespiegelt, wie ein Gegner.
 
-  Die Kapsel kommt in M4c dazu: geschlossen ein Stück, geöffnet ein Kern (seit M4d mit dem Dach darauf) und vier einzeln ansteuerbare Segmentklappen, damit sie wie bisher nacheinander aufklappen.
+  Die Kapsel kommt in M4c dazu: geschlossen ein Stück, geöffnet ein Kern (seit M4d mit dem Dach darauf) und vier einzeln ansteuerbare Segmentklappen, damit sie wie bisher nacheinander aufklappen. Seit 0.10.5 ist es Entwurf B, aus der Kapsel-Studie erzeugt: Hülle, Hitzeschild, Kern und vier Segmente (Abschnitt „Nachschubkapsel“).
 
   Wo die Teile sitzen und wie sie sich bewegen (Drehpunkt, Ruhewinkel, Mündung, Ausschlag), steht in `src/render/sprites/manifest.js`. Der Warp-Seher schwebt und bleibt ein Stück.
 - **Aus den SVGs entfernt und jetzt Code** (`src/render/towerFx.js`): Flammenstrahl, Mündungsbögen, Mörserrauch, das Leuchten von Laser und Tesla, die Blitze der Spule, die Ringe und die dauerhafte Aura der Psi-Stellung, die Feuersequenz der Sturmbatterie. Seit v5 dazu die beweglichen Teile der Aufsätze: die rotierenden Läufe der Autokanone, die Zündflamme am Brennrohr, der Rückstoß des Mörserrohrs.
