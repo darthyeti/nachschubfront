@@ -21,6 +21,8 @@ import { blockHull, cellsKey } from './occlusion.js';
 
 /** Largest offscreen backing store in pixels (iPad Safari caps canvas memory). */
 const MAX_PIXELS = 12_000_000;
+/** Largest reveal image in pixels: it only covers a few blocks. */
+const REVEAL_MAX_PIXELS = 1_500_000;
 /** Rebuild after the zoom has not changed for this long (ms). */
 const SETTLE_MS = 160;
 /** Raising of the lightness of a top face per level (RGB steps), so higher ground reads lighter. */
@@ -125,10 +127,6 @@ function paintPlate(g, N) {
 /** Random stream of one field, so a single field can be drawn again exactly as the cache drew it. */
 const cellRng = (seed, x, y) => createRng(`ground:${seed}:${x},${y}`);
 
-/**
- * @param {object} [only]  Optional `{skip, window}` for the reveal layer: `skip` is a Set of
- *   field indexes left out, `window` a world-pixel rectangle; fields outside it are not drawn.
- */
 /** Whether the picture of a field (top face and its faces down to the slab) touches a world-pixel rectangle. */
 function cellInWindow(x, y, hz, w) {
   const left = (x - y - 1) * 32;
@@ -138,6 +136,10 @@ function cellInWindow(x, y, hz, w) {
   return right >= w.x0 && left <= w.x1 && bottom + 4 >= w.y0 && top - 4 <= w.y1;
 }
 
+/**
+ * @param {object} [only]  Optional `{skip, window}` for the reveal layer: `skip` is a Set of
+ *   field indexes left out, `window` a world-pixel rectangle; fields outside it are not drawn.
+ */
 function drawGround(g, size, seed, biome, field, only = null) {
   const rng = createRng(`ground:${seed}`);
   const pal = paletteOf(biome);
@@ -201,26 +203,26 @@ function drawGround(g, size, seed, biome, field, only = null) {
       const hz = L * STEP;
       if (only?.window && !cellInWindow(x, y, hz, only.window)) continue;
       const lift = L * LEVEL_LIGHTEN;
-      const rng = cellRng(seed, x, y);
+      const crng = cellRng(seed, x, y);
 
       // ---- top face, lighter the higher it lies
-      poly(g, diamond(x, y, hz), shade(rng.pick(pal.ground), lift), 'rgba(26,20,16,.25)', 1);
+      poly(g, diamond(x, y, hz), shade(crng.pick(pal.ground), lift), 'rgba(26,20,16,.25)', 1);
 
       // ---- pebbles and cracks
-      if (rng.chance(0.4)) {
+      if (crng.chance(0.4)) {
         for (let k = 0; k < 3; k++) {
-          const p = P(x + 0.2 + rng.next() * 0.6, y + 0.2 + rng.next() * 0.6, hz);
-          ell(g, p[0], p[1], 1.5 + rng.next() * 1.8, 1 + rng.next(), shade(pal.ground[0], lift - 22), null);
+          const p = P(x + 0.2 + crng.next() * 0.6, y + 0.2 + crng.next() * 0.6, hz);
+          ell(g, p[0], p[1], 1.5 + crng.next() * 1.8, 1 + crng.next(), shade(pal.ground[0], lift - 22), null);
         }
       }
-      if (rng.chance(0.25)) {
+      if (crng.chance(0.25)) {
         g.strokeStyle = shade(pal.ground[0], lift - 36);
         g.lineWidth = 1.4;
         g.beginPath();
-        let p = P(x + 0.2 + rng.next() * 0.6, y + 0.2 + rng.next() * 0.6, hz);
+        let p = P(x + 0.2 + crng.next() * 0.6, y + 0.2 + crng.next() * 0.6, hz);
         g.moveTo(p[0], p[1]);
         for (let k = 0; k < 3; k++) {
-          p = [p[0] + (rng.next() - 0.5) * 14, p[1] + (rng.next() - 0.5) * 7];
+          p = [p[0] + (crng.next() - 0.5) * 14, p[1] + (crng.next() - 0.5) * 7];
           g.lineTo(p[0], p[1]);
         }
         g.stroke();
@@ -270,14 +272,14 @@ function drawGround(g, size, seed, biome, field, only = null) {
       const faceY = pal.cliff[1];
       const faceX = pal.cliff[2];
       if (y === N - 1) {
-        if (hz > 0) cliffFace(g, 'y', x, y, hz, 0, faceY, rng);
+        if (hz > 0) cliffFace(g, 'y', x, y, hz, 0, faceY, crng);
       } else if (lvl(x, y + 1) < L) {
-        cliffFace(g, 'y', x, y, hz, lvl(x, y + 1) * STEP, faceY, rng);
+        cliffFace(g, 'y', x, y, hz, lvl(x, y + 1) * STEP, faceY, crng);
       }
       if (x === N - 1) {
-        if (hz > 0) cliffFace(g, 'x', x, y, hz, 0, faceX, rng);
+        if (hz > 0) cliffFace(g, 'x', x, y, hz, 0, faceX, crng);
       } else if (lvl(x + 1, y) < L) {
-        cliffFace(g, 'x', x, y, hz, lvl(x + 1, y) * STEP, faceX, rng);
+        cliffFace(g, 'x', x, y, hz, lvl(x + 1, y) * STEP, faceX, crng);
       }
 
       // ---- the back rims of the map carry the ink line the flat map had
@@ -356,8 +358,17 @@ export function createGroundLayer() {
     canvas.height = Math.ceil(h * scale);
     g.setTransform(scale, 0, 0, scale, -b.x0 * scale, -b.y0 * scale);
     g.clearRect(b.x0, b.y0, w, h);
+    stats.builds += 1;
     drawGround(g, size, seed, biomeOf(seed), field);
     built = { size, seed, zoom, dpr, bounds: b, field, scale };
+    dropReveals();
+  }
+
+  /** Counters for the browser checks: cache builds and reveal images rastered so far. */
+  const stats = { builds: 0, reveals: 0 };
+
+  function dropReveals() {
+    for (const e of reveals.values()) e.canvas.width = e.canvas.height = 0;
     reveals.clear();
   }
 
@@ -366,8 +377,10 @@ export function createGroundLayer() {
 
   /** The ground without `cells`, cut to their outline, at the zoom of the cache. */
   function revealOf(cells, key) {
+    // Tied to the settled zoom of the main cache (cleared whenever that is rebuilt), so zooming
+    // only scales the image, like the cache itself.
     const hit = reveals.get(key);
-    if (hit && Math.abs(hit.zoom - lastZoom) / lastZoom <= 0.02) {
+    if (hit) {
       reveals.delete(key);
       reveals.set(key, hit);
       return hit;
@@ -386,8 +399,9 @@ export function createGroundLayer() {
         y1 = Math.max(y1, py);
       }
     }
-    const scale = Math.min(lastZoom * dpr, Math.sqrt(MAX_PIXELS / ((x1 - x0) * (y1 - y0))));
-    const image = hit?.canvas ?? document.createElement('canvas');
+    const scale = Math.min(built.zoom * dpr, Math.sqrt(REVEAL_MAX_PIXELS / ((x1 - x0) * (y1 - y0))));
+    const image = document.createElement('canvas');
+    stats.reveals += 1;
     image.width = Math.ceil((x1 - x0) * scale);
     image.height = Math.ceil((y1 - y0) * scale);
     const r = image.getContext('2d');
@@ -400,14 +414,20 @@ export function createGroundLayer() {
     r.clip();
     const skip = new Set(cells.map((c) => c.y * size + c.x));
     drawGround(r, size, seed, biomeOf(seed), field, { skip, window: { x0, y0, x1, y1 } });
-    const entry = { canvas: image, zoom: lastZoom, hulls, box: { x0, y0, x1, y1 } };
+    const entry = { canvas: image, hulls, box: { x0, y0, x1, y1 } };
     reveals.delete(key);
     reveals.set(key, entry);
-    while (reveals.size > REVEAL.maxLayers + 3) reveals.delete(reveals.keys().next().value);
+    while (reveals.size > REVEAL.maxLayers + 3) {
+      const oldest = reveals.keys().next().value;
+      const old = reveals.get(oldest);
+      old.canvas.width = old.canvas.height = 0;
+      reveals.delete(oldest);
+    }
     return entry;
   }
 
   return {
+    stats,
     /**
      * Lets the player see through blocks of terrain that cover a field: over the cached ground,
      * inside the outline of `cells`, the ground drawn without those blocks is laid down and the

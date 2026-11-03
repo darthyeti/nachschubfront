@@ -1096,6 +1096,8 @@ if (debug) {
     sprites: () => ({ ...sprites.stats }),
     /** Rubble kit cells rastered so far (must not move while a match runs). */
     kit: () => ({ ...kitStats }),
+    /** Ground cache builds and reveal images rastered so far (see-through terrain, issue 35). */
+    ground: () => ({ ...ground.stats }),
     audio: () => ({ ready: audio.ready, muted: audio.muted }),
     ui: () => ({
       art: ui.art,
