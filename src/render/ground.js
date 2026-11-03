@@ -9,7 +9,7 @@
 // scene each frame.
 
 import { createRng } from '../core/random.js';
-import { iso, mapBounds } from './iso.js';
+import { iso, mapBounds, SLAB_DEPTH, PLATE_THICK, PLATE_OVERHANG } from './iso.js';
 import { worldToScreen } from './camera.js';
 import { poly, ell } from './draw.js';
 import { C } from './palette.js';
@@ -21,7 +21,6 @@ import { STEP, flatField } from './terrain.js';
 const MAX_PIXELS = 12_000_000;
 /** Rebuild after the zoom has not changed for this long (ms). */
 const SETTLE_MS = 160;
-const SLAB_DEPTH = 30;
 /** Raising of the lightness of a top face per level (RGB steps), so higher ground reads lighter. */
 const LEVEL_LIGHTEN = 9;
 /** The horizontal layer lines of a cliff face, as fractions of its height from the top. */
@@ -60,6 +59,67 @@ function cliffFace(g, axis, x, y, zTop, zBot, fill, rng) {
   }
 }
 
+/** Steel of the base plate: three darker steps of the palette's steel (top, left face, right face). */
+const PLATE_TOP = shade(C.steel, -38);
+const PLATE_LEFT = shade(C.steelD, -4);
+const PLATE_RIGHT = shade(C.steelD, -30);
+const PLATE_RUST = ['#7a3c1e', '#5a2c16'];
+const RUST_BAND_TOP = 9.5;
+const RUST_BAND_BOTTOM = 13;
+/** Squash of the table shadow ellipse and its size against the plate. */
+const TABLE_SHADOW_SQUASH = 0.5;
+const TABLE_SHADOW_SPREAD = 0.62;
+
+/** Soft shadow on the table: a radial gradient squeezed into the iso ellipse. */
+function paintTableShadow(g, N) {
+  const [cx, cy] = iso(N / 2, N / 2, -SLAB_DEPTH - PLATE_THICK);
+  g.save();
+  g.translate(cx, cy + 6);
+  g.scale(1, TABLE_SHADOW_SQUASH);
+  const R = (N + PLATE_OVERHANG * 2) * 32 * TABLE_SHADOW_SPREAD * Math.SQRT2;
+  const sh = g.createRadialGradient(0, 0, R * 0.35, 0, 0, R * 1.12);
+  sh.addColorStop(0, 'rgba(0,0,0,.7)');
+  sh.addColorStop(0.65, 'rgba(0,0,0,.5)');
+  sh.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = sh;
+  g.fillRect(-R * 1.2, -R * 1.2, R * 2.4, R * 2.4);
+  g.restore();
+}
+
+/** The steel base plate under the slab: two side faces, a rust band, four rivets. */
+function paintPlate(g, N) {
+  const lo = -PLATE_OVERHANG;
+  const hi = N + PLATE_OVERHANG;
+  const zt = -SLAB_DEPTH;
+  const zb = zt - PLATE_THICK;
+  poly(g, [iso(lo, hi, zt), iso(hi, hi, zt), iso(hi, hi, zb), iso(lo, hi, zb)], PLATE_LEFT, C.ink, 3);
+  poly(g, [iso(hi, hi, zt), iso(hi, lo, zt), iso(hi, lo, zb), iso(hi, hi, zb)], PLATE_RIGHT, C.ink, 3);
+  poly(g, [iso(lo, lo, zt), iso(hi, lo, zt), iso(hi, hi, zt), iso(lo, hi, zt)], PLATE_TOP, C.ink, 3);
+  // Rust band with a ragged upper edge on both faces.
+  for (const axis of ['y', 'x']) {
+    const at = (u, z) => (axis === 'y' ? iso(lo + u * (hi - lo), hi, z) : iso(hi, hi - u * (hi - lo), z));
+    const z0 = zt - RUST_BAND_TOP;
+    const z1 = zt - RUST_BAND_BOTTOM;
+    g.beginPath();
+    const a = at(0, z1);
+    g.moveTo(a[0], a[1]);
+    for (let i = 0; i <= 40; i++) {
+      const p = at(i / 40, z0 + (Math.sin(i * 2.3) + Math.sin(i * 0.9 + 1)) * 0.9);
+      g.lineTo(p[0], p[1]);
+    }
+    const b = at(1, z1);
+    g.lineTo(b[0], b[1]);
+    g.closePath();
+    g.fillStyle = axis === 'y' ? PLATE_RUST[0] : PLATE_RUST[1];
+    g.fill();
+  }
+  const zr = zt - 5;
+  for (const p of [iso(lo + 0.35, hi, zr), iso(hi - 0.35, hi, zr), iso(hi, hi - 0.35, zr), iso(hi, lo + 0.35, zr)]) {
+    ell(g, p[0], p[1], 3, 2.6, C.steel, C.ink, 1.5);
+    ell(g, p[0] - 0.8, p[1] - 0.8, 1, 0.9, C.steelL, null);
+  }
+}
+
 function drawGround(g, size, rng, biome, field) {
   const pal = paletteOf(biome);
   g.lineJoin = 'round';
@@ -67,18 +127,8 @@ function drawGround(g, size, rng, biome, field) {
   const N = size;
   const lvl = (x, y) => field[y * N + x];
 
-  // Shadow under the slab.
-  const [cx, cy] = iso(N, N);
-  g.save();
-  // Kept flat enough to stay inside the cached bounds (mapBounds `below`).
-  g.translate(0, cy + 18);
-  g.scale(1, 0.12);
-  const sh = g.createRadialGradient(0, 0, 50, 0, 0, N * 30);
-  sh.addColorStop(0, 'rgba(0,0,0,.6)');
-  sh.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = sh;
-  g.fillRect(-N * 40, -N * 40, N * 80, N * 80);
-  g.restore();
+  paintTableShadow(g, N);
+  paintPlate(g, N);
 
   // Slab sides with strata lines and embedded stones. The slab is as high as level 0.
   const left = [iso(0, N, 0), iso(N, N, 0), iso(N, N, -SLAB_DEPTH), iso(0, N, -SLAB_DEPTH)];

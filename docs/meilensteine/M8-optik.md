@@ -15,7 +15,8 @@ Referenz: `reference/studien/optik-studie.html` (dieselbe Karte heute und neu, v
 
 | Bereich | Dateien | Art der Änderung |
 | --- | --- | --- |
-| Render | `src/render/ground.js`, `backdrop.js`, `objects.js`, `scene.js`, `draw.js`, `palette.js`, `towerSprites.js`, `enemySprites.js`, `pods.js`, `effects.js`, `koloss.js`, `gunship.js`, `sprites/rasterizer.js`, neu `terrain.js`, `biomes.js`, `trail.js`, `shadows.js` | Paletten je Biom, Höhenfeld, Schatten, Spur, Rahmen, Zeichnen auf Feldhöhe |
+| Render | `src/render/iso.js`, `ground.js`, `backdrop.js`, `objects.js`, `scene.js`, `draw.js`, `palette.js`, `towerSprites.js`, `enemySprites.js`, `pods.js`, `effects.js`, `koloss.js`, `gunship.js`, `sprites/rasterizer.js`, neu `terrain.js`, `biomes.js`, `trail.js`, `shadows.js` | Paletten je Biom, Höhenfeld, Schatten, Spur, Rahmen, Zeichnen auf Feldhöhe |
+| Kapsel (C5b) | `reference/konzept/kapsel/` (neue Konzept-SVGs), `src/render/sprites/` (erzeugt, `npm run sprites`), `src/render/pods.js`, `effects.js` | neue Kapsel nach Entwurf B, Landung, Auswahl |
 | Input | `src/render/camera.js` (`screenToCell`), `src/main.js` | Treffer auf Feldhöhe |
 | Daten | `src/data/settings.js` oder neu `src/data/art.js` | die Zahlen der Studie als benannte Konstanten, keine Spielregel |
 | Werkzeuge | `tests/perf.mjs`, `tests/screenshots.mjs`, `tests/sprites.js` | Messung mit Gelände, Standbilder je Biom, Galerie mit Schatten |
@@ -72,6 +73,15 @@ Nicht verbindlich: der Zeichencode der Studie (sie überschreibt die Palette `C`
 - `variant` in `src/sim/mapgen.js` bleibt 0 bis 3 und unverändert gezogen (sonst verschiebt sich der Kartenstrom); der Renderer bildet daraus und aus der Feldposition die Baukasten-Variante.
 - Was Till in E-07 streicht oder ändert, steht hier, bevor der Schritt beginnt.
 
+### C5b Kapsel (nach Akte E-12)
+
+Version 0.10.5 (C5 bleibt 0.10.4). Entwurf B aus `reference/studien/kapsel-studie.html` (schlank, Bremsturm, Landestützen) wird die neue Kapsel.
+
+- **Sprites:** Neue Konzept-SVGs in `reference/konzept/kapsel/`, aus dem Zeichencode der Studie erzeugt (wie `tests/tools/study-to-svg.mjs` es für die Stellungen tut), danach `npm run sprites` (erzeugt `src/render/sprites/`, nicht von Hand ändern).
+- **Landung** nach der Studie in `src/render/pods.js` und `effects.js`: Hitzeschleier, Druckwelle, Brocken, Brandfleck, die Segmente öffnen nacheinander, Rauch, der sich ausbreitet, aufhellt und nach etwa 3,5 s verflogen ist, Partikel mit Obergrenze. Die Zeiten in `src/data/pods.js` bleiben (Simulation); was nur Darstellung ist, wird eine benannte Konstante im Render. `golden.json` und `RULESET_VERSION` bleiben.
+- **Auswahl:** Eckwinkel-Rahmen, angehobene Klappen, hellerer Kern. Die Kapsel bleibt von einer Stellung unterscheidbar und deckt geöffnet keine Nachbarn zu.
+- **Beobachtungen aus der Studie:** Die Kapsel tritt früher aus dem Feuerball; die Lichtsäule färbt die Kapsel nicht ein.
+
 ### C6 Leistung und Geräte
 
 - 60 fps mit 200 Gegnern und laufenden Effekten (`npm run test:perf`, Standard und King of the Hill), davor und danach gemessen, Zahlen im Pull Request. Obergrenzen: ein Boden-Cache von höchstens 12 Megapixeln, keine Rasterung im Betrieb, Silhouettenschatten aus dem Cache.
@@ -82,7 +92,7 @@ Nicht verbindlich: der Zeichencode der Studie (sie überschreibt die Palette `C`
 - `npm test` grün in jedem Schritt; **`golden.json` und `RULESET_VERSION` unverändert** (das ist die Prüfung, dass die Simulation nicht angefasst wurde). `npm run replay` auf 4RCC95 und 7EJY6Y bleibt Feld für Feld gleich.
 - Neue Unit-Tests: Biom-Zuordnung stabil über Versionen (feste Seeds, feste Biome), kein verschobener Spielstrom, Höhenfeld deterministisch und mit dem Mehrheitsfilter, `screenToCell` auf Feldhöhe, Abnutzung der Spur (wächst, verblasst, Umleitung).
 - `npm run test:input` in Chromium und WebKit nach C3, `npm run test:perf` nach jedem Schritt, `npm run screenshots` je Biom (`?seed=` mit drei Seeds, die die drei Biome treffen) für die Standbilder im Pull Request.
-- Jeder Schritt ein Pull Request mit Label `spielgefuehl`; Till schaut die Vorschau an und gibt im Board frei. Nach dem Merge steigt die Version: 0.10.0 mit C1, danach 0.10.1 bis 0.10.4.
+- Jeder Schritt ein Pull Request mit Label `spielgefuehl`; Till schaut die Vorschau an und gibt im Board frei. Nach dem Merge steigt die Version: 0.10.0 mit C1, danach 0.10.1 bis 0.10.4 (C4 ist 0.10.3, C5b 0.10.5).
 - Abnahme von M8 insgesamt: Till spielt eine Partie unter 0.10.4 auf dem iPad, das Protokoll spielt sich nach, und die Fragen aus C6 sind beantwortet.
 
 ## Offene Punkte (nicht Teil des Auftrags, bitte im Bericht erwähnen)

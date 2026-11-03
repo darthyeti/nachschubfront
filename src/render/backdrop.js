@@ -18,7 +18,9 @@ const PARALLAX_Y = 0.07;
  * Horizon of the far row as a fraction of the layer height. High enough that the
  * skyline stands above the map slab in the start view instead of behind it.
  */
-const HORIZON = 0.26;
+const HORIZON = 0.4;
+/** Opacity of the black veil over the whole sky: the model is the brightest thing in the room. */
+const BACKDROP_DARKEN = 0.32;
 /** The near row stands this much further down the layer. */
 const NEAR_DROP = 0.09;
 /** Largest backing store in pixels (iPad Safari caps canvas memory). */
@@ -103,6 +105,9 @@ function buildLayer(g, w, h, rng) {
   dusk.addColorStop(1, 'rgba(24,14,10,.92)');
   g.fillStyle = dusk;
   g.fillRect(0, nearBase - 90, w, h - nearBase + 90);
+
+  g.fillStyle = `rgba(6,3,2,${BACKDROP_DARKEN})`;
+  g.fillRect(0, 0, w, h);
 }
 
 export function createBackdropLayer() {

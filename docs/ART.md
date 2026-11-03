@@ -315,7 +315,7 @@ Derselbe Zeichenstil, nur die Geometrie ist anders (`docs/meilensteine/M7b-king-
 
 ## Gelände, Licht und Biome
 
-Auftrag und Begründung in `docs/meilensteine/M8-optik.md`, Referenz `reference/studien/optik-studie.html`. Die Zahlen stehen als benannte Konstanten in `src/render/biomes.js`, `trail.js`, `shadows.js` und `terrain.js`. Dieser Abschnitt wächst mit den Schritten von M8; bisher gelten Biome, Fundament, Spur, Licht und Blockgelände.
+Auftrag und Begründung in `docs/meilensteine/M8-optik.md`, Referenz `reference/studien/optik-studie.html`. Die Zahlen stehen als benannte Konstanten in `src/render/biomes.js`, `trail.js`, `shadows.js` und `terrain.js`. Dieser Abschnitt wächst mit den Schritten von M8; bisher gelten Biome, Fundament, Spur, Licht, Blockgelände und Rahmen.
 
 **Biome.** Eine Partie hat ein Biom (Asche, Rost, Gift), bestimmt aus dem Seed (`biomeOf`: `seedFromString(String(seed)) % 3`, Reihenfolge `ash`, `rust`, `toxic`) und nie innerhalb einer Karte gewechselt. Es ist reine Darstellung und zieht nichts aus einem Spielzufallsstrom. Eine Palette (`paletteOf`) hat Boden (3 Töne), Weg, Wegkante, Klippe (3), Stein (3), Dekor, Platte (2) und Krater. Boden, Plattenseiten, Dekor und die Hindernisse (Ruine, Mauer, Krater, Kapsel-Trümmer, Bollwerk) lesen ihre Farben daraus, nicht aus `C`; der Ziegel-Akzent bleibt `C.brick`. Bastion, Riss und Signalfeuer behalten ihre eigenen Farben, sie sind die Anker der Karte. Pfützen sind nur im Biom Gift giftgrün, sonst dunkle Flecken in der Dekorfarbe. `src/render/palette.js` bleibt die Palette der Figuren.
 
@@ -341,6 +341,10 @@ Auftrag und Begründung in `docs/meilensteine/M8-optik.md`, Referenz `reference/
 - *Koloss und Gunship* (drehbare Modelle) werfen einen Schlagschatten aus ihrer Grundfläche, wie das Modell gedreht (`modelFrame.Wc`), Deckkraft 0,38, keine Silhouette. Der Koloss folgt der Höhe seines Rumpfes, das Gunship ist um seine Flughöhe entlang `LIGHT` verschoben.
 
 `prefers-reduced-motion` ändert daran nichts; Schatten bewegen sich nur mit ihrer Figur.
+
+**Rahmen (Diorama).** Die Platte steht als Gegenstand auf einem Tisch. Unter der Erdplatte (`SLAB_DEPTH` 30) liegt eine Stahlgrundplatte (`PLATE_THICK` 14 px, `PLATE_OVERHANG` 0,8 Felder rundum, beide in `src/render/iso.js`): Oberseite und die zwei sichtbaren Seiten in drei dunklen Stufen aus `C.steel` und `C.steelD`, ein Rostband mit ausgefranster Oberkante an beiden Seiten, vier Nieten an den Ecken. Darunter ein weicher Tischschatten (radialer Verlauf, auf `TABLE_SHADOW_SQUASH` 0,5 gestaucht). Alles steckt im Boden-Cache (`ground.js`); `mapBounds` rechnet Überstand, Dicke und Schatten ein (seitlich `(n + 1,6) * 32 + 12`, unten `(n + 0,8) * 32 + 144`), der Cache bleibt weit unter `MAX_PIXELS` (12 Mpx). Weil `main.js` `fitCamera` und `clampCamera` mit denselben Grenzen ruft, ist die Grundplatte im Start-Ausschnitt ganz zu sehen; die Mitte der Karte liegt in der Mitte des freien Bereichs.
+
+*Kulisse.* `backdrop.js`: Horizont `HORIZON` 0,40 der Ebenenhöhe (vorher 0,26), darüber ein schwarzer Schleier `BACKDROP_DARKEN` 0,32 (das Modell ist das Hellste im Raum), Parallaxe unverändert. Vignette `VIGNETTE_STRENGTH` 0,82 (vorher 0,62) in `scene.js`. King of the Hill hat denselben Rahmen; die Bastion in der Mitte bleibt, wie sie ist.
 
 ## Technische Umsetzung
 
