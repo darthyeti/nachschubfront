@@ -9,6 +9,7 @@
 
 import { C } from './palette.js';
 import { iso } from './iso.js';
+import { castShadows } from './shadows.js';
 import {
   modelFrame,
   directionOf,
@@ -27,6 +28,9 @@ const SCALE = 1.45;
 
 /** Flight height above the ground, in screen pixels. */
 const HEIGHT = 92;
+
+/** Thickness of the airframe for its shadow, in px (before the scale). */
+const SHADOW_THICKNESS = 16 * SCALE;
 
 /** Cells the gunship enters before the line and leaves after it. */
 const LEAD = 5;
@@ -70,11 +74,12 @@ export function drawGunship(ctx, hit, t, reducedMotion) {
   const parts = [];
 
   // Ground shadow under the two axes of the airframe.
-  ctx.save();
-  ctx.globalAlpha = 0.3;
-  poly(ctx, [Fg.Wg(-1.2, -0.42), Fg.Wg(1.2, -0.42), Fg.Wg(1.2, 0.42), Fg.Wg(-1.2, 0.42)], '#000');
-  poly(ctx, [Fg.Wg(-0.4, -1.55), Fg.Wg(0.25, -1.55), Fg.Wg(0.25, 1.55), Fg.Wg(-0.4, 1.55)], '#000');
-  ctx.restore();
+  // The ship hangs HEIGHT px up, so its shadow is the footprint moved along the light by that
+  // much, as thick as the airframe.
+  castShadows(ctx, [
+    { footprint: [Fg.Wc(-1.2, -0.42), Fg.Wc(1.2, -0.42), Fg.Wc(1.2, 0.42), Fg.Wc(-1.2, 0.42)], height: SHADOW_THICKNESS, lift: HEIGHT },
+    { footprint: [Fg.Wc(-0.4, -1.55), Fg.Wc(0.25, -1.55), Fg.Wc(0.25, 1.55), Fg.Wc(-0.4, 1.55)], height: SHADOW_THICKNESS, lift: HEIGHT },
+  ]);
 
   // Containers under the wings, covered by the wings themselves.
   for (const ly of [-1.25, -0.85, 0.85, 1.25]) {

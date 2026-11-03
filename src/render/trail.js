@@ -15,6 +15,11 @@ export const TRAIL_RAG = 0.3;
 export const TRAIL_SAMPLE = 0.5;
 /** Sideways shift of a layer against the route line, in cells (at most half of this either way). */
 export const TRAIL_SHIFT = 0.06;
+/**
+ * Dark hem on the outside of every layer, so the trail reads under the gold route line of the
+ * planning: its width in cells and its opacity (times the wear). Colour is `palette.pathEdge`.
+ */
+export const TRAIL_EDGE = { width: 0.08, alpha: 0.5 };
 /** Wear gained when an enemy enters a section, lost per second on abandoned sections. */
 export const WEAR_PER_PASS = 0.04;
 export const WEAR_FADE_PER_SECOND = 0.02;
@@ -135,7 +140,7 @@ export function createTrail() {
       const label = k === 0 ? `c${a.x},${a.y}` : k === n ? `c${b.x},${b.y}` : `${section.key}#${k}`;
       rngs.push(base.fork(label));
     }
-    g = TRAIL_WIDTHS.map(() => ({ left: [], right: [] }));
+    g = TRAIL_WIDTHS.map(() => ({ left: [], right: [], outerLeft: [], outerRight: [] }));
     for (let k = 0; k <= n; k++) {
       const r = rngs[k];
       const t = k / n;
@@ -147,6 +152,8 @@ export function createTrail() {
         const rr = (w / 2) * (1 + TRAIL_RAG * (r.next() * 2 - 1));
         g[layer].left.push([px + nx * (shift + l), py + ny * (shift + l)]);
         g[layer].right.push([px - nx * (rr - shift), py - ny * (rr - shift)]);
+        g[layer].outerLeft.push([px + nx * (shift + l + TRAIL_EDGE.width), py + ny * (shift + l + TRAIL_EDGE.width)]);
+        g[layer].outerRight.push([px - nx * (rr - shift + TRAIL_EDGE.width), py - ny * (rr - shift + TRAIL_EDGE.width)]);
       });
     }
     geometry.set(section.key, g);
@@ -205,6 +212,21 @@ export function createTrail() {
         byStep.get(q).push(section);
       }
       ctx.save();
+      // The hems first, wide layers before narrow ones, so the fills of the wider layers
+      // soften the hems inside and only the outer ones stay clear.
+      ctx.fillStyle = palette.pathEdge;
+      for (let layer = 0; layer < TRAIL_WIDTHS.length; layer++) {
+        for (const [q, list] of byStep) {
+          ctx.globalAlpha = (q / WEAR_STEPS) * TRAIL_EDGE.alpha;
+          ctx.beginPath();
+          for (const section of list) {
+            const g = ribbonOf(section, seed)[layer];
+            strip(ctx, g.outerLeft, g.left);
+            strip(ctx, g.right, g.outerRight);
+          }
+          ctx.fill();
+        }
+      }
       ctx.fillStyle = palette.path;
       for (let layer = 0; layer < TRAIL_WIDTHS.length; layer++) {
         for (const [q, list] of byStep) {
@@ -212,17 +234,7 @@ export function createTrail() {
           ctx.beginPath();
           for (const section of list) {
             const { left, right } = ribbonOf(section, seed)[layer];
-            let p = iso(left[0][0], left[0][1]);
-            ctx.moveTo(p[0], p[1]);
-            for (let k = 1; k < left.length; k++) {
-              p = iso(left[k][0], left[k][1]);
-              ctx.lineTo(p[0], p[1]);
-            }
-            for (let k = right.length - 1; k >= 0; k--) {
-              p = iso(right[k][0], right[k][1]);
-              ctx.lineTo(p[0], p[1]);
-            }
-            ctx.closePath();
+            strip(ctx, left, right);
           }
           ctx.fill();
         }
@@ -238,4 +250,19 @@ function parseKey(key) {
     return { x, y };
   });
   return { key, a, b };
+}
+
+/** Adds the band between two polylines of cell points as a closed subpath, in world pixels. */
+function strip(ctx, a, b) {
+  let p = iso(a[0][0], a[0][1]);
+  ctx.moveTo(p[0], p[1]);
+  for (let k = 1; k < a.length; k++) {
+    p = iso(a[k][0], a[k][1]);
+    ctx.lineTo(p[0], p[1]);
+  }
+  for (let k = b.length - 1; k >= 0; k--) {
+    p = iso(b[k][0], b[k][1]);
+    ctx.lineTo(p[0], p[1]);
+  }
+  ctx.closePath();
 }

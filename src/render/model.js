@@ -81,6 +81,8 @@ export function modelFrame(wx, wy, alt, dir, scale) {
       const [x, y] = world(lx, ly);
       return iso(x, y, alt + z * scale);
     },
+    /** A local point in cell coordinates on the ground, for shadows. */
+    Wc: (lx, ly) => world(lx, ly),
     /** The same point on the ground, for shadows. */
     Wg: (lx, ly) => {
       const [x, y] = world(lx, ly);

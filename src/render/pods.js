@@ -13,7 +13,7 @@ import { PODS } from '../data/pods.js';
 import { PLANNING_PHASES } from '../core/phases.js';
 import { IMPACT_SECONDS, sinceImpact } from '../sim/pods.js';
 import { podSpriteSet } from './sprites/compose.js';
-import { drawSprite, drawSpriteTurned } from './sprites/rasterizer.js';
+import { drawSprite, drawSpriteShadow, drawSpriteTurned } from './sprites/rasterizer.js';
 
 /** Height the pod starts from, in screen pixels. */
 const FALL_HEIGHT = 900;
@@ -174,8 +174,9 @@ export function createPodRenderer(cache) {
     const heat = view.heat ?? (pod.landed ? Math.max(0, 1 - since / HEAT_SECONDS) : 1);
     const color = DOCTRINE_COLORS[pod.doctrine];
     const k = 1 - Math.min(1, z / FALL_HEIGHT);
-    // Grown to the heat shield: 66 world pixels across once it is down.
-    shadow(ctx, sx, sy + 2, 18 + 15 * k, 7 + 7 * k, 0.45 * k + 0.05);
+    // While it falls its shadow is an ellipse on the ground that grows as it comes down; once
+    // it stands, the silhouette of shell or core takes over (below).
+    if (!pod.landed) shadow(ctx, sx, sy + 2, 18 + 15 * k, 7 + 7 * k, 0.45 * k + 0.05);
 
     const by = sy - z;
     if (!pod.landed) drawDescent(ctx, sx, by, z);
@@ -194,6 +195,7 @@ export function createPodRenderer(cache) {
     if (!isOpening(pod)) {
       const entry = cache.get(SET.shell, zoom, dpr);
       if (!entry) return false;
+      if (pod.landed) drawSpriteShadow(ctx, SET.shell, entry, sx, sy);
       drawSprite(ctx, SET.shell, entry, sx, by);
       glowOver(SET.shell, entry);
       return true;
@@ -201,11 +203,13 @@ export function createPodRenderer(cache) {
 
     const core = cache.get(SET.core, zoom, dpr);
     if (!core) return false;
+    if (pod.landed) drawSpriteShadow(ctx, SET.core, core, sx, sy);
     // The shell comes apart rather than disappearing between two frames.
     const fade = shellFade(since);
     if (fade > 0) {
       const shell = cache.get(SET.shell, zoom, dpr);
       if (shell) {
+        if (pod.landed) drawSpriteShadow(ctx, SET.shell, shell, sx, sy, { alpha: fade });
         ctx.globalAlpha = fade;
         drawSprite(ctx, SET.shell, shell, sx, by);
         ctx.globalAlpha = 1;

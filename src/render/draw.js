@@ -2,6 +2,7 @@
 
 import { iso } from './iso.js';
 import { C } from './palette.js';
+import { footStrip, EDGE_LIGHT_ALPHA, EDGE_LIGHT_WIDTH } from './shadows.js';
 
 export function poly(ctx, points, fill, stroke = C.ink, lineWidth = 2.5) {
   ctx.beginPath();
@@ -19,8 +20,17 @@ export function poly(ctx, points, fill, stroke = C.ink, lineWidth = 2.5) {
   }
 }
 
-/** Iso box at grid position (x, y) with footprint w x d cells, height h and base z (pixels). */
-export function box(ctx, x, y, w, d, h, z, [top, left, right], lineWidth = 2.5) {
+/**
+ * Iso box at grid position (x, y) with footprint w x d cells, height h and base z (pixels).
+ * With `lit` the box takes part in the scene's light (docs/ART.md): a dark gradient on the
+ * ground along the foot of both visible sides (only for a box standing on the ground) and a
+ * bright line on the upper left edge of the top face.
+ */
+export function box(ctx, x, y, w, d, h, z, [top, left, right], lineWidth = 2.5, { lit = false } = {}) {
+  if (lit && z === 0) {
+    footStrip(ctx, x + w, y, x + w, y + d, 1, 0);
+    footStrip(ctx, x, y + d, x + w, y + d, 0, 1);
+  }
   const A = iso(x, y, z + h);
   const B = iso(x + w, y, z + h);
   const Cc = iso(x + w, y + d, z + h);
@@ -31,6 +41,17 @@ export function box(ctx, x, y, w, d, h, z, [top, left, right], lineWidth = 2.5) 
   poly(ctx, [b3, b2, Cc, D], left, C.ink, lineWidth);
   poly(ctx, [b2, b1, B, Cc], right, C.ink, lineWidth);
   if (top) poly(ctx, [A, B, Cc, D], top, C.ink, lineWidth);
+  if (lit && top) {
+    ctx.save();
+    ctx.globalAlpha *= EDGE_LIGHT_ALPHA;
+    ctx.strokeStyle = C.bone;
+    ctx.lineWidth = EDGE_LIGHT_WIDTH;
+    ctx.beginPath();
+    ctx.moveTo(A[0], A[1]);
+    ctx.lineTo(D[0], D[1]);
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 export function ell(ctx, x, y, rx, ry, fill, stroke, lineWidth = 2) {
