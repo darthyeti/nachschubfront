@@ -71,9 +71,9 @@ function svgDocument(library, body, bbox, pixelScale) {
 
 /**
  * The parts an emplacement is drawn from, back to front. Since v5 that is the
- * bunker for its rank and the top of its doctrine on the roof — the ranks are
- * cumulative and the whole ladder is drawn into each bunker symbol, so nothing
- * has to be stacked here any more (docs/ART.md, "Ränge").
+ * bunker for its doctrine and rank and the top of its doctrine on the roof. The
+ * ranks are cumulative and the doctrine colour is part of the drawing, so there
+ * is one bunker symbol for each pair and nothing to stack (docs/ART.md, "Ränge").
  * @param {string} doctrine  Key of DOCTRINE_SYMBOLS.
  * @param {number} rank  1 (recruit) to 5 (legend).
  * @returns {{base: string, top: string}}
@@ -82,7 +82,7 @@ export function towerLayers(doctrine, rank) {
   const top = DOCTRINE_SYMBOLS[doctrine];
   if (!top) throw new Error(`Unknown doctrine: ${doctrine}`);
   if (!(rank >= 1 && rank <= RANK_COUNT)) throw new Error(`Invalid rank: ${rank}`);
-  return { base: `bunker-${rank}`, top };
+  return { base: `bunker-${doctrine}-${rank}`, top };
 }
 
 /**

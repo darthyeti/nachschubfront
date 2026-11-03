@@ -3,6 +3,7 @@
 
 import { MAX_RANK } from '../../data/ranks.js';
 import { BOSSES, KOLOSS } from '../../data/enemies.js';
+import { BUNKER_ROOF_HEIGHT } from '../../data/art.js';
 
 /** World pixels per SVG unit. A cell is 64 x 32 world pixels. */
 export const SPRITE_SCALE = {
@@ -79,7 +80,7 @@ export const POD_OPEN_SCALE = 0.85;
  * bunker and for the taller special base. The top sits there; the bunker's own
  * symbol has its origin on the ground.
  */
-export const BUNKER_ROOF = 24 * 0.66 + 3.5;
+export const BUNKER_ROOF = BUNKER_ROOF_HEIGHT;
 export const SPECIAL_ROOF = 40;
 
 export const ENEMY_SYMBOLS = {
