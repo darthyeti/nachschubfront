@@ -25,10 +25,9 @@ const SOURCES = [
     dirs: ['reference/konzept/kapsel'],
     out: 'src/render/sprites/pods.js',
     name: 'POD_SPRITES',
-    // pod-a, pod-c, open-a and open-c are the designs the sheets discarded
-    // (docs/ART.md); pod-b and pod-open are only wrappers around the parts the
-    // game draws.
-    drop: ['pod-a', 'pod-c', 'open-a', 'open-c', 'pod-b', 'pod-open'],
+    // Since 0.10.5 the capsule is draft B of the capsule study, exported by
+    // `npm run studies` as kapsel.svg. The sheets of the first capsule are kept in
+    // historie/, which this folder scan does not enter (docs/ART.md).
   },
 ];
 

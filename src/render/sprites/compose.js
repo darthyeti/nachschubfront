@@ -199,16 +199,18 @@ function podPart(id, unitScale, tag) {
 
 /**
  * Every sprite a supply pod is drawn from: the closed shell in one piece, and
- * for the opened capsule the core plus its four segments in opening order.
+ * for the opened capsule the heat shield, the core and its four segments in
+ * opening order.
  * The glow, the light column and the hologram stay in code; they carry the
  * doctrine's colour (docs/ART.md).
- * @returns {{shell: object, core: object, petals: object[]}}
+ * @returns {{shell: object, base: object, core: object, petals: object[]}}
  */
 export function podSpriteSet() {
   const open = SPRITE_SCALE.pod * POD_OPEN_SCALE;
   const byId = new Map(POD_PETALS.map((p) => [p.id, p]));
   return {
     shell: podPart('pod-shell', SPRITE_SCALE.pod),
+    base: podPart('pod-base', open, 'open'),
     core: podPart('pod-core', open, 'open'),
     petals: POD_PETAL_ORDER.map((id, order) => {
       const petal = byId.get(id);

@@ -1,7 +1,7 @@
 // Study: supply capsule, landing and selection.
 //
 // "Heute" calls the game's own functions (createPodRenderer, drawPodTarget,
-// drawPodHologram, drawPodHighlight and the effects of src/render/effects.js).
+// drawPodHologram, drawPodFrame and the effects of src/render/effects.js).
 // The three drafts A, B and C are drawn here from parts: a heat shield, a wall of
 // four or five segments that fall outwards like petals, a standing core, a collar
 // with brake nozzles and a roof. They are colour neutral; the doctrine colour
@@ -26,7 +26,7 @@ import { createCamera, clampCamera, panBy, zoomAt, applyCamera } from '../../src
 import { createGroundLayer } from '../../src/render/ground.js';
 import { createSpriteCache } from '../../src/render/sprites/rasterizer.js';
 import { allTowerDefs, drawTowerSprite } from '../../src/render/towerSprites.js';
-import { createPodRenderer, drawPodTarget, drawPodHologram, drawPodHighlight, POD_SPRITE_DEFS } from '../../src/render/pods.js';
+import { createPodRenderer, drawPodTarget, drawPodHologram, drawPodFrame, POD_SPRITE_DEFS } from '../../src/render/pods.js';
 import { createEffects } from '../../src/render/effects.js';
 import { attachPointerInput } from '../../src/input/pointer.js';
 import { installPageGuards } from '../../src/input/guards.js';
@@ -1209,7 +1209,7 @@ function frame(now) {
         drawFocusColumn(ctx, pod, s.selected ? focusOf.value : 0, t);
         drawDesignHologram(ctx, design, pod, impactOf(design) + 8, t);
       } else {
-        drawPodHighlight(ctx, rec, { selected: Boolean(s.selected), t, reducedMotion: reduceMotion });
+        drawPodFrame(ctx, rec, { selected: Boolean(s.selected), t, reducedMotion: reduceMotion });
         drawPodHologram(ctx, rec, t);
       }
     }
@@ -1321,6 +1321,81 @@ window.__kapsel = {
   loop: LOOP,
   particleCount: (id) => fxOf(DESIGNS[id]).length,
   state: () => ({ ...state }),
+};
+
+/**
+ * Hook for the export to concept SVGs (tests/tools/study-to-svg.mjs): the parts of
+ * draft B, drawn cold, with the doctrine colour left out, at the study's own scale.
+ * `ctx` is a recording context; (0, 0) is the foot of the capsule.
+ *   shell   the whole closed capsule
+ *   base    the heat shield, which stays under the segments when they lie out
+ *   core    the standing core with collar, nozzles and roof
+ *   petal   one segment lying flat, `index` 0 to 3
+ */
+window.__kapselExport = {
+  draw(ctx, part, index = 0) {
+    const dz = DESIGNS.b;
+    const st = { heat: 0, glow: 0, focus: 0, color: '#ffffff', since: 10, t: 0 };
+    ctx.save();
+    ctx.scale(dz.S, dz.S);
+    if (part === 'base') drawShield(ctx, dz, st);
+    else if (part === 'core') {
+      drawCore(ctx, dz, st);
+      drawTop(ctx, dz, st, []);
+    } else if (part === 'petal') drawPetal(ctx, dz, index, 1, 0, st);
+    else if (part === 'shell') {
+      drawShield(ctx, dz, st);
+      const geoms = [];
+      for (let i = 0; i < dz.n; i++) geoms.push({ i, am: seamAngle(dz, i) + TAU / dz.n / 2 });
+      for (const g of geoms) if (Math.sin(g.am) < -0.05) drawPetal(ctx, dz, g.i, 0, 0, st);
+      drawCore(ctx, dz, st);
+      const front = geoms.filter((q) => Math.sin(q.am) >= -0.05).sort((p, q) => Math.sin(p.am) - Math.sin(q.am));
+      for (const g of front) drawPetal(ctx, dz, g.i, 0, 0, st);
+      drawTop(ctx, dz, st, []);
+    } else throw new Error(`unknown capsule part: ${part}`);
+    ctx.restore();
+  },
+  /** What the game needs to place the segments and the effects, in the study's units times S. */
+  geometry() {
+    const dz = DESIGNS.b;
+    const step = TAU / dz.n;
+    const r0 = dz.R0 * Math.cos(step / 2 - dz.gap);
+    const rnd = (v) => Math.round(v * 100) / 100;
+    const petals = [];
+    for (let i = 0; i < dz.n; i++) {
+      const g = petalGeom(dz, i, 1, 0);
+      const a = g.am;
+      petals.push({
+        angle: rnd(a),
+        hinge: [rnd(r0 * Math.cos(a) * dz.S), rnd((r0 * Math.sin(a) * E - dz.lip) * dz.S)],
+        reach: rnd(g.reach * dz.S),
+        back: Math.sin(a) < -0.05,
+      });
+    }
+    const zt = dz.lip + dz.H;
+    const nozzles = [];
+    for (let i = 0; i < dz.n; i++) {
+      const a = seamAngle(dz, i) + step / 2;
+      if (Math.sin(a) > -0.3) {
+        const m = pt(14, a, zt + 8);
+        nozzles.push([rnd(m[0] * dz.S), rnd(m[1] * dz.S)]);
+      }
+    }
+    const lamps = [-1, 1].map((s) => {
+      const p = pt(dz.R1 + 1.5, Math.PI / 2 + s * 0.9, zt + 3);
+      return [rnd(p[0] * dz.S), rnd(p[1] * dz.S)];
+    });
+    return {
+      order: dz.order,
+      petals,
+      nozzles,
+      lamps,
+      ringsZ: [dz.lip + 9, dz.lip + 17, dz.lip + 25].map((z) => rnd(z * dz.S)),
+      coreRadius: rnd(dz.R1 * 0.62 * dz.S),
+      top: rnd((zt + 26) * dz.S),
+      shieldRadius: rnd(27 * dz.S),
+    };
+  },
 };
 
 refreshButtons();

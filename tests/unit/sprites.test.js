@@ -59,15 +59,12 @@ test('imported libraries contain all concept symbols', () => {
   }
   assert.ok(!ENEMY_SPRITES.defs.includes('id="sil"'), 'unused silhouette filter is dropped');
 
-  // M4c: the capsule, closed in one piece and open in core plus four segments.
-  for (const id of ['pod-shell', 'pod-core', ...POD_PETALS.map((p) => p.id)]) {
+  // The capsule (draft B, 0.10.5): closed in one piece, open in shield, core and four segments.
+  for (const id of ['pod-shell', 'pod-base', 'pod-core', ...POD_PETALS.map((p) => p.id)]) {
     assert.ok(POD_SPRITES.symbols[id], id);
   }
-  for (const id of ['pod-a', 'pod-c']) {
-    assert.ok(!POD_SPRITES.symbols[id], `${id} is a discarded design and is not imported`);
-  }
-  for (const id of ['pod-b', 'pod-open']) {
-    assert.ok(!POD_SPRITES.symbols[id], `${id} is only a wrapper for the concept sheet`);
+  for (const id of ['pod-a', 'pod-c', 'pod-b', 'pod-open', 'pod-petal-bl']) {
+    assert.ok(!POD_SPRITES.symbols[id], `${id} belongs to the first capsule, whose sheets are in historie/`);
   }
 });
 
@@ -83,10 +80,11 @@ test('the capsule: one closed sprite, four segments around a core', () => {
   // The opened capsule is drawn smaller, so it does not bury its neighbours.
   assert.equal(set.shell.unitScale, SPRITE_SCALE.pod);
   assert.equal(set.core.unitScale, SPRITE_SCALE.pod * POD_OPEN_SCALE);
+  assert.equal(set.base.unitScale, set.core.unitScale);
   for (const p of set.petals) assert.equal(p.sprite.unitScale, set.core.unitScale, p.id);
 
   // Two scales of the same artwork must not share a raster.
-  const keys = [set.shell, set.core, ...set.petals.map((p) => p.sprite)].map((d) => d.key);
+  const keys = [set.shell, set.base, set.core, ...set.petals.map((p) => p.sprite)].map((d) => d.key);
   assert.equal(new Set(keys).size, keys.length, 'every part has its own key');
 });
 
@@ -94,10 +92,14 @@ test('the capsule stands on the ground and fits its cell', () => {
   const PAD = 5; // stroke padding added by the importer
   const set = podSpriteSet();
   const [, y, w, h] = set.shell.bbox;
-  assert.ok(Math.abs(y + h - PAD - 6) <= 1, `closed capsule bottom ${y + h - PAD}`);
-  // Since v3 the heat shield is a fifth narrower than an emplacement's base, so
-  // six capsules on neighbouring cells do not hide one another (docs/ART.md).
-  assert.ok(Math.abs((w - 2 * PAD) * set.shell.unitScale - 64 * 0.9 * 0.8) < 1.5, 'closed width');
+  // The shield rests on the ground; only the landing lugs reach a little further in front of it.
+  const bottom = y + h - PAD;
+  assert.ok(bottom > 0 && bottom < 30, `closed capsule bottom ${bottom}`);
+  // Since v3 the capsule is a fifth narrower than an emplacement's base, so six
+  // capsules on neighbouring cells do not hide one another (docs/ART.md). The
+  // lugs of draft B are its widest point and stay inside the 64 px of a cell.
+  const closedWidth = (w - 2 * PAD) * set.shell.unitScale;
+  assert.ok(closedWidth > 40 && closedWidth <= 64, `closed width ${closedWidth.toFixed(1)}`);
 
   // Open it spans more than a cell, which docs/ART.md accepts, but not two.
   const spread = set.petals.map((p) => {
@@ -173,15 +175,15 @@ test('a cleared cell keeps its mark until a capsule takes it or the wave runs', 
 test('every capsule sprite is preloaded, so the first salvo is never empty', () => {
   const set = podSpriteSet();
   const keys = new Set(POD_SPRITE_DEFS.map((d) => d.key));
-  for (const def of [set.shell, set.core, ...set.petals.map((p) => p.sprite)]) {
+  for (const def of [set.shell, set.base, set.core, ...set.petals.map((p) => p.sprite)]) {
     assert.ok(keys.has(def.key), def.key);
   }
-  assert.equal(POD_SPRITE_DEFS.length, 6, 'shell, core and four segments');
+  assert.equal(POD_SPRITE_DEFS.length, 7, 'shell, shield, core and four segments');
 });
 
 test('the capsule renders as standalone SVG at the size asked for', () => {
   const set = podSpriteSet();
-  for (const def of [set.shell, set.core, ...set.petals.map((p) => p.sprite)]) {
+  for (const def of [set.shell, set.base, set.core, ...set.petals.map((p) => p.sprite)]) {
     const svg = def.svg(2);
     assert.match(svg, /^<svg xmlns=/, def.key);
     assert.ok(svg.includes(`<use href="#`), def.key);
