@@ -7,12 +7,16 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.10.1**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
+Version **0.10.2**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
 **M6 Balancing** und **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md), von Till
-freigegeben am 02.11.2026): C1 (Farbtrennung, drei Biome, Fundament, Spur) und C2 (Licht und
-Schatten, sichtbares Fundament, Saum der Spur) sind umgesetzt, C2 wartet auf Tills Blick im
-Browser; C3 bis C5 sind offen. **M7 Spielmodi** ruht seit dem
-02.11.2026 (Entscheidung E-02), bis der Grafik-Rework steht.
+freigegeben am 02.11.2026): C1 (Farbtrennung, drei Biome, Fundament, Spur), C2 (Licht und
+Schatten, sichtbares Fundament, Saum der Spur) und C3 (Blockgelände: drei Höhenstufen aus dem
+Seed, Klippen, Rampen, alles auf Feldhöhe, Treffer auf Feldhöhe) sind umgesetzt, C3 wartet auf
+Tills Blick im Browser, auch auf dem iPad (Tippen auf hohe Felder); C4 und C5 sind offen. Das
+Höhenfeld ist reine Darstellung (`src/render/terrain.js`), die Simulation rechnet weiter auf der
+flachen Karte. Offen im Blick: King of the Hill hat eine Bastion über 2 x 2 Felder, die auf
+verschiedenen Stufen liegen können (das Feld behält seine Stufe, wie beauftragt). **M7 Spielmodi**
+ruht seit dem 02.11.2026 (Entscheidung E-02), bis der Grafik-Rework steht.
 
 | | | abgenommen |
 |---|---|---|
