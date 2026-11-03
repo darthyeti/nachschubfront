@@ -30,6 +30,7 @@ import { createCanvasView } from './render/canvas.js';
 import { createCamera, fitCamera, clampCamera, panBy, zoomAt, screenToCell, worldToScreen } from './render/camera.js';
 import { mapBounds, iso } from './render/iso.js';
 import { createGroundLayer } from './render/ground.js';
+import { heightField, cellHeight } from './render/terrain.js';
 import { createSceneRenderer } from './render/scene.js';
 import { createEffects } from './render/effects.js';
 import { installPageGuards } from './input/guards.js';
@@ -166,7 +167,8 @@ const view = createCanvasView(canvas, (v) => {
 // ---------- Actions ----------
 
 function cellAt(x, y) {
-  const cell = screenToCell(camera, view, x, y);
+  // The terrain is drawn at three heights, so a tap is tested against the top faces at their height.
+  const cell = screenToCell(camera, view, x, y, heightField(state.map, state.seed));
   const { size } = state.map;
   return cell.x >= 0 && cell.y >= 0 && cell.x < size && cell.y < size ? cell : null;
 }
@@ -1022,7 +1024,12 @@ if (debug) {
     isRubble: (x, y) => isRubble(state.map, { x, y }),
     rubbleCells: () =>
       state.map.obstacles.filter((o) => o.kind === 'rubble').map((o) => ({ x: o.cells[0].x, y: o.cells[0].y })),
-    screenOfCell: (cx, cy) => worldToScreen(camera, view, ...iso(cx + 0.5, cy + 0.5)),
+    screenOfCell: (cx, cy) =>
+      worldToScreen(camera, view, ...iso(cx + 0.5, cy + 0.5, cellHeight(heightField(state.map, state.seed), state.map.size, cx, cy))),
+    /** The terrain levels (0 to 2), row by row, for the browser checks. */
+    heights: () => [...heightField(state.map, state.seed)],
+    /** Where the enemies stand, for the browser checks. */
+    enemyPositions: () => state.enemies.map(({ x, y, flying, koloss }) => ({ x, y, flying: Boolean(flying), koloss: Boolean(koloss) })),
     state: () => ({
       mode: state.mode.id,
       difficulty: state.difficulty,

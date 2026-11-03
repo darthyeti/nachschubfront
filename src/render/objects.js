@@ -2,6 +2,7 @@
 // (ink outlines, three shading steps). `t` is real time in seconds, for animation only.
 
 import { iso } from './iso.js';
+import { STEP, activeTerrain, cellLevel } from './terrain.js';
 import { poly, box, ell, shadow, comicText } from './draw.js';
 import { rectCorners } from './shadows.js';
 import { C } from './palette.js';
@@ -289,24 +290,28 @@ function hatchPattern(ctx) {
   return ctx.createPattern(hatchTile, 'repeat');
 }
 
-/** The ban zone's area and outline as paths in iso space, built once per map. */
+/**
+ * The ban zone's area and outline as paths in iso space, one pair per terrain level so that each
+ * field's part lies on its own height. Built once per map and terrain.
+ */
 const banPaths = new WeakMap();
 function banZonePaths(map) {
-  let paths = banPaths.get(map.banned);
-  if (paths) return paths;
-  const area = new Path2D();
-  const edge = new Path2D();
+  const field = activeTerrain();
+  const cached = banPaths.get(map.banned);
+  if (cached && cached.field === field) return cached.levels;
+  const levels = [0, 1, 2].map(() => ({ area: new Path2D(), edge: new Path2D() }));
   const { size, banned } = map;
   const inside = (x, y) => x >= 0 && y >= 0 && x < size && y < size && banned[y * size + x] === 1;
-  const line = (ax, ay, bx, by) => {
-    const a = iso(ax, ay);
-    const b = iso(bx, by);
-    edge.moveTo(a[0], a[1]);
-    edge.lineTo(b[0], b[1]);
-  };
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       if (!inside(x, y)) continue;
+      const { area, edge } = levels[cellLevel(x, y)];
+      const line = (ax, ay, bx, by) => {
+        const a = iso(ax, ay);
+        const b = iso(bx, by);
+        edge.moveTo(a[0], a[1]);
+        edge.lineTo(b[0], b[1]);
+      };
       const corners = [iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)];
       area.moveTo(corners[0][0], corners[0][1]);
       for (let i = 1; i < 4; i++) area.lineTo(corners[i][0], corners[i][1]);
@@ -317,9 +322,8 @@ function banZonePaths(map) {
       if (!inside(x - 1, y)) line(x, y, x, y + 1);
     }
   }
-  paths = { area, edge };
-  banPaths.set(map.banned, paths);
-  return paths;
+  banPaths.set(map.banned, { field, levels });
+  return levels;
 }
 
 /**
@@ -328,16 +332,21 @@ function banZonePaths(map) {
  */
 export function drawBanZone(ctx, map) {
   if (!map.banned) return;
-  const { area, edge } = banZonePaths(map);
+  const levels = banZonePaths(map);
   ctx.save();
-  ctx.fillStyle = 'rgba(40,10,6,0.22)';
-  ctx.fill(area);
-  ctx.fillStyle = hatchPattern(ctx);
-  ctx.fill(area);
-  ctx.strokeStyle = 'rgba(255,110,70,0.75)';
-  ctx.lineWidth = 2.5;
-  ctx.setLineDash([8, 6]);
-  ctx.stroke(edge);
+  levels.forEach(({ area, edge }, level) => {
+    ctx.save();
+    ctx.translate(0, -level * STEP);
+    ctx.fillStyle = 'rgba(40,10,6,0.22)';
+    ctx.fill(area);
+    ctx.fillStyle = hatchPattern(ctx);
+    ctx.fill(area);
+    ctx.strokeStyle = 'rgba(255,110,70,0.75)';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([8, 6]);
+    ctx.stroke(edge);
+    ctx.restore();
+  });
   ctx.restore();
 }
 

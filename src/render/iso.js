@@ -17,7 +17,7 @@ export function isoInverse(px, py) {
 }
 
 /** World-pixel bounding box of an n x n map, with room for side walls below and objects above. */
-export function mapBounds(size, { above = 90, below = 110, side = 8 } = {}) {
+export function mapBounds(size, { above = 114, below = 110, side = 8 } = {}) {
   return {
     x0: -size * TILE_HALF_W - side,
     x1: size * TILE_HALF_W + side,

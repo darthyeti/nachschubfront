@@ -7,6 +7,7 @@
 // busy wave cannot drag the frame rate down.
 
 import { iso } from './iso.js';
+import { cellLift, liftAt } from './terrain.js';
 import { ell, poly, comicText, shadow } from './draw.js';
 import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
@@ -51,9 +52,18 @@ const POD = {
   steamTo: 2.6,
 };
 
-/** World point to the pixel space the camera transform works in. */
+/**
+ * World point to the pixel space the camera transform works in. `z` is the height above the
+ * ground; the ground itself is the terrain under the point (terrain.js), so every effect
+ * lies on its field.
+ */
 function project(x, y, z = 0) {
-  return iso(x, y, z);
+  return iso(x, y, z + liftAt(x, y));
+}
+
+/** A screen point of an emplacement (an anchor, a spark) raised onto the height of its field. */
+function onField(tower, [x, y]) {
+  return [x, y - cellLift(tower.x, tower.y)];
 }
 
 /** The four hatches, in the order they come down (style test). */
@@ -158,8 +168,8 @@ export function createEffects() {
   function chainOrigin(state, event) {
     const tower = towerById(state, event.towerId);
     if (!tower) return null;
-    const sparks = towerSparks(tower);
-    if (!sparks.length) return towerAnchor(tower);
+    const sparks = towerSparks(tower).map((p) => onField(tower, p));
+    if (!sparks.length) return onField(tower, towerAnchor(tower));
     const first = event.points[1];
     if (!first) return sparks[0];
     const [tx, ty] = project(first.x, first.y, 12);
@@ -183,13 +193,13 @@ export function createEffects() {
    */
   function muzzleOrigin(state, event) {
     const tower = towerById(state, event.towerId);
-    return tower ? towerAnchor(tower) : null;
+    return tower ? onField(tower, towerAnchor(tower)) : null;
   }
 
   /** The muzzle a shell leaves from, when the emplacement has a tube worth the name. */
   function launchPoint(state, event) {
     const tower = towerById(state, event.towerId);
-    return tower?.special === 'siegeMortar' ? towerAnchor(tower) : null;
+    return tower?.special === 'siegeMortar' ? onField(tower, towerAnchor(tower)) : null;
   }
 
   /** Takes one simulation event. Unknown events are ignored on purpose. */
@@ -688,7 +698,7 @@ export function createEffects() {
    * solid wedge.
    */
   function drawCone(ctx, tower, t, reducedMotion) {
-    const from = towerAnchor(tower);
+    const from = onField(tower, towerAnchor(tower));
     const to = project(tower.aim.x, tower.aim.y, 6);
     const dx = to[0] - from[0];
     const dy = to[1] - from[1];

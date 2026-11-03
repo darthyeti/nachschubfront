@@ -10,6 +10,7 @@
 import { C } from './palette.js';
 import { iso } from './iso.js';
 import { castShadows } from './shadows.js';
+import { liftAt } from './terrain.js';
 import {
   modelFrame,
   directionOf,
@@ -76,10 +77,14 @@ export function drawGunship(ctx, hit, t, reducedMotion) {
   // Ground shadow under the two axes of the airframe.
   // The ship hangs HEIGHT px up, so its shadow is the footprint moved along the light by that
   // much, as thick as the airframe.
+  // The ship keeps its height over level 0, but its shadow falls on the terrain under it.
+  const ground = liftAt(wx, wy);
+  ctx.translate(0, -ground);
   castShadows(ctx, [
     { footprint: [Fg.Wc(-1.2, -0.42), Fg.Wc(1.2, -0.42), Fg.Wc(1.2, 0.42), Fg.Wc(-1.2, 0.42)], height: SHADOW_THICKNESS, lift: HEIGHT },
     { footprint: [Fg.Wc(-0.4, -1.55), Fg.Wc(0.25, -1.55), Fg.Wc(0.25, 1.55), Fg.Wc(-0.4, 1.55)], height: SHADOW_THICKNESS, lift: HEIGHT },
   ]);
+  ctx.translate(0, ground);
 
   // Containers under the wings, covered by the wings themselves.
   for (const ly of [-1.25, -0.85, 0.85, 1.25]) {
@@ -171,7 +176,7 @@ export function drawGunship(ctx, hit, t, reducedMotion) {
     if (runU < drop.at - FALL_WINDOW || runU >= drop.at) continue;
     // Accelerating fall from the belly to the ground point.
     const p = (runU - (drop.at - FALL_WINDOW)) / FALL_WINDOW;
-    const [bx, by] = iso(drop.x, drop.y, HEIGHT * (1 - p * p) * SCALE);
+    const [bx, by] = iso(drop.x, drop.y, liftAt(drop.x, drop.y) + HEIGHT * (1 - p * p) * SCALE);
     ell(ctx, bx, by, 4, 6, '#3a342e', C.ink, 1.6);
   }
 }
