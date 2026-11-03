@@ -8,6 +8,7 @@
 
 import { iso } from './iso.js';
 import { shadow, ell, poly } from './draw.js';
+import { drawSpriteShadow } from './sprites/rasterizer.js';
 import { C } from './palette.js';
 import { enemySprite, enemySpriteSet, nextFlip, ENEMY_TYPES } from './sprites/compose.js';
 import { ENEMY_SHADOW } from './sprites/manifest.js';
@@ -103,6 +104,24 @@ function drawLimbs(ctx, def, entry, pivot, transform, flash) {
 }
 
 /**
+ * The silhouette of a walking creature on the ground: its one piece, or the body with both limb
+ * groups in the rest pose of the artwork.
+ */
+function drawGroundShadow(ctx, set, whole, body, cache, zoom, dpr, sx, sy, flip) {
+  if (whole) {
+    drawSpriteShadow(ctx, set.whole, whole, sx, sy, { flip });
+    return;
+  }
+  // Layered silhouettes would darken where they overlap; the limbs are small, so only the
+  // body casts, with the limbs added where they stick out.
+  drawSpriteShadow(ctx, set.body, body, sx, sy, { flip });
+  for (const part of [set.back, set.front]) {
+    const entry = cache.get(part, zoom, dpr);
+    if (entry) drawSpriteShadow(ctx, part, entry, sx, sy, { flip });
+  }
+}
+
+/**
  * @returns {(ctx: CanvasRenderingContext2D, e: object, t: number, view: object) => boolean}
  *   Draw function; returns false if no sprite is available yet (caller falls back).
  */
@@ -133,7 +152,13 @@ export function createEnemySpriteRenderer(cache) {
     ctx.globalAlpha = alpha;
 
     const r = ENEMY_SHADOW[e.type] ?? 14;
-    shadow(ctx, sx, sy + 1, r, r * 0.42, e.flying ? 0.2 : 0.3);
+    if (e.flying) {
+      // A flyer hangs in the air; its silhouette would not land at its feet, so it keeps a
+      // faint ellipse on the ground.
+      shadow(ctx, sx, sy + 1, r, r * 0.42, 0.2);
+    } else {
+      drawGroundShadow(ctx, set, whole, body, cache, zoom, dpr, sx, sy, flip);
+    }
     // Standing in the purge shrine's aura: a gold light on the creature itself,
     // so the aura is readable on what it is doing and not only on the ground
     // (docs/ART.md, "Spezialstellungen").

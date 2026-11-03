@@ -9,6 +9,7 @@
 import { iso } from './iso.js';
 import { poly, ell } from './draw.js';
 import { C } from './palette.js';
+import { castShadow } from './shadows.js';
 import {
   modelFrame,
   directionOf,
@@ -24,6 +25,9 @@ import { KOLOSS } from '../data/enemies.js';
 
 /** How many cells across the model is drawn; the swathe stays one cell wide. */
 const SCALE = 1.3;
+
+/** Height of the hull in px (before the scale) that its cast shadow follows. */
+const SHADOW_HEIGHT = 38;
 
 const COLOURS = {
   hull: '#8a7666',
@@ -97,7 +101,8 @@ export function drawKoloss(ctx, e, { t, dt, reducedMotion }) {
   const parts = [];
 
   ctx.save();
-  poly(ctx, [F.Wg(-1.35, -0.66), F.Wg(1.45, -0.66), F.Wg(1.45, 0.66), F.Wg(-1.35, 0.66)], 'rgba(0,0,0,.4)', null, 0);
+  // The cast shadow of the hull along the light, from its footprint turned like the model.
+  castShadow(ctx, [F.Wc(-1.35, -0.66), F.Wc(1.45, -0.66), F.Wc(1.45, 0.66), F.Wc(-1.35, 0.66)], SHADOW_HEIGHT * SCALE);
 
   // Tracks, with road wheels on whichever side faces the camera.
   const trackSection = [[-1.26, 1], [1.2, 1], [1.28, 10], [1.2, 19], [-1.26, 19], [-1.34, 10]];

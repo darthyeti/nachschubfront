@@ -2,6 +2,7 @@
 // Drawing in the frame loop only ever uses drawImage on these canvases.
 
 import { pickLevel, RASTER_LEVELS } from './compose.js';
+import { SPRITE_SHADOW_ALPHA, SPRITE_SHADOW_SQUASH, SPRITE_SHADOW_SHEAR } from '../shadows.js';
 
 /** Tint for the pre-rendered hit-flash variant. */
 const FLASH_TINT = 'rgba(255, 246, 228, 0.65)';
@@ -16,7 +17,7 @@ function makeCanvas(w, h) {
 }
 
 export function createSpriteCache() {
-  /** id -> { canvas, flash, level, dpr } */
+  /** id -> { canvas, flash, shadow, level, dpr } */
   const ready = new Map();
   /** id -> Promise */
   const pending = new Map();
@@ -49,8 +50,15 @@ export function createSpriteCache() {
       f.globalCompositeOperation = 'source-atop';
       f.fillStyle = FLASH_TINT;
       f.fillRect(0, 0, width, height);
+      // The silhouette for the shadow on the ground: the same drawing, filled black.
+      const shadow = makeCanvas(width, height);
+      const sh = shadow.getContext('2d');
+      sh.drawImage(canvas, 0, 0);
+      sh.globalCompositeOperation = 'source-in';
+      sh.fillStyle = '#000';
+      sh.fillRect(0, 0, width, height);
       stats.rasterized += 1;
-      return { canvas, flash, level, dpr };
+      return { canvas, flash, shadow, level, dpr };
     } finally {
       URL.revokeObjectURL(url);
     }
@@ -151,6 +159,30 @@ export function drawSprite(ctx, def, entry, wx, wy, { flip = false, flash = fals
   } else {
     ctx.drawImage(image, wx + bx * s, y, bw * s, bh * s);
   }
+}
+
+/**
+ * Lays the silhouette of a sprite on the ground as its shadow: the black variant, sheared so
+ * that a point `h` px above the foot lands `LIGHT`-wards, and squashed to SPRITE_SHADOW_SQUASH
+ * of its height. Same placement as `drawSprite`, foot point on (wx, wy). Draw it right before
+ * the figure; it is one `drawImage` of a canvas made at rasterization time.
+ * @param {{flip?: boolean, alpha?: number}} options  `alpha` multiplies the opacity.
+ */
+export function drawSpriteShadow(ctx, def, entry, wx, wy, { flip = false, alpha = 1 } = {}) {
+  if (!entry.shadow) return;
+  const s = def.unitScale;
+  const [bx, by, bw, bh] = def.bbox;
+  const y = wy - def.anchorZ + by * s;
+  ctx.save();
+  ctx.globalAlpha *= SPRITE_SHADOW_ALPHA * alpha;
+  ctx.transform(1, 0, -SPRITE_SHADOW_SHEAR, -SPRITE_SHADOW_SQUASH, SPRITE_SHADOW_SHEAR * wy, (1 + SPRITE_SHADOW_SQUASH) * wy);
+  if (flip) {
+    ctx.scale(-1, 1);
+    ctx.drawImage(entry.shadow, -wx + bx * s, y, bw * s, bh * s);
+  } else {
+    ctx.drawImage(entry.shadow, wx + bx * s, y, bw * s, bh * s);
+  }
+  ctx.restore();
 }
 
 /**

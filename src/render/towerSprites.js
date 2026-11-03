@@ -6,9 +6,9 @@
 // wobble and the glows that used to be painted into the artwork live here too.
 
 import { iso } from './iso.js';
-import { shadow, ell } from './draw.js';
+import { ell } from './draw.js';
 import { C } from './palette.js';
-import { drawSprite, drawSpriteTurned, spriteOrigin } from './sprites/rasterizer.js';
+import { drawSprite, drawSpriteShadow, drawSpriteTurned, spriteOrigin } from './sprites/rasterizer.js';
 import { towerSpriteSet, specialSpriteSet, nextFlip, DOCTRINES, SPECIALS } from './sprites/compose.js';
 import { RANK_COUNT } from './sprites/manifest.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
@@ -154,11 +154,14 @@ export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, red
   const back = cache.get(set.back, zoom, dpr);
   if (!back) return false;
   const [sx, sy] = iso(tower.x + 0.5, tower.y + 0.5);
-  shadow(ctx, sx + 6, sy + 4, 34, 15, 0.28);
 
   const weapon = set.weapon;
   const scale = set.back.unitScale;
   const m = updateMotion(tower, set, dt);
+  // The silhouette of the socket and of the top, in the pose the top stands in at rest.
+  drawSpriteShadow(ctx, set.back, back, sx, sy);
+  const gunEntry = set.gun && cache.get(set.gun, zoom, dpr);
+  if (gunEntry) drawSpriteShadow(ctx, set.gun, gunEntry, sx, sy, { flip: m.flip });
   const flash = (tower.flash ?? 0) > 0;
   drawSprite(ctx, set.back, back, sx, sy, { flash });
 
@@ -186,7 +189,7 @@ export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, red
   };
   drawWeaponGlow(ctx, tower, view);
 
-  const gun = set.gun && cache.get(set.gun, zoom, dpr);
+  const gun = gunEntry;
   if (gun) {
     if (weapon?.float) {
       // The psi rings and the shrine's artefact hover instead of sitting still.
