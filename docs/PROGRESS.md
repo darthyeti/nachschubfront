@@ -8,7 +8,9 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 ## Stand
 
 Version **0.9.10**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen. Offen sind
-**M6 Balancing** und, parallel dazu, **M7 Spielmodi** (freigegeben 02.10.2026).
+**M6 Balancing** und **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md),
+Entwurf vom 02.11.2026, wartet auf Freigabe). **M7 Spielmodi** ruht seit dem
+02.11.2026 (Entscheidung E-02), bis der Grafik-Rework steht.
 
 | | | abgenommen |
 |---|---|---|
@@ -19,6 +21,7 @@ Version **0.9.10**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenomme
 | **M6** | **Balancing und Feinschliff** | **in Arbeit** |
 | M7a | Modus-Gerüst | 02.10.2026 |
 | M7b | Modus „King of the Hill" (im Menü als „Experimentell") | 02.10.2026 |
+| **M8** | **Optik** (Studien `optik-studie.html`, `truemmer-studie.html` abgenommen) | **Entwurf** |
 
 **Leitstand (seit 02.11.2026):** Entscheidungen, Aufgaben und abgelieferte
 Protokolle laufen über das Artefakt
