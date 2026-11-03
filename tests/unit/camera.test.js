@@ -109,3 +109,38 @@ test('start view on a small screen keeps the minimum cell size', () => {
   const cam = fitCamera(createCamera(), small, mapBounds(24), { top: 64, bottom: 84, side: 16 }, limits);
   assert.ok(near(cam.zoom * 64, 40));
 });
+
+// ---------- Hits on the height of the terrain ----------
+
+test('screenToCell on the top face of a high field hits that field, not the one behind it', () => {
+  // 6 x 6: level 0 everywhere except a block of level 2 at (2..3, 2..3) and a level 1 field at (1, 4).
+  const size = 6;
+  const heights = new Uint8Array(size * size);
+  for (const [x, y] of [[2, 2], [3, 2], [2, 3], [3, 3]]) heights[y * size + x] = 2;
+  heights[4 * size + 1] = 1;
+  const cam = { x: 0, y: 100, zoom: 1 };
+  const screenOf = (cx, cy, level, fx = 0.5, fy = 0.5) => worldToScreen(cam, view, ...iso(cx + fx, cy + fy, level * 12));
+
+  // The middle of the top face of each level hits its own field.
+  assert.deepEqual(screenToCell(cam, view, ...screenOf(2, 2, 2), heights), { x: 2, y: 2 });
+  assert.deepEqual(screenToCell(cam, view, ...screenOf(3, 3, 2), heights), { x: 3, y: 3 });
+  assert.deepEqual(screenToCell(cam, view, ...screenOf(1, 4, 1), heights), { x: 1, y: 4 });
+  assert.deepEqual(screenToCell(cam, view, ...screenOf(0, 0, 0), heights), { x: 0, y: 0 });
+  // The same pixel on the flat ground would be a field behind the block: that is the bug this fixes.
+  const [sx, sy] = screenOf(2, 2, 2);
+  assert.notDeepEqual(screenToCell(cam, view, sx, sy), { x: 2, y: 2 });
+  // The front corner of a high top face still belongs to the high field.
+  assert.deepEqual(screenToCell(cam, view, ...screenOf(3, 3, 2, 0.5, 0.95), heights), { x: 3, y: 3 });
+  // Ground in front of the block is not stolen by the block.
+  assert.deepEqual(screenToCell(cam, view, ...screenOf(4, 4, 0), heights), { x: 4, y: 4 });
+  // Without heights nothing changes.
+  assert.deepEqual(screenToCell(cam, view, ...screenOf(1, 1, 0)), { x: 1, y: 1 });
+});
+
+test('screenToCell with heights agrees with the flat answer on a flat field', () => {
+  const heights = new Uint8Array(24 * 24);
+  for (const [cx, cy] of [[0, 0], [5, 7], [23, 23], [12, 3]]) {
+    const [sx, sy] = worldToScreen(createCamera(), view, ...iso(cx + 0.5, cy + 0.5));
+    assert.deepEqual(screenToCell(createCamera(), view, sx, sy, heights), screenToCell(createCamera(), view, sx, sy));
+  }
+});
