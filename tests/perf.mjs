@@ -82,8 +82,10 @@ try {
         await page.waitForTimeout(1500);
       }
       const before = (await page.evaluate(() => window.__nachschub.sprites())).rasterized;
+      const kitBefore = (await page.evaluate(() => window.__nachschub.kit())).rasterized;
       const gaps = (await sampleFrames(page, SAMPLE_FRAMES)).slice(10).sort((a, b) => a - b);
       const after = (await page.evaluate(() => window.__nachschub.sprites())).rasterized;
+      const kitAfter = (await page.evaluate(() => window.__nachschub.kit())).rasterized;
       const median = percentile(gaps, 0.5);
       const p95 = percentile(gaps, 0.95);
       const zoom = (await page.evaluate(() => window.__nachschub.camera())).zoom;
@@ -92,9 +94,10 @@ try {
       report.push(
         `${label.padEnd(8)} zoom ${zoom.toFixed(2).padStart(4)}: median ${median.toFixed(1)} ms, p95 ${p95.toFixed(1)} ms` +
           `, JS per frame ${work.toFixed(1)} ms` +
-          `, rasterized during run: ${after - before}${hardware ? '' : ' (timings not judged)'}`,
+          `, rasterized during run: ${after - before}, kit cells: ${kitAfter - kitBefore}${hardware ? '' : ' (timings not judged)'}`,
       );
       assert.equal(after - before, 0, `${label}/${zoomLabel}: SVG rasterized while running`);
+      assert.equal(kitAfter - kitBefore, 0, `${label}/${zoomLabel}: rubble kit rastered while running`);
       if (hardware) {
         assert.ok(median <= MEDIAN_LIMIT_MS, `${label}/${zoomLabel}: median ${median.toFixed(1)} ms`);
         assert.ok(p95 <= P95_LIMIT_MS, `${label}/${zoomLabel}: p95 ${p95.toFixed(1)} ms`);

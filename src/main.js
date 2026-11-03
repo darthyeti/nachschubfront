@@ -32,6 +32,7 @@ import { mapBounds, iso } from './render/iso.js';
 import { createGroundLayer } from './render/ground.js';
 import { heightField, cellHeight } from './render/terrain.js';
 import { createSceneRenderer } from './render/scene.js';
+import { kitStats } from './render/rubbleCache.js';
 import { createEffects } from './render/effects.js';
 import { installPageGuards } from './input/guards.js';
 import { attachPointerInput } from './input/pointer.js';
@@ -1093,6 +1094,8 @@ if (debug) {
       forcePod: (content) => forcePod(state, content),
     },
     sprites: () => ({ ...sprites.stats }),
+    /** Rubble kit cells rastered so far (must not move while a match runs). */
+    kit: () => ({ ...kitStats }),
     audio: () => ({ ready: audio.ready, muted: audio.muted }),
     ui: () => ({
       art: ui.art,

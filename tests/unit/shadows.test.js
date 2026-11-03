@@ -36,9 +36,9 @@ test('every kind of obstacle names its bodies, and a crater none', () => {
     assert.ok(bodies.length >= 1 && bodies.every((b) => b.height > 0 && b.footprint.length === 4), kind);
   }
   assert.deepEqual(obstacleShadow(at('crater'), 0), []);
-  // The tall body of a ruin reaches further than its low base.
+  // A ruin rises well above its footing, whichever kit variant the field has.
   const ruin = obstacleShadow(at('ruin'), 0);
-  assert.ok(ruin[1].height > ruin[0].height);
+  assert.ok(Math.max(...ruin.map((b) => b.height)) >= 24);
 });
 
 test('the bastion grows with its size and the beacon has a plinth and a mast', () => {
