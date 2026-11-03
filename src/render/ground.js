@@ -16,6 +16,8 @@ import { C } from './palette.js';
 import { biomeOf, paletteOf, shade } from './biomes.js';
 import { castShadows, footStrip, rectCorners, EDGE_LIGHT_ALPHA, EDGE_LIGHT_WIDTH } from './shadows.js';
 import { STEP, flatField } from './terrain.js';
+import { REVEAL } from '../data/art.js';
+import { blockHull, cellsKey } from './occlusion.js';
 
 /** Largest offscreen backing store in pixels (iPad Safari caps canvas memory). */
 const MAX_PIXELS = 12_000_000;
@@ -120,7 +122,24 @@ function paintPlate(g, N) {
   }
 }
 
-function drawGround(g, size, rng, biome, field) {
+/** Random stream of one field, so a single field can be drawn again exactly as the cache drew it. */
+const cellRng = (seed, x, y) => createRng(`ground:${seed}:${x},${y}`);
+
+/**
+ * @param {object} [only]  Optional `{skip, window}` for the reveal layer: `skip` is a Set of
+ *   field indexes left out, `window` a world-pixel rectangle; fields outside it are not drawn.
+ */
+/** Whether the picture of a field (top face and its faces down to the slab) touches a world-pixel rectangle. */
+function cellInWindow(x, y, hz, w) {
+  const left = (x - y - 1) * 32;
+  const right = (x - y + 1) * 32;
+  const top = (x + y) * 16 - hz;
+  const bottom = (x + y + 2) * 16;
+  return right >= w.x0 && left <= w.x1 && bottom + 4 >= w.y0 && top - 4 <= w.y1;
+}
+
+function drawGround(g, size, seed, biome, field, only = null) {
+  const rng = createRng(`ground:${seed}`);
   const pal = paletteOf(biome);
   g.lineJoin = 'round';
   g.lineCap = 'round';
@@ -177,9 +196,12 @@ function drawGround(g, size, rng, biome, field) {
     for (let x = Math.max(0, s - N + 1); x <= Math.min(N - 1, s); x++) {
       const y = s - x;
       const i = y * N + x;
+      if (only?.skip?.has(i)) continue;
       const L = field[i];
       const hz = L * STEP;
+      if (only?.window && !cellInWindow(x, y, hz, only.window)) continue;
       const lift = L * LEVEL_LIGHTEN;
+      const rng = cellRng(seed, x, y);
 
       // ---- top face, lighter the higher it lies
       poly(g, diamond(x, y, hz), shade(rng.pick(pal.ground), lift), 'rgba(26,20,16,.25)', 1);
@@ -334,11 +356,105 @@ export function createGroundLayer() {
     canvas.height = Math.ceil(h * scale);
     g.setTransform(scale, 0, 0, scale, -b.x0 * scale, -b.y0 * scale);
     g.clearRect(b.x0, b.y0, w, h);
-    drawGround(g, size, createRng(`ground:${seed}`), biomeOf(seed), field);
-    built = { size, seed, zoom, dpr, bounds: b, field };
+    drawGround(g, size, seed, biomeOf(seed), field);
+    built = { size, seed, zoom, dpr, bounds: b, field, scale };
+    reveals.clear();
+  }
+
+  /** Reveal images by key of the covering fields: the ground drawn without those blocks. */
+  const reveals = new Map();
+
+  /** The ground without `cells`, cut to their outline, at the zoom of the cache. */
+  function revealOf(cells, key) {
+    const hit = reveals.get(key);
+    if (hit && Math.abs(hit.zoom - lastZoom) / lastZoom <= 0.02) {
+      reveals.delete(key);
+      reveals.set(key, hit);
+      return hit;
+    }
+    const { size, seed, field, bounds: b, dpr } = built;
+    const hulls = cells.map((c) => blockHull(field, c.x, c.y));
+    let x0 = Infinity;
+    let y0 = Infinity;
+    let x1 = -Infinity;
+    let y1 = -Infinity;
+    for (const h of hulls) {
+      for (const [px, py] of h) {
+        x0 = Math.min(x0, px);
+        y0 = Math.min(y0, py);
+        x1 = Math.max(x1, px);
+        y1 = Math.max(y1, py);
+      }
+    }
+    const scale = Math.min(lastZoom * dpr, Math.sqrt(MAX_PIXELS / ((x1 - x0) * (y1 - y0))));
+    const image = hit?.canvas ?? document.createElement('canvas');
+    image.width = Math.ceil((x1 - x0) * scale);
+    image.height = Math.ceil((y1 - y0) * scale);
+    const r = image.getContext('2d');
+    r.setTransform(scale, 0, 0, scale, -x0 * scale, -y0 * scale);
+    r.beginPath();
+    for (const h of hulls) {
+      h.forEach(([px, py], k) => (k ? r.lineTo(px, py) : r.moveTo(px, py)));
+      r.closePath();
+    }
+    r.clip();
+    const skip = new Set(cells.map((c) => c.y * size + c.x));
+    drawGround(r, size, seed, biomeOf(seed), field, { skip, window: { x0, y0, x1, y1 } });
+    const entry = { canvas: image, zoom: lastZoom, hulls, box: { x0, y0, x1, y1 } };
+    reveals.delete(key);
+    reveals.set(key, entry);
+    while (reveals.size > REVEAL.maxLayers + 3) reveals.delete(reveals.keys().next().value);
+    return entry;
   }
 
   return {
+    /**
+     * Lets the player see through blocks of terrain that cover a field: over the cached ground,
+     * inside the outline of `cells`, the ground drawn without those blocks is laid down and the
+     * cached picture is put back on top with the opacity `REVEAL.blockAlpha`. At `fade` 0 this
+     * is the cached ground itself, at 1 the blocks are see-through. Call right after `draw`.
+     * @param {{x: number, y: number}[]} cells  The covering fields.
+     * @param {number} fade  0 to 1.
+     */
+    drawReveal(ctx, cam, view, cells, fade) {
+      if (!built || fade <= 0 || !cells.length) return;
+      const e = revealOf(cells, cellsKey(cells));
+      const b = built.bounds;
+      const k = cam.zoom;
+      const [ox, oy] = worldToScreen(cam, view, e.box.x0, e.box.y0);
+      const w = (e.box.x1 - e.box.x0) * k;
+      const h = (e.box.y1 - e.box.y0) * k;
+      ctx.save();
+      ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.beginPath();
+      for (const hull of e.hulls) {
+        hull.forEach(([px, py], i) => {
+          const [sx, sy] = worldToScreen(cam, view, px, py);
+          if (i) ctx.lineTo(sx, sy);
+          else ctx.moveTo(sx, sy);
+        });
+        ctx.closePath();
+      }
+      ctx.clip();
+      ctx.globalAlpha = fade;
+      ctx.drawImage(e.canvas, ox, oy, w, h);
+      ctx.globalAlpha = 1 - fade * (1 - REVEAL.blockAlpha);
+      const sc = built.scale;
+      ctx.drawImage(
+        canvas,
+        (e.box.x0 - b.x0) * sc,
+        (e.box.y0 - b.y0) * sc,
+        (e.box.x1 - e.box.x0) * sc,
+        (e.box.y1 - e.box.y0) * sc,
+        ox,
+        oy,
+        w,
+        h,
+      );
+      ctx.restore();
+    },
+
     /**
      * Draws the cached ground; rebuilds when the map, DPR or (settled) zoom changed.
      * @param {Uint8Array} [field]  Height field (terrain.js); flat when missing (gallery, studies).
