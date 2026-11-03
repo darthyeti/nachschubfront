@@ -104,6 +104,8 @@ try {
       }
       await page.screenshot({ path: join(OUT, `perf-${label}-${zoomLabel}.png`) });
     }
+    const raster = await page.evaluate(() => window.__nachschub.sprites());
+    report.push(`${label.padEnd(8)} sprite raster memory: ${(raster.bytes / 1048576).toFixed(1)} MB in ${raster.rasterized} sprites`);
     report.push(`${label.padEnd(8)} ${engine}, renderer: ${renderer}`);
     await context.close();
   }
