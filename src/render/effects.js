@@ -17,9 +17,13 @@ import { towerStats, towerById } from '../sim/towers.js';
 import { towerAnchor, towerSparks } from './towerSprites.js';
 import { drawGunship } from './gunship.js';
 import { sinceImpact } from '../sim/pods.js';
+import { SPRITE_SCALE, POD_ANCHORS, POD_PETALS, POD_PETAL_ORDER, POD_OPEN_SCALE } from './sprites/manifest.js';
+import { SMOKE_SECONDS, petalLands } from './podTiming.js';
 
 /** Upper bounds (CLAUDE.md: particles and decals need a ceiling). */
-const MAX_PARTICLES = 420;
+const MAX_PARTICLES = 520;
+/** Of those, how many may be puffs of dust, smoke and steam (a salvo of six leaves about 200). */
+const MAX_PUFFS = 240;
 const MAX_DECALS = 60;
 const MAX_NUMBERS = 36;
 
@@ -40,17 +44,60 @@ const REDUCED_FLASH = 0.25;
 const SPARK = { fire: '#ffb13b', smoke: '#6b625a', goo: C.toxic, spark: '#ffe07a', warp: C.warpL };
 
 /** Upper bound for shockwave rings and the comic words over them. */
-const MAX_RINGS = 10;
+const MAX_RINGS = 16;
 const MAX_WORDS = 4;
 
-/** Pod staging after the impact (seconds after touchdown), from the style test. */
+/**
+ * Pod staging after the impact (seconds after touchdown), from the capsule study. Only
+ * the drawing: the simulation knows when the pod lands and nothing else.
+ */
 const POD = {
-  /** Explosive bolts blow off before the hatches move. */
+  /** Explosive bolts blow off before the segments move. */
   bolts: PODS.openDelaySeconds * 0.6,
-  /** Pressure vents from both sides while the shell cools. */
-  steamFrom: 0.3,
-  steamTo: 2.6,
+  /** The core vents what is left of the heat out of the roof: this many puffs, this far apart. */
+  steamFrom: PODS.openDelaySeconds + 0.05,
+  steamStep: 0.15,
+  steamPuffs: 6,
+  /** Size of the opened capsule, in world pixels per SVG unit, and how far a segment reaches. */
+  openScale: SPRITE_SCALE.pod * POD_OPEN_SCALE,
+  /** Height of the roof of the opened capsule above the ground, in px. */
+  roof: POD_ANCHORS.top * SPRITE_SCALE.pod * POD_OPEN_SCALE,
+  /** Height of the seams of the shell, where the bolts blow. */
+  seam: 42 * SPRITE_SCALE.pod,
+  /** How far out a segment throws its dust when it lies down, as a share of its reach. */
+  slamReach: 0.9,
+  /** Particles of the landing, by kind; the second number is for prefers-reduced-motion. */
+  fire: [7, 4],
+  skirt: [10, 5],
+  billows: [6, 3],
+  chunks: [9, 4],
+  sparks: [6, 3],
 };
+
+/** The study's three smoke palettes, dark to light, as 16 steps each: a puff clears up as it ages. */
+const PUFF_STEPS = 16;
+function hexMix(a, b, u) {
+  const p = (h, i) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  const c = (i) => Math.round(p(a, i) + (p(b, i) - p(a, i)) * u);
+  return `rgb(${c(0)},${c(1)},${c(2)})`;
+}
+function rampOf(stops) {
+  const out = [];
+  for (let k = 0; k < PUFF_STEPS; k++) {
+    const x = (k / (PUFF_STEPS - 1)) * (stops.length - 1);
+    const i = Math.min(stops.length - 2, Math.floor(x));
+    out.push(hexMix(stops[i], stops[i + 1], x - i));
+  }
+  return out;
+}
+const PUFF_COLORS = {
+  soot: rampOf(['#2b221d', '#5d544c', '#a39988', '#d3cabb']),
+  dust: rampOf(['#6e5a42', '#9b8466', '#c4b08a', '#e0d4b6']),
+  steam: rampOf(['#bdb6aa', '#d8d3c9', '#e9e4dc', '#f2efe8']),
+};
+const CHUNK_COLORS = ['#4b3a2c', '#5e4a38', '#3a2e24'];
+const TAU = Math.PI * 2;
+const between = (a, b) => a + Math.random() * (b - a);
 
 /**
  * World point to the pixel space the camera transform works in. `z` is the height above the
@@ -64,20 +111,6 @@ function project(x, y, z = 0) {
 /** A screen point of an emplacement (an anchor, a spark) raised onto the height of its field. */
 function onField(tower, [x, y]) {
   return [x, y - cellLift(tower.x, tower.y)];
-}
-
-/** The four hatches, in the order they come down (style test). */
-const HATCH_DIRS = [
-  [0.7, 0.7],
-  [-0.7, 0.7],
-  [-0.7, -0.7],
-  [0.7, -0.7],
-];
-
-/** Where the pressure vents sit on the shell, in screen pixels. */
-function ventPoint(pod, side) {
-  const [x, y] = project(pod.x + 0.5, pod.y + 0.5, 40);
-  return { x: x + side * 18, y: y - Math.random() * 30 };
 }
 
 export function createEffects() {
@@ -105,9 +138,69 @@ export function createEffects() {
     flash = Math.max(flash, flashLevel);
   }
 
+  /** Puffs alive, kept by hand so the ceiling needs no pass over the list. */
+  let puffs = 0;
+
   function addParticle(p) {
     if (particles.length >= MAX_PARTICLES) return;
+    if (p.kind === 'puff') {
+      if (puffs >= MAX_PUFFS) return;
+      puffs += 1;
+    }
     particles.push(p);
+  }
+
+  /**
+   * A puff of dust, smoke or steam. It spreads, thins out and clears up (the palette runs
+   * from dark to light) and is gone after `life` seconds, never more than SMOKE_SECONDS.
+   * @param {{angle: number, speed: number, rise?: number, life: number, size: number, grow: number,
+   *   drag: number, alpha: number, wind?: number, from?: number, delay?: number}} o  `angle` is the way it
+   *   travels over the ground, `from` how far out it starts, `delay` how long it waits before it shows.
+   */
+  function addPuff(pal, sx, sy, o) {
+    const delay = o.delay ?? 0;
+    const life = Math.min(o.life, SMOKE_SECONDS - delay);
+    const from = o.from ?? 0;
+    addParticle({
+      kind: 'puff',
+      pal,
+      delay,
+      x: sx + Math.cos(o.angle) * from,
+      y: sy + Math.sin(o.angle) * from * 0.5,
+      vx: Math.cos(o.angle) * o.speed,
+      vy: Math.sin(o.angle) * o.speed * 0.5 - (o.rise ?? 0),
+      drag: o.drag,
+      wind: o.wind ?? 0,
+      gravity: 0,
+      size: o.size,
+      grow: o.grow,
+      alpha: o.alpha,
+      life,
+      max: life,
+    });
+  }
+
+  /** A chunk of the ground or of the shell: it flies, lands, bounces and lies. */
+  function addChunk(sx, sy, o) {
+    addParticle({
+      kind: 'chunk',
+      gx: sx,
+      gy: sy,
+      z: o.z,
+      vgx: Math.cos(o.angle) * o.speed,
+      vgy: Math.sin(o.angle) * o.speed * 0.5,
+      vz: o.vz,
+      g: 900,
+      size: o.size,
+      col: o.col,
+      rot: Math.random() * TAU,
+      spin: (Math.random() - 0.5) * 18,
+      x: sx,
+      y: sy,
+      gravity: 0,
+      life: o.life,
+      max: o.life,
+    });
   }
 
   function burst(x, y, z, kind, count, options = {}) {
@@ -138,9 +231,10 @@ export function createEffects() {
     }
   }
 
-  function addRing(x, y, { radius = 3, life = 0.5, colour = '#ffe6b4', width = 4 } = {}) {
+  function addRing(x, y, { radius = 3, life = 0.5, colour = '#ffe6b4', width = 4, wash = false } = {}) {
     if (rings.length >= MAX_RINGS) rings.shift();
-    rings.push({ x, y, radius, life, max: life, colour, width });
+    // `wash`: a ring that runs out fast and thins as it goes, with a pale wash inside it.
+    rings.push({ x, y, radius, life, max: life, colour, width, wash });
   }
 
   function addWord(x, y, text, size = 34) {
@@ -270,21 +364,7 @@ export function createEffects() {
       burst(event.x, event.y, 12, 'warp', 8, { speed: 60, size: 4, grow: 3, life: 0.6, gravity: -30 });
       jolt(SHAKE.leak);
     } else if (event.type === 'podImpact') {
-      jolt(SHAKE.podImpact, FLASH.podImpact);
-      // The pod hits like a shell: dust ring, debris, fire, a crater and a shout.
-      burst(event.x + 0.5, event.y + 0.5, 0, 'dust', reducedMotion ? 10 : 26, {
-        speed: 150, size: 7, grow: 20, life: 1.4, gravity: -6,
-      });
-      burst(event.x + 0.5, event.y + 0.5, 10, 'debris', reducedMotion ? 6 : 16, {
-        speed: 120, size: 3, life: 0.9, gravity: 420,
-      });
-      burst(event.x + 0.5, event.y + 0.5, 6, 'fire', reducedMotion ? 5 : 12, {
-        speed: 70, size: 6, grow: 10, life: 0.35,
-      });
-      addRing(event.x + 0.5, event.y + 0.5, { radius: 4.6, life: 0.6, width: 5 });
-      addDecal({ kind: 'crater', x: event.x + 0.5, y: event.y + 0.5, radius: 0.9, life: 30, max: 30 });
-      // Only the first pod of a salvo shouts; five words at once are noise.
-      if (event.index === 0) addWord(event.x + 0.5, event.y + 0.5, STRINGS.effects.podImpact, 38);
+      podImpact(event, reducedMotion);
     } else if (event.type === 'stasis') {
       fields.push({ x: event.x, y: event.y, radius: event.radius, life: event.seconds, max: event.seconds });
     } else if (event.type === 'kolossBreach') {
@@ -348,8 +428,57 @@ export function createEffects() {
   }
 
   /**
-   * What a pod throws off after it has landed: explosive bolts, dust when each
-   * hatch slams down, and steam from the cooling shell.
+   * The landing (docs/ART.md, "Nachschubkapsel"): a white-hot flash and a fireball behind the
+   * capsule, two shock rings on the ground, a skirt of dust, billows of smoke, earth and
+   * chunks, sparks, a burn mark with cracks, the shout. Dust and smoke are gone after
+   * SMOKE_SECONDS.
+   */
+  function podImpact(event, reducedMotion) {
+    const cx = event.x + 0.5;
+    const cy = event.y + 0.5;
+    const [sx, sy] = project(cx, cy);
+    const pick = (counts) => (reducedMotion ? counts[1] : counts[0]);
+    jolt(SHAKE.podImpact, FLASH.podImpact);
+
+    addParticle({ kind: 'glare', x: sx, y: sy, vx: 0, vy: 0, gravity: 0, size: 44, grow: 0, life: 0.14, max: 0.14 });
+    burstAt(sx, sy - 8, 'blaze', pick(POD.fire), { speed: 70, size: 14, grow: 14, life: 0.3, gravity: 0 });
+    for (let i = 0, n = pick(POD.skirt); i < n; i++) {
+      addPuff('dust', sx, sy - 3, {
+        angle: (i / n) * TAU + between(-0.15, 0.15), speed: between(170, 260), rise: between(8, 28), from: 10,
+        life: between(1.3, 1.9), size: 6, grow: between(18, 26), drag: 2.4, alpha: 0.62,
+      });
+    }
+    for (let i = 0, n = pick(POD.billows); i < n; i++) {
+      addPuff('soot', sx, sy - 6, {
+        angle: between(0, TAU), speed: between(10, 60), rise: between(95, 160), from: between(12, 26), delay: between(0.08, 0.4),
+        life: between(2.6, 3.1), size: 12, grow: between(20, 32), drag: 1, alpha: 0.55, wind: 16,
+      });
+    }
+    for (let i = 0, n = pick(POD.chunks); i < n; i++) {
+      addChunk(sx, sy, {
+        angle: between(0, TAU), speed: between(40, 190), z: 6, vz: between(260, 470),
+        size: between(2.5, 6.5), col: i % 5 === 0 ? C.steelL : CHUNK_COLORS[i % 3], life: between(1.9, 2.5),
+      });
+    }
+    burstAt(sx, sy - 10, 'spark', pick(POD.sparks), { speed: 220, size: 2, life: 0.4, gravity: 600 });
+
+    addRing(cx, cy, { radius: 4.1, life: 0.55, width: 9, colour: '#fff0d4', wash: true });
+    addRing(cx, cy, { radius: 2.84, life: 0.75, width: 5, colour: '#ffae60', wash: true });
+    // The burn mark: a scorched patch with cracks that glow while the ground cools.
+    const cracks = [];
+    for (let i = 0; i < 9; i++) {
+      cracks.push({
+        a: (i / 9) * TAU + between(-0.2, 0.2), len: between(14, 34), kink: between(-0.35, 0.35), branch: between(0.45, 0.7),
+      });
+    }
+    addDecal({ kind: 'crater', x: cx, y: cy, radius: 0.9, life: 30, max: 30, cracks });
+    // Only the first pod of a salvo shouts; five words at once are noise.
+    if (event.index === 0) addWord(cx, cy, STRINGS.effects.podImpact, 38);
+  }
+
+  /**
+   * What a pod throws off after it has landed: the explosive bolts, dust and chunks when
+   * each segment lies down, and steam out of the roof while the core cools.
    */
   function stagePods(state, dt, reducedMotion) {
     for (const pod of state.pods) {
@@ -357,45 +486,82 @@ export function createEffects() {
       const since = sinceImpact(pod);
       let mark = staged.get(pod);
       if (!mark) {
-        mark = { bolts: false, slams: 0 };
+        mark = { bolts: false, slams: 0, steam: 0 };
         staged.set(pod, mark);
       }
+      const [sx, sy] = project(pod.x + 0.5, pod.y + 0.5);
       if (!mark.bolts && since >= POD.bolts) {
         mark.bolts = true;
         jolt(3);
-        burst(pod.x + 0.5, pod.y + 0.5, 50, 'bolt', reducedMotion ? 3 : 7, {
-          speed: 150, size: 3, life: 1, gravity: 520,
-        });
-        burst(pod.x + 0.5, pod.y + 0.5, 50, 'spark', reducedMotion ? 3 : 8, {
-          speed: 180, size: 2, life: 0.3, gravity: 300,
-        });
+        const [bx, by] = project(pod.x + 0.5, pod.y + 0.5, POD.seam);
+        burstAt(bx, by, 'bolt', reducedMotion ? 3 : 5, { speed: 150, size: 3, life: 1, gravity: 520 });
+        burstAt(bx, by, 'spark', reducedMotion ? 3 : 6, { speed: 180, size: 2, life: 0.3, gravity: 300 });
+        // A puff of steam at every seam.
+        for (let i = 0, n = reducedMotion ? 2 : 4; i < n; i++) {
+          addPuff('steam', bx, by, {
+            angle: POD_PETALS[i].angle, speed: 30, life: 0.9, size: 3, grow: 10, drag: 2, alpha: 0.8,
+          });
+        }
       }
-      // One puff of dust per hatch, as it comes down.
-      const open = PODS.openDelaySeconds + PODS.openSeconds;
-      while (mark.slams < 4 && since >= PODS.openDelaySeconds + ((mark.slams + 1) / 4) * PODS.openSeconds) {
-        const [dx, dy] = HATCH_DIRS[mark.slams];
+      // One burst of dust per segment, as it comes down: in the order they open, on the side they fall.
+      while (mark.slams < 4 && since >= petalLands(mark.slams)) {
+        const petal = POD_PETALS.find((p) => p.id === POD_PETAL_ORDER[mark.slams]);
         mark.slams += 1;
         jolt(2);
-        burst(pod.x + 0.5 + dx * 0.6, pod.y + 0.5 + dy * 0.6, 0, 'dust', reducedMotion ? 2 : 6, {
-          speed: 60, size: 4, grow: 10, life: 0.7, gravity: -4,
-        });
+        const reach = 60.57 * POD.openScale * POD.slamReach;
+        const px = sx + Math.cos(petal.angle) * reach;
+        const py = sy + Math.sin(petal.angle) * reach * 0.5;
+        for (let i = 0, n = reducedMotion ? 2 : 3; i < n; i++) {
+          addPuff('dust', px, py, {
+            angle: petal.angle + between(-0.5, 0.5), speed: between(50, 120), rise: between(6, 20),
+            life: between(0.9, 1.4), size: 5, grow: between(11, 19), drag: 2.2, alpha: 0.8,
+          });
+        }
+        if (!reducedMotion) {
+          for (let i = 0; i < 2; i++) {
+            addChunk(px, py, {
+              angle: petal.angle + between(-0.6, 0.6), speed: between(40, 100), z: 3, vz: between(120, 220),
+              size: between(2, 4), col: CHUNK_COLORS[i], life: between(0.9, 1.3),
+            });
+          }
+        }
       }
       if (reducedMotion) continue;
-      if (since > open + POD.steamFrom && since < open + POD.steamTo && Math.random() < dt * 14) {
-        const side = Math.random() < 0.5 ? -1 : 1;
-        addParticle({
-          kind: 'steam',
-          ...ventPoint(pod, side),
-          vx: side * (70 + Math.random() * 60),
-          vy: -12 - Math.random() * 20,
-          gravity: -14,
-          size: 4,
-          grow: 16,
-          life: 0.9,
-          max: 0.9,
+      while (mark.steam < POD.steamPuffs && since >= POD.steamFrom + mark.steam * POD.steamStep) {
+        mark.steam += 1;
+        const [vx, vy] = project(pod.x + 0.5, pod.y + 0.5, POD.roof);
+        addPuff('steam', vx, vy, {
+          angle: between(0, TAU), speed: between(2, 10), rise: between(24, 40),
+          life: between(1.2, 1.6), size: 4, grow: between(10, 13), drag: 1, alpha: 0.6, wind: 12,
         });
       }
     }
+  }
+
+  /** A chunk on the ground plane: it rises and falls, bounces a little and slides to rest. */
+  function moveChunk(p, dt) {
+    p.gx += p.vgx * dt;
+    p.gy += p.vgy * dt;
+    if (p.z > 0 || p.vz > 0) {
+      p.z += p.vz * dt;
+      p.vz -= p.g * dt;
+      p.rot += p.spin * dt;
+    }
+    if (p.z <= 0) {
+      p.z = 0;
+      if (p.vz < -60) {
+        p.vz = -p.vz * 0.32;
+        p.vgx *= 0.5;
+        p.vgy *= 0.5;
+      } else {
+        p.vz = 0;
+        const f = Math.exp(-6 * dt);
+        p.vgx *= f;
+        p.vgy *= f;
+      }
+    }
+    p.x = p.gx;
+    p.y = p.gy - p.z;
   }
 
   function update(dt, state, reducedMotion) {
@@ -413,12 +579,26 @@ export function createEffects() {
     }
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
+      if (p.delay > 0) {
+        p.delay -= dt;
+        continue;
+      }
       p.life -= dt;
       if (p.life <= 0) {
+        if (p.kind === 'puff') puffs -= 1;
         particles.splice(i, 1);
         continue;
       }
-      p.x += p.vx * dt;
+      if (p.kind === 'chunk') {
+        moveChunk(p, dt);
+        continue;
+      }
+      if (p.drag) {
+        const f = Math.exp(-p.drag * dt);
+        p.vx *= f;
+        p.vy *= f;
+      }
+      p.x += (p.vx + (p.wind ?? 0)) * dt;
       p.y += p.vy * dt;
       p.vy += p.gravity * dt;
     }
@@ -460,13 +640,7 @@ export function createEffects() {
         ctx.fillRect(-r, -r, r * 2, r * 2);
         ctx.restore();
       } else if (d.kind === 'crater') {
-        const r = d.radius * 32;
-        ell(ctx, x, y, r, r * 0.5, '#2a211b', C.ink, 2);
-        ctx.beginPath();
-        ctx.ellipse(x, y, r, r * 0.5, 0, 0.25, Math.PI - 0.25);
-        ctx.strokeStyle = '#7d6852';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        drawBurnMark(ctx, d, x, y);
       } else {
         ell(ctx, x, y, d.radius * 26, d.radius * 13, C.toxicD, 'rgba(26,20,16,.6)', 1);
       }
@@ -477,11 +651,17 @@ export function createEffects() {
     for (const ring of rings) {
       const u = 1 - ring.life / ring.max;
       const [x, y] = project(ring.x, ring.y);
+      const spread = ring.wash ? 1 - (1 - u) * (1 - u) : u;
+      const rx = (0.3 + spread) * ring.radius * 32;
       ctx.globalAlpha = (1 - u) * 0.9;
       ctx.strokeStyle = ring.colour;
       ctx.lineWidth = ring.width * (1 - u * 0.6);
       ctx.beginPath();
-      ctx.ellipse(x, y, (0.3 + u) * ring.radius * 32, (0.3 + u) * ring.radius * 16, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y, rx, rx * 0.5, 0, 0, Math.PI * 2);
+      if (ring.wash) {
+        ctx.fillStyle = `rgba(255,236,200,${0.1 * (1 - u)})`;
+        ctx.fill();
+      }
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
@@ -519,6 +699,7 @@ export function createEffects() {
       if (stats.behaviour === 'aura') drawAura(ctx, tower, stats, t, reducedMotion);
       else if (stats.behaviour === 'cone' || stats.behaviour === 'flame') drawCone(ctx, tower, t, reducedMotion);
     }
+    drawBlaze(ctx);
   }
 
   /**
@@ -735,6 +916,74 @@ export function createEffects() {
     ell(ctx, from[0], from[1], 4 * flicker, 4 * flicker, '#fff3b0', null);
   }
 
+  /**
+   * The burn mark of a landing: a scorched patch that grows in over a moment, a dark pit with its rim,
+   * and cracks that glow while the ground cools.
+   */
+  function drawBurnMark(ctx, d, x, y) {
+    const age = d.max - d.life;
+    const grow = Math.min(1, age / 0.16);
+    const k = grow * grow * (3 - 2 * grow);
+    for (const [r, a] of [[64, 0.16], [48, 0.2], [32, 0.24]]) {
+      ell(ctx, x, y, r * k, r * k * 0.5, `rgba(14,10,8,${a})`, null);
+    }
+    const pit = d.radius * 32 * 0.62 * k;
+    ell(ctx, x, y, pit, pit * 0.5, '#2a211b', C.ink, 2);
+    ctx.beginPath();
+    ctx.ellipse(x, y, pit, pit * 0.5, 0, 0.25, Math.PI - 0.25);
+    ctx.strokeStyle = '#7d6852';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const cool = Math.max(0, 1 - age / SMOKE_SECONDS);
+    ctx.lineCap = 'round';
+    for (const c of d.cracks ?? []) {
+      const len = c.len * k;
+      const p0x = x + Math.cos(c.a) * 24;
+      const p0y = y + Math.sin(c.a) * 12;
+      const p1x = x + Math.cos(c.a + c.kink) * len * c.branch + Math.cos(c.a) * 12;
+      const p1y = y + (Math.sin(c.a + c.kink) * len * c.branch + Math.sin(c.a) * 12) * 0.5;
+      const p2x = x + Math.cos(c.a) * (24 + len);
+      const p2y = y + Math.sin(c.a) * (24 + len) * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(p0x, p0y);
+      ctx.lineTo(p1x, p1y);
+      ctx.lineTo(p2x, p2y);
+      ctx.strokeStyle = C.ink;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+      if (cool > 0.02) {
+        const keep = ctx.globalAlpha;
+        ctx.globalAlpha = keep * cool * 0.7;
+        ctx.strokeStyle = '#ff8a2a';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.globalAlpha = keep;
+      }
+    }
+  }
+
+  /**
+   * Fireball and flash of a landing. They are drawn in the ground pass, behind the figures, so
+   * the capsule steps out of the fire early instead of being hidden by it.
+   */
+  function drawBlaze(ctx) {
+    for (const p of particles) {
+      if (p.kind !== 'blaze' && p.kind !== 'glare') continue;
+      const u = p.life / p.max;
+      if (p.kind === 'glare') {
+        ctx.globalAlpha = u * 0.7;
+        ell(ctx, p.x, p.y, p.size * 1.7, p.size * 0.85, 'rgba(255,214,140,.55)', null);
+        ell(ctx, p.x, p.y, p.size, p.size * 0.5, '#fff4cc', null);
+        continue;
+      }
+      const r = Math.max(0.5, p.size + (1 - u) * p.grow);
+      const col = u > 0.72 ? '#fff3b0' : u > 0.45 ? '#ffb13b' : u > 0.22 ? '#e2531f' : '#5a3a2e';
+      ctx.globalAlpha = u > 0.22 ? 0.95 : u * 4.3;
+      ell(ctx, p.x, p.y, r, r * 0.9, col, null);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   /** Shells, flashes, beams, particles and numbers, on top of everything. */
   function drawAbove(ctx, state, t, reducedMotion) {
     // The gunship flies over everything else while its run lasts.
@@ -762,6 +1011,15 @@ export function createEffects() {
 
     for (const p of particles) {
       const u = p.life / p.max;
+      if (p.kind === 'blaze' || p.kind === 'glare') continue;
+      if (p.kind === 'puff') {
+        if (!(p.delay > 0)) drawPuff(ctx, p, u);
+        continue;
+      }
+      if (p.kind === 'chunk') {
+        drawChunk(ctx, p, u);
+        continue;
+      }
       const r = Math.max(0.5, p.size + (1 - u) * p.grow);
       if (p.kind === 'fire') {
         const col = u > 0.72 ? '#fff3b0' : u > 0.45 ? '#ffb13b' : u > 0.22 ? '#e2531f' : '#5a3a2e';
@@ -819,6 +1077,37 @@ export function createEffects() {
       comicText(ctx, w.text, w.x, w.y - u * 26, Math.round(w.size * (0.7 + u * 0.4)), '#ffd23f');
       ctx.globalAlpha = 1;
     }
+  }
+
+  /** A puff of dust, smoke or steam: it grows quickly and slows, clears up and thins out. */
+  function drawPuff(ctx, p, u) {
+    const e = 1 - u;
+    const r = p.size + p.grow * (1 - u * u);
+    const ry = r * (p.pal === 'dust' ? 0.72 : 0.9);
+    const alpha = p.alpha * Math.pow(u, 1.4) * Math.min(1, (e * p.max) / 0.08);
+    if (alpha < 0.01) return;
+    const ramp = PUFF_COLORS[p.pal];
+    const step = Math.pow(e, 0.75) * (PUFF_STEPS - 1);
+    ctx.globalAlpha = alpha;
+    ell(ctx, p.x, p.y, r, ry, ramp[Math.round(step)], 'rgba(26,20,16,.32)', 1.3);
+    ctx.globalAlpha = alpha * 0.55;
+    ell(ctx, p.x - r * 0.28, p.y - ry * 0.32, r * 0.55, ry * 0.5, ramp[Math.min(PUFF_STEPS - 1, Math.round(step) + 4)], null);
+    ctx.globalAlpha = 1;
+  }
+
+  /** A chunk: a small ragged stone with its shadow on the ground while it is in the air. */
+  function drawChunk(ctx, p, u) {
+    const fade = u < 0.2 ? u / 0.2 : 1;
+    ctx.globalAlpha = fade;
+    const pts = [];
+    for (let k = 0; k < 5; k++) {
+      const a = p.rot + (k / 5) * TAU;
+      const rr = p.size * (k % 2 ? 0.75 : 1.1);
+      pts.push([p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr * 0.8]);
+    }
+    if (p.z > 0.5) shadow(ctx, p.gx, p.gy, p.size * 0.8, p.size * 0.4, 0.25 * fade);
+    poly(ctx, pts, p.col, C.ink, 1.6);
+    ctx.globalAlpha = 1;
   }
 
   function drawMuzzle(ctx, s, a) {
@@ -1021,6 +1310,7 @@ export function createEffects() {
 
     clear() {
       particles.length = 0;
+      puffs = 0;
       decals.length = 0;
       numbers.length = 0;
       shots.length = 0;
