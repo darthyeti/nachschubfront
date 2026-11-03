@@ -3,6 +3,7 @@
 
 import { iso } from './iso.js';
 import { poly, box, ell, shadow, comicText } from './draw.js';
+import { rectCorners } from './shadows.js';
 import { C } from './palette.js';
 import { paletteOf, shade } from './biomes.js';
 import { lateralOffset } from './enemySprites.js';
@@ -13,16 +14,22 @@ import { RANK_COUNT } from './sprites/manifest.js';
 const ASH = paletteOf('ash');
 const RUIN_HEIGHTS = [34, 44, 52, 40];
 const WALL_HEIGHTS = [18, 26, 22, 30];
+/** Bulwark: half side of its block in cells and its height in px. */
+const BULWARK_HALF = 0.46;
+const BULWARK_HEIGHT = 26;
+/** Blocks that stand in the light: foot shade and bright edge (shadows.js). */
+const LIT = { lit: true };
+/** Shadow heights that differ from the drawn block: the wall's cap, a heap of rubble. */
+const SHADOW_WALL_CAP = 4;
+const SHADOW_RUBBLE_HEIGHT = 14;
 
 // ---------- Obstacles ----------
 
 function drawRuin(ctx, x, y, variant, pal) {
   const STONE = pal.stone;
   const h = RUIN_HEIGHTS[variant % RUIN_HEIGHTS.length];
-  const [sx, sy] = iso(x + 0.5, y + 0.5);
-  shadow(ctx, sx + 10, sy + 4, 34, 14, 0.3);
-  box(ctx, x + 0.05, y + 0.05, 0.9, 0.9, 12, 0, pal.stone.map((c) => shade(c, -8)));
-  box(ctx, x + 0.22, y + 0.22, 0.56, 0.56, h, 12, STONE);
+  box(ctx, x + 0.05, y + 0.05, 0.9, 0.9, 12, 0, pal.stone.map((c) => shade(c, -8)), 2.5, LIT);
+  box(ctx, x + 0.22, y + 0.22, 0.56, 0.56, h, 12, STONE, 2.5, LIT);
   box(ctx, x + 0.22, y + 0.22, 0.28, 0.3, 14, 12 + h, STONE, 2);
   box(ctx, x + 0.5, y + 0.5, 0.28, 0.28, 7, 12 + h, STONE, 2);
   // Gothic window slit on the front face.
@@ -54,13 +61,11 @@ function drawCrater(ctx, x, y, variant, pal) {
 function drawWallCell(ctx, x, y, variant, index, horizontal, pal) {
   const STONE = pal.stone;
   const h = WALL_HEIGHTS[(variant + index) % WALL_HEIGHTS.length];
-  const [sx, sy] = iso(x + 0.5, y + 0.5);
-  shadow(ctx, sx + 6, sy + 3, 28, 11, 0.25);
   if (horizontal) {
-    box(ctx, x, y + 0.32, 1, 0.36, h, 0, STONE);
+    box(ctx, x, y + 0.32, 1, 0.36, h, 0, STONE, 2.5, LIT);
     box(ctx, x + 0.12 + (index % 2) * 0.4, y + 0.32, 0.36, 0.36, 8, h, STONE, 2);
   } else {
-    box(ctx, x + 0.32, y, 0.36, 1, h, 0, STONE);
+    box(ctx, x + 0.32, y, 0.36, 1, h, 0, STONE, 2.5, LIT);
     box(ctx, x + 0.32, y + 0.12 + (index % 2) * 0.4, 0.36, 0.36, 8, h, STONE, 2);
   }
 }
@@ -74,10 +79,8 @@ const RUBBLE = [
 ];
 
 function drawRubble(ctx, x, y, variant, pal) {
-  const [sx, sy] = iso(x + 0.5, y + 0.5);
-  shadow(ctx, sx, sy + 2, 28, 12, 0.22);
   for (const [px, py, w, d, h, brick] of RUBBLE[variant % RUBBLE.length]) {
-    box(ctx, x + px, y + py, w, d, h, 0, brick ? C.brick : pal.stone, 2);
+    box(ctx, x + px, y + py, w, d, h, 0, brick ? C.brick : pal.stone, 2, LIT);
   }
 }
 
@@ -89,17 +92,11 @@ function drawRubble(ctx, x, y, variant, pal) {
  * doctrine.
  */
 function drawBulwark(ctx, x, y, pal) {
-  const hw = 0.46;
+  const hw = BULWARK_HALF;
   const cx = x + 0.5;
   const cy = y + 0.5;
-  const h = 26;
-  const b = [iso(cx - hw, cy + hw), iso(cx + hw, cy + hw), iso(cx + hw, cy - hw)];
-  const top = [iso(cx - hw, cy - hw, h), iso(cx + hw, cy - hw, h), iso(cx + hw, cy + hw, h), iso(cx - hw, cy + hw, h)];
-  const [gx, gy] = iso(cx, cy);
-  shadow(ctx, gx, gy, 30, 12, 0.3);
-  poly(ctx, [b[0], b[1], top[2], top[3]], pal.stone[1], C.ink, 2.6);
-  poly(ctx, [b[1], b[2], top[1], top[2]], pal.stone[2], C.ink, 2.6);
-  poly(ctx, top, pal.stone[0], C.ink, 2.6);
+  const h = BULWARK_HEIGHT;
+  box(ctx, cx - hw, cy - hw, 2 * hw, 2 * hw, h, 0, [pal.stone[0], pal.stone[1], pal.stone[2]], 2.6, LIT);
   // Two struts up the front face.
   ctx.strokeStyle = shade(pal.stone[2], -16);
   ctx.lineWidth = 3;
@@ -125,6 +122,49 @@ function drawBulwark(ctx, x, y, pal) {
     C.ink,
     1.4,
   );
+}
+
+/**
+ * What an obstacle cell throws on the ground: bodies as rectangles in cell coordinates with
+ * their own height in px, for `castShadows`. A crater has no body and no shadow. The ground
+ * pass of the scene draws these before any figure, so a shadow never lies on a neighbour.
+ * @returns {{footprint: number[][], height: number}[]}
+ */
+export function obstacleShadow(obstacle, index) {
+  const { x, y } = obstacle.cells[index];
+  const rect = (x0, y0, x1, y1, height) => ({ footprint: rectCorners(x + x0, y + y0, x + x1, y + y1), height });
+  switch (obstacle.kind) {
+    case 'ruin': {
+      const h = RUIN_HEIGHTS[obstacle.variant % RUIN_HEIGHTS.length];
+      return [rect(0.05, 0.05, 0.95, 0.95, 12), rect(0.22, 0.22, 0.78, 0.78, 12 + h)];
+    }
+    case 'wall': {
+      const h = WALL_HEIGHTS[(obstacle.variant + index) % WALL_HEIGHTS.length] + SHADOW_WALL_CAP;
+      const horizontal = obstacle.cells.length > 1 && obstacle.cells[1].y === obstacle.cells[0].y;
+      return [horizontal ? rect(0, 0.32, 1, 0.68, h) : rect(0.32, 0, 0.68, 1, h)];
+    }
+    case 'rubble':
+      return [rect(0.18, 0.2, 0.82, 0.8, SHADOW_RUBBLE_HEIGHT)];
+    case 'bulwark':
+      return [rect(0.5 - BULWARK_HALF, 0.5 - BULWARK_HALF, 0.5 + BULWARK_HALF, 0.5 + BULWARK_HALF, BULWARK_HEIGHT)];
+    default:
+      return [];
+  }
+}
+
+/** The bastion's shadow; `size` as in `drawBastion`. */
+export function bastionShadow(p, size = 1) {
+  const lift = 1 + (size - 1) * 0.45;
+  const s = size;
+  return [{ footprint: rectCorners(p.x + 0.08 * s, p.y + 0.08 * s, p.x + 0.92 * s, p.y + 0.92 * s), height: 30 * lift }];
+}
+
+/** The beacon's shadow: the low plinth and the tall mast. */
+export function beaconShadow(p) {
+  return [
+    { footprint: rectCorners(p.x + 0.2, p.y + 0.2, p.x + 0.8, p.y + 0.8), height: 8 },
+    { footprint: rectCorners(p.x + 0.32, p.y + 0.32, p.x + 0.68, p.y + 0.68), height: 38 },
+  ];
 }
 
 /** Draws one cell of an obstacle; multi-cell walls are depth-sorted per cell. */
@@ -324,12 +364,10 @@ export function drawBastion(ctx, p, t, size = 1) {
   const { x, y } = p;
   const s = size;
   const lift = 1 + (s - 1) * 0.45;
-  const [sx, sy] = iso(x + 0.5 * s, y + 0.5 * s);
-  shadow(ctx, sx, sy + 4 * s, 36 * s, 15 * s, 0.35);
-  box(ctx, x + 0.08 * s, y + 0.08 * s, 0.84 * s, 0.84 * s, 30 * lift, 0, C.brick);
+  box(ctx, x + 0.08 * s, y + 0.08 * s, 0.84 * s, 0.84 * s, 30 * lift, 0, C.brick, 2.5, LIT);
   // Battlements.
   for (const [dx, dy] of [[0.08, 0.08], [0.64, 0.08], [0.08, 0.64], [0.64, 0.64]]) {
-    box(ctx, x + dx * s, y + dy * s, 0.28 * s, 0.28 * s, 10 * lift, 30 * lift, C.brick, 2);
+    box(ctx, x + dx * s, y + dy * s, 0.28 * s, 0.28 * s, 10 * lift, 30 * lift, C.brick, 2, LIT);
   }
   // Glowing gate on the two visible faces.
   const flicker = 0.75 + Math.sin(t * 7) * 0.1;
@@ -351,10 +389,8 @@ export function drawBastion(ctx, p, t, size = 1) {
 
 export function drawBeacon(ctx, p, t) {
   const { x, y } = p;
-  const [sx, sy] = iso(x + 0.5, y + 0.5);
-  shadow(ctx, sx, sy + 3, 22, 10, 0.3);
-  box(ctx, x + 0.2, y + 0.2, 0.6, 0.6, 8, 0, ['#80735f', '#5f5446', '#433a31'], 2);
-  box(ctx, x + 0.32, y + 0.32, 0.36, 0.36, 30, 8, C.stone, 2);
+  box(ctx, x + 0.2, y + 0.2, 0.6, 0.6, 8, 0, ['#80735f', '#5f5446', '#433a31'], 2, LIT);
+  box(ctx, x + 0.32, y + 0.32, 0.36, 0.36, 30, 8, C.stone, 2, LIT);
   // Fire bowl and flame.
   const [fx, fy] = iso(x + 0.5, y + 0.5, 38);
   ell(ctx, fx, fy, 13, 6.5, C.steelD, C.ink, 2);

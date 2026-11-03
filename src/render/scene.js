@@ -13,6 +13,9 @@ import {
   drawRiftLabel,
   drawBanZone,
   drawBastion,
+  bastionShadow,
+  beaconShadow,
+  obstacleShadow,
   drawBastionGlow,
   drawBeacon,
   drawBeaconLabel,
@@ -23,8 +26,17 @@ import {
 import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
 import { createBackdropLayer } from './backdrop.js';
 import { createAtmosphere } from './atmosphere.js';
-import { biomeOf, paletteOf, FOUNDATION_ALPHA, FOUNDATION_INSET } from './biomes.js';
+import {
+  biomeOf,
+  paletteOf,
+  FOUNDATION_ALPHA,
+  FOUNDATION_INSET,
+  FOUNDATION_LINE,
+  FOUNDATION_RIM,
+  FOUNDATION_RIM_ALPHA,
+} from './biomes.js';
 import { createTrail } from './trail.js';
+import { castShadows } from './shadows.js';
 import { snapToAxis } from '../sim/commands.js';
 import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
 import { laneStart } from '../sim/koloss.js';
@@ -443,17 +455,36 @@ function cells(length) {
   return STRINGS.hud.riftLength(length.toFixed(1).replace('.', ','));
 }
 
+/** Shadows of obstacles, bastion and beacons on the ground, before any depth-sorted figure. */
+function drawBlockShadows(ctx, state, map) {
+  const bodies = [];
+  for (const o of map.obstacles) for (let i = 0; i < o.cells.length; i++) bodies.push(...obstacleShadow(o, i));
+  bodies.push(...bastionShadow(map.bastion, bastionSize(map)));
+  for (const b of map.beacons) bodies.push(...beaconShadow(b));
+  castShadows(ctx, bodies);
+}
+
 /**
  * The plate an emplacement stands on: a diamond just inside its cell in the guide colour of its
  * doctrine, so an emplacement never melts into the ground. Lies under the gold ring.
  */
 function drawFoundation(ctx, tower) {
+  const color = DOCTRINE_COLORS[tower.doctrine];
   cellPath(ctx, tower.x, tower.y, FOUNDATION_INSET);
   ctx.globalAlpha = FOUNDATION_ALPHA;
-  ctx.fillStyle = DOCTRINE_COLORS[tower.doctrine];
+  ctx.fillStyle = color;
   ctx.fill();
+  // The rim: a stroke centred on the outline, clipped to the inside, wide enough to leave
+  // FOUNDATION_RIM px of colour beside the outline.
+  ctx.save();
+  ctx.clip();
+  ctx.globalAlpha = FOUNDATION_RIM_ALPHA;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2 * (FOUNDATION_LINE / 2 + FOUNDATION_RIM);
+  ctx.stroke();
+  ctx.restore();
   ctx.globalAlpha = 1;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = FOUNDATION_LINE;
   ctx.strokeStyle = C.ink;
   ctx.stroke();
 }
@@ -497,6 +528,10 @@ export function createSceneRenderer(sprites) {
 
     // What the enemies have trampled, on the ground under everything else.
     trail.draw(ctx, palette, ui.art, state.seed);
+
+    // The cast shadows of all blocks, in one fill so overlaps do not darken twice. They lie on
+    // the ground under every figure, so a shadow never ends up on a neighbour (docs/ART.md).
+    drawBlockShadows(ctx, state, map);
 
     if (map.rifts) {
       riftLayout(map).forEach((r, i) => {
