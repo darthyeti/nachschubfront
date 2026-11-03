@@ -66,8 +66,15 @@ try {
     });
     const hardware = engine === 'chromium' && !/SwiftShader|llvmpipe|software/i.test(renderer);
 
+    const rasterBeforeBuild = (await page.evaluate(() => window.__nachschub.sprites())).rasterized;
     await page.getByRole('button', { name: 'Belastungstest' }).click();
     assert.equal((await page.evaluate(() => window.__nachschub.state())).enemies, 200);
+    // The stress test builds an emplacement of every doctrine and rank at once. Sprites are rastered
+    // on demand, once, at the zoom in use, so this is where the emplacement bunkers get rastered. It is
+    // counted apart from the frames that follow, which must not raster anything.
+    await page.waitForTimeout(3000);
+    const rasterOnBuild = (await page.evaluate(() => window.__nachschub.sprites())).rasterized - rasterBeforeBuild;
+    report.push(`${label.padEnd(8)} rasterized on build (stress emplacements, once): ${rasterOnBuild}`);
 
     for (const zoomLabel of ['start', 'max']) {
       if (zoomLabel === 'max') {

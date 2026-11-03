@@ -70,6 +70,31 @@ function svgDocument(library, body, bbox, pixelScale) {
 }
 
 /**
+ * The part of an exported library one symbol needs: the symbol and the clip paths it names.
+ * The emplacement library holds more than a hundred figures (a bunker per doctrine and rank),
+ * and a standalone SVG that carries all of them costs the browser a parse of the whole
+ * library for every raster. Only valid for libraries made of flat <g> symbols and <clipPath>s
+ * (the exports of `npm run studies`), which is what TOWER_SPRITES is.
+ */
+const symbolDefs = new Map();
+function defsFor(library, id) {
+  let index = symbolDefs.get(library);
+  if (!index) {
+    index = { parts: new Map(), clips: [] };
+    for (const m of library.defs.matchAll(/<(g|clipPath)\b[^>]*? id="([^"]+)"[^>]*>[\s\S]*?<\/\1>/g)) {
+      index.parts.set(m[2], m[0]);
+      if (m[1] === 'clipPath') index.clips.push(m[2]);
+    }
+    symbolDefs.set(library, index);
+  }
+  const own = index.parts.get(id);
+  if (!own) throw new Error(`Symbol without definition: ${id}`);
+  // Clip paths are named after the figure that uses them (`clip-<id>-<n>`).
+  const clips = index.clips.filter((c) => c.startsWith(`clip-${id}-`)).map((c) => index.parts.get(c));
+  return clips.join('') + own;
+}
+
+/**
  * The parts an emplacement is drawn from, back to front. Since v5 that is the
  * bunker for its doctrine and rank and the top of its doctrine on the roof. The
  * ranks are cumulative and the doctrine colour is part of the drawing, so there
@@ -145,7 +170,8 @@ function towerPart(id, anchorZ) {
     // A bunker's own origin is on the ground; a top's origin is the roof plate
     // it stands on, so it is lifted by the height of that roof.
     anchorZ: anchorZ * SPRITE_SCALE.tower,
-    svg: (pixelScale) => svgDocument(TOWER_SPRITES, `<use href="#${id}"/>`, entry.bbox, pixelScale),
+    svg: (pixelScale) =>
+      svgDocument({ style: TOWER_SPRITES.style, defs: defsFor(TOWER_SPRITES, id) }, `<use href="#${id}"/>`, entry.bbox, pixelScale),
   };
 }
 

@@ -406,6 +406,17 @@ test('effects painted into the concept art are gone; code draws them now', () =>
   }
 });
 
+test('a tower sprite carries only its own symbol, not the whole library', () => {
+  // The library holds a bunker per doctrine and rank; every raster would otherwise parse all of them.
+  const set = towerSpriteSet('flame', 3);
+  const svg = set.back.svg(1);
+  assert.ok(svg.includes('id="bunker-flame-3"'));
+  assert.ok(!svg.includes('id="bunker-tesla-3"'), 'no other bunker in the document');
+  assert.ok(!svg.includes('id="top-fire"'), 'no top in the bunker document');
+  assert.ok(svg.length < TOWER_SPRITES.defs.length / 10, `${svg.length} bytes against a library of ${TOWER_SPRITES.defs.length}`);
+  const gun = set.gun.svg(1);
+  assert.ok(gun.includes('id="top-fire"') && !gun.includes('id="top-auto"'));
+});
 
 test('svg pixel size follows the requested scale', () => {
   const s = enemySprite('warrior');
