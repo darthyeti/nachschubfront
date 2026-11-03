@@ -17,6 +17,7 @@ Dazu, was die Aufgabe berührt — nicht mehr:
 | Zeichenstil, Effekte, Zeichenfunktionen | `reference/stiltest.html` |
 | Speicherformat, Export/Import, Service Worker | `docs/SPEICHER.md` |
 | der laufende Meilenstein | `docs/meilensteine/M6-balancing.md` |
+| Stellungs-Rework (parallel zu M6) | `docs/meilensteine/M9-stellungen.md` |
 | Spielmodi (parallel zu M6) | `docs/meilensteine/M7a-modi.md`, `M7b-king-of-the-hill.md` |
 | Balancing-Werkzeuge und Protokolle | `balancing/README.md` |
 
