@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nachschubfront: Trümmer-Studie</title>
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:wght@500;700&family=Pirata+One&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1c1410;--plate:#3e372d;--gold:#e8c872;--text:#eadfc4;--muted:#b5a385;--ink:#000}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overscroll-behavior:none}
+body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:fixed;left:calc(16px + env(safe-area-inset-left,0px));top:calc(12px + env(safe-area-inset-top,0px));pointer-events:none;max-width:min(760px,70vw)}
+.hud h1{font-family:'Pirata One',Georgia,serif;font-weight:400;font-size:clamp(26px,3.6vw,40px);margin:0;line-height:1;text-shadow:3px 3px 0 #000}
+.hud p{margin:4px 0 0;font-size:15px;color:var(--muted);text-shadow:1px 1px 0 #000}
+.bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;align-items:center;background:#241a14;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:8px;border-radius:8px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100% - 24px)}
+button{font-family:inherit;font-weight:700;font-size:16px;color:var(--text);background:var(--plate);border:2px solid var(--ink);border-radius:5px;padding:7px 12px;min-height:44px;min-width:44px;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(232,200,114,.35)}
+button.on{background:var(--gold);color:#1a1410}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+button[hidden]{display:none}
+.sep{width:2px;height:28px;background:#000;margin:0 4px}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Isometrisches Blatt mit Ruinen, Mauern, Kratern und Kapsel-Trümmern, heutige Fassung neben den Entwürfen"></canvas>
+<div class="hud"><h1>Trümmer-Studie</h1><p>Ruinen, Mauern, Krater und Kapsel-Trümmer: links die Hindernisse von heute, rechts Entwürfe aus einem Baukasten. Ziehen verschiebt, Mausrad oder Zwei-Finger-Geste zoomt.</p></div>
+<div class="bar" id="bar">
+  <button id="mode-sheet" type="button">Blatt</button>
+  <button id="mode-scene" type="button">Szene</button>
+  <span class="sep"></span>
+  <button id="scene-today" type="button" data-for="scene">Heute</button>
+  <button id="scene-new" type="button" data-for="scene">Entwürfe</button>
+  <button id="names" type="button" data-for="sheet">Namen</button>
+  <button id="vertical" type="button" data-for="sheet">Mauer senkrecht</button>
+  <span class="sep"></span>
+  <button id="grid" type="button">Feldraster</button>
+  <button id="round" type="button">Rund</button>
+  <button id="silhouette" type="button">Silhouette</button>
+  <span class="sep"></span>
+  <button id="zoom-05" type="button">0,5x</button>
+  <button id="zoom-1" type="button">1x</button>
+  <button id="zoom-2" type="button">2x</button>
+  <button id="fit" type="button">Einpassen</button>
+  <span class="sep"></span>
+  <button id="reroll" type="button">Neu würfeln</button>
+</div>
+<script type="module" src="truemmer-studie.js"></script>
+</body>
+</html>
