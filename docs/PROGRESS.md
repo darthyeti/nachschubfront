@@ -16,8 +16,8 @@ Höhenfeld ist reine Darstellung (`src/render/terrain.js`), die Simulation rechn
 flachen Karte. Offen im Blick: King of the Hill hat eine Bastion über 2 x 2 Felder, die auf
 verschiedenen Stufen liegen können (das Feld behält seine Stufe, wie beauftragt). **M7 Spielmodi**
 ruht seit dem 02.11.2026 (Entscheidung E-02), bis der Grafik-Rework steht. **M9 Stellungen**
-(neuer Bunker, drehbare Aufsätze, Mündungsfeuer) ist beschlossen (E-17), der Auftrag
-[`M9-stellungen.md`](meilensteine/M9-stellungen.md) wartet auf Freigabe (E-18).
+(neuer Bunker, drehbare Aufsätze, Mündungsfeuer) ist freigegeben (E-18) und in Arbeit, Auftrag
+[`M9-stellungen.md`](meilensteine/M9-stellungen.md).
 
 | | | abgenommen |
 |---|---|---|

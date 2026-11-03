@@ -1,6 +1,6 @@
 # M9: Stellungen
 
-Status: **Entwurf, wartet auf Freigabe** (Akte E-18). Beschlossen am 03.11.2026 in E-17 (Wahl „So in M9 übernehmen“). Läuft parallel zu M6; M7 ruht.
+Status: **freigegeben am 03.11.2026** (Akte E-18). Beschlossen am 03.11.2026 in E-17 (Wahl „So in M9 übernehmen“). Läuft parallel zu M6; M7 ruht.
 Referenz: `reference/studien/stellungen-rework.html` mit `stellungen-rework.js` und `stellungen-rework-modell.js`, Standbilder `rework-*.png` in `reference/konzept/stellungen/` (Auftrag A-19, PR #31).
 
 ## Entscheidungen vom 03.11.2026
@@ -11,11 +11,11 @@ Referenz: `reference/studien/stellungen-rework.html` mit `stellungen-rework.js` 
 - **Mündungsfeuer am Laufende.** Jede Waffe hat einen Mündungspunkt im Modell. Feuer, Funken, Rauch, Hülsen, Strahl, Blitz und Rückstoß gehen von dort in Schussrichtung aus.
 - **Die Simulation wird nicht angefasst.** Keine Zahl in `src/data` ändert sich, `RULESET_VERSION` bleibt, `tests/unit/golden.json` bleibt, jedes Protokoll spielt sich unverändert nach.
 
-## Offen bis zur Freigabe
+## Entscheidungen vom 03.11.2026 zur Freigabe (E-18)
 
-1. **Mörser oder Raketenwerfer.** Die Studie zeigt beide. Im Spiel bleibt einer, beide umschaltbar wäre eine Einstellung ohne Spielwert. Empfehlung: der Raketenwerfer, das war Tills Wunsch im Thema. Der Name im Spiel bleibt „Mörser“, solange GDD und Doktrin nicht umbenannt werden; eine Umbenennung wäre eine eigene Akte.
-2. **Spezialstellungen.** Die sechs Rezept-Stellungen stehen auf der Spezialbasis und sind nicht Teil der Studie. Empfehlung: In M9 bleiben sie, wie sie sind; ihr Rework folgt als eigene Studie, sobald die sechs Standardstellungen im Spiel stehen.
-3. **Rang 2.** Er ist bei kleinem Zoom kaum von Rang 3 zu unterscheiden. Empfehlung: kräftigerer Rand in der Doktrinfarbe.
+1. **Raketenwerfer statt Mörser.** Sechs Rohre, Rauchspur, Bogenflug. Der Mörser der Studie entfällt im Spiel. Name und Doktrin bleiben „Mörser“, solange GDD und Doktrin nicht umbenannt werden; eine Umbenennung wäre eine eigene Akte.
+2. **Spezialstellungen** bleiben in M9 wie heute. Ihre Studie entsteht sofort parallel (Aufgabe A-21) und wird danach als eigener Schritt beauftragt.
+3. **Rang 2** bekommt einen kräftigeren Rand in der Doktrinfarbe, damit er sich auch bei kleinem Zoom von Rang 3 abhebt.
 
 ## Berührte Bereiche und Dateien
 
@@ -69,7 +69,7 @@ Nicht verbindlich: der Zeichencode der Studie im Einzelnen, ihre Messwerte (Chro
 
 - `towerFx.js` liest den Mündungspunkt aus dem Modell (Laufende, Raketenspitzen 0,12 Felder davor, Tesla-Spitze 0,05) und zeichnet alle Effekte von dort in Schussrichtung: Mündungsblitz, Funken, Rauch, Hülsen, Laserstrahl, Blitzbogen, Flammenstrahl, Psi-Impuls.
 - Der Schuss wird wie bisher daran erkannt, dass der Nachladezähler hochspringt.
-- Bei Wahl Raketenwerfer: sechs Rohre, die nacheinander abfeuern, Rauchspur und Bogenflug der Rakete bis zum Einschlag. Bogen und Flugzeit folgen dem Projektil der Simulation, nicht einer eigenen Flugbahn.
+- Raketenwerfer: sechs Rohre, die nacheinander abfeuern, Rauchspur und Bogenflug der Rakete bis zum Einschlag. Bogen und Flugzeit folgen dem Projektil der Simulation, nicht einer eigenen Flugbahn.
 - `prefers-reduced-motion`: gedämpfte Mündungsblitze, kein Wackeln.
 
 ## Abnahme
