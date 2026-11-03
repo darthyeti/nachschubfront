@@ -8,6 +8,7 @@ Für Bunker, Aufsätze, Spezialstellungen, Koloss und Gunship sind seit v5 die b
 - `koloss-studie.html`: Koloss, Zielvorhersage, Durchbruch, Bollwerk-Stopp, Luftschlag mit Gunship, alle vier Fahrtrichtungen.
 - `optik-studie.html`: dieselbe Karte heute (echte Spielmodule) und neu (Licht und Schlagschatten, Farbtrennung, Blockgelände, Diorama-Rahmen, drei Biome), Bausteine einzeln schaltbar, Vergleich mit ziehbarer Trennlinie; Standbilder in `reference/konzept/optik/`. Entscheidungsgrundlage für M8, noch keine Regel.
 - `truemmer-studie.html`: Entwurf für Ruinen, Mauern, Krater und Kapsel-Trümmer (Baukasten, acht Varianten je Art) neben den heutigen Hindernissen und dem Bollwerk. Studie, noch nicht im Spiel; die Übernahme gehört zu M8.
+- `kapsel-studie.html`: Rework der Nachschubkapsel (Auftrag A-14): die Landung als Schleife mit Zeitregler und Zeitlupe (Glühen, Bremstriebwerke, Druckwelle, Trümmer, Rauch und Staub, die verfliegen, Sprengbolzen, Klappen) und der Auswahlmodus, heute mit den echten Spielfunktionen neben drei Entwürfen (A schwer, B schlank, C Segmente); Standbilder `studie-*.png` in `reference/konzept/kapsel/`. Studie, noch nicht im Spiel.
 
 Stand: v5 (Bunker-Baukasten mit allen fünf Rängen, überarbeitete Aufsätze aller sechs Doktrinen, Spezialbasis und neue Rollen der Spezialwaffen, Koloss und Gunship als drehbare Modelle).
 
