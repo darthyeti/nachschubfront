@@ -719,7 +719,7 @@ export function createSceneRenderer(sprites) {
       const [px, py] = iso(gx, gy);
       return px >= area.x0 && px <= area.x1 && py >= area.y0 && py <= area.y1;
     };
-    warmKit(map.obstacles, palette, view.dpr);
+    warmKit(map.obstacles, palette, view.dpr, cam.zoom);
     const obstacleRaster = { zoom: cam.zoom, dpr: view.dpr };
     items.length = 0;
     for (const o of map.obstacles) {

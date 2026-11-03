@@ -14,13 +14,45 @@ export const KIT_STEPS = [0.5, 1, 2];
 /** Most cells the cache keeps before it starts over. */
 const CACHE_LIMIT = 600;
 
+/** A changed zoom must stand still this long (ms) before another step is rastered, like ground.js. */
+const SETTLE_MS = 160;
+
 let cache = new Map();
+/** Step in use; the cache holds this step only. Null before the first frame. */
+let activeStep = null;
+let pendingStep = null;
+let pendingSince = 0;
 const warmed = new WeakMap();
+/** Cells rastered so far; the browser checks read it to see that nothing is rastered while a match runs. */
+export const kitStats = { rasterized: 0 };
 
 /** Raster step for a zoom: the smallest that is not coarser than the screen needs, at most the finest. */
 export function kitStep(zoom) {
   for (const s of KIT_STEPS) if (zoom <= s) return s;
   return KIT_STEPS[KIT_STEPS.length - 1];
+}
+
+/**
+ * Picks the step in use: the first one at once, a different one only after the zoom has asked
+ * for it for SETTLE_MS; until then the step in use is drawn scaled. Entries of the step left behind
+ * are dropped, so one step at a time is in memory.
+ */
+function settle(zoom, nowMs) {
+  const want = kitStep(zoom);
+  if (activeStep === null) activeStep = want;
+  if (want === activeStep) {
+    pendingStep = null;
+    return;
+  }
+  if (pendingStep !== want) {
+    pendingStep = want;
+    pendingSince = nowMs;
+  }
+  if (nowMs - pendingSince >= SETTLE_MS) {
+    activeStep = want;
+    pendingStep = null;
+    cache = new Map();
+  }
 }
 
 function entry(ob, index, pal, step, dpr) {
@@ -30,6 +62,7 @@ function entry(ob, index, pal, step, dpr) {
   let e = cache.get(key);
   if (e) return e;
   if (cache.size >= CACHE_LIMIT) cache = new Map();
+  kitStats.rasterized++;
   const k = step * dpr;
   const canvas = document.createElement('canvas');
   canvas.width = Math.ceil(BOX.w * k);
@@ -44,19 +77,24 @@ function entry(ob, index, pal, step, dpr) {
   return e;
 }
 
-/** Draws one kit cell from the cache (and fills it the first time). */
+/** Draws one kit cell from the cache (and fills it the first time) at the step in use. */
 export function drawKitCellCached(ctx, ob, index, pal, zoom, dpr) {
-  const e = entry(ob, index, pal, kitStep(zoom), dpr);
+  if (activeStep === null) settle(zoom, performance.now());
+  const e = entry(ob, index, pal, activeStep, dpr);
   ctx.drawImage(e.canvas, e.x, e.y, BOX.w, BOX.h);
 }
 
-/** Fills the cache for every kit cell of a map at every step; once per map, palette and pixel ratio. */
-export function warmKit(obstacles, pal, dpr) {
-  const stamp = `${pal.ground[0]}:${dpr}`;
+/**
+ * Once per frame, before the cells: settles the step and fills the cache with every kit cell of
+ * the map at that step (once per map, palette, pixel ratio and step).
+ */
+export function warmKit(obstacles, pal, dpr, zoom) {
+  settle(zoom, performance.now());
+  const stamp = `${pal.ground[0]}:${dpr}:${activeStep}:${cache.size ? 1 : 0}`;
   if (warmed.get(obstacles) === stamp) return;
   warmed.set(obstacles, stamp);
   for (const ob of obstacles) {
     if (ob.kind === 'bulwark') continue;
-    for (let i = 0; i < ob.cells.length; i++) for (const s of KIT_STEPS) entry(ob, i, pal, s, dpr);
+    for (let i = 0; i < ob.cells.length; i++) entry(ob, i, pal, activeStep, dpr);
   }
 }
