@@ -10,80 +10,18 @@ import { paletteOf, shade } from './biomes.js';
 import { lateralOffset } from './enemySprites.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { BOSSES } from '../data/enemies.js';
+import { drawKitCell, kitShadow } from './rubbleKit.js';
+import { drawKitCellCached } from './rubbleCache.js';
 import { RANK_COUNT } from './sprites/manifest.js';
 
 const ASH = paletteOf('ash');
-const RUIN_HEIGHTS = [34, 44, 52, 40];
-const WALL_HEIGHTS = [18, 26, 22, 30];
 /** Bulwark: half side of its block in cells and its height in px. */
 const BULWARK_HALF = 0.46;
 const BULWARK_HEIGHT = 26;
 /** Blocks that stand in the light: foot shade and bright edge (shadows.js). */
 const LIT = { lit: true };
-/** Shadow heights that differ from the drawn block: the wall's cap, a heap of rubble. */
-const SHADOW_WALL_CAP = 4;
-const SHADOW_RUBBLE_HEIGHT = 14;
 
 // ---------- Obstacles ----------
-
-function drawRuin(ctx, x, y, variant, pal) {
-  const STONE = pal.stone;
-  const h = RUIN_HEIGHTS[variant % RUIN_HEIGHTS.length];
-  box(ctx, x + 0.05, y + 0.05, 0.9, 0.9, 12, 0, pal.stone.map((c) => shade(c, -8)), 2.5, LIT);
-  box(ctx, x + 0.22, y + 0.22, 0.56, 0.56, h, 12, STONE, 2.5, LIT);
-  box(ctx, x + 0.22, y + 0.22, 0.28, 0.3, 14, 12 + h, STONE, 2);
-  box(ctx, x + 0.5, y + 0.5, 0.28, 0.28, 7, 12 + h, STONE, 2);
-  // Gothic window slit on the front face.
-  const fy = y + 0.78;
-  const xa = x + 0.22 + 0.56 * 0.3;
-  const xb = x + 0.22 + 0.56 * 0.7;
-  const z0 = 12 + h * 0.4;
-  const z1 = 12 + h * 0.66;
-  poly(ctx, [iso(xa, fy, z0), iso(xb, fy, z0), iso(xb, fy, z1), iso((xa + xb) / 2, fy, z1 + 6), iso(xa, fy, z1)], C.ink, C.ink, 2);
-}
-
-function drawCrater(ctx, x, y, variant, pal) {
-  const [sx, sy] = iso(x + 0.5, y + 0.5);
-  const r = 0.9 + (variant % 2) * 0.08;
-  // Raised rim of rubble around a dark pit.
-  ell(ctx, sx, sy, 30 * r, 15 * r, pal.stone[1], C.ink, 2.5);
-  ell(ctx, sx, sy + 1.5, 21 * r, 9.5 * r, pal.pit, C.ink, 2);
-  ctx.beginPath();
-  ctx.ellipse(sx, sy, 30 * r, 15 * r, 0, 0.25, Math.PI - 0.25);
-  ctx.strokeStyle = pal.stone[0];
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2 + variant;
-    box(ctx, x + 0.5 + Math.cos(a) * 0.36 - 0.08, y + 0.5 + Math.sin(a) * 0.36 - 0.08, 0.16, 0.16, 5 + ((i * 3 + variant) % 4) * 2, 0, pal.stone, 1.6);
-  }
-}
-
-function drawWallCell(ctx, x, y, variant, index, horizontal, pal) {
-  const STONE = pal.stone;
-  const h = WALL_HEIGHTS[(variant + index) % WALL_HEIGHTS.length];
-  if (horizontal) {
-    box(ctx, x, y + 0.32, 1, 0.36, h, 0, STONE, 2.5, LIT);
-    box(ctx, x + 0.12 + (index % 2) * 0.4, y + 0.32, 0.36, 0.36, 8, h, STONE, 2);
-  } else {
-    box(ctx, x + 0.32, y, 0.36, 1, h, 0, STONE, 2.5, LIT);
-    box(ctx, x + 0.32, y + 0.12 + (index % 2) * 0.4, 0.36, 0.36, 8, h, STONE, 2);
-  }
-}
-
-// Rubble pieces per variant: [x, y, w, d, h, brick?] in cell fractions / pixels.
-const RUBBLE = [
-  [[0.18, 0.2, 0.34, 0.3, 12, false], [0.5, 0.42, 0.3, 0.36, 9, true], [0.24, 0.6, 0.26, 0.22, 6, false]],
-  [[0.2, 0.3, 0.44, 0.34, 14, true], [0.58, 0.22, 0.24, 0.26, 7, false]],
-  [[0.3, 0.18, 0.3, 0.3, 10, false], [0.16, 0.52, 0.3, 0.3, 8, false], [0.52, 0.5, 0.3, 0.3, 13, true]],
-  [[0.22, 0.24, 0.5, 0.26, 9, false], [0.36, 0.56, 0.3, 0.26, 11, true]],
-];
-
-function drawRubble(ctx, x, y, variant, pal) {
-  for (const [px, py, w, d, h, brick] of RUBBLE[variant % RUBBLE.length]) {
-    box(ctx, x + px, y + py, w, d, h, 0, brick ? C.brick : pal.stone, 2, LIT);
-  }
-}
 
 /**
  * Bulwark (docs/ART.md, "Bollwerk"), in the study's final form: a stone block
@@ -135,21 +73,10 @@ export function obstacleShadow(obstacle, index) {
   const { x, y } = obstacle.cells[index];
   const rect = (x0, y0, x1, y1, height) => ({ footprint: rectCorners(x + x0, y + y0, x + x1, y + y1), height });
   switch (obstacle.kind) {
-    case 'ruin': {
-      const h = RUIN_HEIGHTS[obstacle.variant % RUIN_HEIGHTS.length];
-      return [rect(0.05, 0.05, 0.95, 0.95, 12), rect(0.22, 0.22, 0.78, 0.78, 12 + h)];
-    }
-    case 'wall': {
-      const h = WALL_HEIGHTS[(obstacle.variant + index) % WALL_HEIGHTS.length] + SHADOW_WALL_CAP;
-      const horizontal = obstacle.cells.length > 1 && obstacle.cells[1].y === obstacle.cells[0].y;
-      return [horizontal ? rect(0, 0.32, 1, 0.68, h) : rect(0.32, 0, 0.68, 1, h)];
-    }
-    case 'rubble':
-      return [rect(0.18, 0.2, 0.82, 0.8, SHADOW_RUBBLE_HEIGHT)];
     case 'bulwark':
       return [rect(0.5 - BULWARK_HALF, 0.5 - BULWARK_HALF, 0.5 + BULWARK_HALF, 0.5 + BULWARK_HALF, BULWARK_HEIGHT)];
     default:
-      return [];
+      return kitShadow(obstacle, index);
   }
 }
 
@@ -168,17 +95,15 @@ export function beaconShadow(p) {
   ];
 }
 
-/** Draws one cell of an obstacle; multi-cell walls are depth-sorted per cell. */
-export function drawObstacleCell(ctx, obstacle, index, palette = ASH) {
+/**
+ * Draws one cell of an obstacle; multi-cell walls are depth-sorted per cell. With `raster`
+ * ({zoom, dpr}) the kit cells come from the cache of `rubbleCache.js`, otherwise they are drawn.
+ */
+export function drawObstacleCell(ctx, obstacle, index, palette = ASH, raster = null) {
   const { x, y } = obstacle.cells[index];
-  if (obstacle.kind === 'ruin') drawRuin(ctx, x, y, obstacle.variant, palette);
-  else if (obstacle.kind === 'crater') drawCrater(ctx, x, y, obstacle.variant, palette);
-  else if (obstacle.kind === 'rubble') drawRubble(ctx, x, y, obstacle.variant, palette);
-  else if (obstacle.kind === 'bulwark') drawBulwark(ctx, x, y, palette);
-  else {
-    const horizontal = obstacle.cells.length > 1 && obstacle.cells[1].y === obstacle.cells[0].y;
-    drawWallCell(ctx, x, y, obstacle.variant, index, horizontal, palette);
-  }
+  if (obstacle.kind === 'bulwark') drawBulwark(ctx, x, y, palette);
+  else if (raster) drawKitCellCached(ctx, obstacle, index, palette, raster.zoom, raster.dpr);
+  else drawKitCell(ctx, obstacle, index, palette);
 }
 
 // ---------- Towers ----------
