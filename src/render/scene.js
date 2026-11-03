@@ -37,6 +37,7 @@ import {
 } from './biomes.js';
 import { createTrail } from './trail.js';
 import { castShadows } from './shadows.js';
+import { STEP, heightField, setActiveTerrain, cellLift, liftAt } from './terrain.js';
 import { snapToAxis } from '../sim/commands.js';
 import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
 import { laneStart } from '../sim/koloss.js';
@@ -116,6 +117,8 @@ function createVignette() {
 const PREVIEW_VEIL = 0.62;
 /** Size of the arrow over a doomed emplacement, in world pixels. */
 const DOOM_ARROW = { width: 26, height: 22, stem: 16, lift: 34, bob: 5 };
+/** Spacing in cells of the points the line of the flyers is built from, so it can follow the terrain. */
+const FLYER_LINE_SAMPLE = 0.5;
 
 /**
  * The arrow hanging over an emplacement a recipe would eat: a fat chevron
@@ -147,7 +150,8 @@ export function doomArrowPoints([ax, ay], t, reducedMotion = false) {
 }
 
 function drawDoomArrow(ctx, tower, t, reducedMotion) {
-  poly(ctx, doomArrowPoints(towerAnchor(tower), t, reducedMotion), C.gold, C.ink, 2.5);
+  const [ax, ay] = towerAnchor(tower);
+  poly(ctx, doomArrowPoints([ax, ay - cellLift(tower.x, tower.y)], t, reducedMotion), C.gold, C.ink, 2.5);
 }
 
 /**
@@ -169,16 +173,20 @@ function drawRecipePreview(ctx, state, ui, cam, view, t, sprites) {
   const pulse = ui.reducedMotion ? 0.8 : 0.6 + Math.sin(t * 5) * 0.3;
   for (const tower of doomed) {
     drawCellMarker(ctx, tower, `rgba(242,193,78,${pulse * 0.45})`, `rgba(242,193,78,${pulse})`, 3);
+    const lift = cellLift(tower.x, tower.y);
+    ctx.translate(0, -lift);
     if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, tower, cam.zoom, view.dpr, t, 0, ui.reducedMotion)) {
       drawTowerPlaceholder(ctx, tower);
     }
+    ctx.translate(0, lift);
   }
   for (const tower of doomed) drawDoomArrow(ctx, tower, t, ui.reducedMotion);
 }
 
 /** Dashed, slowly marching route line with ink underlay. */
 function drawRoutePreview(ctx, route, t, reducedMotion) {
-  const pts = route.cells.map(({ x, y }) => iso(x + 0.5, y + 0.5));
+  // Every point on the height of its own field, so the line climbs a step with the route.
+  const pts = route.cells.map(({ x, y }) => iso(x + 0.5, y + 0.5, cellLift(x, y)));
   const trace = () => {
     ctx.beginPath();
     ctx.moveTo(pts[0][0], pts[0][1]);
@@ -207,7 +215,23 @@ function drawRoutePreview(ctx, route, t, reducedMotion) {
  * the anti-air standing beside the maze, not under this line).
  */
 function drawFlyerLine(ctx, line, t, reducedMotion) {
-  const pts = line.points.map(({ x, y }) => iso(x, y));
+  // Dense, every point on the ground height under it: the line follows the terrain.
+  const pts = [];
+  const ends = line.points.map(({ x, y }) => iso(x, y));
+  for (let i = 0; i + 1 < line.points.length; i++) {
+    const a = line.points[i];
+    const b = line.points[i + 1];
+    const len = Math.sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
+    const steps = Math.max(1, Math.ceil(len / FLYER_LINE_SAMPLE));
+    for (let k = 0; k < steps; k++) {
+      const x = a.x + ((b.x - a.x) * k) / steps;
+      const y = a.y + ((b.y - a.y) * k) / steps;
+      pts.push(iso(x, y, liftAt(x, y)));
+    }
+  }
+  const end = line.points[line.points.length - 1];
+  const endLift = liftAt(end.x, end.y);
+  pts.push(iso(end.x, end.y, endLift));
   const trace = () => {
     ctx.beginPath();
     ctx.moveTo(pts[0][0], pts[0][1]);
@@ -228,13 +252,13 @@ function drawFlyerLine(ctx, line, t, reducedMotion) {
   ctx.setLineDash([]);
 
   // Arrowhead on the last leg, a little short of the bastion.
-  const [ax, ay] = pts[pts.length - 2];
-  const [bx, by] = pts[pts.length - 1];
+  const [ax, ay] = ends[ends.length - 2];
+  const [bx, by] = ends[ends.length - 1];
   const len = Math.hypot(bx - ax, by - ay) || 1;
   const ux = (bx - ax) / len;
   const uy = (by - ay) / len;
   const tipX = bx - ux * 34;
-  const tipY = by - uy * 34;
+  const tipY = by - uy * 34 - endLift;
   ctx.beginPath();
   ctx.moveTo(tipX, tipY);
   ctx.lineTo(tipX - ux * 14 - uy * 8, tipY - uy * 14 + ux * 8);
@@ -248,6 +272,8 @@ function drawFlyerLine(ctx, line, t, reducedMotion) {
 }
 
 function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
+  const lift = cellLift(cell.x, cell.y);
+  ctx.translate(0, -lift);
   cellPath(ctx, cell.x, cell.y, 0.04);
   if (fill) {
     ctx.fillStyle = fill;
@@ -256,6 +282,7 @@ function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
   ctx.strokeStyle = stroke;
   ctx.lineWidth = lineWidth;
   ctx.stroke();
+  ctx.translate(0, lift);
 }
 
 /**
@@ -273,9 +300,9 @@ function drawKolossTarget(ctx, map, run, t, reducedMotion) {
   // and only the target itself is marked.
   if (lane) {
     const start = laneStart(map, lane.index, lane);
-    const a = iso(start.x + 0.5 + lane.dx * 1.4, start.y + 0.5 + lane.dy * 1.4);
+    const a = iso(start.x + 0.5 + lane.dx * 1.4, start.y + 0.5 + lane.dy * 1.4, liftAt(start.x + 0.5, start.y + 0.5));
     const last = swathe.length ? swathe[swathe.length - 1] : target;
-    const b = iso(last.x + 0.5, last.y + 0.5);
+    const b = iso(last.x + 0.5, last.y + 0.5, cellLift(last.x, last.y));
     ctx.save();
     ctx.setLineDash([10, 7]);
     ctx.lineDashOffset = reducedMotion ? 0 : -t * 30;
@@ -294,15 +321,18 @@ function drawKolossTarget(ctx, map, run, t, reducedMotion) {
     ctx.fillStyle = RED;
     for (const c of swathe) {
       ctx.globalAlpha = 0.18 + 0.14 * pulse;
+      const lift = cellLift(c.x, c.y);
+      ctx.translate(0, -lift);
       cellPath(ctx, c.x, c.y, 0.04);
       ctx.fill();
+      ctx.translate(0, lift);
     }
     ctx.globalAlpha = 1;
   }
 
   // The target ring: a hard ellipse that breathes, a soft inner one, and four
   // segments turning around it.
-  const [cx, cy] = iso(target.x + 0.5, target.y + 0.5);
+  const [cx, cy] = iso(target.x + 0.5, target.y + 0.5, cellLift(target.x, target.y));
   ctx.globalAlpha = 0.9;
   ell(ctx, cx, cy, 34 + pulse * 6, 17 + pulse * 3, null, RED, 3.4);
   ell(ctx, cx, cy, 22, 11, null, '#ffb0a0', 2);
@@ -412,7 +442,7 @@ function drawUpgradeOverlay(ctx, state, armed, t, reducedMotion) {
  */
 function drawDemolishPrices(ctx, marked) {
   for (const { cell, cost, affordable, armed } of marked) {
-    const [x, y] = iso(cell.x + 0.5, cell.y + 0.5);
+    const [x, y] = iso(cell.x + 0.5, cell.y + 0.5, cellLift(cell.x, cell.y));
     comicText(ctx, String(cost), x, y + 5, armed ? 19 : 15, affordable ? C.gold : 'rgba(232,220,192,.4)');
   }
 }
@@ -457,11 +487,17 @@ function cells(length) {
 
 /** Shadows of obstacles, bastion and beacons on the ground, before any depth-sorted figure. */
 function drawBlockShadows(ctx, state, map) {
-  const bodies = [];
-  for (const o of map.obstacles) for (let i = 0; i < o.cells.length; i++) bodies.push(...obstacleShadow(o, i));
-  bodies.push(...bastionShadow(map.bastion, bastionSize(map)));
-  for (const b of map.beacons) bodies.push(...beaconShadow(b));
-  castShadows(ctx, bodies);
+  // A shadow lies on the plane of the field its body stands on: one fill per level.
+  const byLevel = [[], [], []];
+  const add = (cell, shadows) => byLevel[Math.round(cellLift(cell.x, cell.y) / STEP)].push(...shadows);
+  for (const o of map.obstacles) for (let i = 0; i < o.cells.length; i++) add(o.cells[i], obstacleShadow(o, i));
+  add(map.bastion, bastionShadow(map.bastion, bastionSize(map)));
+  for (const b of map.beacons) add(b, beaconShadow(b));
+  byLevel.forEach((bodies, level) => {
+    ctx.translate(0, -level * STEP);
+    castShadows(ctx, bodies);
+    ctx.translate(0, level * STEP);
+  });
 }
 
 /**
@@ -469,6 +505,8 @@ function drawBlockShadows(ctx, state, map) {
  * doctrine, so an emplacement never melts into the ground. Lies under the gold ring.
  */
 function drawFoundation(ctx, tower) {
+  const lift = cellLift(tower.x, tower.y);
+  ctx.translate(0, -lift);
   const color = DOCTRINE_COLORS[tower.doctrine];
   cellPath(ctx, tower.x, tower.y, FOUNDATION_INSET);
   ctx.globalAlpha = FOUNDATION_ALPHA;
@@ -487,6 +525,7 @@ function drawFoundation(ctx, tower) {
   ctx.lineWidth = FOUNDATION_LINE;
   ctx.strokeStyle = C.ink;
   ctx.stroke();
+  ctx.translate(0, lift);
 }
 
 export function createSceneRenderer(sprites) {
@@ -511,6 +550,10 @@ export function createSceneRenderer(sprites) {
     lastT = t;
     atmosphere.update(dt, view, ui.reducedMotion);
     const palette = paletteOf(biomeOf(state.seed));
+    // The height of the ground is presentation only: the field comes from the seed, never from
+    // the player's obstacles, and everything below reads it through `cellLift` / `liftAt`.
+    const field = heightField(map, state.seed);
+    setActiveTerrain(field);
     trail.update(state, dt);
 
     // An explosion shakes the whole picture: the camera stays where it is, only
@@ -520,14 +563,14 @@ export function createSceneRenderer(sprites) {
       shakeX || shakeY ? { x: cam.x - shakeX / cam.zoom, y: cam.y - shakeY / cam.zoom, zoom: cam.zoom } : cam;
 
     backdrop.draw(ctx, view, shaken, state.seed, shakeX, shakeY);
-    ground.draw(ctx, shaken, view, map.size, state.seed, t * 1000);
+    ground.draw(ctx, shaken, view, map.size, state.seed, t * 1000, field);
 
     applyCamera(ctx, shaken, view);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
 
     // What the enemies have trampled, on the ground under everything else.
-    trail.draw(ctx, palette, ui.art, state.seed);
+    trail.draw(ctx, palette, ui.art, state.seed, field);
 
     // The cast shadows of all blocks, in one fill so overlaps do not darken twice. They lie on
     // the ground under every figure, so a shadow never ends up on a neighbour (docs/ART.md).
@@ -536,12 +579,23 @@ export function createSceneRenderer(sprites) {
     if (map.rifts) {
       riftLayout(map).forEach((r, i) => {
         const active = i === state.riftIndex;
+        const lift = cellLift(r.x, r.y);
+        ctx.translate(0, -lift);
         drawRiftGlowAt(ctx, r.x, r.y, t, { active, still: ui.reducedMotion });
+        ctx.translate(0, lift);
       });
     } else {
+      const lift = cellLift(map.rift.x, map.rift.y);
+      ctx.translate(0, -lift);
       drawRiftGlow(ctx, map.rift, t);
+      ctx.translate(0, lift);
     }
-    drawBastionGlow(ctx, map.bastion, t, bastionSize(map));
+    {
+      const lift = cellLift(map.bastion.x, map.bastion.y);
+      ctx.translate(0, -lift);
+      drawBastionGlow(ctx, map.bastion, t, bastionSize(map));
+      ctx.translate(0, lift);
+    }
     // The ban zone lies on the ground, under the route and the markers (M7b, B4).
     drawBanZone(ctx, map);
 
@@ -563,7 +617,12 @@ export function createSceneRenderer(sprites) {
       } else if (ui.upgradeMode) {
         demolishable = drawUpgradeOverlay(ctx, state, ui.upgradeArmed, t, ui.reducedMotion);
       } else {
-        state.zones.forEach((zone, i) => drawZoneMarker(ctx, zone, i, t, ui.reducedMotion));
+        state.zones.forEach((zone, i) => {
+          const lift = cellLift(zone.x, zone.y);
+          ctx.translate(0, -lift);
+          drawZoneMarker(ctx, zone, i, t, ui.reducedMotion);
+          ctx.translate(0, lift);
+        });
       }
     }
     // Where the Koloss is aimed (GDD section 9). Drawn during planning and while
@@ -574,9 +633,19 @@ export function createSceneRenderer(sprites) {
     // Cells cleared in demolish mode keep a faint ring until a capsule takes
     // them or the wave starts (docs/ART.md).
     if (PLANNING_PHASES.has(state.phase)) {
-      for (const cell of ui.clearedCells) drawClearedMarker(ctx, cell, t, ui.reducedMotion);
+      for (const cell of ui.clearedCells) {
+        const lift = cellLift(cell.x, cell.y);
+        ctx.translate(0, -lift);
+        drawClearedMarker(ctx, cell, t, ui.reducedMotion);
+        ctx.translate(0, lift);
+      }
     }
-    for (const pod of state.pods) drawPodTarget(ctx, pod, t);
+    for (const pod of state.pods) {
+      const lift = cellLift(pod.x, pod.y);
+      ctx.translate(0, -lift);
+      drawPodTarget(ctx, pod, t);
+      ctx.translate(0, lift);
+    }
 
     // Scorch marks, auras and flame cones lie on the ground, under the units.
     ui.effects?.drawGround(ctx, state, t, ui.reducedMotion);
@@ -586,7 +655,13 @@ export function createSceneRenderer(sprites) {
     // (docs/ART.md). After the scorch marks, so a burnt cell does not hide it.
     if (ui.art === 'sprites') {
       for (const tower of state.towers) drawFoundation(ctx, tower);
-      for (const tower of state.towers) if (tower.special) drawSpecialRing(ctx, tower);
+      for (const tower of state.towers) {
+        if (!tower.special) continue;
+        const lift = cellLift(tower.x, tower.y);
+        ctx.translate(0, -lift);
+        drawSpecialRing(ctx, tower);
+        ctx.translate(0, lift);
+      }
     }
 
     // What the player is looking at shows how far it reaches.
@@ -675,6 +750,19 @@ export function createSceneRenderer(sprites) {
     const enemyView = { zoom: cam.zoom, dpr: view.dpr, reducedMotion: ui.reducedMotion, simTime: state.time, dt };
 
     for (const [, kind, o, i] of items) {
+      // Everything stands on its field: the drawing is raised by the height of the ground under
+      // it. A ground enemy follows the blended height of its position, a flyer keeps its flight
+      // height over level 0.
+      let lift;
+      if (kind === KIND_OBSTACLE) lift = cellLift(o.cells[i].x, o.cells[i].y);
+      else if (kind === KIND_ENEMY) lift = o.flying ? 0 : liftAt(o.x, o.y);
+      else lift = cellLift(o.x, o.y);
+      ctx.translate(0, -lift);
+      drawItem(kind, o, i);
+      ctx.translate(0, lift);
+    }
+
+    function drawItem(kind, o, i) {
       if (kind === KIND_OBSTACLE) drawObstacleCell(ctx, o, i, palette);
       else if (kind === KIND_RIFT) {
         // i: 0 the single rift of the standard map, 1 the attacking one, 2 a quiet one.
@@ -704,17 +792,34 @@ export function createSceneRenderer(sprites) {
     if (state.phase === 'selection') {
       for (const index of ui.podHighlights ?? []) {
         const pod = state.pods[index];
-        if (pod) drawPodHighlight(ctx, pod, { selected: index === ui.podSelected, t, reducedMotion: ui.reducedMotion });
+        if (!pod) continue;
+        const lift = cellLift(pod.x, pod.y);
+        ctx.translate(0, -lift);
+        drawPodHighlight(ctx, pod, { selected: index === ui.podSelected, t, reducedMotion: ui.reducedMotion });
+        ctx.translate(0, lift);
       }
     }
-    for (const pod of state.pods) drawPodHologram(ctx, pod, t);
-    map.beacons.forEach((b, i) => drawBeaconLabel(ctx, b, i + 1));
+    for (const pod of state.pods) {
+      const lift = cellLift(pod.x, pod.y);
+      ctx.translate(0, -lift);
+      drawPodHologram(ctx, pod, t);
+      ctx.translate(0, lift);
+    }
+    map.beacons.forEach((b, i) => {
+      const lift = cellLift(b.x, b.y);
+      ctx.translate(0, -lift);
+      drawBeaconLabel(ctx, b, i + 1);
+      ctx.translate(0, lift);
+    });
     if (map.rifts) {
       riftLayout(map).forEach((r, i) => {
         const active = i === state.riftIndex;
         // During planning the attacking rift says how long its way is (B8).
         const detail = active && PLANNING_PHASES.has(state.phase) && route ? cells(route.length) : null;
+        const lift = liftAt(r.x, r.y);
+        ctx.translate(0, -lift);
         drawRiftLabel(ctx, r.labelX, r.labelY, r.angle, STRINGS.rifts[map.rifts[i].id], { active, detail });
+        ctx.translate(0, lift);
       });
     }
 
@@ -725,7 +830,7 @@ export function createSceneRenderer(sprites) {
 
     for (const f of ui.flashes) {
       if (!f.label) continue;
-      const [x, y] = iso(f.cell.x + 0.5, f.cell.y + 0.5, 40 + (1 - f.life / f.max) * 20);
+      const [x, y] = iso(f.cell.x + 0.5, f.cell.y + 0.5, cellLift(f.cell.x, f.cell.y) + 40 + (1 - f.life / f.max) * 20);
       ctx.globalAlpha = Math.min(1, (f.life / f.max) * 2);
       comicText(ctx, f.label, x, y, 18, f.ok ? C.toxicL : '#ff6a4a');
       ctx.globalAlpha = 1;

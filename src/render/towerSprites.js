@@ -6,6 +6,7 @@
 // wobble and the glows that used to be painted into the artwork live here too.
 
 import { iso } from './iso.js';
+import { cellLift, liftAt } from './terrain.js';
 import { ell } from './draw.js';
 import { C } from './palette.js';
 import { drawSprite, drawSpriteShadow, drawSpriteTurned, spriteOrigin } from './sprites/rasterizer.js';
@@ -105,7 +106,8 @@ export function drawSpecialRing(ctx, tower) {
 /** Unit vector on screen from the emplacement towards what it shoots at. */
 function fireDirection(tower, ox, oy) {
   if (!tower.aim) return [0, 1];
-  const [ax, ay] = iso(tower.aim.x, tower.aim.y, 10);
+  // The target may stand higher or lower than the emplacement; the figure is drawn on its own field.
+  const [ax, ay] = iso(tower.aim.x, tower.aim.y, 10 + liftAt(tower.aim.x, tower.aim.y) - cellLift(tower.x, tower.y));
   const len = Math.hypot(ax - ox, ay - oy) || 1;
   return [(ax - ox) / len, (ay - oy) / len];
 }

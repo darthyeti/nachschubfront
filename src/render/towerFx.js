@@ -8,6 +8,7 @@
 
 import { ell } from './draw.js';
 import { iso } from './iso.js';
+import { cellLift } from './terrain.js';
 import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 
@@ -190,7 +191,7 @@ export function drawWeaponSpark(ctx, tower, view) {
  */
 function drawSight(ctx, tower, view) {
   const { muzzle, t, reducedMotion } = view;
-  const [tx, ty] = iso(tower.aim.x + 0.5, tower.aim.y + 0.5, 6);
+  const [tx, ty] = iso(tower.aim.x + 0.5, tower.aim.y + 0.5, 6 + cellLift(tower.aim.x, tower.aim.y) - cellLift(tower.x, tower.y));
   const pulse = reducedMotion ? 0.5 : 0.35 + Math.abs(Math.sin(t * 5)) * 0.35;
   ctx.save();
   ctx.globalAlpha = pulse;

@@ -2,6 +2,7 @@
 // A camera { x, y, zoom } shows world pixel (x, y) at the centre of the viewport.
 
 import { isoInverse } from './iso.js';
+import { STEP, MAX_LEVEL, fieldSize } from './terrain.js';
 
 export function createCamera() {
   return { x: 0, y: 0, zoom: 1 };
@@ -15,9 +16,24 @@ export function screenToWorld(cam, view, sx, sy) {
   return [(sx - view.width / 2) / cam.zoom + cam.x, (sy - view.height / 2) / cam.zoom + cam.y];
 }
 
-/** Screen point (CSS pixels) to the grid cell under it at ground level. */
-export function screenToCell(cam, view, sx, sy) {
+/**
+ * Screen point (CSS pixels) to the grid cell under it. Without `heights` the ground is flat.
+ * With the height field (one level 0 to 2 per cell, see terrain.js) the levels are tried from the
+ * top down: the first cell whose top face contains the point at its own height and whose level
+ * is that level is the one hit. Otherwise a tap on a high field would land on the field behind it.
+ * @param {Uint8Array} [heights]
+ */
+export function screenToCell(cam, view, sx, sy, heights) {
   const [wx, wy] = screenToWorld(cam, view, sx, sy);
+  if (heights) {
+    const size = fieldSize(heights);
+    for (let level = MAX_LEVEL; level > 0; level--) {
+      const g = isoInverse(wx, wy + level * STEP);
+      const x = Math.floor(g.x);
+      const y = Math.floor(g.y);
+      if (x >= 0 && y >= 0 && x < size && y < size && heights[y * size + x] === level) return { x, y };
+    }
+  }
   const g = isoInverse(wx, wy);
   return { x: Math.floor(g.x), y: Math.floor(g.y) };
 }

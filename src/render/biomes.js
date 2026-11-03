@@ -66,3 +66,9 @@ export function shade(hex, amount) {
   const ch = (v) => Math.max(0, Math.min(255, v + amount));
   return `rgb(${ch(n >> 16)},${ch((n >> 8) & 255)},${ch(n & 255)})`;
 }
+
+/** A #rrggbb colour with an opacity, as a CSS string. */
+export function rgba(hex, alpha) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
