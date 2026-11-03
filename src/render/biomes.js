@@ -40,9 +40,16 @@ export const PALETTES = {
   },
 };
 
-/** Foundation plate under an emplacement: opacity of the doctrine colour and inset from the cell edge. */
-export const FOUNDATION_ALPHA = 0.35;
-export const FOUNDATION_INSET = 0.06;
+/**
+ * Foundation plate under an emplacement: opacity of the doctrine colour, inset from the cell
+ * edge (negative: the diamond reaches a little past the cell, so it shows beside the socket),
+ * outline width and the rim of the doctrine colour inside the outline (width, opacity).
+ */
+export const FOUNDATION_ALPHA = 0.45;
+export const FOUNDATION_INSET = -0.1;
+export const FOUNDATION_LINE = 2.5;
+export const FOUNDATION_RIM = 3;
+export const FOUNDATION_RIM_ALPHA = 0.8;
 
 /** Biome id of a match. */
 export function biomeOf(seed) {
