@@ -2365,3 +2365,619 @@ button.mode-card.on {
     100% { opacity: 0; }
   }
 }
+
+/* ---------- Phone layout (M10 E2, docs/ART.md "HUD auf dem Handy") ----------
+   A touch screen that is narrow (up to 600 px) or low (up to 500 px). The same
+   condition is PHONE_QUERY in ui/phone.js. The tablet (1180 x 820) and the
+   desktop match neither half and keep what they had.
+   Portrait: slim bar on top, the tools in one row at the bottom, sheets from below.
+   Landscape: tools at the left edge, salvo and tempo at the right, sheets from the
+   right; the setting "Linkshänder" (html[data-hand='left']) swaps the two edges. */
+
+/* Out of the phone layout these parts do not exist. */
+.sheet-head,
+.hud-fold,
+.menu-version {
+  display: none;
+}
+
+@media (pointer: coarse) and (max-width: 600px), (pointer: coarse) and (max-height: 500px) {
+  /* ----- Status bar: four values and the menu, foldable ----- */
+  .hud-top {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-content: flex-start;
+    gap: 4px;
+    padding: calc(4px + var(--safe-top)) calc(6px + var(--safe-right)) 4px calc(6px + var(--safe-left));
+  }
+
+  /* The two rows melt into one, so the plates wrap as a single line. */
+  .plate-row {
+    display: contents;
+  }
+
+  .plate {
+    padding: 2px 6px;
+    gap: 4px;
+    font-size: 17px;
+  }
+
+  .plate-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* The supply level is the badge on its disc; one plate less keeps the menu in
+     reach at 360 px. */
+  .plate-title,
+  .plate-supply {
+    display: none;
+  }
+
+  button.plate-button {
+    order: 9;
+    margin-left: auto;
+  }
+
+  .plate-koloss,
+  .plate-rift {
+    order: 8;
+    font-size: 14px;
+  }
+
+  .plate-koloss[hidden],
+  .plate-rift[hidden],
+  .plate-points[hidden] {
+    display: none;
+  }
+
+  /* Centred without a transform: a pressed button is moved by button:active, and a
+     button that jumps away under the finger loses its click. */
+  .hud-fold {
+    position: absolute;
+    left: calc(50% - 32px);
+    top: 100%;
+    z-index: 3;
+    display: grid;
+    place-items: start center;
+    width: 64px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .hud-fold-icon {
+    box-sizing: border-box;
+    width: 56px;
+    height: 24px;
+    padding: 0 16px;
+    background: #241c17;
+    border: 2px solid var(--ink);
+    border-top: 0;
+    border-radius: 0 0 8px 8px;
+    transform: rotate(180deg);
+  }
+
+  .hud-top.folded {
+    background: none;
+    border-bottom: 0;
+    box-shadow: none;
+  }
+
+  .hud-top.folded .plate:not(.plate-button) {
+    display: none;
+  }
+
+  .hud-top.folded .hud-fold {
+    left: calc(6px + var(--safe-left));
+    top: calc(4px + var(--safe-top));
+    place-items: center start;
+    height: 44px;
+  }
+
+  .hud-top.folded .hud-fold-icon {
+    border-top: 2px solid var(--ink);
+    border-radius: 8px;
+    transform: none;
+  }
+
+  .hud-version,
+  .help-button {
+    display: none;
+  }
+
+  .menu-version {
+    display: block;
+  }
+
+  /* ----- Discs, labels, bubbles ----- */
+  .rune {
+    --disc: 50px;
+  }
+
+  .speed-group .rune {
+    --disc: 46px;
+  }
+
+  .rune-caption {
+    display: none;
+  }
+
+  /* The bubble is a strip above the bottom bar, not a speech bubble beside a disc
+     at the screen edge, where it would run out of the picture. */
+  .rune-bubble,
+  .rune-flash,
+  .rune[data-side='top'] .rune-bubble,
+  .rune[data-side='left'] .rune-bubble {
+    position: fixed;
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: calc(112px + var(--safe-bottom));
+    width: max-content;
+    max-width: calc(100vw - 24px - var(--safe-left) - var(--safe-right));
+    transform: translateX(-50%);
+  }
+
+  @keyframes rune-flash {
+    0% { opacity: 0; }
+    12% { opacity: 1; }
+    75% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .salvo {
+    width: 68px;
+    height: 68px;
+  }
+
+  .salvo-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .salvo-label {
+    font-size: 18px;
+  }
+
+  /* The capsule sheet stands in for the bottom bar, and the commands wait. */
+  #hud[data-phase='selection'] .hud-bar,
+  #hud[data-phase='selection'] .command-rail {
+    display: none;
+  }
+
+  /* ----- Sheets: the part they share ----- */
+  /* Sticky, so the cross stays in reach however far the sheet has scrolled. */
+  .sheet-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #1c1511;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .sheet-grab {
+    flex: 1;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    display: grid;
+    place-items: center;
+  }
+
+  .sheet-grab-bar {
+    width: 44px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--muted);
+    opacity: 0.7;
+  }
+
+  .menu-panel > .sheet-head,
+  .codex-panel > .sheet-head,
+  .info > .sheet-head {
+    width: auto;
+    margin: 0 calc(-14px - var(--safe-right)) 0 calc(-14px - var(--safe-left));
+  }
+
+  .sheet-close {
+    position: absolute;
+    right: calc(6px + var(--safe-right));
+    top: 0;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid var(--gold);
+    background: #3a322b;
+    box-shadow: none;
+    cursor: pointer;
+  }
+
+  .sheet-close-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  /* The old close buttons give way to the sheet's own. */
+  .codex-head .alt,
+  .help-close,
+  .info-close {
+    display: none;
+  }
+
+  /* The panels that were centred windows: screens that open from an edge. The title
+     screen and the end screen stay a window, they have nothing to go back to. */
+  .menu:not([data-menu='main']):not([data-menu='end']),
+  .codex,
+  .help-layer {
+    padding: 0;
+  }
+
+  .menu-panel,
+  .codex-panel,
+  .help-sheet {
+    box-shadow: none;
+    padding: 0 calc(14px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(14px + var(--safe-left));
+    overscroll-behavior: contain;
+  }
+
+  .menu[data-menu='main'] .menu-panel,
+  .menu[data-menu='end'] .menu-panel {
+    padding: 16px 14px 18px;
+  }
+
+  .help-sheet {
+    padding: 0;
+    box-sizing: border-box;
+    /* A sheet does not pop; it is on its edge from the first frame. */
+    animation: none;
+  }
+
+  .help-body {
+    padding: 4px calc(14px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(14px + var(--safe-left));
+  }
+
+  .help-head {
+    padding: 4px 14px;
+  }
+
+  .codex-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Selection and info sit on the edge themselves (not in an overlay). */
+  .selection,
+  .info {
+    box-shadow: none;
+    border-radius: 14px 14px 0 0;
+    border-bottom: 0;
+    z-index: 5;
+  }
+
+  .selection {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    transform: none;
+    width: auto;
+    max-height: 62%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    align-items: stretch;
+    padding: 0 calc(8px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(8px + var(--safe-left));
+    gap: 6px;
+  }
+
+  /* A handle for the look; the capsule choice cannot be closed, it has to be answered. */
+  .selection::before {
+    content: '';
+    flex: 0 0 auto;
+    align-self: center;
+    width: 44px;
+    height: 5px;
+    margin: 8px 0 2px;
+    border-radius: 3px;
+    background: var(--muted);
+    opacity: 0.7;
+  }
+
+  .selection-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .selection-card {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 22px 4px 8px;
+    border-left-width: 6px;
+    min-height: 48px;
+  }
+
+  .selection-badge {
+    right: 3px;
+  }
+
+  .selection-actions {
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+  }
+
+  .selection-actions button,
+  .selection-recipes {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+  }
+
+  .selection-hint {
+    display: none;
+  }
+
+  .info {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: auto;
+    padding: 0 calc(14px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(14px + var(--safe-left));
+    max-height: 62%;
+    overflow-y: auto;
+  }
+
+  .info-list {
+    grid-template-columns: auto 1fr;
+  }
+}
+
+/* ----- Portrait ----- */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 600px),
+  (pointer: coarse) and (orientation: portrait) and (max-height: 500px) {
+  .hud-bottom {
+    left: 0;
+    right: 0;
+    transform: none;
+    width: auto;
+    bottom: calc(6px + var(--safe-bottom));
+    padding: 0 calc(6px + var(--safe-right)) 0 calc(6px + var(--safe-left));
+    gap: 6px;
+  }
+
+  .hud-bar {
+    box-sizing: border-box;
+    width: 100%;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 6px 8px;
+    box-shadow: none;
+  }
+
+  .rune-group {
+    gap: 4px;
+  }
+
+  .speed-group {
+    gap: 2px;
+  }
+
+  /* Above the bottom bar, at the edge the right thumb reaches. */
+  .command-rail {
+    right: calc(4px + var(--safe-right));
+    top: auto;
+    bottom: calc(104px + var(--safe-bottom));
+    transform: none;
+    max-height: none;
+    padding: 0;
+    overflow: visible;
+    gap: 8px;
+  }
+
+  .command-rail .rune {
+    --disc: 46px;
+  }
+
+  .menu:not([data-menu='main']):not([data-menu='end']),
+  .codex,
+  .help-layer {
+    align-items: flex-end;
+  }
+
+  .menu:not([data-menu='main']):not([data-menu='end']) .menu-panel,
+  .codex-panel,
+  .help-sheet {
+    width: 100%;
+    max-height: calc(100% - 56px - var(--safe-top));
+    border-radius: 14px 14px 0 0;
+    border-bottom: 0;
+  }
+
+  .help-sheet {
+    overflow: hidden;
+  }
+}
+
+/* ----- Landscape ----- */
+@media (pointer: coarse) and (orientation: landscape) and (max-width: 600px),
+  (pointer: coarse) and (orientation: landscape) and (max-height: 500px) {
+  /* No bar behind the plates: the whole height belongs to the board. */
+  .hud-top {
+    background: none;
+    border-bottom: 0;
+    box-shadow: none;
+  }
+
+  .hud-top .plate {
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  /* Above the capsule sheet and the info sheet, which leave its band free. */
+  .hud-top {
+    z-index: 6;
+  }
+
+  .hud-fold {
+    left: calc(6px + var(--safe-left));
+  }
+
+  .hud-bottom {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    transform: none;
+    width: auto;
+    display: block;
+  }
+
+  .hud-bar {
+    display: contents;
+  }
+
+  .rune-group {
+    position: absolute;
+    left: calc(8px + var(--safe-left));
+    bottom: calc(8px + var(--safe-bottom));
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .salvo {
+    position: absolute;
+    right: calc(8px + var(--safe-right));
+    bottom: calc(60px + var(--safe-bottom));
+  }
+
+  .speed-group {
+    position: absolute;
+    right: calc(8px + var(--safe-right));
+    bottom: calc(8px + var(--safe-bottom));
+    gap: 4px;
+  }
+
+  .hud-bar > .primary:not(.salvo) {
+    position: absolute;
+    right: calc(8px + var(--safe-right));
+    bottom: calc(8px + var(--safe-bottom));
+  }
+
+  .hud-rating {
+    position: absolute;
+    left: 50%;
+    bottom: calc(8px + var(--safe-bottom));
+    transform: translateX(-50%);
+  }
+
+  html[data-hand='left'] .rune-group {
+    left: auto;
+    right: calc(8px + var(--safe-right));
+  }
+
+  html[data-hand='left'] .salvo,
+  html[data-hand='left'] .speed-group,
+  html[data-hand='left'] .hud-bar > .primary:not(.salvo) {
+    right: auto;
+    left: calc(8px + var(--safe-left));
+  }
+
+  .rune-bubble,
+  .rune-flash,
+  .rune[data-side='top'] .rune-bubble,
+  .rune[data-side='left'] .rune-bubble {
+    bottom: calc(12px + var(--safe-bottom));
+  }
+
+  /* A row of discs under the plates, at the right edge: the right-hand column is taken. */
+  .command-rail {
+    right: calc(8px + var(--safe-right));
+    top: calc(60px + var(--safe-top));
+    transform: none;
+    flex-direction: row;
+    max-height: none;
+    padding: 0;
+    overflow: visible;
+    gap: 8px;
+  }
+
+  .command-rail .rune {
+    --disc: 46px;
+  }
+
+  .selection,
+  .info {
+    left: auto;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: min(46%, 340px);
+    max-height: none;
+    border-radius: 14px 0 0 14px;
+    border: 2px solid var(--ink);
+    border-right: 0;
+    /* The top band stays free: the menu button of the status bar sits there, so the
+       menu is in reach while a sheet is open. */
+    padding-top: calc(52px + var(--safe-top));
+    padding-bottom: calc(8px + var(--safe-bottom));
+    padding-right: calc(8px + var(--safe-right));
+    padding-left: 8px;
+  }
+
+  .selection::before {
+    display: none;
+  }
+
+  .selection-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .menu:not([data-menu='main']):not([data-menu='end']),
+  .codex,
+  .help-layer {
+    justify-content: flex-end;
+    align-items: stretch;
+  }
+
+  .menu:not([data-menu='main']):not([data-menu='end']) .menu-panel,
+  .codex-panel,
+  .help-sheet {
+    width: min(480px, 64%);
+    max-height: none;
+    height: 100%;
+    border-radius: 14px 0 0 14px;
+    border-right: 0;
+  }
+
+  .help-sheet {
+    overflow: hidden;
+  }
+
+  .help-body {
+    min-height: 0;
+  }
+
+  .menu-title {
+    margin-bottom: 8px;
+  }
+
+  .menu[data-menu='main'] .menu-panel,
+  .menu[data-menu='end'] .menu-panel {
+    padding: 10px 14px 12px;
+  }
+}

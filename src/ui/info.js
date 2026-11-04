@@ -6,6 +6,7 @@ import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { towerStats, towerAt } from '../sim/towers.js';
 import { podAt } from '../sim/pods.js';
 import { isBlocked } from '../sim/grid.js';
+import { sheetHead } from './sheet.js';
 
 const T = STRINGS.info;
 
@@ -153,8 +154,9 @@ export function createInfoPanel(root, { onClose }) {
     close.blur();
   });
   head.append(title, subtitle);
+  const sheet = sheetHead(() => onClose());
   const list = el('dl', 'info-list');
-  panel.append(head, list, close);
+  panel.append(sheet, head, list, close);
   root.append(panel);
 
   let key = '';
