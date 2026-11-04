@@ -14,7 +14,18 @@ import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { STRINGS } from '../data/strings.js';
 import { PODS } from '../data/pods.js';
 import { towerStats, towerById } from '../sim/towers.js';
-import { towerAnchor, towerSparks } from './towerSprites.js';
+import { towerAnchor, towerSparks, isTurreted } from './towerSprites.js';
+import {
+  noteTowerEvent,
+  drainFxQueue,
+  stepWorldParticle,
+  drawWorldParticle,
+  launchOf,
+  rocketTrail,
+  drawRocket,
+  drawTowerReach,
+} from './towerFx.js';
+import { FX_MAX_PARTICLES } from '../data/art.js';
 import { drawGunship } from './gunship.js';
 import { sinceImpact } from '../sim/pods.js';
 import { SPRITE_SCALE, POD_ANCHORS, POD_PETALS, POD_PETAL_ORDER, POD_OPEN_SCALE } from './sprites/manifest.js';
@@ -142,6 +153,17 @@ export function createEffects() {
 
   /** Puffs alive, kept by hand so the ceiling needs no pass over the list. */
   let puffs = 0;
+
+  /** Particles at the muzzles (cases, sparks, smoke, tracers): a ceiling of their own inside the one above. */
+  let muzzleParticles = 0;
+
+  /** A particle in the world that an emplacement or a rocket threw off (towerFx.js). */
+  function addWorldParticle(spec) {
+    if (muzzleParticles >= FX_MAX_PARTICLES) return;
+    const before = particles.length;
+    addParticle({ ...spec, world: true, max: spec.life });
+    if (particles.length > before) muzzleParticles += 1;
+  }
 
   function addParticle(p) {
     if (particles.length >= MAX_PARTICLES) return;
@@ -301,6 +323,15 @@ export function createEffects() {
   /** Takes one simulation event. Unknown events are ignored on purpose. */
   function handle(event, state, reducedMotion) {
     const colour = DOCTRINE_COLORS[event.doctrine] ?? C.gold;
+    // The turned weapons draw their own fire at the barrel (towerFx.js); the simulation only tells it
+    // where the shot went.
+    if (event.type === 'shot' || event.type === 'beam' || event.type === 'chain' || event.type === 'launch') {
+      const tower = towerById(state, event.towerId);
+      if (tower && isTurreted(tower)) {
+        noteTowerEvent(tower, event);
+        return;
+      }
+    }
     if (event.type === 'shot') {
       // The storm battery fires blue tracer, not the brass of the doctrine it
       // is built from (docs/ART.md, "Spezialstellungen").
@@ -540,6 +571,23 @@ export function createEffects() {
     }
   }
 
+  /**
+   * Takes over what the muzzles queued during the last drawing, and lets the rockets in flight leave
+   * their smoke. The rocket follows the shell of the simulation; this only draws a trail behind it.
+   */
+  function takeOverMuzzleFire(state, dt) {
+    for (const tower of state.towers) {
+      const queued = drainFxQueue(tower);
+      if (queued) for (const spec of queued) addWorldParticle(spec);
+    }
+    for (const shell of state.projectiles) {
+      const tower = towerById(state, shell.towerId);
+      if (!tower || !isTurreted(tower)) continue;
+      const rec = launchOf(shell, tower, false);
+      if (rec) for (const spec of rocketTrail(rec, shell, dt)) addWorldParticle(spec);
+    }
+  }
+
   /** A chunk on the ground plane: it rises and falls, bounces a little and slides to rest. */
   function moveChunk(p, dt) {
     p.gx += p.vgx * dt;
@@ -570,6 +618,7 @@ export function createEffects() {
     for (const event of state.events) handle(event, state, reducedMotion);
     collectDamage(state, dt);
     stagePods(state, dt, reducedMotion);
+    takeOverMuzzleFire(state, dt);
 
     // Fast decay: the jolt should be over before the next shot lands.
     shake = Math.max(0, shake * Math.pow(0.02, dt) - dt * 2);
@@ -588,7 +637,12 @@ export function createEffects() {
       p.life -= dt;
       if (p.life <= 0) {
         if (p.kind === 'puff') puffs -= 1;
+        if (p.world) muzzleParticles -= 1;
         particles.splice(i, 1);
+        continue;
+      }
+      if (p.world) {
+        stepWorldParticle(p, dt);
         continue;
       }
       if (p.kind === 'chunk') {
@@ -699,7 +753,8 @@ export function createEffects() {
       if (!tower.firing || !tower.aim) continue;
       // The behaviour, not the doctrine: a purge shrine is a flame tower with a ring.
       if (stats.behaviour === 'aura') drawAura(ctx, tower, stats, t, reducedMotion);
-      else if (stats.behaviour === 'cone' || stats.behaviour === 'flame') drawCone(ctx, tower, t, reducedMotion);
+      // The turned flame weapon has its own jet at the nozzle (towerFx.js).
+      else if ((stats.behaviour === 'cone' || stats.behaviour === 'flame') && !isTurreted(tower)) drawCone(ctx, tower, t, reducedMotion);
     }
     drawBlaze(ctx);
   }
@@ -993,6 +1048,14 @@ export function createEffects() {
       if (hit.kind === 'airstrike' && hit.t >= hit.warnSeconds) drawGunship(ctx, hit, t, reducedMotion);
     }
     for (const shell of state.projectiles) {
+      // The rockets of the launcher leave the pod and fall on the point of the shell of the simulation.
+      const owner = towerById(state, shell.towerId);
+      if (owner && isTurreted(owner)) {
+        // Nothing for the one frame before the drawing has seen the shot leave.
+        const rec = launchOf(shell, owner);
+        if (rec) drawRocket(ctx, rec, shell);
+        continue;
+      }
       const u = Math.min(1, shell.t / shell.flight);
       const height = 4 * 70 * u * (1 - u);
       const [gx, gy] = project(shell.x, shell.y);
@@ -1000,6 +1063,11 @@ export function createEffects() {
       const [x, y] = project(shell.x, shell.y, height);
       ell(ctx, x, y, 4.5, 4.5, C.steelD, C.ink, 2);
       ell(ctx, x - 1, y - 1, 1.6, 1.6, C.steelL, null);
+    }
+
+    // Beams, bolts, jets and pulses that run towards the camera (the others are behind their weapon).
+    for (const tower of state.towers) {
+      if (isTurreted(tower)) drawTowerReach(ctx, tower, t);
     }
 
     for (const s of shots) {
@@ -1014,6 +1082,10 @@ export function createEffects() {
     for (const p of particles) {
       const u = p.life / p.max;
       if (p.kind === 'blaze' || p.kind === 'glare') continue;
+      if (p.world) {
+        drawWorldParticle(ctx, p, 1 - u);
+        continue;
+      }
       if (p.kind === 'puff') {
         if (!(p.delay > 0)) drawPuff(ctx, p, u);
         continue;
@@ -1313,6 +1385,7 @@ export function createEffects() {
     clear() {
       particles.length = 0;
       puffs = 0;
+      muzzleParticles = 0;
       decals.length = 0;
       numbers.length = 0;
       shots.length = 0;
@@ -1324,7 +1397,7 @@ export function createEffects() {
     },
     /** For the debug display. */
     counts() {
-      return { particles: particles.length, decals: decals.length };
+      return { particles: particles.length, decals: decals.length, muzzle: muzzleParticles };
     },
   };
 }

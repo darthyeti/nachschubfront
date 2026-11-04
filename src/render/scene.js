@@ -39,12 +39,13 @@ import {
 import { createTrail } from './trail.js';
 import { castShadows } from './shadows.js';
 import { occludersOf, occludersOfAll, cellsKey, fadeStep } from './occlusion.js';
-import { REVEAL } from '../data/art.js';
+import { REVEAL, OBSTACLE_SEE_THROUGH } from '../data/art.js';
 import { STEP, heightField, setActiveTerrain, cellLift, liftAt } from './terrain.js';
 import { snapToAxis } from '../sim/commands.js';
 import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
 import { laneStart } from '../sim/koloss.js';
-import { drawTowerSprite, drawSpecialRing, towerAnchor } from './towerSprites.js';
+import { drawTowerSprite, drawSpecialRing, towerAnchor, towerPictureBox } from './towerSprites.js';
+import { coverHulls, plateBounds, coveringObstacles } from './cover.js';
 import {
   createPodRenderer,
   drawZoneMarker,
@@ -507,31 +508,135 @@ function drawBlockShadows(ctx, state, map) {
 }
 
 /**
- * The plate an emplacement stands on: a diamond just inside its cell in the guide colour of its
- * doctrine, so an emplacement never melts into the ground. Lies under the gold ring.
+ * The plate an emplacement stands on: a rectangle just outside its cell in the guide colour of its
+ * doctrine, so an emplacement never melts into the ground. Lies under the gold ring. At an edge
+ * where the level changes it stops at the edge (`plateBounds`): it would hang over a cliff or climb
+ * the wall of the higher field.
  */
-function drawFoundation(ctx, tower) {
+function drawFoundation(ctx, tower, field, opacity = 1) {
   const lift = cellLift(tower.x, tower.y);
   ctx.translate(0, -lift);
   const color = DOCTRINE_COLORS[tower.doctrine];
-  cellPath(ctx, tower.x, tower.y, FOUNDATION_INSET);
-  ctx.globalAlpha = FOUNDATION_ALPHA;
+  const b = plateBounds(field, tower.x, tower.y, FOUNDATION_INSET);
+  ctx.beginPath();
+  [iso(b.x0, b.y0), iso(b.x1, b.y0), iso(b.x1, b.y1), iso(b.x0, b.y1)].forEach(([px, py], k) =>
+    k ? ctx.lineTo(px, py) : ctx.moveTo(px, py),
+  );
+  ctx.closePath();
+  ctx.globalAlpha = opacity * FOUNDATION_ALPHA;
   ctx.fillStyle = color;
   ctx.fill();
   // The rim: a stroke centred on the outline, clipped to the inside, wide enough to leave
   // FOUNDATION_RIM px of colour beside the outline.
   ctx.save();
   ctx.clip();
-  ctx.globalAlpha = FOUNDATION_RIM_ALPHA;
+  ctx.globalAlpha = opacity * FOUNDATION_RIM_ALPHA;
   ctx.strokeStyle = color;
   ctx.lineWidth = 2 * (FOUNDATION_LINE / 2 + FOUNDATION_RIM);
   ctx.stroke();
   ctx.restore();
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = opacity;
   ctx.lineWidth = FOUNDATION_LINE;
   ctx.strokeStyle = C.ink;
   ctx.stroke();
   ctx.translate(0, lift);
+}
+
+/** The area round a field that is cut out, in world pixels: sideways, above its middle and below it. */
+const COVER_REACH = { x: 160, up: 300, down: 80 };
+
+/**
+ * Draws a figure that stands on the field (cx, cy) behind the terrain in front of it. Blocks of
+ * terrain that are higher than the field and nearer to the camera cover part of it (`coverHulls`):
+ * `draw` is called once with the pictures of those blocks cut out of the canvas, so the figure stands
+ * behind the block and neither climbs the slope nor ends up over its edge. While the field is being
+ * looked at (the see-through of issue 35) `fade` is above 0 and `draw` is called once more for each
+ * block, clipped to it and at that opacity; `again` is true then (and `fade` is passed on), so a
+ * caller can leave out what must only happen once (the movement of a weapon).
+ * @param {number} applied  How far the context is translated up at the call: 0 in the ground pass,
+ *   the lift of the field inside the depth-sorted loop.
+ */
+function drawBehindTerrain(ctx, field, cx, cy, applied, fade, draw) {
+  const { hulls } = coverHulls(field, cx, cy);
+  if (!hulls.length) {
+    draw(false);
+    return;
+  }
+  const [mx, my] = iso(cx + 0.5, cy + 0.5);
+  const trace = (hull) => {
+    hull.forEach(([px, py], k) => (k ? ctx.lineTo(px, py + applied) : ctx.moveTo(px, py + applied)));
+    ctx.closePath();
+  };
+  ctx.save();
+  for (const hull of hulls) {
+    ctx.beginPath();
+    ctx.rect(mx - COVER_REACH.x, my - COVER_REACH.up, 2 * COVER_REACH.x, COVER_REACH.up + COVER_REACH.down);
+    trace(hull);
+    ctx.clip('evenodd');
+  }
+  draw(false);
+  ctx.restore();
+  if (fade <= 0) return;
+  for (const hull of hulls) {
+    ctx.save();
+    ctx.beginPath();
+    trace(hull);
+    ctx.clip();
+    ctx.globalAlpha *= fade;
+    draw(true, fade);
+    ctx.restore();
+  }
+}
+
+/** How much of a field's see-through is in force: the strongest layer that holds every block covering it. */
+function coverFade(layers, cells) {
+  let best = 0;
+  for (const l of layers) {
+    if (l.f <= best) continue;
+    if (cells.every((c) => l.cells.some((k) => k.x === c.x && k.y === c.y))) best = l.f;
+  }
+  return best;
+}
+
+/** The boxes of one cell of an obstacle in cell coordinates, from its shadow bodies. */
+function obstacleBodies(obstacle, index) {
+  return obstacleShadow(obstacle, index).map(({ footprint, height }) => ({
+    x0: footprint[0][0],
+    y0: footprint[0][1],
+    x1: footprint[2][0],
+    y1: footprint[2][1],
+    h: height,
+  }));
+}
+
+/**
+ * The obstacles drawn see-through. Found again only when the emplacements or the obstacles change,
+ * never per frame: the ruins, walls and heaps of the kit that stand in front of an emplacement and
+ * cover it (`coveringObstacles`).
+ */
+function createCoverTracker() {
+  let last = [];
+  let scratch = [];
+  let known = null;
+  let set = new Set();
+  return function update(state, heights) {
+    // A flat list of what decides the result, compared with the last one: no strings built per frame.
+    scratch.length = 0;
+    for (const t of state.towers) scratch.push(t.x, t.y, t.rank, t.doctrine, t.special ?? '');
+    scratch.push(-1);
+    for (const o of state.map.obstacles) scratch.push(o.kind, o.cells.length, o.cells[0]?.x, o.cells[0]?.y, o.variant);
+    let same = heights === known && scratch.length === last.length;
+    for (let i = 0; same && i < scratch.length; i++) same = scratch[i] === last[i];
+    if (same) return set;
+    [last, scratch] = [scratch, last];
+    known = heights;
+    const entries = state.map.obstacles
+      .filter((o) => o.kind !== 'bulwark' && o.kind !== 'crater')
+      .map((o) => ({ ob: o, cells: o.cells, bodies: (i) => obstacleBodies(o, i) }));
+    const towers = state.towers.map((t) => ({ x: t.x, y: t.y, box: towerPictureBox(t) }));
+    set = new Set([...coveringObstacles(heights, towers, entries)].map((e) => e.ob));
+    return set;
+  };
 }
 
 /**
@@ -634,6 +739,7 @@ export function createSceneRenderer(sprites) {
    * @param {object} ground  Ground layer from createGroundLayer().
    */
   const trail = createTrail();
+  const seeThroughOf = createCoverTracker();
 
   return function renderScene(ctx, view, cam, state, ui, ground, t) {
     const { map } = state;
@@ -748,13 +854,18 @@ export function createSceneRenderer(sprites) {
     // it lies flat on the ground and must never end up on a neighbour's socket
     // (docs/ART.md). After the scorch marks, so a burnt cell does not hide it.
     if (ui.art === 'sprites') {
-      for (const tower of state.towers) drawFoundation(ctx, tower);
+      // Terrain in front of an emplacement cuts its plate and ring as it cuts the figure.
+      const behind = (tower, draw) =>
+        drawBehindTerrain(ctx, field, tower.x, tower.y, 0, coverFade(revealLayers, coverHulls(field, tower.x, tower.y).cells), draw);
+      for (const tower of state.towers) behind(tower, (again, fade) => drawFoundation(ctx, tower, field, again ? fade : 1));
       for (const tower of state.towers) {
         if (!tower.special) continue;
-        const lift = cellLift(tower.x, tower.y);
-        ctx.translate(0, -lift);
-        drawSpecialRing(ctx, tower);
-        ctx.translate(0, lift);
+        behind(tower, () => {
+          const lift = cellLift(tower.x, tower.y);
+          ctx.translate(0, -lift);
+          drawSpecialRing(ctx, tower);
+          ctx.translate(0, lift);
+        });
       }
     }
 
@@ -811,6 +922,7 @@ export function createSceneRenderer(sprites) {
     };
     warmKit(map.obstacles, palette, view.dpr, cam.zoom);
     const obstacleRaster = { zoom: cam.zoom, dpr: view.dpr };
+    const seeThrough = seeThroughOf(state, field);
     items.length = 0;
     for (const o of map.obstacles) {
       for (let i = 0; i < o.cells.length; i++) {
@@ -862,12 +974,17 @@ export function createSceneRenderer(sprites) {
       else if (kind === KIND_ENEMY) lift = o.flying ? 0 : liftAt(o.x, o.y);
       else lift = cellLift(o.x, o.y);
       ctx.translate(0, -lift);
-      drawItem(kind, o, i);
+      drawItem(kind, o, i, lift);
       ctx.translate(0, lift);
     }
 
-    function drawItem(kind, o, i) {
-      if (kind === KIND_OBSTACLE) drawObstacleCell(ctx, o, i, palette, obstacleRaster);
+    function drawItem(kind, o, i, lift) {
+      if (kind === KIND_OBSTACLE) {
+        // An obstacle in front of an emplacement that it covers stays see-through for good.
+        if (seeThrough.has(o)) ctx.globalAlpha = OBSTACLE_SEE_THROUGH.alpha;
+        drawObstacleCell(ctx, o, i, palette, obstacleRaster);
+        ctx.globalAlpha = 1;
+      }
       else if (kind === KIND_RIFT) {
         // i: 0 the single rift of the standard map, 1 the attacking one, 2 a quiet one.
         if (i === 0) drawRift(ctx, o, t);
@@ -876,9 +993,13 @@ export function createSceneRenderer(sprites) {
       else if (kind === KIND_BEACON) drawBeacon(ctx, o, t);
       else if (kind === KIND_POD) drawPod(ctx, o, t, enemyView);
       else if (kind === KIND_TOWER) {
-        if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, o, cam.zoom, view.dpr, t, dt, ui.reducedMotion)) {
-          drawTowerPlaceholder(ctx, o);
-        }
+        // Terrain in front of its field cuts it; the second pass (see-through) must not move the weapon twice.
+        const fade = coverFade(revealLayers, coverHulls(field, o.x, o.y).cells);
+        drawBehindTerrain(ctx, field, o.x, o.y, lift, fade, (again) => {
+          if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, o, cam.zoom, view.dpr, t, again ? 0 : dt, ui.reducedMotion)) {
+            drawTowerPlaceholder(ctx, o);
+          }
+        });
       } else if (isKolossEnemy(o) && ui.art === 'sprites') {
         // A model, not a sprite: it has to read on all four axes, and it draws
         // its own health bar with the airstrike mark on it.
@@ -906,7 +1027,7 @@ export function createSceneRenderer(sprites) {
     for (const pod of state.pods) {
       const lift = cellLift(pod.x, pod.y);
       ctx.translate(0, -lift);
-      drawPodHologram(ctx, pod, t);
+      drawPodHologram(ctx, pod, t, enemyView);
       ctx.translate(0, lift);
     }
     map.beacons.forEach((b, i) => {
