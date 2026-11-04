@@ -97,3 +97,48 @@ export const TURRET_ROCKET = {
   row: 0.065,
   mouths: [[-1, 1], [1, -1], [0, 1], [-1, -1], [1, 1], [0, -1]],
 };
+
+// ---------- Muzzle fire and effects at the barrel (M9 D3) ----------
+// Presentation only: how long the flashes last, how far a jet reaches, how many particles the
+// muzzles may hold. Nothing here is a rule of the game; the shots themselves come from the simulation.
+
+/**
+ * How far in front of the muzzle point of the model the fire leaves, in cells along the barrel: the
+ * noses of the rockets stand 0.12 out of their tubes, the tip of the tesla horn is 0.05 past its
+ * gem. Every other weapon fires from the end of its barrel.
+ */
+export const FX_TIP_AHEAD = { mortar: 0.12, tesla: 0.05 };
+
+/** Seconds a muzzle flash lasts, by doctrine (the rockets flare twice as long as a gun). */
+export const FX_FLASH_SECONDS = { autocannon: 0.075, mortar: 0.15, tesla: 0.075 };
+
+/** Seconds the laser beam stays, the tesla bolt stays, and a psi pulse takes to run out. */
+export const FX_BEAM_SECONDS = 0.22;
+export const FX_BOLT_SECONDS = 0.3;
+export const FX_PULSE_SECONDS = 0.8;
+/** Seconds between two psi pulses while the weapon has something in reach. */
+export const FX_PULSE_EVERY = 1.1;
+/** The laser lens charges over the last seconds of its reload, when it has a target. */
+export const FX_LASER_CHARGE_SECONDS = 0.4;
+
+/** Reach of the flame jet in cells, and how fast it swells and dies (per second, eased). */
+export const FX_JET_LENGTH = 1.9;
+export const FX_JET_RATE = 8;
+
+/** Height above the ground, in px, where a shot hits its target. */
+export const FX_HIT_Z = 12;
+/** Speed of the tracer of the autocannon in cells per second. */
+export const FX_TRACER_SPEED = 16;
+/** Fall of cases and sparks in px per second squared. */
+export const FX_GRAVITY = 620;
+/** Most particles all muzzles together may have alive; the rest of the effects keep their share. */
+export const FX_MAX_PARTICLES = 200;
+/** Most particles one frame may queue per emplacement (nobody drains the queue without effects). */
+export const FX_QUEUE = 24;
+
+/**
+ * The flight of a rocket: it climbs this many px over the straight line, its first leg runs this share
+ * of the way along the barrel, and it ends this many px above the ground. The flight time and the
+ * end point are those of the shell of the simulation.
+ */
+export const FX_ROCKET = { lift: 28, reach: 0.42, endZ: 12, trail: 0.025, tail: 10 };
