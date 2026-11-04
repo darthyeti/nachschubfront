@@ -31,3 +31,15 @@ test('left-handed mode is off by default and only a yes or no is kept (M10 E2)',
   assert.equal(sanitizePrefs({ leftHanded: true }).leftHanded, true);
   assert.equal(sanitizePrefs({ leftHanded: 1 }).leftHanded, false, 'junk falls back');
 });
+
+test('the tutorial and the folded status bar are off by default and only a yes or no is kept (M10 E3)', () => {
+  assert.equal(PREF_DEFAULTS.tutorialSeen, false);
+  assert.equal(PREF_DEFAULTS.statusFolded, false);
+  assert.equal(sanitizePrefs({ tutorialSeen: true }).tutorialSeen, true);
+  assert.equal(sanitizePrefs({ statusFolded: true }).statusFolded, true);
+  assert.equal(sanitizePrefs({ tutorialSeen: 'ja' }).tutorialSeen, false, 'junk falls back');
+  assert.equal(sanitizePrefs({ statusFolded: 1 }).statusFolded, false, 'junk falls back');
+  // An empty or missing store means defaults, never a refusal to start.
+  assert.equal(sanitizePrefs(null).tutorialSeen, false);
+  assert.equal(sanitizePrefs(undefined).statusFolded, false);
+});

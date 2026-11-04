@@ -12,9 +12,13 @@ import { join } from 'node:path';
 import { ROOT, startServer, watchProblems, browserName, launchBrowser, startMatch } from './tools/server.mjs';
 import { RULESET_VERSION } from '../src/data/rules.js';
 import { playBotMatch } from './tools/bot-player.mjs';
+import { openTutorial, walkTutorial, checkRepeatAndSkip } from './tools/tutorial-run.mjs';
 
 const OUT = join(ROOT, 'tests', 'output');
 const SEED = 'BASTION';
+// --shots <dir>: JPEG stills of the tutorial steps (M10 E3)
+const shotsAt = process.argv.indexOf('--shots');
+const SHOTS = shotsAt > 0 ? process.argv[shotsAt + 1] : null;
 
 await mkdir(OUT, { recursive: true });
 const server = await startServer();
@@ -435,6 +439,17 @@ try {
       // The panel rebuilds its cards on every change, so query them again.
       assert.equal(await page.$$eval('.selection-card', (cs) => cs.findIndex((c) => c.getAttribute('aria-pressed') === 'true')), index);
       await page.screenshot({ path: join(OUT, 'tablet-selection.png') });
+
+      // Pause stays within reach during the capsule choice (M10 E3): the bar with its disc is on screen here.
+      const pauseDisc = page.locator('.speed-group .rune').nth(0);
+      assert.ok(await pauseDisc.isVisible(), 'the pause disc is on screen during the choice');
+      await pauseDisc.tap();
+      assert.equal((await game(page)).speed, 0, 'pause works during the capsule choice');
+      // The HUD marks the disc on the next frame; WebKit can still show the old state right after the tap.
+      await frames(page, 2);
+      assert.equal(await pauseDisc.evaluate((e) => e.classList.contains('on')), true, 'and shows it');
+      await pauseDisc.tap();
+      assert.ok((await game(page)).speed > 0, 'and lets go again');
 
       await page.getByRole('button', { name: 'Behalten' }).click();
       await page.waitForFunction(() => window.__nachschub.state().phase === 'wave', null, { timeout: 10000 });
@@ -1790,6 +1805,40 @@ try {
       const panel = await page.locator('.menu[data-menu="mode"] .menu-panel').evaluate((p) => p.scrollWidth > p.clientWidth);
       assert.equal(panel, false, 'and the panel does not overflow either');
     });
+    await context.close();
+  }
+
+  // ---------- The tutorial (M10 E3) ----------
+  // Every step on the tablet with a finger: what is lit, what is locked, how it goes on, and
+  // that it can be repeated and skipped. The match is played at 3x between the steps.
+  console.log('tutorial (tablet, touch)');
+  {
+    const context = await browser.newContext({
+      viewport: { width: 1180, height: 820 },
+      deviceScaleFactor: 2,
+      hasTouch: true,
+      isMobile: true,
+    });
+    const page = await context.newPage();
+    watchProblems(page, 'tutorial', problems);
+    if (SHOTS) await mkdir(SHOTS, { recursive: true });
+    const tap = (x, y) => page.touchscreen.tap(x, y);
+
+    await check('tutorial: a fresh device starts it with the first match, and all fourteen steps go through', async () => {
+      await openTutorial(page, server.url);
+      await page.waitForFunction(() => document.querySelector('.tutorial:not([hidden]) .tutorial-meta'), null, { timeout: 5000 });
+      const seen = await walkTutorial(page, {
+        tap,
+        label: 'tablet',
+        shots: SHOTS ? { dir: SHOTS, prefix: 'e3-tablet', steps: [3, 6, 9, 12, 14] } : null,
+      });
+      assert.deepEqual(seen, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    });
+
+    await check('tutorial: repeating from the settings and skipping both go through the storage layer', async () => {
+      await checkRepeatAndSkip(page, { tap, url: server.url, label: 'tablet' });
+    });
+
     await context.close();
   }
 

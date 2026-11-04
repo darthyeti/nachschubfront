@@ -44,6 +44,7 @@ import { createSelectionPanel, pressAction } from './ui/selection.js';
 import { createCodex } from './ui/codex.js';
 import { createCommandBar, railVisible } from './ui/commands.js';
 import { createIntro } from './ui/intro.js';
+import { createTutorial } from './ui/tutorial.js';
 import { createInfoPanel } from './ui/info.js';
 import { measureCover, podsRect } from './ui/cover.js';
 import { isPhone, isPhoneLandscape } from './ui/phone.js';
@@ -666,7 +667,13 @@ function onAction(action) {
 
 const codex = createCodex(document.body);
 const hudRoot = document.getElementById('hud');
-const hud = createHud(hudRoot, { debug, onAction, onUnlock: () => audio.play('unlock') });
+const hud = createHud(hudRoot, {
+  debug,
+  onAction,
+  onUnlock: () => audio.play('unlock'),
+  // The folded status bar of the phone is remembered (M10 E3).
+  onFold: (folded) => prefs.set('statusFolded', folded),
+});
 // The line of three buttons after a wave (M6). It lives in the same column as
 // the bottom bar, so it is in thumb reach and can never cover it.
 const rating = createRatingRow(hud.bottom, {
@@ -724,6 +731,7 @@ const selectionPanel = createSelectionPanel(document.getElementById('hud'), {
   onChoose: applyChoice,
   onForfeit: giveUpChoice,
   onRecipes: () => codex.setOpen(true),
+  onPause: () => onAction('pause'),
   onPreview: (towerIds) => {
     ui.recipePreview = towerIds;
   },
@@ -731,7 +739,9 @@ const selectionPanel = createSelectionPanel(document.getElementById('hud'), {
 
 attachPointerInput(canvas, {
   onTap(x, y, pointerType) {
-    const cell = cellAt(x, y);
+    // While the tutorial lights a field, a tap that gets through the dimming is for that field
+    // (a finger is wider than a field on a phone).
+    const cell = tutorial.tapCell() ?? cellAt(x, y);
     ui.cursorCell = cell;
     ui.hoverCell = cell;
     onCellTap(cell, pointerType);
@@ -824,7 +834,27 @@ function applyMotion() {
 }
 prefs.onChange(applyMotion);
 systemMotion.addEventListener('change', applyMotion);
-prefs.load().then(applyMotion);
+/** The stored settings have been read: the tutorial must not start before that, or it would greet a veteran. */
+let prefsLoaded = false;
+prefs.load().then(() => {
+  prefsLoaded = true;
+  applyMotion();
+});
+
+/** Screen box of a map cell's top face in CSS pixels, for the tutorial's lit field (read only). */
+function cellScreenBox(cell) {
+  const heights = heightField(state.map, state.seed);
+  const [sx, sy] = worldToScreen(camera, view, ...iso(cell.x + 0.5, cell.y + 0.5, cellHeight(heights, state.map.size, cell.x, cell.y)));
+  const halfW = 32 * camera.zoom;
+  const halfH = 16 * camera.zoom;
+  return { x: sx - halfW, y: sy - halfH, w: halfW * 2, h: halfH * 2 };
+}
+
+// The guided walk through the first two rounds (M10 E3): once per device, repeatable from
+// the settings. It only reads the state. With ?debug the browser checks open the page and
+// would find it in their way, so there it only comes with &tutorial.
+const tutorialWanted = !debug || params.has('tutorial');
+const tutorial = createTutorial(document.body, { prefs, cellBox: cellScreenBox });
 
 // "Linkshänder" (M10 E2): style.css swaps the screen edges for tools and salvo on a
 // phone held wide. The page only carries the flag.
@@ -833,6 +863,11 @@ function applyHand() {
 }
 prefs.onChange(applyHand);
 applyHand();
+
+// The status bar of the phone stays folded or open as the player left it (M10 E3).
+// The stored settings arrive a moment after the first frame, so this follows them.
+prefs.onChange((values) => hud.setFolded(values.statusFolded));
+hud.setFolded(prefs.values.statusFolded);
 
 // Sound starts with the first real interaction (Safari refuses before that).
 const audio = createAudio(prefs);
@@ -1068,6 +1103,11 @@ function frame(now) {
   infoPanel.update(state, ui);
   debugPanel?.update(state);
   selectionPanel.update(state, ui);
+  // Last, so the capsule sheet it lights has been built for this frame.
+  tutorial.update(state, {
+    startable: tutorialWanted && prefsLoaded && matchRunning,
+    suspended: menus.open !== null || hud.help.isOpen || codex.open || intro.open,
+  });
 
   fpsFrames++;
   fpsTime += dt;
