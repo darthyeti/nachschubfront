@@ -1,6 +1,6 @@
 # M9: Stellungen
 
-Status: **freigegeben am 03.11.2026** (Akte E-18). Beschlossen am 03.11.2026 in E-17 (Wahl „So in M9 übernehmen“). Läuft parallel zu M6; M7 ruht.
+Status: **abgenommen am 04.11.2026** (Akte E-34). Freigegeben am 03.11.2026 (Akte E-18). Beschlossen am 03.11.2026 in E-17 (Wahl „So in M9 übernehmen“). Läuft parallel zu M6; M7 ruht.
 Referenz: `reference/studien/stellungen-rework.html` mit `stellungen-rework.js` und `stellungen-rework-modell.js`, Standbilder `rework-*.png` in `reference/konzept/stellungen/` (Auftrag A-19, PR #31).
 
 ## Entscheidungen vom 03.11.2026
