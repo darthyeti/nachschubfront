@@ -27,7 +27,7 @@ import { checkPlacement } from './sim/route.js';
 import { isRubble } from './sim/rubble.js';
 import { totalWaves } from './sim/waves.js';
 import { createCanvasView } from './render/canvas.js';
-import { createCamera, fitCamera, clampCamera, panBy, zoomAt, screenToCell, worldToScreen } from './render/camera.js';
+import { createCamera, fitCamera, clampCamera, panBy, zoomAt, screenToCell, worldToScreen, shiftForCover, focusRect } from './render/camera.js';
 import { mapBounds, iso } from './render/iso.js';
 import { createGroundLayer } from './render/ground.js';
 import { heightField, cellHeight } from './render/terrain.js';
@@ -45,6 +45,8 @@ import { createCodex } from './ui/codex.js';
 import { createCommandBar, railVisible } from './ui/commands.js';
 import { createIntro } from './ui/intro.js';
 import { createInfoPanel } from './ui/info.js';
+import { measureCover, podsRect } from './ui/cover.js';
+import { isPhone, isPhoneLandscape } from './ui/phone.js';
 import { createDebugPanel } from './ui/debug.js';
 import { createMenus } from './ui/menu.js';
 import { createPrefs, wantsReducedMotion } from './core/prefs.js';
@@ -162,10 +164,71 @@ const ui = {
   clearedCells: [],
 };
 
+/**
+ * Phone only (M10 E2): a sheet covers the lower part or the right part of the
+ * screen, and the camera makes room, so capsules and the target field are not
+ * under it. Pure presentation. `saved` is the view before the sheet came, `after`
+ * the view the camera moved itself to; if the player has not touched it by the
+ * time the sheet goes, it returns to `saved`.
+ */
+const cover = { right: 0, bottom: 0, saved: null, after: null, key: null };
+
 const view = createCanvasView(canvas, (v) => {
-  if (ui.autoFit) fitCamera(camera, v, bounds, CAMERA.insets, CAMERA);
+  const phone = isPhone();
+  const insets = phone ? (isPhoneLandscape() ? CAMERA.phoneInsets.landscape : CAMERA.phoneInsets.portrait) : CAMERA.insets;
+  if (ui.autoFit) fitCamera(camera, v, bounds, insets, CAMERA);
   else clampCamera(camera, bounds, CAMERA);
+  // A resize or a turn of the phone starts the sheet's room-making afresh.
+  Object.assign(cover, { right: 0, bottom: 0, saved: null, after: null, key: null });
 });
+
+const sameView = (a, b) =>
+  Boolean(a) && Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5 && Math.abs(a.zoom - b.zoom) < 0.001;
+
+function updateCover() {
+  const next = measureCover();
+  const covered = next.right > 0 || next.bottom > 0;
+  const wasCovered = cover.right > 0 || cover.bottom > 0;
+  if (!covered && !wasCovered) return;
+  const delta = { right: next.right - cover.right, bottom: next.bottom - cover.bottom };
+  if (!covered) {
+    // The sheet has gone: back to the view from before, unless the player moved on.
+    if (cover.saved && sameView(cover.after, camera)) Object.assign(camera, cover.saved);
+    else shiftForCover(camera, delta);
+    clampCamera(camera, bounds, CAMERA);
+    Object.assign(cover, { right: 0, bottom: 0, saved: null, after: null, key: null });
+    return;
+  }
+  if (!wasCovered) cover.saved = { x: camera.x, y: camera.y, zoom: camera.zoom };
+  const untouched = !wasCovered || sameView(cover.after, camera);
+  if (delta.right || delta.bottom) {
+    shiftForCover(camera, delta);
+    clampCamera(camera, bounds, CAMERA);
+  }
+  cover.right = next.right;
+  cover.bottom = next.bottom;
+  const free = { left: 0, top: next.top, right: view.width - next.right, bottom: view.height - next.bottom };
+  const heights = heightField(state.map, state.seed);
+  const heightAt = (x, y) => cellHeight(heights, state.map.size, x, y);
+  let focusOn = null;
+  let key = null;
+  if (state.phase === 'selection') {
+    focusOn = podsRect(state.pods, heightAt);
+    key = `pods:${state.seed}:${state.wave}`;
+  } else if (ui.inspect) {
+    const [wx, wy] = iso(ui.inspect.x + 0.5, ui.inspect.y + 0.5, heightAt(ui.inspect.x, ui.inspect.y));
+    focusOn = { x0: wx - 40, y0: wy - 60, x1: wx + 40, y1: wy + 30 };
+    key = `cell:${ui.inspect.x}:${ui.inspect.y}`;
+  }
+  if (focusOn && key !== cover.key && untouched) {
+    focusRect(camera, view, focusOn, free, CAMERA);
+    clampCamera(camera, bounds, CAMERA);
+    cover.key = key;
+  } else if (!focusOn) {
+    cover.key = null;
+  }
+  if (untouched) cover.after = { x: camera.x, y: camera.y, zoom: camera.zoom };
+}
 
 // ---------- Actions ----------
 
@@ -763,6 +826,14 @@ prefs.onChange(applyMotion);
 systemMotion.addEventListener('change', applyMotion);
 prefs.load().then(applyMotion);
 
+// "Linkshänder" (M10 E2): style.css swaps the screen edges for tools and salvo on a
+// phone held wide. The page only carries the flag.
+function applyHand() {
+  document.documentElement.dataset.hand = prefs.values.leftHanded ? 'left' : 'right';
+}
+prefs.onChange(applyHand);
+applyHand();
+
 // Sound starts with the first real interaction (Safari refuses before that).
 const audio = createAudio(prefs);
 for (const type of ['pointerdown', 'keydown']) {
@@ -975,6 +1046,7 @@ function frame(now) {
   // The strip the airstrike would cover, for the preview under the pointer.
   ui.commandLine = aimed?.target === 'line' ? { halfWidth: aimed.halfWidth, maxLength: aimed.maxLength } : null;
 
+  updateCover();
   renderScene(ctx, view, camera, state, ui, ground, now / 1000);
   showCommandIntroIfDue();
   if (codex.open) hud.help.close();
