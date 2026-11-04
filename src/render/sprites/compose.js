@@ -7,7 +7,6 @@ import { POD_SPRITES } from './pods.js';
 import {
   SPRITE_SCALE,
   BUNKER_ROOF,
-  SPECIAL_ROOF,
   ALL_ENEMY_SYMBOLS,
   ENEMY_EXTRA_SCALE,
   DOCTRINE_SYMBOLS,
@@ -191,17 +190,18 @@ export function towerSpriteSet(doctrine, rank) {
 }
 
 /**
- * A recipe emplacement. It has no rank, so it carries no chevrons; the gold
- * edging marks it as the top of the tree.
+ * A recipe emplacement. It has no rank, so it carries no chevrons; the gold edging marks it as the top
+ * of the tree. Since 0.11.10 the sprite is the base alone (one per recipe, in its colours); the weapon
+ * on it is a turned model like the standard ones (src/render/specials.js).
  */
 export function specialSpriteSet(id) {
   const symbol = SPECIAL_SYMBOLS[id];
   if (!symbol) throw new Error(`Unknown special tower: ${id}`);
   return {
-    back: towerPart('specialbase', 0),
-    gun: towerPart(symbol, SPECIAL_ROOF),
+    back: towerPart(symbol, 0),
+    gun: null,
     front: null,
-    weapon: TOWER_TOPS[id] ?? null,
+    weapon: null,
     rank: 0,
   };
 }

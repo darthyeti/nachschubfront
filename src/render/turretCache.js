@@ -1,5 +1,6 @@
-// The cached stages of the weapons (M9 D2). A resting weapon is not drawn from its model every
-// frame: it is drawn once per direction into an offscreen canvas and from then on only blitted.
+// The cached stages of the weapons (M9 D2, and D4 for the recipe emplacements). A resting weapon is not
+// drawn from its model every frame: it is drawn once per direction into an offscreen canvas and from then
+// on only blitted.
 // The directions are TURRET_STAGES evenly spread angles, and a stage is made only when a weapon
 // needs it, for the doctrine and rank it needs it in, at the raster step of the zoom in use (like
 // the rubble kit of M8, C5): a match with three kinds of weapon never makes the other fifteen.
@@ -10,9 +11,8 @@
 // longest unused go, and a weapon whose stage has to wait is drawn from its model for that frame.
 
 import { turnFrame, renderSolids } from './model.js';
-import { buildTurret, restPose, MOUNT_Z, TURRET_SCALE } from './turrets.js';
+import { weaponModel } from './weapons.js';
 import { TURRET_STAGES, TURRET_CACHE_BYTES, TURRET_BUILDS_PER_FRAME } from '../data/art.js';
-import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { SPRITE_SHADOW_ALPHA, SPRITE_SHADOW_SQUASH, SPRITE_SHADOW_SHEAR } from './shadows.js';
 import { pickLevel } from './sprites/compose.js';
 
@@ -91,27 +91,46 @@ function makeCanvas(w, h) {
   return canvas;
 }
 
-/** Draws one stage: the model at the angle of stage `k` in the resting pose, cropped to what it covers. */
-function build(doctrine, rank, layer, k, step, dpr) {
-  const theta = k * STAGE_STEP;
-  const F = turnFrame(theta, MOUNT_Z, TURRET_SCALE);
-  const pose = { ...restPose(DOCTRINE_COLORS[doctrine], rank), layer };
-  const built = buildTurret(doctrine, F, pose);
+/** Bounding box of the points of a built model on screen, `[x0, y0, x1, y1]` padded and rounded out. */
+function boundsOf(F, samples) {
   let x0 = Infinity;
   let y0 = Infinity;
   let x1 = -Infinity;
   let y1 = -Infinity;
-  for (const [lx, ly, z] of built.samples) {
+  for (const [lx, ly, z] of samples) {
     const [px, py] = F.W(lx, ly, z);
     if (px < x0) x0 = px;
     if (px > x1) x1 = px;
     if (py < y0) y0 = py;
     if (py > y1) y1 = py;
   }
-  x0 = Math.floor(x0 - PAD);
-  y0 = Math.floor(y0 - PAD);
-  x1 = Math.ceil(x1 + PAD);
-  y1 = Math.ceil(y1 + PAD);
+  return [Math.floor(x0 - PAD), Math.floor(y0 - PAD), Math.ceil(x1 + PAD), Math.ceil(y1 + PAD)];
+}
+
+/**
+ * The silhouette for the shadow: a drawing filled black, at a lower resolution. `source` is a canvas
+ * with the drawing and the scale it was made at.
+ */
+function silhouette(source, width, height) {
+  const sw = Math.max(1, Math.ceil(width * SHADOW_RES));
+  const sh = Math.max(1, Math.ceil(height * SHADOW_RES));
+  const shadow = makeCanvas(sw, sh);
+  const s = shadow.getContext('2d');
+  s.drawImage(source, 0, 0, sw, sh);
+  s.globalCompositeOperation = 'source-in';
+  s.fillStyle = '#000';
+  s.fillRect(0, 0, sw, sh);
+  return shadow;
+}
+
+/** Draws one stage: the model at the angle of stage `k` in the resting pose, cropped to what it covers. */
+function build(kind, rank, layer, k, step, dpr) {
+  const model = weaponModel(kind);
+  const theta = k * STAGE_STEP;
+  const F = turnFrame(theta, model.mount, model.scale);
+  const pose = model.restPose(model.accent, rank);
+  const built = model.build(F, pose, layer);
+  const [x0, y0, x1, y1] = boundsOf(F, built.samples);
   const k2 = step * dpr;
   const width = Math.max(1, Math.ceil((x1 - x0) * k2));
   const height = Math.max(1, Math.ceil((y1 - y0) * k2));
@@ -120,31 +139,40 @@ function build(doctrine, rank, layer, k, step, dpr) {
   c.setTransform(k2, 0, 0, k2, -x0 * k2, -y0 * k2);
   renderSolids(c, built.parts);
 
-  // The silhouette for the shadow: the same drawing, filled black, at a lower resolution.
-  const sw = Math.max(1, Math.ceil(width * SHADOW_RES));
-  const sh = Math.max(1, Math.ceil(height * SHADOW_RES));
-  const shadow = makeCanvas(sw, sh);
-  const s = shadow.getContext('2d');
-  s.drawImage(canvas, 0, 0, sw, sh);
-  s.globalCompositeOperation = 'source-in';
-  s.fillStyle = '#000';
-  s.fillRect(0, 0, sw, sh);
+  let shadow;
+  let shadowBox = null;
+  if (model.live.length && layer !== 'all') {
+    // The floating parts are drawn over the stage every frame and are not in it; the shadow of the weapon
+    // still has them, so it is made from the whole model, over a box of its own.
+    const whole = model.build(F, pose, 'all');
+    const [sx0, sy0, sx1, sy1] = boundsOf(F, whole.samples);
+    const sk = k2 * SHADOW_RES;
+    const full = makeCanvas(Math.max(1, Math.ceil((sx1 - sx0) * sk)), Math.max(1, Math.ceil((sy1 - sy0) * sk)));
+    const g = full.getContext('2d');
+    g.setTransform(sk, 0, 0, sk, -sx0 * sk, -sy0 * sk);
+    renderSolids(g, whole.parts);
+    shadow = silhouette(full, full.width / SHADOW_RES, full.height / SHADOW_RES);
+    shadowBox = { x: sx0, y: sy0, w: sx1 - sx0, h: sy1 - sy0 };
+  } else {
+    shadow = silhouette(canvas, width, height);
+  }
 
-  const bytes = (width * height + sw * sh) * 4;
+  const bytes = (width * height + shadow.width * shadow.height) * 4;
   turretStats.rasterized += 1;
-  return { canvas, shadow, flash: null, x: x0, y: y0, w: width / k2, h: height / k2, bytes };
+  return { canvas, shadow, shadowBox, flash: null, x: x0, y: y0, w: width / k2, h: height / k2, bytes };
 }
 
 /**
  * The stage nearest to a direction, made if it is not there yet.
- * @param {string} doctrine  A doctrine with a turret model.
- * @param {string} layer  'all', or 'base' and 'float' for the two halves of the psi weapon.
+ * @param {string} kind  A doctrine or a recipe with a weapon model (weapons.js).
+ * @param {string} layer  'all', or 'base' and 'float' for the two halves of the psi weapon; 'base' for the
+ *   weapons whose floating part is drawn live over the stage (thunder tower, obelisk).
  * @returns {object|null} null when this frame has used up its share of new stages: draw from the model.
  */
-export function stageEntry(doctrine, rank, layer, k, zoom, dpr) {
+export function stageEntry(kind, rank, layer, k, zoom, dpr) {
   const now = performance.now();
   settle(zoom, dpr, now);
-  const key = `${doctrine}|${rank}|${layer}|${k}`;
+  const key = `${kind}|${rank}|${layer}|${k}`;
   let entry = cache.get(key);
   if (entry) {
     // Most recently used goes last, so the front of the map is what has been unused longest.
@@ -159,7 +187,7 @@ export function stageEntry(doctrine, rank, layer, k, zoom, dpr) {
   }
   if (builtInFrame >= TURRET_BUILDS_PER_FRAME) return null;
   builtInFrame += 1;
-  entry = build(doctrine, rank, layer, k, activeStep, dpr);
+  entry = build(kind, rank, layer, k, activeStep, dpr);
   cache.set(key, entry);
   turretStats.bytes += entry.bytes;
   turretStats.entries = cache.size;
@@ -210,6 +238,7 @@ export function drawStageShadow(ctx, entry, gx, gy, alpha = 1) {
   ctx.save();
   ctx.globalAlpha *= SPRITE_SHADOW_ALPHA * alpha;
   ctx.transform(1, 0, -SPRITE_SHADOW_SHEAR, -SPRITE_SHADOW_SQUASH, SPRITE_SHADOW_SHEAR * gy, (1 + SPRITE_SHADOW_SQUASH) * gy);
-  ctx.drawImage(entry.shadow, gx + entry.x, gy + entry.y, entry.w, entry.h);
+  const box = entry.shadowBox ?? { x: entry.x, y: entry.y, w: entry.w, h: entry.h };
+  ctx.drawImage(entry.shadow, gx + box.x, gy + box.y, box.w, box.h);
   ctx.restore();
 }

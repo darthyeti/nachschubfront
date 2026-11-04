@@ -73,8 +73,10 @@ function rivet(ctx, p, r = 1, col = '#cfd5de') {
  * The special base around the origin of `ctx`.
  * @param {string} lead  guide colour (the doctrine of the first ingredient)
  * @param {string[]} pips  colours of the three ingredients, shown as three lamps
+ * @param {{flat?: boolean}} options  `flat` draws the lamp glow as two flat translucent discs instead
+ *   of a gradient, which is what the SVG export needs (no gradients in figures), as for the bunker.
  */
-export function drawSpecialBase(ctx, lead, pips) {
+export function drawSpecialBase(ctx, lead, pips, { flat = false } = {}) {
   ctx.lineJoin = 'round';
   const F = makeFrame(0, 0, BASE_SCALE);
   const W = (lx, ly, z) => F.W(lx, ly, z);
@@ -206,13 +208,24 @@ export function drawSpecialBase(ctx, lead, pips) {
 
   // Guide lamp on the near roof corner.
   const lampP = W(ROOF_TOP, ROOF_TOP, Z.roof + 2);
-  const g = ctx.createRadialGradient(lampP[0], lampP[1] - 2, 1, lampP[0], lampP[1] - 2, 8);
-  g.addColorStop(0, `${lead}aa`);
-  g.addColorStop(1, `${lead}00`);
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(lampP[0], lampP[1] - 2, 8, 0, Math.PI * 2);
-  ctx.fill();
+  if (flat) {
+    ctx.fillStyle = lead;
+    for (const [r, a] of [[8, 0.12], [5, 0.2]]) {
+      ctx.globalAlpha = a;
+      ctx.beginPath();
+      ctx.arc(lampP[0], lampP[1] - 2, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else {
+    const g = ctx.createRadialGradient(lampP[0], lampP[1] - 2, 1, lampP[0], lampP[1] - 2, 8);
+    g.addColorStop(0, `${lead}aa`);
+    g.addColorStop(1, `${lead}00`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(lampP[0], lampP[1] - 2, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
   renderModel(ctx, [T.gem([ROOF_TOP, ROOF_TOP, Z.roof + 1.5], 0.034, 5, 1, lead, { n: 4, lw: 1.1 })]);
 }
 

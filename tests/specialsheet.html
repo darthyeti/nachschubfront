@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Spezialstellungen: 16 Richtungen</title>
+<style>
+  html, body { margin: 0; background: #2a211a; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+// Contact sheet of the six recipe emplacements in 16 directions (M9 D4), drawn with the game's own code:
+// the special base sprite, the stage cache and the live model, each weapon turned to a target in one of the
+// 16 directions and settled on its stage. Run it with `node tests/tools/special-sheet.mjs`.
+// ?zoom= picks the zoom level (the cell size of the sheet follows it).
+import { createSpriteCache } from '../src/render/sprites/rasterizer.js';
+import { allTowerDefs, drawTowerSprite, drawSpecialRing } from '../src/render/towerSprites.js';
+import { drawTowerReach } from '../src/render/towerFx.js';
+import { iso } from '../src/render/iso.js';
+import { SPECIALS } from '../src/data/specials.js';
+import { TURRET_STAGES } from '../src/data/art.js';
+
+const params = new URLSearchParams(location.search);
+const zoom = Number(params.get('zoom') ?? 1);
+const dpr = Math.min(2, devicePixelRatio || 1);
+const ids = Object.keys(SPECIALS);
+const COLUMNS = TURRET_STAGES;
+const TILE_W = Math.round(96 * zoom);
+const TILE_H = Math.round(176 * zoom);
+const W = COLUMNS * TILE_W;
+const H = ids.length * TILE_H;
+const canvas = document.getElementById('c');
+canvas.width = W * dpr;
+canvas.height = H * dpr;
+canvas.style.width = `${W}px`;
+canvas.style.height = `${H}px`;
+const ctx = canvas.getContext('2d');
+const cache = createSpriteCache();
+await cache.preload(allTowerDefs(), [zoom], dpr);
+
+const towers = [];
+ids.forEach((id, row) => {
+  for (let col = 0; col < COLUMNS; col++) {
+    const angle = (col / COLUMNS) * Math.PI * 2;
+    towers.push({
+      row, col,
+      tower: {
+        id: row * COLUMNS + col + 1, x: 0, y: 0, doctrine: SPECIALS[id].doctrine, rank: null, special: id,
+        aim: { x: 0.5 + Math.cos(angle) * 3, y: 0.5 + Math.sin(angle) * 3 },
+        cooldown: 0, firing: false, flash: 0,
+      },
+    });
+  }
+});
+
+// Settle every weapon on its stage: the drawing turns at its own speed, the stages are made a few per frame.
+const scratch = document.createElement('canvas');
+scratch.width = 10;
+scratch.height = 10;
+const sctx = scratch.getContext('2d');
+for (let i = 0; i < 260; i++) {
+  for (const o of towers) drawTowerSprite(sctx, cache, o.tower, zoom, dpr, i / 60, 1 / 60, false);
+  await new Promise((r) => setTimeout(r, 0));
+}
+
+ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.fillStyle = '#2a211a';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+const origin = iso(0.5, 0.5);
+for (const { row, col, tower } of towers) {
+  ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, (col * TILE_W + TILE_W / 2) * dpr - origin[0] * dpr * zoom, (row * TILE_H + TILE_H * 0.78) * dpr - origin[1] * dpr * zoom);
+  ctx.strokeStyle = 'rgba(255,255,255,.14)';
+  ctx.lineWidth = 1 / zoom;
+  ctx.beginPath();
+  for (const [dx, dy] of [[0, 0], [1, 0], [1, 1], [0, 1]]) {
+    const [px, py] = iso(dx, dy);
+    if (dx + dy === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.stroke();
+  drawSpecialRing(ctx, tower);
+  drawTowerSprite(ctx, cache, tower, zoom, dpr, 10, 1 / 60, true);
+  drawTowerReach(ctx, tower, 10);
+}
+document.body.dataset.ready = 'true';
+</script>
+</body>
+</html>

@@ -26,13 +26,14 @@ import { ENEMY_SPRITES } from '../../src/render/sprites/enemies.js';
 import { TOWER_SPRITES } from '../../src/render/sprites/towers.js';
 import { POD_SPRITES } from '../../src/render/sprites/pods.js';
 import { rankMarks, markCount } from '../../src/ui/badges.js';
+import { shade } from '../../src/render/model.js';
 import { DOCTRINE_COLORS } from '../../src/data/doctrines.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
-import { BUNKER_ROOF_HEIGHT } from '../../src/data/art.js';
+import { BUNKER_ROOF_HEIGHT, SPECIAL_ROOF_HEIGHT } from '../../src/data/art.js';
 import { petalOpen, isOpening, shellFade, keepClearedCells, POD_SPRITE_DEFS } from '../../src/render/pods.js';
 import { PODS } from '../../src/data/pods.js';
 import { ENEMIES, BOSSES, ALL_ENEMIES } from '../../src/data/enemies.js';
-import { RECIPE_IDS } from '../../src/data/recipes.js';
+import { RECIPE_IDS, RECIPES } from '../../src/data/recipes.js';
 
 test('every enemy type in the game data has a sprite', () => {
   assert.deepEqual([...ENEMY_TYPES].sort(), Object.keys(ALL_ENEMIES).sort());
@@ -52,11 +53,13 @@ test('imported libraries contain all concept symbols', () => {
     for (let rank = 1; rank <= 5; rank++) assert.ok(TOWER_SPRITES.symbols[`bunker-${doctrine}-${rank}`], `bunker-${doctrine}-${rank}`);
   }
   for (let rank = 1; rank <= 5; rank++) assert.ok(!TOWER_SPRITES.symbols[`bunker-${rank}`], `the bunker of v5 (rank ${rank}) is gone`);
-  assert.ok(TOWER_SPRITES.symbols.specialbase, 'specialbase');
+  // 0.11.10: a special base in the colours of each recipe; the weapons on them are models.
+  for (const id of SPECIALS) assert.ok(TOWER_SPRITES.symbols[`specialbase-${id}`], `specialbase-${id}`);
+  assert.ok(!TOWER_SPRITES.symbols.specialbase, 'the special base of v5 is gone');
   for (const doctrine of DOCTRINES) {
     assert.ok(TOWER_SPRITES.symbols[towerLayers(doctrine, 1).top], doctrine);
   }
-  for (const id of SPECIALS) assert.ok(TOWER_SPRITES.symbols[`stop-${id}`], id);
+  for (const id of SPECIALS) assert.ok(!TOWER_SPRITES.symbols[`stop-${id}`], `the sprite top of ${id} is gone, the weapon is a model`);
   // The hand-drawn sheets of v4 are out of the library for good.
   for (const id of ['base', 'sb-back', 'sb-front', 'crate-l', 't-flame-back', 't-laser-gun', 't-obelisk-back']) {
     assert.ok(!TOWER_SPRITES.symbols[id], `${id} went with the bunker kit`);
@@ -244,14 +247,14 @@ test('an emplacement is a bunker and a top, one per rank', () => {
 });
 
 test('every top knows the point its effect leaves from', () => {
-  for (const id of [...DOCTRINES, ...SPECIALS]) {
+  for (const id of DOCTRINES) {
     const top = TOWER_TOPS[id];
     assert.ok(top, id);
     const [tx, ty] = top.tip;
     assert.equal(typeof tx, 'number', id);
     assert.ok(ty < 0, `${id}: the muzzle is above the roof it stands on`);
     // Inside the figure's own bounds, so no effect starts in mid-air.
-    const set = SPECIALS.includes(id) ? specialSpriteSet(id) : towerSpriteSet(id, 1);
+    const set = towerSpriteSet(id, 1);
     const [x, y, w, h] = set.gun.bbox;
     assert.ok(tx >= x - 1 && tx <= x + w + 1, `${id}: muzzle x`);
     assert.ok(ty >= y - 1 && ty <= y + h + 1, `${id}: muzzle y`);
@@ -267,8 +270,9 @@ test('the bunker sits on the ground and its top on the roof plate', () => {
   for (const id of SPECIALS) {
     const set = specialSpriteSet(id);
     assert.equal(set.back.anchorZ, 0, id);
-    assert.equal(set.gun.anchorZ, SPECIAL_ROOF * SPRITE_SCALE.tower, `${id}: higher base, higher hatch`);
+    assert.equal(set.gun, null, `${id}: its weapon is a model that stands on the hatch`);
   }
+  assert.equal(SPECIAL_ROOF, SPECIAL_ROOF_HEIGHT, 'the weapon stands on the roof of the scaled base');
   assert.ok(SPECIAL_ROOF > BUNKER_ROOF, 'the special base is the taller building (docs/ART.md)');
 });
 
@@ -325,35 +329,28 @@ test('the ranks are drawn into the bunker, not stacked on it', () => {
 });
 
 
-test('every recipe emplacement has a silhouette of its own', () => {
+test('every recipe emplacement stands on a base in its own colours', () => {
   assert.deepEqual([...SPECIALS].sort(), RECIPE_IDS.slice().sort());
-  const tops = new Set();
-  const base = TOWER_SPRITES.symbols.specialbase.bbox;
+  const bases = new Set();
   for (const id of SPECIALS) {
     const set = specialSpriteSet(id);
     assert.equal(set.rank, 0, `${id}: a recipe emplacement has no rank`);
-    // They all stand on the same base; the top is what tells them apart, and
-    // the whole figure reaches higher than the bare base does.
-    assert.equal(set.back.key, 'tower:specialbase', id);
-    const top = set.gun.bbox[1] - SPECIAL_ROOF;
-    assert.ok(top < base[1], `${id}: reaches above the base (${top} vs ${base[1]})`);
-    tops.add(set.gun.key);
+    assert.equal(set.back.key, `tower:specialbase-${id}`, id);
+    assert.equal(set.back.anchorZ, 0, id);
+    bases.add(set.back.key);
+    // The guide colour is the first ingredient, and the three lamps carry the colours of all three.
+    const recipe = RECIPES.find((r) => r.id === id);
+    const svg = set.back.svg(1);
+    assert.ok(svg.includes(DOCTRINE_COLORS[recipe.ingredients[0]]), `${id}: the guide colour (the lamp on the roof corner)`);
+    for (const ingredient of recipe.ingredients) assert.ok(svg.includes(shade(DOCTRINE_COLORS[ingredient], 1)), `${id}: lamp of ${ingredient}`);
+    // A base carries only its own symbol, not the library of all.
+    assert.ok(svg.length < TOWER_SPRITES.defs.length / 5, id);
   }
-  assert.equal(tops.size, SPECIALS.length, 'no two share a top');
-});
-
-test('the obelisk is the tallest thing on the field, and the battery the widest', () => {
-  const height = (id) => SPECIAL_ROOF - specialSpriteSet(id).gun.bbox[1];
-  const tallest = SPECIALS.reduce((a, b) => (height(a) >= height(b) ? a : b));
-  assert.equal(tallest, 'soulfireObelisk', `the obelisk reaches ${height('soulfireObelisk')}`);
-  // It has to fit under the renderer's margin for artwork above the ground point.
-  assert.ok(height('soulfireObelisk') * SPRITE_SCALE.tower < 260, 'and still fits the draw margin');
-
-  const width = (id) => specialSpriteSet(id).gun.bbox[2];
-  const widest = SPECIALS.reduce((a, b) => (width(a) >= width(b) ? a : b));
-  assert.equal(widest, 'stormBattery', 'the quad flak is the broad one');
-  assert.equal(TOWER_TOPS.stormBattery.sparks.length, 4, 'four barrel mouths');
-  assert.ok(TOWER_TOPS.stormBattery.casings, 'and cases flying out of them');
+  assert.equal(bases.size, SPECIALS.length, 'no two share a base');
+  // The base stands on the footprint of one cell, only the four legs reach past it.
+  const [x, , w] = specialSpriteSet('purgeShrine').back.bbox;
+  assert.ok(Math.abs(x + w / 2) < 1, 'centred on its cell');
+  assert.ok(w > 64 * 0.74, `${w} wide`);
 });
 
 

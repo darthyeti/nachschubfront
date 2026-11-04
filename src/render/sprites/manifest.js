@@ -3,7 +3,8 @@
 
 import { MAX_RANK } from '../../data/ranks.js';
 import { BOSSES, KOLOSS } from '../../data/enemies.js';
-import { BUNKER_ROOF_HEIGHT } from '../../data/art.js';
+import { BUNKER_ROOF_HEIGHT, SPECIAL_ROOF_HEIGHT } from '../../data/art.js';
+import { RECIPE_IDS } from '../../data/recipes.js';
 
 /** World pixels per SVG unit. A cell is 64 x 32 world pixels. */
 export const SPRITE_SCALE = {
@@ -77,11 +78,11 @@ export const POD_OPEN_SCALE = 0.85;
 /** Height of the base's top face above ground, in SVG units (the symbol origin sits on it). */
 /**
  * Height of the roof plate above the ground, in SVG units, for the standard
- * bunker and for the taller special base. The top sits there; the bunker's own
- * symbol has its origin on the ground.
+ * bunker and for the taller special base. The weapon stands there; the symbol of
+ * a base has its origin on the ground.
  */
 export const BUNKER_ROOF = BUNKER_ROOF_HEIGHT;
-export const SPECIAL_ROOF = 40;
+export const SPECIAL_ROOF = SPECIAL_ROOF_HEIGHT;
 
 export const ENEMY_SYMBOLS = {
   swarmer: 'e-swarm',
@@ -160,16 +161,12 @@ export const ENEMY_LIMBS = {
   'e-queen': { kind: 'wings', back: [0, -80], front: [0, -80], speed: 7 },
 };
 
-/** Recipe emplacements (GDD section 8); each one has its own silhouette since M4. */
-/** The top each recipe emplacement carries on the special base. */
-export const SPECIAL_SYMBOLS = {
-  purgeShrine: 'stop-purgeShrine',
-  stormBattery: 'stop-stormBattery',
-  emberCauldron: 'stop-emberCauldron',
-  siegeMortar: 'stop-siegeMortar',
-  thunderTower: 'stop-thunderTower',
-  soulfireObelisk: 'stop-soulfireObelisk',
-};
+/**
+ * Recipe emplacements (GDD section 8). Since 0.11.10 each stands on a special base of its own colours
+ * (guide colour and the three lamps of its ingredients, one symbol per recipe); its weapon is a turned
+ * model (src/render/specials.js), not a sprite.
+ */
+export const SPECIAL_SYMBOLS = Object.fromEntries(RECIPE_IDS.map((id) => [id, `specialbase-${id}`]));
 
 /** And the top each doctrine carries on the bunker roof. */
 export const DOCTRINE_SYMBOLS = {
@@ -207,32 +204,6 @@ export const TOWER_TOPS = {
   tesla: { tip: [0, -28.5] },
   laser: { tip: [-23.75, -15.2] },
   psi: { tip: [0, -28.5], float: true },
-
-  // The recipe emplacements. Three of them work from more than one point: the
-  // battery has four mouths, the cauldron four electrodes.
-  purgeShrine: { tip: [0, -14.28], float: true, glow: { kind: 'psi', colour: '#e8c872' } },
-  stormBattery: {
-    tip: [-32.26, -16.13],
-    casings: true,
-    sparks: [
-      [-33.26, -21.77],
-      [-27.22, -20.56],
-      [-33.26, -10.68],
-      [-27.22, -9.48],
-    ],
-  },
-  emberCauldron: {
-    tip: [0, -25.2],
-    sparks: [
-      [-13.86, -22.68],
-      [-4.62, -24.36],
-      [4.62, -24.36],
-      [13.86, -22.68],
-    ],
-  },
-  siegeMortar: { tip: [-21.84, -36.96], recoil: 4, sight: true },
-  thunderTower: { tip: [0, -37.8], glow: { kind: 'psi', colour: '#5fd4ff' } },
-  soulfireObelisk: { tip: [0, -75.6], glow: { kind: 'psi', colour: '#b784ff' } },
 };
 
 export const RANK_COUNT = MAX_RANK;
