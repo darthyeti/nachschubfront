@@ -445,6 +445,8 @@ try {
       assert.ok(await pauseDisc.isVisible(), 'the pause disc is on screen during the choice');
       await pauseDisc.tap();
       assert.equal((await game(page)).speed, 0, 'pause works during the capsule choice');
+      // The HUD marks the disc on the next frame; WebKit can still show the old state right after the tap.
+      await frames(page, 2);
       assert.equal(await pauseDisc.evaluate((e) => e.classList.contains('on')), true, 'and shows it');
       await pauseDisc.tap();
       assert.ok((await game(page)).speed > 0, 'and lets go again');
