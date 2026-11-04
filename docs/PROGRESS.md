@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.11.0**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
+Version **0.11.3**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
 03.11.2026 **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md)): Farbtrennung und drei Biome,
 Licht und Schatten, Blockgelände, Diorama-Rahmen, Trümmer aus dem Baukasten, die neue Kapsel. Offen ist
 **M6 Balancing**. Von M8 steht noch Tills Prüfung auf dem iPad aus (Leistung, Speicher, Tippen auf hohe
@@ -47,13 +47,16 @@ Pull Request mit Label `spielgefuehl` nach `pr/<nr>/`; den Cache-Block in
 `sw.js` schreibt erst die Veröffentlichung, im Repository steht der
 Platzhalter. Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“.
 
-**Hilfe-Ebene (Version 0.9.4):** Der „?“-Knopf unten links über der Versionszahl
-öffnet eine Ebene, die jedes Symbol der Leisten und, sobald sie steht, jede Scheibe
-der Kommandoleiste mit einer Sprechblase und gestrichelter Linie erklärt
-(`src/ui/help.js`, Texte in `STRINGS.help`, Zahlen der Kommandos aus
-`src/data/commands.js`). Sie pausiert nichts und weicht Menü, Codex,
-Kapselauswahl und Ende-Bildschirm. Die Platzierung ist eine reine Funktion
-(`layoutBubbles`) mit Unit-Test.
+**Bedienung (M10 E1, Version 0.11.3):** Neuer Ikonensatz nach der Studie
+(`src/ui/icons.js`), Rezepte im Pausenmenü und im Kapselblatt (nicht mehr in der
+Statusleiste, Taste R bleibt), Pause als eigener Knopf neben einem Tempo-Knopf
+(1x, 2x, 3x reihum), Hilfe als Symbolblatt statt Sprechblasen (`src/ui/help.js`,
+Zeilen als reine Funktion `sheetSections`), Freischalt-Effekt für Kommandopunkte
+und Kommandos (`src/ui/burst.js`, Ton `unlock`), erkannt am Zustand. Die
+Kommandopunkte stehen erst ab der Welle des ersten Kommandos in der Leiste. Offen
+in M10: E2 Layout fürs Handy, E3 Tutorial; Tills Blick auf Gefühl des Effekts und
+Tempo-Knopf steht aus. Beschreibung in `docs/ART.md`, Abschnitte „Ikonensatz“,
+„Symbolblatt“, „Freischalt-Effekt“.
 
 Die Updates 2 bis 7 waren Einschübe, keine Meilensteine: 2 → M4b, 3 → M4c,
 4 → M4d, 5 → M5b, 6 → M5c, 7 → M5d.
