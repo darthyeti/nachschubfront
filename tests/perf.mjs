@@ -122,6 +122,15 @@ try {
           ` (${((turretsAfter.calls - turretsBefore.calls) / frames).toFixed(0)} drawn), weapons from a stage ${staged}, from the model ${live}` +
           `, stages made during run: ${turretsAfter.rasterized - turretsBefore.rasterized}`,
       );
+      // Particles alive while the emplacements fire (M9 D3): the peak of a second's samples, and the share the muzzles hold.
+      let peak = { particles: 0, muzzle: 0 };
+      for (let i = 0; i < 20; i++) {
+        const c = await page.evaluate(() => window.__nachschub.particles());
+        peak = { particles: Math.max(peak.particles, c.particles), muzzle: Math.max(peak.muzzle, c.muzzle) };
+        await page.waitForTimeout(50);
+      }
+      report.push(`${label.padEnd(8)} zoom ${zoom.toFixed(2).padStart(4)}: particles alive, peak ${peak.particles} (of them from the muzzles ${peak.muzzle})`);
+      assert.ok(peak.muzzle <= 200, `${label}/${zoomLabel}: muzzle particles ${peak.muzzle}`);
       assert.equal(after - before, 0, `${label}/${zoomLabel}: SVG rasterized while running`);
       assert.equal(kitAfter - kitBefore, 0, `${label}/${zoomLabel}: rubble kit rastered while running`);
       if (hardware) {
