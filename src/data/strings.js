@@ -385,6 +385,8 @@ export const STRINGS = {
     intros: 'Hinweise',
     introsReset: 'Erneut zeigen',
     introsHint: 'Die Erklärung zur Kommandoleiste erscheint auf jedem Gerät nur einmal. Hier lässt sie sich für die nächste Partie wieder einschalten.',
+    tutorialReset: 'Einweisung wiederholen',
+    tutorialHint: 'Die Einweisung führt durch die ersten zwei Runden und läuft auf jedem Gerät nur einmal. Hier startet sie mit der nächsten Partie wieder.',
     hand: 'Linkshänder',
     handOff: 'Aus',
     handOn: 'An',
@@ -550,6 +552,75 @@ export const STRINGS = {
     },
     blocked: 'blockiert',
     walkable: 'begehbar',
+  },
+
+  /** The guided walk through the first two rounds (ui/tutorial.js, M10 E3). */
+  tutorial: {
+    title: 'Einweisung',
+    step: (n, total) => `Schritt ${n} von ${total}`,
+    round: (n) => `Runde ${n}`,
+    next: 'Weiter',
+    last: 'Verstanden',
+    skip: 'Überspringen',
+    steps: {
+      welcome: {
+        text: 'Kommandant. Aus dem Riss kriechen Gegner und marschieren auf die Bastion zu. Du hältst sie auf, indem du ihren Weg verlängerst.',
+      },
+      route: {
+        text: 'Die gestrichelte Linie ist ihr Weg, die Zahl oben seine Länge in Feldern. Je länger der Weg, desto länger stehen sie unter Feuer.',
+      },
+      spot: {
+        text: 'Das leuchtende Feld. Dort geht eine Kapsel nieder. Markiere es.',
+        need: 'Das leuchtende Feld antippen',
+      },
+      salvo: {
+        text: 'Gut. Jetzt die Salve anfordern. Felder, die du nicht markierst, sucht das Spiel selbst aus.',
+        need: 'Salve antippen',
+      },
+      card: {
+        text: 'Sechs Kapseln sind gelandet. Wähle eine: Sie wird deine Stellung.',
+        need: 'Eine Kapsel antippen',
+      },
+      keep: {
+        text: 'Behalten baut die Stellung. Der Rest wird Trümmer, und auch Trümmer versperren den Gegnern den Weg.',
+        need: 'Behalten antippen',
+      },
+      tempo: {
+        text: 'Die Welle läuft. Mit dem Tempo-Knopf geht es schneller.',
+        need: 'Tempo antippen',
+      },
+      req: {
+        text: 'Runde zwei. Jeder Abschuss bringt Requisition. Davon zahlst du Nachschub, Abriss und Bollwerk.',
+      },
+      buy: {
+        text: 'Nachschub hebt die Stufe: Die Kapseln kommen mit höheren Rängen. Kaufe ihn jetzt, einmal.',
+        need: 'Nachschub antippen',
+      },
+      spot2: {
+        text: 'Markiere wieder ein Feld. Achte auf die Zahl beim Weg: Sie soll wachsen.',
+        need: 'Das leuchtende Feld antippen',
+      },
+      salvo2: {
+        text: 'Noch eine Salve.',
+        need: 'Salve antippen',
+      },
+      pick: {
+        merge: (doctrine) =>
+          `Zwei gleiche Kapseln lassen sich verschmelzen, das Zeichen ×2 zeigt es. Wähle die ${doctrine}-Kapsel.`,
+        plain: 'Diesmal gleicht keine Kapsel der anderen. Wähle eine, die dir liegt.',
+        need: 'Eine Kapsel antippen',
+        needMerge: 'Die Kapsel mit ×2 antippen',
+      },
+      act: {
+        merge: 'Verschmelzen macht aus zwei gleichen Stellungen eine stärkere: mehr Reichweite, mehr Schaden.',
+        plain: 'Behalten baut sie. Der Rest wird Trümmer.',
+        need: 'Behalten antippen',
+        needMerge: 'Verschmelzen antippen',
+      },
+      end: {
+        text: 'Das war die Einweisung. Im Menü stehen die Rezepte und die Erklärung aller Symbole. Halte die Linie, Kommandant.',
+      },
+    },
   },
 
   /** The note the first time the command rail turns up (ui/intro.js). */

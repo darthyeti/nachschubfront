@@ -3054,3 +3054,122 @@ button.mode-card.on {
     padding: 10px 14px 12px;
   }
 }
+
+/* ---------- The tutorial (ui/tutorial.js, M10 E3) ----------
+   One element lit, the rest dimmed and closed to taps, a card with the words. The
+   slabs round the lit hole take the taps; the hole itself lets them through to the
+   button or the board underneath. Translucent shapes only, no blur. */
+.tutorial {
+  position: fixed;
+  inset: 0;
+  z-index: 13;
+  box-sizing: border-box;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  pointer-events: none;
+}
+
+.tutorial[hidden] {
+  display: none;
+}
+
+.tutorial-block {
+  position: absolute;
+  background: transparent;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.tutorial-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 5, 3, 0.62);
+  pointer-events: none;
+}
+
+.tutorial-hole {
+  position: absolute;
+  box-sizing: border-box;
+  border: 3px solid var(--gold);
+  border-radius: 10px;
+  /* The dimming: a spread shadow round the hole, so the hole stays clear. */
+  box-shadow: 0 0 0 100vmax rgba(8, 5, 3, 0.62);
+  outline: 2px solid rgba(242, 193, 78, 0.55);
+  outline-offset: 3px;
+  pointer-events: none;
+  animation: tutorial-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tutorial-pulse {
+  0%,
+  100% {
+    outline-color: rgba(242, 193, 78, 0.15);
+    outline-offset: 2px;
+  }
+  50% {
+    outline-color: rgba(242, 193, 78, 0.7);
+    outline-offset: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-hole {
+    animation: none;
+  }
+}
+
+.tutorial-card {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #1c1511;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 var(--ink);
+  color: var(--text);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.tutorial-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tutorial-meta b {
+  color: var(--gold);
+}
+
+.tutorial-text {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.tutorial-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tutorial-skip,
+.tutorial-next {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px 12px;
+}
+
+.tutorial-need {
+  font-weight: 700;
+  font-size: 15px;
+  text-align: right;
+  color: var(--btn);
+}

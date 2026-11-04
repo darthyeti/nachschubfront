@@ -476,6 +476,12 @@ export function createMenus(root, {
   const introReset = button(TS.introsReset, 'alt', () => prefs.set('commandIntroSeen', false));
   introRow.append(introReset);
   settings.panel.append(introRow, el('p', 'menu-hint', TS.introsHint));
+  // The guided walk through the first two rounds (ui/tutorial.js, M10 E3).
+  const tutorialRow = el('div', 'menu-choice');
+  const tutorialReset = button(TS.tutorialReset, 'alt', () => prefs.set('tutorialSeen', false));
+  tutorialReset.dataset.tutorial = 'repeat';
+  tutorialRow.append(tutorialReset);
+  settings.panel.append(tutorialRow, el('p', 'menu-hint', TS.tutorialHint));
 
   // Fixed for now, but named, so nobody has to guess whether it can be changed.
   settings.panel.append(el('h3', 'menu-section', TS.language));
@@ -506,6 +512,7 @@ export function createMenus(root, {
     for (const b of ratingButtons) b.classList.toggle('on', (b.dataset.rate === 'on') === values.rateWaves);
     for (const b of handButtons) b.classList.toggle('on', (b.dataset.hand === 'left') === values.leftHanded);
     introReset.disabled = !values.commandIntroSeen;
+    tutorialReset.disabled = !values.tutorialSeen;
   }
   prefs.onChange(syncSettings);
   syncSettings(prefs.values);
