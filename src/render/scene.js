@@ -45,7 +45,7 @@ import { snapToAxis } from '../sim/commands.js';
 import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
 import { laneStart } from '../sim/koloss.js';
 import { drawTowerSprite, drawSpecialRing, towerAnchor, towerPictureBox } from './towerSprites.js';
-import { coverHulls, plateBounds, coveringObstacles } from './cover.js';
+import { coverHulls, coverHullsOfSquare, plateBounds, coveringObstacles, shadowPlan } from './cover.js';
 import {
   createPodRenderer,
   drawZoneMarker,
@@ -492,19 +492,93 @@ function cells(length) {
   return STRINGS.hud.riftLength(length.toFixed(1).replace('.', ','));
 }
 
-/** Shadows of obstacles, bastion and beacons on the ground, before any depth-sorted figure. */
-function drawBlockShadows(ctx, state, map) {
-  // A shadow lies on the plane of the field its body stands on: one fill per level.
-  const byLevel = [[], [], []];
-  const add = (cell, shadows) => byLevel[Math.round(cellLift(cell.x, cell.y) / STEP)].push(...shadows);
-  for (const o of map.obstacles) for (let i = 0; i < o.cells.length; i++) add(o.cells[i], obstacleShadow(o, i));
-  add(map.bastion, bastionShadow(map.bastion, bastionSize(map)));
-  for (const b of map.beacons) add(b, beaconShadow(b));
-  byLevel.forEach((bodies, level) => {
-    ctx.translate(0, -level * STEP);
-    castShadows(ctx, bodies);
-    ctx.translate(0, level * STEP);
-  });
+/** A path in iso space, for a clip or a fill, moved down by `applied` px (the lift of its level). */
+function polygonPath(path, points, applied = 0) {
+  points.forEach(([px, py], k) => (k ? path.lineTo(px, py + applied) : path.moveTo(px, py + applied)));
+  path.closePath();
+}
+
+/** Corners of the diamond of a field, for the clip of a shadow. */
+function cellDiamond(x, y) {
+  return [iso(x, y), iso(x + 1, y), iso(x + 1, y + 1), iso(x, y + 1)];
+}
+
+/**
+ * Shadows of obstacles, bastion and beacons on the ground, before any depth-sorted figure. A shadow
+ * lies on the plane of the field its body stands on, so one fill per level. Where a body stands
+ * near a step the shadow is clipped to the fields of its own level (it would hang over a cliff or
+ * climb the slope of the higher neighbour) and cut by the pictures of the higher blocks in front
+ * that hide the ground there (`shadowPlan`). The plan and the clip paths are built when the
+ * obstacles or the terrain change, never per frame.
+ */
+function createShadowLayer() {
+  const watch = createWatcher();
+  let layers = null;
+  return function draw(ctx, state, map, field) {
+    const list = watch.list;
+    list.length = 0;
+    for (const o of map.obstacles) list.push(o.kind, o.cells.length, o.cells[0]?.x, o.cells[0]?.y, o.variant);
+    list.push(map.bastion.x, map.bastion.y, bastionSize(map), map.beacons.length);
+    for (const b of map.beacons) list.push(b.x, b.y);
+    if (watch.changed(field)) {
+      const entries = [];
+      for (const o of map.obstacles) {
+        for (let i = 0; i < o.cells.length; i++) {
+          entries.push({ x: o.cells[i].x, y: o.cells[i].y, bodies: obstacleShadow(o, i) });
+        }
+      }
+      const size = bastionSize(map);
+      entries.push({ x: map.bastion.x, y: map.bastion.y, size, bodies: bastionShadow(map.bastion, size) });
+      for (const b of map.beacons) entries.push({ x: b.x, y: b.y, bodies: beaconShadow(b) });
+      layers = shadowPlan(field, entries).map((plan, level) => {
+        const applied = level * STEP;
+        const ground = new Path2D();
+        for (const c of plan.ground) polygonPath(ground, cellDiamond(c.x, c.y));
+        const cuts = plan.cuts.map((hull) => {
+          const path = new Path2D();
+          path.rect(-100000, -100000, 200000, 200000);
+          polygonPath(path, hull, applied);
+          return path;
+        });
+        return { plain: plan.plain, edge: plan.edge, ground, cuts };
+      });
+    }
+    layers.forEach(({ plain, edge, ground, cuts }, level) => {
+      ctx.translate(0, -level * STEP);
+      castShadows(ctx, plain);
+      if (edge.length) {
+        ctx.save();
+        ctx.clip(ground);
+        for (const cut of cuts) ctx.clip(cut, 'evenodd');
+        castShadows(ctx, edge);
+        ctx.restore();
+      }
+      ctx.translate(0, level * STEP);
+    });
+  };
+}
+
+/**
+ * Tells whether a flat list of numbers (and one object) is the same as at the last call, without
+ * building a string. Fill `list`, then ask `changed`.
+ */
+function createWatcher() {
+  let last = [];
+  let list = [];
+  let known = null;
+  return {
+    get list() {
+      return list;
+    },
+    changed(object) {
+      let same = object === known && list.length === last.length;
+      for (let i = 0; same && i < list.length; i++) same = list[i] === last[i];
+      if (same) return false;
+      [last, list] = [list, last];
+      known = object;
+      return true;
+    },
+  };
 }
 
 /**
@@ -546,8 +620,9 @@ function drawFoundation(ctx, tower, field, opacity = 1) {
 const COVER_REACH = { x: 160, up: 300, down: 80 };
 
 /**
- * Draws a figure that stands on the field (cx, cy) behind the terrain in front of it. Blocks of
- * terrain that are higher than the field and nearer to the camera cover part of it (`coverHulls`):
+ * Draws a figure that stands on a field behind the terrain in front of it. Blocks of terrain that
+ * are higher than the field and nearer to the camera cover part of it (`cover`, from `coverHulls`;
+ * (mx, my) is the middle of the field on screen):
  * `draw` is called once with the pictures of those blocks cut out of the canvas, so the figure stands
  * behind the block and neither climbs the slope nor ends up over its edge. While the field is being
  * looked at (the see-through of issue 35) `fade` is above 0 and `draw` is called once more for each
@@ -556,13 +631,11 @@ const COVER_REACH = { x: 160, up: 300, down: 80 };
  * @param {number} applied  How far the context is translated up at the call: 0 in the ground pass,
  *   the lift of the field inside the depth-sorted loop.
  */
-function drawBehindTerrain(ctx, field, cx, cy, applied, fade, draw) {
-  const { hulls } = coverHulls(field, cx, cy);
+function drawBehindTerrain(ctx, { hulls }, mx, my, applied, fade, draw) {
   if (!hulls.length) {
     draw(false);
     return;
   }
-  const [mx, my] = iso(cx + 0.5, cy + 0.5);
   const trace = (hull) => {
     hull.forEach(([px, py], k) => (k ? ctx.lineTo(px, py + applied) : ctx.moveTo(px, py + applied)));
     ctx.closePath();
@@ -740,6 +813,7 @@ export function createSceneRenderer(sprites) {
    */
   const trail = createTrail();
   const seeThroughOf = createCoverTracker();
+  const drawShadows = createShadowLayer();
 
   return function renderScene(ctx, view, cam, state, ui, ground, t) {
     const { map } = state;
@@ -774,7 +848,7 @@ export function createSceneRenderer(sprites) {
 
     // The cast shadows of all blocks, in one fill so overlaps do not darken twice. They lie on
     // the ground under every figure, so a shadow never ends up on a neighbour (docs/ART.md).
-    drawBlockShadows(ctx, state, map);
+    drawShadows(ctx, state, map, field);
 
     if (map.rifts) {
       riftLayout(map).forEach((r, i) => {
@@ -855,8 +929,11 @@ export function createSceneRenderer(sprites) {
     // (docs/ART.md). After the scorch marks, so a burnt cell does not hide it.
     if (ui.art === 'sprites') {
       // Terrain in front of an emplacement cuts its plate and ring as it cuts the figure.
-      const behind = (tower, draw) =>
-        drawBehindTerrain(ctx, field, tower.x, tower.y, 0, coverFade(revealLayers, coverHulls(field, tower.x, tower.y).cells), draw);
+      const behind = (tower, draw) => {
+        const cover = coverHulls(field, tower.x, tower.y);
+        const [mx, my] = iso(tower.x + 0.5, tower.y + 0.5);
+        drawBehindTerrain(ctx, cover, mx, my, 0, coverFade(revealLayers, cover.cells), draw);
+      };
       for (const tower of state.towers) behind(tower, (again, fade) => drawFoundation(ctx, tower, field, again ? fade : 1));
       for (const tower of state.towers) {
         if (!tower.special) continue;
@@ -980,22 +1057,38 @@ export function createSceneRenderer(sprites) {
 
     function drawItem(kind, o, i, lift) {
       if (kind === KIND_OBSTACLE) {
+        // Terrain in front of the field cuts the obstacle out as it cuts an emplacement; while the
+        // field is looked at the cut part comes back at the opacity of the reveal.
+        const cell = o.cells[i];
+        const cover = coverHulls(field, cell.x, cell.y);
+        const [mx, my] = iso(cell.x + 0.5, cell.y + 0.5);
         // An obstacle in front of an emplacement that it covers stays see-through for good.
-        if (seeThrough.has(o)) ctx.globalAlpha = OBSTACLE_SEE_THROUGH.alpha;
-        drawObstacleCell(ctx, o, i, palette, obstacleRaster);
+        const seen = seeThrough.has(o) ? OBSTACLE_SEE_THROUGH.alpha : 1;
+        ctx.globalAlpha = seen;
+        drawBehindTerrain(ctx, cover, mx, my, lift, coverFade(revealLayers, cover.cells), () =>
+          drawObstacleCell(ctx, o, i, palette, obstacleRaster),
+        );
         ctx.globalAlpha = 1;
       }
       else if (kind === KIND_RIFT) {
         // i: 0 the single rift of the standard map, 1 the attacking one, 2 a quiet one.
         if (i === 0) drawRift(ctx, o, t);
         else drawRiftMouth(ctx, o.x + 0.5, o.y + 0.5, t, { scale: 0.8, still: i === 2 || ui.reducedMotion });
-      } else if (kind === KIND_BASTION) drawBastion(ctx, o, t, i);
-      else if (kind === KIND_BEACON) drawBeacon(ctx, o, t);
+      } else if (kind === KIND_BASTION) {
+        const cover = coverHullsOfSquare(field, o.x, o.y, i);
+        const [mx, my] = iso(o.x + i / 2, o.y + i / 2);
+        drawBehindTerrain(ctx, cover, mx, my, lift, coverFade(revealLayers, cover.cells), () => drawBastion(ctx, o, t, i));
+      } else if (kind === KIND_BEACON) {
+        const cover = coverHulls(field, o.x, o.y);
+        const [mx, my] = iso(o.x + 0.5, o.y + 0.5);
+        drawBehindTerrain(ctx, cover, mx, my, lift, coverFade(revealLayers, cover.cells), () => drawBeacon(ctx, o, t));
+      }
       else if (kind === KIND_POD) drawPod(ctx, o, t, enemyView);
       else if (kind === KIND_TOWER) {
         // Terrain in front of its field cuts it; the second pass (see-through) must not move the weapon twice.
-        const fade = coverFade(revealLayers, coverHulls(field, o.x, o.y).cells);
-        drawBehindTerrain(ctx, field, o.x, o.y, lift, fade, (again) => {
+        const cover = coverHulls(field, o.x, o.y);
+        const [mx, my] = iso(o.x + 0.5, o.y + 0.5);
+        drawBehindTerrain(ctx, cover, mx, my, lift, coverFade(revealLayers, cover.cells), (again) => {
           if (ui.art !== 'sprites' || !drawTowerSprite(ctx, sprites, o, cam.zoom, view.dpr, t, again ? 0 : dt, ui.reducedMotion)) {
             drawTowerPlaceholder(ctx, o);
           }

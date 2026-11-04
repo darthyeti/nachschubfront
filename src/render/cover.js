@@ -42,6 +42,43 @@ export function coverHulls(field, cx, cy) {
 }
 
 /**
+ * The blocks of terrain in front of a square of `size` x `size` fields that cover it (a bastion of
+ * King of the Hill covers 2 x 2): the covering blocks of every field of the square, without
+ * duplicates and without the fields of the square itself, which the figure stands on. Cached like
+ * `coverHulls`.
+ * @returns {{cells: {x: number, y: number}[], hulls: number[][][]}}
+ */
+export function coverHullsOfSquare(field, x, y, size) {
+  if (size <= 1) return coverHulls(field, x, y);
+  let perCell = squareCache.get(field);
+  if (!perCell) squareCache.set(field, (perCell = new Map()));
+  const key = (y * 4096 + x) * 8 + size;
+  let hit = perCell.get(key);
+  if (!hit) {
+    const seen = new Set();
+    const cells = [];
+    const hulls = [];
+    for (let dy = 0; dy < size; dy++) {
+      for (let dx = 0; dx < size; dx++) {
+        const own = coverHulls(field, x + dx, y + dy);
+        own.cells.forEach((c, i) => {
+          const inside = c.x >= x && c.y >= y && c.x < x + size && c.y < y + size;
+          const k = c.y * 4096 + c.x;
+          if (inside || seen.has(k)) return;
+          seen.add(k);
+          cells.push(c);
+          hulls.push(own.hulls[i]);
+        });
+      }
+    }
+    hit = { cells, hulls };
+    perCell.set(key, hit);
+  }
+  return hit;
+}
+const squareCache = new WeakMap();
+
+/**
  * The plate under an emplacement as a rectangle in cell coordinates: it reaches `inset` (negative:
  * outwards) past each edge of its field, except at an edge where the level changes or the map ends.
  * There the plate would hang over a cliff or climb the wall of the higher field, so it stops at the
@@ -132,4 +169,81 @@ export function coveringObstacles(field, towers, obstacles, { minShare, grid } =
     }
   }
   return out;
+}
+
+// ---------- Shadows and obstacles on the edge of a level ----------
+
+/** A shadow reaches at most this many fields past the square of its body (0.55 cells per 32 px, bodies up to about 60 px). */
+const SHADOW_REACH = 1;
+
+/**
+ * The fields a body on the square (x, y, `size`) can throw its shadow on, on the same level as the
+ * square: the square and `SHADOW_REACH` fields around it. Fields past the rim of the map count as
+ * level 0 (the slab of the diorama), so on level 0 they belong to it and on a higher level they do not.
+ * @returns {{cells: {x: number, y: number}[], edge: boolean}} `edge` is true when some field around
+ *   has another level (the shadow would hang over a cliff or climb a slope).
+ */
+export function groundAround(field, x, y, size = 1) {
+  const n = fieldSize(field);
+  const level = field[y * n + x];
+  const cells = [];
+  let edge = false;
+  for (let cy = y - SHADOW_REACH; cy < y + size + SHADOW_REACH; cy++) {
+    for (let cx = x - SHADOW_REACH; cx < x + size + SHADOW_REACH; cx++) {
+      const outside = cx < 0 || cy < 0 || cx >= n || cy >= n;
+      const l = outside ? 0 : field[cy * n + cx];
+      if (l === level) cells.push({ x: cx, y: cy });
+      else edge = true;
+    }
+  }
+  return { cells, edge };
+}
+
+/**
+ * Sorts the shadows of bodies on the ground by the level they lie on and by whether they need
+ * care. A shadow of a body in the open (all fields around on its level, nothing in front that is
+ * higher) is `plain`. Every other one is `edge`: it must stay on the ground of its own level
+ * (`ground`, the fields it may lie on) and must not show where a higher block in front hides the
+ * ground (`cuts`, the pictures of those blocks), as a figure on the same field would not.
+ * @param {Uint8Array} field
+ * @param {{x: number, y: number, size?: number, bodies: object[]}[]} entries  A square of fields
+ *   and the shadow bodies standing on it.
+ * @returns {{plain: object[], edge: object[], ground: {x: number, y: number}[], cuts: number[][][]}[]}
+ *   One entry per level, 0 to 2.
+ */
+export function shadowPlan(field, entries) {
+  const levels = [0, 1, 2].map(() => ({ plain: [], edge: [], ground: [], cuts: [], groundSeen: new Set(), cutSeen: new Set() }));
+  const n = fieldSize(field);
+  for (const e of entries) {
+    if (!e.bodies.length) continue;
+    const size = e.size ?? 1;
+    const lv = levels[field[e.y * n + e.x]];
+    const around = groundAround(field, e.x, e.y, size);
+    const covers = [];
+    for (const c of around.cells) {
+      if (c.x < 0 || c.y < 0 || c.x >= n || c.y >= n) continue;
+      const cover = coverHulls(field, c.x, c.y);
+      if (cover.cells.length) covers.push(cover);
+    }
+    if (!around.edge && !covers.length) {
+      lv.plain.push(...e.bodies);
+      continue;
+    }
+    lv.edge.push(...e.bodies);
+    for (const c of around.cells) {
+      const k = c.y * 4096 + c.x;
+      if (lv.groundSeen.has(k)) continue;
+      lv.groundSeen.add(k);
+      lv.ground.push(c);
+    }
+    for (const cover of covers) {
+      cover.cells.forEach((c, i) => {
+        const k = c.y * 4096 + c.x;
+        if (lv.cutSeen.has(k)) return;
+        lv.cutSeen.add(k);
+        lv.cuts.push(cover.hulls[i]);
+      });
+    }
+  }
+  return levels.map(({ plain, edge, ground, cuts }) => ({ plain, edge, ground, cuts }));
 }
