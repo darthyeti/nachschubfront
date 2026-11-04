@@ -155,3 +155,17 @@ export const FX_QUEUE = 24;
  * end point are those of the shell of the simulation.
  */
 export const FX_ROCKET = { lift: 28, reach: 0.42, endZ: 12, trail: 0.025, tail: 10 };
+
+// ---------- Choosing a capsule (issue 50) ----------
+
+/** Opacity of the capsules, their light columns and plates that are not picked, while one is picked. */
+export const POD_DIM_ALPHA = 0.5;
+
+/**
+ * The plate above an opened capsule. Heights are px above the foot of the capsule (the closed
+ * shell is about 67 px high), scales multiply the plate of the study (HOLO_SCALE in
+ * src/render/pods.js). A resting plate is narrower than the 32 px that separate two touching
+ * cells on a diagonal, so none of them overlaps another; the picked plate is larger, higher and
+ * carries the label.
+ */
+export const POD_PLATE = { restHeight: 84, restScale: 0.85, pickedHeight: 108, pickedScale: 1.35 };
