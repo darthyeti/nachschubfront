@@ -14,6 +14,23 @@ export const BUNKER_MOUNT_AUTHORED = 28;
 /** Height of the roof platform above the ground in world px: the weapon top stands there. */
 export const BUNKER_ROOF_HEIGHT = BUNKER_MOUNT_AUTHORED * BUNKER_BASE_SCALE;
 
+/** Terrain in front of a selected field, a placement spot or a capsule target (reveal, issue 35). */
+export const REVEAL = {
+  /** Opacity of the covering blocks while the field behind them is being looked at (0 to 1). */
+  blockAlpha: 0.18,
+  /** Fade in and out, in milliseconds. With reduced motion it switches at once. */
+  fadeMs: 150,
+  /** Most layers kept at once: the current set plus those still fading out. */
+  maxLayers: 3,
+  /** Outline of the field over everything: ink line under the colour line, widths in world pixels. */
+  outlineInk: 7,
+  outlineColor: 4.5,
+  /** Tint of the field's own colour inside the outline. */
+  outlineFillAlpha: 0.22,
+  /** The hull of a block is grown by this many world pixels, to cover its ink outline. */
+  hullGrow: 3,
+};
+
 // ---------- Turned weapons on the bunkers (M9 D2) ----------
 // Presentation only. The weapons are turnable models (src/render/turrets.js), pre-drawn in
 // TURRET_STAGES directions by src/render/turretCache.js and drawn live only while they turn.

@@ -17,7 +17,7 @@ flachen Karte. Offen im Blick: King of the Hill hat eine Bastion über 2 x 2 Fel
 verschiedenen Stufen liegen können (das Feld behält seine Stufe, wie beauftragt). **M7 Spielmodi**
 ruht seit dem 02.11.2026 (Entscheidung E-02), bis der Grafik-Rework steht. **M9 Stellungen**
 (neuer Bunker, drehbare Aufsätze, Mündungsfeuer) ist freigegeben (E-18) und in Arbeit, Auftrag
-[`M9-stellungen.md`](meilensteine/M9-stellungen.md). D1 (neuer Bunker, Ränge ohne Sandsäcke, 0.11.0) ist gemergt; D2 (drehbare Aufsätze mit 16 Stufen, 0.11.2) steht im Pull Request und wartet auf Tills Blick, auch auf dem iPad (Leistung, Lesbarkeit); D3 (Mündungsfeuer) und D4 (Spezialstellungen) folgen. Die Aufsätze der Standardstellungen sind drehbare Modelle (`src/render/turrets.js`, Stufen in `turretCache.js`); die Doktrin-Einträge in `TOWER_TOPS` und die alten `top-*`-Symbole werden dafür nicht mehr gelesen.
+[`M9-stellungen.md`](meilensteine/M9-stellungen.md). D1 (neuer Bunker, Ränge ohne Sandsäcke, 0.11.0) ist gemergt, dazu in 0.11.1 die Durchsicht durch Anhöhen (#39); D2 (drehbare Aufsätze mit 16 Stufen, 0.11.2) steht im Pull Request und wartet auf Tills Blick, auch auf dem iPad (Leistung, Lesbarkeit); D3 (Mündungsfeuer) und D4 (Spezialstellungen) folgen. Die Aufsätze der Standardstellungen sind drehbare Modelle (`src/render/turrets.js`, Stufen in `turretCache.js`); die Doktrin-Einträge in `TOWER_TOPS` und die alten `top-*`-Symbole werden dafür nicht mehr gelesen.
 **M10 Bedienung** (Ikonen, Menüs, Handy-Layout, Tutorial, für alle Geräte) ist freigegeben (E-23) und läuft parallel zu M9,
 Auftrag [`M10-bedienung.md`](meilensteine/M10-bedienung.md).
 

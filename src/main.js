@@ -1102,6 +1102,8 @@ if (debug) {
     kit: () => ({ ...kitStats }),
     /** Drawing time of the emplacements and the cached stages of their weapons (M9 D2). */
     turrets: () => ({ ...turretStats, ...towerDraw }),
+    /** Ground cache builds and reveal images rastered so far (see-through terrain, issue 35). */
+    ground: () => ({ ...ground.stats }),
     audio: () => ({ ready: audio.ready, muted: audio.muted }),
     ui: () => ({
       art: ui.art,
