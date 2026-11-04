@@ -6,16 +6,21 @@
 //   - nothing visible sticks out of the picture, no sideways scrolling
 //   - every hit area is at least 44 x 44 CSS pixels
 //   - on the capsule choice the largest free rectangle of the board is over 40 percent
+//   - M10 E3: the folded status bar is remembered, pause is reachable during the capsule
+//     choice, the title and end screens stay whole pages
+//   - M10 E3: the tutorial on a phone, all 14 steps at 390 x 844 (portrait and landscape),
+//     the first 6 at the other sizes, what is lit, what is locked, skip, repeat
 // Fails on any assertion or console error.
 //
 // Usage: npm run test:phone [-- --browser webkit] [--shots <dir>] [--size 390x844]
-//   --shots writes JPEG stills (planning, capsule choice) into <dir>
+//   --shots writes JPEG stills (planning, capsule choice, tutorial steps) into <dir>
 
 import * as playwright from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { startServer, watchProblems, browserName, launchBrowser, startMatch } from './tools/server.mjs';
+import { openTutorial, walkTutorial, checkRepeatAndSkip, readStep, frames as tutorialFrames } from './tools/tutorial-run.mjs';
 
 const SEED = 'BASTION';
 const ALL_SIZES = [
@@ -116,7 +121,7 @@ function audit() {
   };
 }
 
-async function openPage(width, height) {
+async function openPage(width, height, { tutorial = false } = {}) {
   const context = await browser.newContext({
     viewport: { width, height },
     screen: { width, height },
@@ -124,11 +129,27 @@ async function openPage(width, height) {
     isMobile: true,
     hasTouch: true,
   });
+  // The first match of a device starts the tutorial (M10 E3); the checks below are about the
+  // layout and would find it in their way, so they play as a device that has seen it. The
+  // tutorial's own checks open a bare device.
+  if (!tutorial) {
+    await context.addInitScript(() => {
+      try {
+        if (!localStorage.getItem('nachschubfront:prefs')) {
+          localStorage.setItem('nachschubfront:prefs', JSON.stringify({ tutorialSeen: true }));
+        }
+      } catch {
+        // No storage, no marker: the checks do not need one.
+      }
+    });
+  }
   const page = await context.newPage();
   watchProblems(page, `${width}x${height}`, problems);
-  await page.goto(`${server.url}?seed=${SEED}`, { waitUntil: 'networkidle' });
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForSelector('body[data-ready]');
+  if (!tutorial) {
+    await page.goto(`${server.url}?seed=${SEED}`, { waitUntil: 'networkidle' });
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForSelector('body[data-ready]');
+  }
   return { context, page };
 }
 
@@ -145,6 +166,7 @@ function expectClean(report, label) {
 }
 
 const results = [];
+const storedPrefs = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:prefs') ?? '{}'));
 const check = async (name, fn) => {
   await fn();
   results.push(name);
@@ -316,6 +338,108 @@ try {
         expectClean(await page.evaluate(audit), 'after the capsule choice');
       });
 
+      const prefsNow = () => page.evaluate(() => JSON.parse(localStorage.getItem('nachschubfront:prefs') ?? '{}'));
+      const reloadToTitle = async () => {
+        await page.reload({ waitUntil: 'networkidle' });
+        await page.evaluate(() => document.fonts.ready);
+        await page.waitForSelector('body[data-ready]');
+      };
+      const isFolded = () => page.locator('.hud-top').evaluate((n) => n.classList.contains('folded'));
+
+      await check(`${tag}: the folded status bar is remembered, and so is the open one`, async () => {
+        await tap(page, page.locator('.hud-fold'));
+        await frames(page);
+        assert.equal(await isFolded(), true);
+        assert.equal((await prefsNow()).statusFolded, true, 'kept through the storage layer');
+        await reloadToTitle();
+        await startMatch(page);
+        await frames(page, 6);
+        assert.equal(await isFolded(), true, 'still folded after a reload');
+        expectClean(await page.evaluate(audit), 'folded after a reload');
+        await tap(page, page.locator('.hud-fold'));
+        await frames(page);
+        assert.equal((await prefsNow()).statusFolded, false);
+        await reloadToTitle();
+        await startMatch(page);
+        await frames(page, 6);
+        assert.equal(await isFolded(), false, 'open again after a reload');
+      });
+
+      await check(`${tag}: pause is reachable during the capsule choice`, async () => {
+        await page.getByRole('button', { name: 'Salve anfordern' }).click();
+        await page.waitForSelector('.selection:not([hidden])', { timeout: 90000 });
+        await page.waitForTimeout(400);
+        await frames(page, 6);
+        const pause = page.locator('.selection-pause');
+        const box = await pause.boundingBox();
+        assert.ok(box, 'the pause button is on screen');
+        assert.ok(box.width >= 43.5 && box.height >= 43.5, `${box.width} x ${box.height}`);
+        assert.ok(box.x >= 0 && box.y >= 0 && box.x + box.width <= w && box.y + box.height <= h, 'inside the picture');
+        assert.equal(await pause.getAttribute('aria-pressed'), 'false');
+        await tap(page, pause);
+        await frames(page, 3);
+        assert.equal(await pause.getAttribute('aria-pressed'), 'true', 'the game stands still');
+        expectClean(await page.evaluate(audit), 'paused during the capsule choice');
+        await shot('pause-kapselwahl');
+        await tap(page, pause);
+        await frames(page, 3);
+        assert.equal(await pause.getAttribute('aria-pressed'), 'false', 'and runs on again');
+        await page.getByRole('button', { name: 'Behalten' }).click();
+        await page.waitForSelector('.selection', { state: 'hidden' });
+      });
+
+      await check(`${tag}: the title and end screens stay whole pages, not sheets`, async () => {
+        await reloadToTitle();
+        const title = page.locator('.menu[data-menu="main"]');
+        await title.waitFor({ state: 'visible' });
+        const box = await title.boundingBox();
+        assert.ok(box.x <= 0.5 && box.y <= 0.5 && box.width >= w - 1 && box.height >= h - 1, `the title covers the picture: ${JSON.stringify(box)}`);
+        assert.equal(await title.locator('.sheet-head').count(), 0, 'no sheet head on the title');
+        assert.equal(await page.locator('.menu[data-menu="end"] .sheet-head').count(), 0, 'and none on the end screen');
+        expectClean(await page.evaluate(audit), 'title');
+        await shot('titel');
+      });
+
+      await context.close();
+    }
+
+    // ----- The tutorial (M10 E3) -----
+    // A bare device, so the first match starts it. The first size and orientation play every
+    // step; the others go as far as the capsule choice, where the sheets decide the layout.
+    for (const orient of ['hoch', 'quer']) {
+      const [w, h] = orient === 'hoch' ? [w0, h0] : [h0, w0];
+      const tag = `${label} ${orient}`;
+      const full = label === '390x844';
+      console.log(`tutorial ${tag}`);
+      const { context, page } = await openPage(w, h, { tutorial: true });
+      const tapAt = (x, y) => page.touchscreen.tap(x, y);
+      await openTutorial(page, server.url);
+      if (SHOTS) await mkdir(SHOTS, { recursive: true });
+      await check(`${tag}: a fresh device starts the tutorial with its first match`, async () => {
+        await page.waitForFunction(() => document.querySelector('.tutorial:not([hidden]) .tutorial-meta'), null, { timeout: 5000 });
+        assert.equal((await readStep(page)).n, 1);
+        assert.equal(await page.evaluate(() => matchMedia('(pointer: coarse)').matches), true, 'touch is emulated');
+      });
+      await check(`${tag}: ${full ? 'all fourteen steps go through' : 'the steps up to the capsule choice go through'}, and skipping ends it`, async () => {
+        const shots = SHOTS ? { dir: SHOTS, prefix: `e3-${label}-${orient}`, steps: full ? (orient === 'hoch' ? [1, 3, 6, 9, 13] : [3, 6, 12]) : [] } : null;
+        const seen = await walkTutorial(page, { tap: tapAt, label: tag, stopAfter: full ? Infinity : 6, shots });
+        if (full) {
+          assert.deepEqual(seen, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+          assert.equal((await storedPrefs(page)).tutorialSeen, true, 'remembered after the last step');
+        } else {
+          assert.deepEqual(seen, [1, 2, 3, 4, 5, 6]);
+          const at = await readStep(page);
+          await tapAt(at.skip.x + at.skip.w / 2, at.skip.y + at.skip.h / 2);
+          await tutorialFrames(page, 3);
+          assert.equal(await readStep(page), null, 'skipped');
+          assert.equal((await storedPrefs(page)).tutorialSeen, true, 'and remembered');
+        }
+      });
+      if (full) {
+        await check(`${tag}: repeating from the settings and skipping both go through the storage layer`, async () => {
+          await checkRepeatAndSkip(page, { tap: tapAt, url: server.url, label: tag });
+        });
+      }
       await context.close();
     }
   }

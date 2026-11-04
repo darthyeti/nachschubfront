@@ -1100,13 +1100,14 @@ function frame(now) {
     seed: state.seed,
   });
   commandBar.update(state, ui);
+  infoPanel.update(state, ui);
+  debugPanel?.update(state);
+  selectionPanel.update(state, ui);
+  // Last, so the capsule sheet it lights has been built for this frame.
   tutorial.update(state, {
     startable: tutorialWanted && prefsLoaded && matchRunning,
     suspended: menus.open !== null || hud.help.isOpen || codex.open || intro.open,
   });
-  infoPanel.update(state, ui);
-  debugPanel?.update(state);
-  selectionPanel.update(state, ui);
 
   fpsFrames++;
   fpsTime += dt;

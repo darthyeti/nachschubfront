@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.11.7**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
+Version **0.11.11**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
 03.11.2026 **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md)): Farbtrennung und drei Biome,
 Licht und Schatten, Blockgelände, Diorama-Rahmen, Trümmer aus dem Baukasten, die neue Kapsel. Offen ist
 **M6 Balancing**. Von M8 steht noch Tills Prüfung auf dem iPad aus (Leistung, Speicher, Tippen auf hohe
@@ -49,6 +49,16 @@ Pull Request mit Label `spielgefuehl` nach `pr/<nr>/`; den Cache-Block in
 `sw.js` schreibt erst die Veröffentlichung, im Repository steht der
 Platzhalter. Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“.
 
+**Einweisung und Nachträge (M10 E3, Version 0.11.11):** Geführte Anleitung über die ersten zwei Runden für alle
+Geräte (`src/ui/tutorial.js`, 14 Schritte, ein Element je Schritt hervorgehoben, Rest gesperrt, jederzeit
+überspringbar). Sie liest nur den Spielzustand und verändert die Simulation nicht; eine Partie mit Einweisung spielt
+sich aus dem Protokoll genauso nach. Start mit dem ersten Spiel je Gerät (`tutorialSeen`), wiederholbar unter
+Einstellungen, „Hinweise“. Dazu: Die eingeklappte Statusleiste des Handys wird gemerkt (`statusFolded`), Pause ist während
+der Kapselwahl auch auf dem Handy erreichbar (eigener Knopf im Blatt), Titel und Endbildschirm bleiben ganzseitig.
+Prüfung `npm run test:input` (Tablet, alle Schritte, Überspringen, Wiederholen) und `npm run test:phone` (390 x 844 alle
+Schritte hoch und quer, die anderen Größen bis zur Kapselwahl). Tills Blick auf Tablet und Handy steht aus (Text, Tempo
+der Schritte, Sperre). Beschreibung in `docs/ART.md`, „Einweisung“.
+
 **Handy-Layout (M10 E2, Version 0.11.7):** Auf Touch-Bildschirmen bis 600 px Breite oder 500 px Höhe schmale Statusleiste
 (vier Werte plus Menü, einklappbar), Werkzeuge, Salve und Tempo im Daumenbereich (quer an den Rändern, Einstellung
 „Linkshänder“ spiegelt sie), Menüs, Kapselwahl, Info, Symbolblatt und Rezepte als Blätter, Einzug der Kamera für
@@ -62,9 +72,8 @@ Statusleiste, Taste R bleibt), Pause als eigener Knopf neben einem Tempo-Knopf
 Zeilen als reine Funktion `sheetSections`), Freischalt-Effekt für Kommandopunkte
 und Kommandos (`src/ui/burst.js`, Ton `unlock`), erkannt am Zustand. Die
 Kommandopunkte stehen erst ab der Welle des ersten Kommandos in der Leiste. Offen
-in M10: E3 Tutorial; Tills Blick auf Gefühl des Effekts und
-Tempo-Knopf steht aus. Beschreibung in `docs/ART.md`, Abschnitte „Ikonensatz“,
-„Symbolblatt“, „Freischalt-Effekt“.
+in M10: Tills Blick auf Gefühl des Effekts und Tempo-Knopf. Beschreibung in
+`docs/ART.md`, Abschnitte „Ikonensatz“, „Symbolblatt“, „Freischalt-Effekt“.
 
 Die Updates 2 bis 7 waren Einschübe, keine Meilensteine: 2 → M4b, 3 → M4c,
 4 → M4d, 5 → M5b, 6 → M5c, 7 → M5d.

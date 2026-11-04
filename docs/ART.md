@@ -309,10 +309,11 @@ Bei sechs Feldern wird die Leiste auf dem Tablet-Querformat eng. Kommen weitere 
 
 Gilt auf einem Touch-Bildschirm, der schmal (bis 600 px) oder niedrig (bis 500 px) ist (`PHONE_QUERY` in `src/ui/phone.js`, derselbe Wortlaut in `style.css`). Tablet (1180 x 820) und Desktop erfüllen keine der beiden Hälften und behalten ihr Layout.
 
-- **Statusleiste:** eine schmale Zeile mit vier Werten (Welle, Leben, Requisition, Weg) und dem Menüknopf rechts. Titel und Nachschubstufe entfallen (die Stufe steht als Zahl auf der Nachschub-Scheibe); Kommandopunkte, Riss-Platte und Koloss-Platte kommen dazu, wenn sie da sind, und brechen in eine zweite Zeile um. Ein Griff am unteren Rand (Ikone „fold", 64 x 44 px Trefferfläche) klappt die Leiste ein: dann bleibt nur der Menüknopf, der Griff wandert in die linke obere Ecke. Das Menü ist bei 360 px immer erreichbar. Im Querformat hat die Leiste keinen Hintergrund, die Platten schweben über der Karte.
+- **Statusleiste:** eine schmale Zeile mit vier Werten (Welle, Leben, Requisition, Weg) und dem Menüknopf rechts. Titel und Nachschubstufe entfallen (die Stufe steht als Zahl auf der Nachschub-Scheibe); Kommandopunkte, Riss-Platte und Koloss-Platte kommen dazu, wenn sie da sind, und brechen in eine zweite Zeile um. Ein Griff am unteren Rand (Ikone „fold", 64 x 44 px Trefferfläche) klappt die Leiste ein: dann bleibt nur der Menüknopf, der Griff wandert in die linke obere Ecke. Das Menü ist bei 360 px immer erreichbar. Eingeklappt oder offen: Der Zustand wird gemerkt (`statusFolded` in den Einstellungen, seit 0.11.11) und gilt beim nächsten Start. Im Querformat hat die Leiste keinen Hintergrund, die Platten schweben über der Karte.
 - **Hochformat:** unten eine Leiste mit Werkzeugen (50 px), Salve (68 px) und Pause und Tempo (46 px), ohne Beschriftung unter den Scheiben. Die Kommandoleiste liegt als Spalte am rechten Rand über der unteren Leiste (46 px). Sprechblasen der Scheiben stehen als Streifen über der unteren Leiste, nicht neben der Scheibe.
 - **Querformat:** Werkzeuge in einer Spalte am linken Rand, Salve über Pause und Tempo am rechten Rand, die Kommandoleiste als Reihe unter der Statusleiste am rechten Rand. Die Einstellung „Linkshänder“ (`leftHanded`, Pausenmenü, Einstellungen) vertauscht die beiden Ränder; im Hochformat ändert sie nichts.
-- **Blätter statt Fenster:** Menüs (außer Titel und Ende), Rezepte, Symbolblatt, Stellungs-Info und Kapselwahl kommen im Hochformat von unten, im Querformat von rechts (bis 480 px, die Kapselwahl und die Info bis 320 px). Oben im Blatt sitzen Griff und Kreuz (je mindestens 44 x 44 px, `src/ui/sheet.js`), beide schließen; sie bleiben beim Blättern stehen. Die Kapselwahl hat keinen Schließen-Knopf, sie muss beantwortet werden; während sie offen ist, ruht die untere Leiste. Im Querformat bleibt das obere Band des Blatts frei für den Menüknopf.
+- **Blätter statt Fenster:** Menüs (außer Titel und Ende), Rezepte, Symbolblatt, Stellungs-Info und Kapselwahl kommen im Hochformat von unten, im Querformat von rechts (bis 480 px, die Kapselwahl und die Info bis 320 px). Oben im Blatt sitzen Griff und Kreuz (je mindestens 44 x 44 px, `src/ui/sheet.js`), beide schließen; sie bleiben beim Blättern stehen. Die Kapselwahl hat keinen Schließen-Knopf, sie muss beantwortet werden; während sie offen ist, ruht die untere Leiste. **Pause bleibt trotzdem erreichbar** (seit 0.11.11): Das Blatt trägt einen eigenen Pausenknopf (`.selection-pause`, 56 x 44 px, golden, solange das Spiel steht), im Hochformat neben „Rezepte“ am Fuß des Blatts, im Querformat im freien Band oben im Blatt links vom Menüknopf der Statusleiste. Auf dem Tablet und am PC bleibt die untere Leiste mit ihrer Pause-Scheibe während der Kapselwahl sichtbar und bedienbar, dort gibt es den zweiten Knopf nicht. Im Querformat bleibt das obere Band des Blatts frei für den Menüknopf.
+- **Titel- und Endbildschirm bleiben ganzseitig** (Entscheidung Till, E-29): Sie sind Fenster über der ganzen Fläche mit mittigem Panel, keine Blätter, ohne Griff und Kreuz; es gibt von dort nichts zurückzugehen. Die Handy-Prüfung hält das fest (kein `.sheet-head`, Überlagerung deckt das Bild).
 - **Einzug der Kamera:** Solange Kapselwahl oder Info offen sind, rückt die Kamera die Mitte in den freien Teil (`shiftForCover`), und bei der Kapselwahl wird zusätzlich das Rechteck um alle Kapseln in den freien Teil gerückt und nötigenfalls verkleinert (`focusRect`, `src/ui/cover.js`). Beim Schließen kehrt die Ansicht zurück, wenn der Spieler sie nicht selbst verschoben hat. Reine Darstellung.
 - **Safe-Area** (`env(safe-area-inset-*)`) an allen Rändern; Versionsnummer im Pausenmenü statt in der Ecke.
 
@@ -335,6 +336,35 @@ Wenn die Kommandopunkte oder ein Kommando freigeschaltet werden, kommt ihr Symbo
 | 0 bis 1,8 s | Nachleuchten: goldener Verlauf um das Symbol, der langsam verlischt |
 
 Dazu der Ton `unlock` (tiefer Schlag, Rauschen, steigender Klang, kurze Glocke; `src/data/audio.js`). Erkannt wird das am Zustand, nicht an einer Meldung der Simulation: Die Kommandopunkte kommen, wenn `pointsVisible` wahr wird (Welle des ersten Kommandos erreicht oder Punkte da), eine Scheibe, wenn ihr `commandStatus` von gesperrt auf frei wechselt (`newlyUnlocked`). Der erste Blick auf den Zustand setzt nur den Ausgangswert, eine weit fortgeschrittene Partie knallt also beim Laden nicht. Ein Kommando, das freigeschaltet wird, solange die Leiste noch nicht steht, knallt, sobald sie erscheint. Nur Verläufe und halbtransparente Formen, kein `shadowBlur`, kein Filter; die Ebene lässt jeden Tipp durch. Bei `prefers-reduced-motion` gedämpft: keine Ringe, nichts wächst, nur ein weiches Aufleuchten und das Nachleuchten; Bildschirmwackeln gibt es ohnehin nicht.
+
+### Einweisung (M10 E3, seit 0.11.11)
+
+Geführte Anleitung über die ersten zwei Runden, auf allen Geräten (`src/ui/tutorial.js`, Texte in `STRINGS.tutorial`). Je Schritt ist **ein** Element hervorgehoben: ein goldener, leise pulsierender Rahmen (bei `prefers-reduced-motion` ruhig), der Rest des Bildes ist abgedunkelt (0,62 Schwarz) und nimmt keine Tipps an. Die Sperre besteht aus vier Platten um den Ausschnitt; im Ausschnitt gelangt der Tipp zum Knopf oder zur Karte darunter. Eine Karte mit „Schritt n von 14“, der Runde, einem Satz und einem Knopf „Überspringen“ (mindestens 44 x 44 px) sitzt neben dem Ausschnitt, nie darauf; hängt der Ausschnitt an einem Blatt (Kapselwahl), bleibt die Karte vom ganzen Blatt weg (Hochformat darüber, Querformat daneben). Schritte ohne Handlung haben „Weiter“, der letzte „Verstanden“; Schritte mit Handlung sagen rechts auf der Karte, was zu tippen ist.
+
+| Nr. | Runde | Hervorgehoben | Weiter, wenn |
+|---|---|---|---|
+| 1 | 1 | nichts (ganzes Bild abgedunkelt) | „Weiter“ |
+| 2 | 1 | Wegplatte oben (Länge des Wegs) | „Weiter“ |
+| 3 | 1 | ein Feld auf dem Weg, das ihn verlängert | Feld markiert |
+| 4 | 1 | Salve | Phase verlässt die Planung |
+| 5 | 1 | Kapselliste | eine Kapsel angetippt |
+| 6 | 1 | „Behalten“ | Kapselwahl beendet |
+| 7 | 1 | Tempo-Knopf (nur während Welle 1) | Tempo 2x oder 3x |
+| 8 | 2 | Requisitionsplatte | „Weiter“ |
+| 9 | 2 | Nachschub-Scheibe, **nur wenn die Requisition reicht** | Stufe gestiegen |
+| 10 | 2 | wieder ein Feld auf dem Weg | Feld markiert |
+| 11 | 2 | Salve | Phase verlässt die Planung |
+| 12 | 2 | die Kapsel eines gleichen Paars (×2), sonst die Liste | Kapsel angetippt |
+| 13 | 2 | „Verschmelzen“, sonst „Behalten“ | Kapselwahl beendet |
+| 14 | 2 | Menüknopf, erst **nach** Welle 2 | „Verstanden“ |
+
+Gegenüber der Studie (13 Schritte) ist Schritt 9 neu (Kauf in Runde 2, Entscheidung E-21). Weil die Kapseln aus dem geseedeten Zufall kommen und die Einweisung nichts an der Simulation ändert, gibt es zwei Ausweichen: Reicht die Requisition nach Welle 1 nicht für Nachschub (eine Welle mit Durchbrüchen), entfällt Schritt 9; enthält die Salve in Runde 2 kein gleiches Paar, sagen die Schritte 12 und 13 „wähle eine, behalte sie“. Schritt 14 wartet bis nach Welle 2, damit keine Sperre über einer laufenden Welle liegt; zwischen zwei Schritten, solange die Kapseln fallen oder die Welle läuft, ist nichts abgedunkelt.
+
+Das gewählte Feld (3 und 10) ist eine freie Wegzelle, deren Markierung die Wegzahl wachsen lässt, fern von Riss und Bastion und außerhalb von Leisten und Kommandoleiste (`pickSpot`). Auf dem Handy ist ein Feld kleiner als ein Finger; jeder Tipp, der durch den Ausschnitt kommt, zählt darum für dieses Feld.
+
+**Zustand statt Meldung:** Die Einweisung liest jedes Bild nur den Spielzustand (Phase, Welle, markierte Zonen, Stellungen, Nachschubstufe, Tempo) und das Antippen einer Kapselkarte; sie ruft nichts in der Simulation auf. Eine Partie mit Einweisung spielt sich aus ihrem Protokoll genauso nach wie ohne (`tests/unit/tutorial.test.js`). Sie läuft hinter Menüs, Symbolblatt, Rezepten und Hinweisen nicht weiter, sondern ruht, solange eine davon offen ist. Ein anderes Spiel (neue Partie) beendet sie.
+
+Start mit dem ersten Spiel je Gerät (`tutorialSeen` in den Einstellungen, `docs/SPEICHER.md`), Überspringen und Abschluss setzen den Merker. Wiederholen: Einstellungen, „Hinweise“, „Einweisung wiederholen“; sie läuft in der nächsten Partie. Mit `?debug` startet sie nur zusammen mit `&tutorial`. Standbilder: `reference/konzept/handy/e3-*.jpg`.
 
 ## Menüs außerhalb der Partie
 

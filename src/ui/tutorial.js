@@ -622,6 +622,7 @@ export function createTutorial(root, { prefs, cellBox }) {
         return;
       }
       if (suspended) {
+        tapTarget = null;
         layer.hidden = true;
         drawn = '';
         return;
