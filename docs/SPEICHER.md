@@ -19,7 +19,7 @@ Es sind bewusst drei, nicht eins.
 
 | Schlüssel | Inhalt | Modul | Wandert in den Export |
 | --- | --- | --- | --- |
-| `nachschubfront:prefs` | Lautstärken, Bewegung, weggeklickte Hinweise, zuletzt gespielter Modus, Linkshänder | `src/core/prefs.js` | nein |
+| `nachschubfront:prefs` | Lautstärken, Bewegung, weggeklickte Hinweise, zuletzt gespielter Modus, Linkshänder, Einweisung gesehen, Statusleiste eingeklappt | `src/core/prefs.js` | nein |
 | `nachschubfront:profile` | Bestwerte und Statistik | `src/storage/profile.js` | ja |
 | `nachschubfront:protocols` | die letzten fünf Partie-Protokolle (M6) | `src/storage/protocol.js` | eigene Datei |
 
@@ -30,6 +30,18 @@ diesem Build nicht (mehr) wählbar, nimmt das Menü den Standard.
 `prefs.leftHanded` (Wahrheitswert, Standard `false`, seit 0.11.7) spiegelt im Querformat auf dem Handy
 Werkzeuge und Salve samt Tempo (M10 E2). Sie steht im Pausenmenü unter „Einstellungen“ → „Linkshänder“; die
 Seite trägt sie als `data-hand` am Wurzelelement. Ein anderer Wert als `true` oder `false` fällt auf den Standard zurück.
+
+`prefs.tutorialSeen` (Wahrheitswert, Standard `false`, seit 0.11.11) merkt, dass die Einweisung (`src/ui/tutorial.js`,
+M10 E3) auf diesem Gerät gezeigt oder übersprungen wurde. Sie startet mit dem ersten Spiel, solange der Wert `false` ist;
+unter „Einstellungen“ → „Hinweise“ → „Einweisung wiederholen“ wird er zurückgesetzt. Mit `?debug` startet sie nur
+zusammen mit `&tutorial`, damit die Browser-Prüfungen ihr nicht in den Weg laufen.
+
+`prefs.statusFolded` (Wahrheitswert, Standard `false`, seit 0.11.11) merkt, dass der Spieler die Statusleiste auf dem Handy
+eingeklappt hat; beim nächsten Start bleibt sie eingeklappt. Auf Tablet und Desktop gibt es den Griff nicht, dort ändert sich der Wert nie.
+
+Beide Werte laufen wie alle Einstellungen über `src/storage/` (asynchron, jeder Zugriff in try/catch); ein leerer oder
+kaputter Speicher heißt „Standard“ (Einweisung läuft, Leiste offen), nie ein Fehler. Ein anderer Wert als `true` oder
+`false` fällt auf den Standard zurück.
 
 Die Einstellungen gehören dem Gerät. Wer ein fremdes Profil einspielt, soll
 nicht plötzlich mit fremder Lautstärke spielen. Deshalb bleiben sie draußen

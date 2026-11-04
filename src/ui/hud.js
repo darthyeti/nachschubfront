@@ -22,10 +22,12 @@ const T = STRINGS.hud;
 
 /**
  * @param {HTMLElement} root
- * @param {{debug: boolean, onAction: (action: string) => void, onUnlock?: () => void}} options
- *        `onUnlock` is for the sound that goes with the bang of an unlocked symbol
+ * @param {{debug: boolean, onAction: (action: string) => void, onUnlock?: () => void,
+ *         onFold?: (folded: boolean) => void}} options
+ *        `onUnlock` is for the sound that goes with the bang of an unlocked symbol,
+ *        `onFold` hears the player fold or unfold the phone's status bar so it can be remembered
  */
-export function createHud(root, { debug, onAction, onUnlock = () => {} }) {
+export function createHud(root, { debug, onAction, onUnlock = () => {}, onFold = () => {} }) {
   // One riveted plate bar across the top, the values in sections (docs/ART.md,
   // "Obere Statusleiste"). Seed and phase are not in it: they live in the pause
   // screen now, so six fields still fit on a tablet in landscape.
@@ -92,10 +94,15 @@ export function createHud(root, { debug, onAction, onUnlock = () => {} }) {
   fold.append(icon('fold', 'hud-fold-icon'));
   fold.setAttribute('aria-expanded', 'true');
   fold.setAttribute('aria-label', T.foldTop);
-  fold.addEventListener('click', () => {
-    const folded = top.classList.toggle('folded');
+  function setFolded(folded) {
+    top.classList.toggle('folded', folded);
     fold.setAttribute('aria-expanded', String(!folded));
     fold.setAttribute('aria-label', folded ? T.unfoldTop : T.foldTop);
+  }
+  fold.addEventListener('click', () => {
+    const folded = !top.classList.contains('folded');
+    setFolded(folded);
+    onFold(folded);
     fold.blur();
   });
   top.append(fold);
@@ -250,6 +257,9 @@ export function createHud(root, { debug, onAction, onUnlock = () => {} }) {
 
     /** The "?" overlay; the command rail hands its discs over through it. */
     help,
+
+    /** Folds or unfolds the status bar without reporting it: the remembered state coming back. */
+    setFolded,
 
     /** Syncs the HUD with game state and render-side UI state. */
     update(state, ui, { totalWaves, canStart }) {

@@ -666,7 +666,13 @@ function onAction(action) {
 
 const codex = createCodex(document.body);
 const hudRoot = document.getElementById('hud');
-const hud = createHud(hudRoot, { debug, onAction, onUnlock: () => audio.play('unlock') });
+const hud = createHud(hudRoot, {
+  debug,
+  onAction,
+  onUnlock: () => audio.play('unlock'),
+  // The folded status bar of the phone is remembered (M10 E3).
+  onFold: (folded) => prefs.set('statusFolded', folded),
+});
 // The line of three buttons after a wave (M6). It lives in the same column as
 // the bottom bar, so it is in thumb reach and can never cover it.
 const rating = createRatingRow(hud.bottom, {
@@ -833,6 +839,11 @@ function applyHand() {
 }
 prefs.onChange(applyHand);
 applyHand();
+
+// The status bar of the phone stays folded or open as the player left it (M10 E3).
+// The stored settings arrive a moment after the first frame, so this follows them.
+prefs.onChange((values) => hud.setFolded(values.statusFolded));
+hud.setFolded(prefs.values.statusFolded);
 
 // Sound starts with the first real interaction (Safari refuses before that).
 const audio = createAudio(prefs);

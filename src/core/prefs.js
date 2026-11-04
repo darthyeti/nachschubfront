@@ -34,6 +34,10 @@ export const PREF_DEFAULTS = {
   commandIntroSeen: false,
   /** Phone in landscape: tools and salvo swap sides (M10 E2). */
   leftHanded: false,
+  /** The guided walk through the first two rounds has been shown or skipped (ui/tutorial.js, M10 E3). */
+  tutorialSeen: false,
+  /** Phone: the status bar is folded up to the menu button (M10 E3, remembered from E2). */
+  statusFolded: false,
 };
 
 const isId = (value) => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,31}$/.test(value);
@@ -54,6 +58,8 @@ export function sanitizePrefs(raw) {
   if (typeof raw.rateWaves === 'boolean') out.rateWaves = raw.rateWaves;
   if (typeof raw.commandIntroSeen === 'boolean') out.commandIntroSeen = raw.commandIntroSeen;
   if (typeof raw.leftHanded === 'boolean') out.leftHanded = raw.leftHanded;
+  if (typeof raw.tutorialSeen === 'boolean') out.tutorialSeen = raw.tutorialSeen;
+  if (typeof raw.statusFolded === 'boolean') out.statusFolded = raw.statusFolded;
   const last = raw.lastRun;
   if (last && typeof last === 'object' && isId(last.mode) && isId(last.difficulty)) {
     out.lastRun = { mode: last.mode, difficulty: last.difficulty };
