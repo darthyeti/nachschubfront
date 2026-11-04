@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nachschubfront: Koloss als Schwarmbestie</title>
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:wght@500;700&family=Pirata+One&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#1c1410;--plate:#3e372d;--gold:#e8c872;--text:#eadfc4;--muted:#b5a385;--ink:#000}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overscroll-behavior:none}
+body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:fixed;left:calc(16px + env(safe-area-inset-left,0px));top:calc(12px + env(safe-area-inset-top,0px));right:16px;pointer-events:none;max-width:min(980px,calc(100% - 32px))}
+.hud h1{font-family:'Pirata One',Georgia,serif;font-weight:400;font-size:clamp(26px,3.6vw,40px);margin:0;line-height:1;text-shadow:3px 3px 0 #000}
+.hud p{margin:4px 0 0;font-size:15px;color:var(--muted);text-shadow:1px 1px 0 #000}
+#perf{font-size:13px}
+.bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;background:#241a14;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:8px;border-radius:8px;width:max-content;max-width:calc(100% - 24px)}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
+.row b{font-size:14px;color:var(--muted);font-weight:500;margin-right:2px}
+button{font-family:inherit;font-weight:700;font-size:16px;color:var(--text);background:var(--plate);border:2px solid var(--ink);border-radius:5px;padding:7px 12px;min-height:44px;min-width:44px;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(232,200,114,.35)}
+button.on{background:var(--gold);color:#1a1410}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.sep{width:2px;height:28px;background:#000;margin:0 4px}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Isometrische Fläche: der heutige Koloss und drei Entwürfe einer riesigen Schwarmbestie, die eine Schneise durch Trümmer bricht und sich auf der Stelle dreht"></canvas>
+<div class="hud"><h1>Koloss als Schwarmbestie</h1><p id="note"></p><p id="perf"></p></div>
+<div class="bar">
+  <div class="row">
+    <button id="m-heute" type="button">Heute</button>
+    <button id="m-walze" type="button">A Grabwalze</button>
+    <button id="m-stelze" type="button">B Stelzwächter</button>
+    <button id="m-brut" type="button">C Brutberg</button>
+    <span class="sep"></span>
+    <button id="v-compare" type="button">Vergleich</button>
+  </div>
+  <div class="row">
+    <b>Richtung</b>
+    <button id="d-auto" type="button">Fahrt</button>
+    <button id="d-0" type="button">+x</button>
+    <button id="d-1" type="button">+y</button>
+    <button id="d-2" type="button">−x</button>
+    <button id="d-3" type="button">−y</button>
+    <span class="sep"></span>
+    <b>Zoom</b>
+    <button id="z-0.4" type="button">0,4</button>
+    <button id="z-1" type="button">1</button>
+    <button id="z-2.5" type="button">2,5</button>
+  </div>
+  <div class="row">
+    <b>Tempo</b>
+    <button id="s-1" type="button">1x</button>
+    <button id="s-2" type="button">2x</button>
+    <button id="s-3" type="button">3x</button>
+    <button id="s-8" type="button">8x</button>
+    <span class="sep"></span>
+    <button id="sil" type="button">Silhouette</button>
+    <button id="hits" type="button">Treffer</button>
+    <button id="pause" type="button">Pause</button>
+  </div>
+</div>
+<script type="module" src="koloss-schwarm.js"></script>
+</body>
+</html>
