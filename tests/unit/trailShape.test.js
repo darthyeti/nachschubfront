@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lineOutline, bendWedge, piecesOf, buildRuns, jitterOf } from '../../src/render/trailShape.js';
-import { TRAIL_WIDTHS, TRAIL_RAG, TRAIL_SHIFT } from '../../src/render/trail.js';
+import { lineOutline, bendWedge, piecesOf, buildRuns, jitterOf, gapOf, fragmentsOf } from '../../src/render/trailShape.js';
+import { TRAIL } from '../../src/data/art.js';
+
+const TRAIL_WIDTHS = TRAIL.widths;
+const TRAIL_RAG = TRAIL.rag;
+const TRAIL_SHIFT = TRAIL.shift;
 
 /** Distance of a point to a segment. */
 function distToSegment(px, py, [ax, ay], [bx, by]) {
@@ -138,8 +142,8 @@ test('a whole route of equal wear is one run with round ends, bends and all', ()
   assert.equal(runs[0].capStart, 'round');
   assert.equal(runs[0].capEnd, 'round');
   assert.equal(runs[0].bendTo, null);
-  // Nine sections of two samples, the joints counted once.
-  assert.equal(runs[0].pts.length, 9 * 2 + 1);
+  // Nine sections of four samples, the joints counted once.
+  assert.equal(runs[0].pts.length, 9 * 4 + 1);
 });
 
 test('where the wear step changes the run ends flat and the next one starts flat', () => {
@@ -178,18 +182,48 @@ test('a fork ends every run round: nothing is chained where two routes meet', ()
   }
 });
 
-test('a straight step across two levels keeps only the half on the higher field, cut flat at the border', () => {
+test('a section across two levels has no piece: the trail stops before every step', () => {
   const level = (c) => (c.x >= 2 ? 1 : 0);
-  const up = piecesOf({ key: '1,0>2,0', a: { x: 1, y: 0 }, b: { x: 2, y: 0 } }, level);
-  assert.equal(up.length, 1);
-  assert.equal(up[0].from, null);
-  assert.deepEqual(up[0].cell, { x: 2, y: 0 });
-  const down = piecesOf({ key: '2,0>1,0', a: { x: 2, y: 0 }, b: { x: 1, y: 0 } }, level);
-  assert.equal(down.length, 1);
-  assert.equal(down[0].to, null);
-  assert.deepEqual(down[0].cell, { x: 2, y: 0 });
-  const diagonal = piecesOf({ key: '1,0>2,1', a: { x: 1, y: 0 }, b: { x: 2, y: 1 } }, level);
-  assert.equal(diagonal.length, 2, 'across a diagonal both halves stay');
+  assert.deepEqual(piecesOf({ key: '1,0>2,0', a: { x: 1, y: 0 }, b: { x: 2, y: 0 } }, level), []);
+  assert.deepEqual(piecesOf({ key: '2,0>1,0', a: { x: 2, y: 0 }, b: { x: 1, y: 0 } }, level), []);
+  assert.deepEqual(piecesOf({ key: '1,0>2,1', a: { x: 1, y: 0 }, b: { x: 2, y: 1 } }, level), [], 'nor across a diagonal');
+  assert.equal(piecesOf({ key: '2,0>3,0', a: { x: 2, y: 0 }, b: { x: 3, y: 0 } }, level).length, 1);
+});
+
+test('no run over a stepped route reaches the border of a step', () => {
+  const level = (c) => (c.x >= 2 ? 1 : 0);
+  const runs = buildRuns(entriesOf([[0, 0], [1, 0], [2, 0], [3, 0]], () => 5, level));
+  for (const r of runs) for (const p of r.pts) assert.ok(p.x <= 1.5 + 1e-9 || p.x >= 2.5 - 1e-9, `a point at ${p.x} is on the edge`);
+});
+
+test('the trail is narrow: no layer is wider than half the old 0.55 cells plus the fringe', () => {
+  assert.ok(TRAIL.widths[0] * (1 + TRAIL.rag) <= 0.55 / 2 * 1.35);
+  assert.ok(TRAIL.widths.every((w, i) => i === 0 || w < TRAIL.widths[i - 1]));
+});
+
+test('fragments are stretches of two or more present points and keep the caps only at the ends', () => {
+  const pts = [0, 1, 2, 3, 4, 5, 6].map((i) => ({ id: `p${i}`, x: i, y: 0 }));
+  const on = new Set(['p0', 'p1', 'p2', 'p4', 'p6']);
+  const frags = fragmentsOf(pts, 'butt', 'butt', (id) => on.has(id));
+  assert.equal(frags.length, 1, 'lone points are dropped');
+  assert.equal(frags[0].pts.length, 3);
+  assert.equal(frags[0].capStart, 'butt');
+  assert.equal(frags[0].capEnd, 'round');
+  assert.equal(frags[0].atEnd, false);
+  assert.equal(fragmentsOf(pts, 'round', 'round', () => true).length, 1);
+  assert.equal(fragmentsOf(pts, 'round', 'round', () => false).length, 0);
+});
+
+test('the gaps are the same wherever they are asked and denser trails keep more of the points', () => {
+  assert.equal(gapOf('A', 'c3,4'), gapOf('A', 'c3,4'));
+  assert.notEqual(gapOf('A', 'c3,4'), gapOf('B', 'c3,4'));
+  const share = (wear) => {
+    let n = 0;
+    for (let i = 0; i < 400; i++) if (gapOf('S', `k${i}`) < TRAIL.presence.base + TRAIL.presence.gain * wear) n++;
+    return n / 400;
+  };
+  assert.ok(share(0.2) < share(0.9));
+  assert.ok(share(1) < 1.01 && share(0.1) > 0.2);
 });
 
 test('runs on different heights are never chained', () => {
@@ -197,7 +231,7 @@ test('runs on different heights are never chained', () => {
   const runs = buildRuns(entriesOf([[0, 0], [1, 0], [2, 0], [3, 0]], () => 5, level));
   assert.ok(runs.length >= 2);
   assert.ok(new Set(runs.map((r) => r.lift)).size >= 2);
-  assert.ok(runs.every((r) => r.capStart === 'butt' || r.capEnd === 'butt' || r.lift === runs[0].lift));
+  assert.ok(runs.every((r) => r.pts.every((p) => (p.x < 2) === (r.lift === 0))), 'every run lies on one level');
 });
 
 test('the jitter of a sample point is the same wherever it is asked', () => {

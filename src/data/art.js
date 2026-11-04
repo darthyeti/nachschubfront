@@ -169,3 +169,24 @@ export const POD_DIM_ALPHA = 0.5;
  * carries the label.
  */
 export const POD_PLATE = { restHeight: 84, restScale: 0.85, pickedHeight: 108, pickedScale: 1.35 };
+
+// ---------- The trail (issue 60) ----------
+
+/**
+ * Look of the trail the enemies leave (src/render/trail.js). Widths are in cells, one per layer
+ * from the widest to the narrowest; `alphas` multiply the wear. `rag` is the raggedness of the
+ * edges as a fraction of the layer width, `shift` the sideways shift of a layer against the route
+ * line (at most half of it either way), `edge` the dark hem outside every layer. `sample` is the
+ * spacing of the points the pieces are cut at, in cells. A point carries a footprint when its roll
+ * is under `base + gain * wear - cut * layer`; single points are dropped, so what is left are
+ * short, frayed stretches whose density grows with the wear. The trail never crosses a step.
+ */
+export const TRAIL = {
+  widths: [0.26, 0.2, 0.13],
+  alphas: [0.7, 0.7, 0.7],
+  rag: 0.35,
+  shift: 0.04,
+  edge: { width: 0.035, alpha: 0.45 },
+  sample: 0.25,
+  presence: { base: 0.3, gain: 0.6, cut: 0.12 },
+};
