@@ -1131,7 +1131,7 @@ export function createSceneRenderer(sprites) {
     for (const pod of state.pods) {
       const lift = cellLift(pod.x, pod.y);
       ctx.translate(0, -lift);
-      drawPodHologram(ctx, pod, t);
+      drawPodHologram(ctx, pod, t, enemyView);
       ctx.translate(0, lift);
     }
     map.beacons.forEach((b, i) => {

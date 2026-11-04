@@ -10,7 +10,8 @@ import { DOCTRINE_IDS } from '../../src/data/doctrines.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
 import { SUPPLY_LEVELS, MAX_SUPPLY_LEVEL, supplyWeights } from '../../src/data/supply.js';
 import { PODS, salvoSize, salvoMinRank, MAX_SALVO_SIZE, salvoSeconds } from '../../src/data/pods.js';
-import { hologramLift } from '../../src/render/pods.js';
+import { plateScale, plateHeight } from '../../src/render/pods.js';
+import { POD_DIM_ALPHA } from '../../src/data/art.js';
 import { mapFromAscii, planningState } from './helpers.js';
 
 const OPEN = [
@@ -146,25 +147,18 @@ test('pods land staggered, block their cell and reopen the route check', () => {
   for (const zone of ZONES) assert.ok(isBlocked(state.map.grid, zone.x, zone.y), `${zone.x},${zone.y} blocked`);
 });
 
-test('two capsules on touching cells hang their holograms at different heights', () => {
-  // The labels are wider than a cell, so neighbours writing at the same height
-  // ran into one another (docs/ART.md, v3).
-  const neighbours = [
-    [1, 0],
-    [0, 1],
-    [1, 1],
-    [-1, 1],
-  ];
-  for (let x = 0; x < 24; x++) {
-    for (let y = 0; y < 24; y++) {
-      for (const [dx, dy] of neighbours) {
-        assert.notEqual(hologramLift(x, y), hologramLift(x + dx, y + dy), `(${x},${y}) and (${x + dx},${y + dy})`);
-      }
-    }
-  }
-  // Four levels, and the same cell always gives the same one.
-  assert.equal(hologramLift(3, 7), hologramLift(3, 7));
-  const levels = new Set();
-  for (let x = 0; x < 4; x++) for (let y = 0; y < 4; y++) levels.add(hologramLift(x, y));
-  assert.deepEqual([...levels].sort(), [0, 1, 2, 3]);
+test('resting plates of capsules on touching cells do not overlap and hang low (issue 50)', () => {
+  // Two cells on a diagonal stand 32 px apart on screen (the plate hangs at the same height over
+  // both), so a resting plate with its ink outline has to be narrower than that.
+  const rest = plateScale(0);
+  const outer = 2 * (18 + 3) * rest;
+  assert.ok(outer < 32, `plate ${outer} px wide`);
+  // It clears the closed shell (about 67 px high) and hangs lower than before (120 px plus a
+  // stagger of up to 54 px).
+  assert.ok(plateHeight(0) - 18 * rest > 67);
+  assert.ok(plateHeight(0) <= 90);
+  // The picked plate is larger and higher, and the others are dimmed.
+  assert.ok(plateScale(1) > plateScale(0) * 1.4);
+  assert.ok(plateHeight(1) > plateHeight(0));
+  assert.ok(POD_DIM_ALPHA > 0 && POD_DIM_ALPHA < 1);
 });
