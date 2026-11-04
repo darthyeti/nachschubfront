@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nachschubfront: Handy und Bedienung</title>
+<style>
+@font-face{font-family:'Pirata One';src:url('../../assets/fonts/pirata-one-latin-400-normal.woff2') format('woff2');font-weight:400}
+@font-face{font-family:'Barlow Condensed';src:url('../../assets/fonts/barlow-condensed-latin-500-normal.woff2') format('woff2');font-weight:500}
+@font-face{font-family:'Barlow Condensed';src:url('../../assets/fonts/barlow-condensed-latin-700-normal.woff2') format('woff2');font-weight:700}
+:root{--bg:#1c1410;--plate:#3e372d;--stone:#4a4137;--gold:#e8c872;--text:#eadfc4;--muted:#b5a385;--ink:#000;--btn-alt:#cbbd9f;--accent:#c9462a;--rift:#9b6bd6;
+  --font-title:'Pirata One',Georgia,serif;--font-body:'Barlow Condensed','Arial Narrow',Arial,sans-serif;--s:1;color-scheme:dark;box-sizing:border-box}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:17px;line-height:1.35}
+h1{font-family:var(--font-title);font-weight:400;font-size:34px;margin:0;text-shadow:3px 3px 0 #000}
+h2{font-family:var(--font-title);font-weight:400;font-size:26px;margin:28px 0 6px;text-shadow:2px 2px 0 #000}
+a{color:var(--gold)}
+header,section{max-width:1280px;margin:0 auto;padding:0 20px}
+header p,section>p{max-width:880px;color:var(--muted);margin:6px 0}
+.bar{position:sticky;top:0;z-index:20;background:#140e0b;border-bottom:2px solid #000;padding:8px 20px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.bar .grp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.bar .gl{color:var(--muted);font-size:14px;margin-right:2px}
+.bar button,.ctl{font-family:inherit;font-weight:700;font-size:15px;color:var(--text);background:var(--plate);border:2px solid #000;border-radius:5px;
+  padding:4px 10px;min-height:44px;min-width:44px;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(232,200,114,.35)}
+.bar button.on,.ctl.on{background:var(--gold);color:#1a1410}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.readout{display:flex;gap:16px;flex-wrap:wrap;padding:6px 20px;background:#1a120e;border-bottom:2px solid #000;font-size:15px;color:var(--muted)}
+.readout b{color:var(--text)}
+.readout [data-ok="0"]{color:#ff8a6a}
+#stage{display:flex;gap:24px;justify-content:center;align-items:flex-start;padding:16px 20px;flex-wrap:wrap}
+.col{display:flex;flex-direction:column;gap:6px;align-items:center}
+.col h3{font-family:var(--font-title);font-weight:400;font-size:22px;margin:0}
+.col[hidden]{display:none}
+.slot{width:calc(var(--pw) * var(--s));height:calc(var(--ph) * var(--s))}
+.slot>*{transform:scale(var(--s));transform-origin:0 0}
+#heuteImg{display:block;width:var(--pw);height:var(--ph);border-radius:34px;border:0;background:#000;object-fit:fill}
+
+/* ===================== Der Entwurf: ein Rahmen in echten CSS-Pixeln ===================== */
+.phone{--st:47px;--sb:34px;--sl:0px;--sr:0px;position:relative;width:var(--w);height:var(--h);overflow:hidden;background:#110c0a;border-radius:34px;
+  user-select:none;-webkit-user-select:none;touch-action:manipulation;color:var(--text);font-family:var(--font-body)}
+.phone[data-o="quer"]{--st:0px;--sb:21px;--sl:47px;--sr:47px}
+.phone button{font-family:inherit;color:inherit;cursor:pointer;border:0;padding:0;background:none}
+.phone button:disabled{cursor:default}
+
+.board{position:absolute;inset:0;overflow:hidden}
+.board img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.mark{position:absolute;width:30px;height:18px;margin:-9px 0 0 -15px;background:rgba(242,193,78,.35);border:2px solid #f2c14e;
+  transform:perspective(1px);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);display:grid;place-items:center;pointer-events:none}
+.mark em{font-style:normal;font-weight:700;font-size:11px;color:#1a1410}
+.spot{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;display:grid;place-items:center}
+.spot i{width:34px;height:20px;background:rgba(242,193,78,.25);border:2px solid #f2c14e;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.spot.glow i{animation:pulse 1.4s ease-in-out infinite}
+.tower{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%}
+.range{position:absolute;width:190px;height:96px;margin:-48px 0 0 -95px;border:2px dashed rgba(155,107,214,.8);border-radius:50%;pointer-events:none;background:rgba(155,107,214,.08)}
+@keyframes pulse{50%{transform:scale(1.35);background:rgba(242,193,78,.5)}}
+@media (prefers-reduced-motion:reduce){.spot.glow i{animation:none}}
+
+/* ---- Statusleiste: schmal, vier Werte und das Menue, einklappbar ---- */
+.top{position:absolute;left:0;right:0;top:0;display:flex;gap:4px;align-items:center;
+  padding:calc(var(--st) + 4px) calc(var(--sr) + 8px) 4px calc(var(--sl) + 8px);
+  background:linear-gradient(#241c17,#1a1410);border-bottom:2px solid #000;box-shadow:0 3px 0 rgba(0,0,0,.5)}
+.phone[data-o="quer"] .top{background:none;border:0;box-shadow:none;padding-top:6px}
+.top.closed{background:none;border:0;box-shadow:none}
+.top.closed .opt{display:none}
+.top.closed .fold span svg{transform:rotate(180deg)}
+.chip{display:flex;align-items:center;gap:3px;height:44px;min-width:44px;padding:0 6px;background:var(--stone);border:2px solid #000;border-radius:4px;
+  box-shadow:inset 0 1px 0 rgba(234,223,196,.12),2px 2px 0 rgba(0,0,0,.45);font-weight:700;font-size:17px;color:var(--text)}
+.chip svg{width:20px;height:20px;flex:none}
+.menu-btn{margin-left:auto;width:44px;height:44px;display:grid;place-items:center;background:var(--stone)!important;border:2px solid #000!important;border-radius:4px;box-shadow:2px 2px 0 rgba(0,0,0,.45)}
+.menu-btn svg{width:24px;height:24px}
+.fold{position:absolute;left:50%;top:100%;width:72px;height:44px;margin-left:-36px;z-index:3;display:grid;place-items:start center}
+.fold span{display:block;width:44px;height:18px;margin-top:2px;background:#241c17;border:2px solid #000;border-radius:0 0 8px 8px;border-top:0;display:grid;place-items:center}
+.fold svg{width:16px;height:16px;transition:transform .15s}
+.top.closed .fold span{background:rgba(36,28,23,.8)}
+.tip{position:absolute;left:calc(var(--sl) + 12px);right:calc(var(--sr) + 12px);top:calc(var(--st) + 60px);z-index:6;background:#17100d;border:2px solid #000;border-radius:6px;padding:8px 12px;box-shadow:4px 4px 0 #000;display:flex;flex-direction:column}
+.phone[data-o="quer"] .tip{top:58px;right:auto;width:300px}
+.tip b{font-family:var(--font-title);font-weight:400;font-size:20px;color:var(--gold)}
+.tip span{font-size:16px}
+.banner{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--st) + 66px);background:rgba(23,16,13,.92);border:2px solid #000;border-radius:5px;padding:6px 16px;font-family:var(--font-title);font-size:22px;color:var(--gold);white-space:nowrap}
+.phone[data-o="quer"] .banner{top:56px}
+
+/* ---- Werkzeuge und Salve: unten, im Daumenbereich (quer: links und rechts am Rand) ---- */
+.dock{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:space-between;gap:4px;
+  padding:6px calc(var(--sr) + 6px) calc(var(--sb) + 6px) calc(var(--sl) + 6px);background:linear-gradient(#1e1713,#17100d);border-top:2px solid #000;box-shadow:0 -3px 0 rgba(0,0,0,.4)}
+.dock.closed{background:none;border:0;box-shadow:none}
+.dock.closed .tools{display:none}
+.dock.closed .fold span svg{transform:rotate(180deg)}
+.dock .fold{top:auto;bottom:100%;margin-bottom:0;place-items:end center}
+.dock .fold span{border-radius:8px 8px 0 0;border:2px solid #000;border-bottom:0;margin:0 0 2px;background:#1e1713}
+.tools,.act{display:flex;gap:4px;align-items:flex-end}
+.tool{display:flex;flex-direction:column;align-items:center;width:56px;min-height:64px;gap:2px}
+.tool:disabled{opacity:.42}
+.disc{position:relative;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;
+  background:radial-gradient(circle at 50% 40%,#3a322a,#1f1813 70%);border:3px solid #b79243;box-shadow:0 0 0 2px #000,inset 0 0 0 2px #000}
+.disc::after{content:"";position:absolute;inset:2px;border-radius:50%;border:2px dotted rgba(155,107,214,.55);pointer-events:none}
+.disc svg{width:26px;height:26px;position:relative;z-index:1}
+.badge{position:absolute;right:-6px;top:-6px;z-index:2;min-width:20px;height:20px;border-radius:10px;background:#cbbd9f;color:#1a1410;border:2px solid #000;font-style:normal;font-weight:700;font-size:13px;display:grid;place-items:center}
+.price{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);z-index:2;background:#17100d;border:2px solid #b79243;border-radius:9px;padding:0 6px;font-style:normal;font-weight:700;font-size:13px;color:#ffd58a;line-height:15px}
+.lab{font-size:12px;color:var(--muted);line-height:1.1;margin-top:5px;white-space:nowrap}
+.tempo{display:flex;flex-direction:column;align-items:center;justify-content:center;width:48px;height:48px;background:var(--btn-alt)!important;border:2px solid #000!important;border-radius:5px;box-shadow:3px 3px 0 #000;color:#1a1410!important}
+.tempo svg{width:24px;height:24px}
+.tempo span{font-weight:700;font-size:12px;line-height:1;margin-top:-2px}
+.tempo svg path,.tempo svg rect{fill:#1a1410;stroke:#1a1410}
+.salvo{position:relative;display:flex;align-items:center;justify-content:center;gap:4px;width:112px;height:56px;background:var(--gold)!important;border:3px solid var(--rift)!important;border-radius:28px;color:#1a1410!important;box-shadow:3px 3px 0 #000;font-family:var(--font-title);font-size:24px}
+.salvo svg{width:28px;height:28px}
+.salvo b{font-weight:400}
+.salvo:disabled{filter:saturate(.3) brightness(.7)}
+.zn{position:absolute;right:-4px;top:-12px;background:#cbbd9f;color:#1a1410;border:2px solid #000;border-radius:11px;padding:0 6px;font-style:normal;font-weight:700;font-size:14px;font-family:var(--font-body);line-height:18px}
+/* quer: Werkzeuge links, Salve und Tempo rechts, ohne Band */
+.phone[data-o="quer"] .dock{display:contents}
+.phone[data-o="quer"] .tools{position:absolute;left:calc(var(--sl) + 8px);bottom:calc(var(--sb) + 8px);flex-direction:column-reverse;gap:6px;align-items:flex-start}
+.phone[data-o="quer"] .act{position:absolute;right:calc(var(--sr) + 8px);bottom:calc(var(--sb) + 8px);flex-direction:column;align-items:flex-end;gap:12px}
+.phone[data-o="quer"] .tool{flex-direction:row;width:auto;min-height:56px;gap:6px;padding-right:6px}
+.phone[data-o="quer"] .lab{margin-top:0;font-size:13px}
+.phone[data-o="quer"] .dock .fold{position:absolute;left:calc(var(--sl) + 8px);margin-left:0;bottom:calc(var(--sb) + 8px + 204px);top:auto;width:56px;place-items:end start}
+.phone[data-o="quer"] .dock.closed .fold{bottom:calc(var(--sb) + 8px)}
+.phone[data-o="quer"] .dock .fold span{border-radius:8px;border:2px solid #000;margin:0 0 2px;background:#241c17}
+
+/* ---- Blaetter: von unten (quer: von rechts), das Spielfeld bleibt sichtbar ---- */
+.scrim{position:absolute;inset:0;background:rgba(10,6,4,.32);width:100%;height:100%}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:64%;overflow:auto;z-index:5;display:flex;flex-direction:column;gap:8px;
+  padding:6px calc(var(--sr) + 12px) calc(var(--sb) + 12px) calc(var(--sl) + 12px);background:#1e1713;border-top:2px solid #000;border-radius:18px 18px 0 0;box-shadow:0 -4px 0 rgba(0,0,0,.4)}
+.phone[data-o="quer"] .sheet{left:auto;top:0;width:min(46%,380px);max-height:none;padding:calc(var(--st) + 10px) calc(var(--sr) + 10px) calc(var(--sb) + 10px) 14px;border-radius:18px 0 0 18px;border-top:0;border-left:2px solid #000;box-shadow:-4px 0 0 rgba(0,0,0,.4)}
+.grab{width:100%;height:44px;display:grid;place-items:center;flex:none;margin:-6px 0 -10px}
+.grab span{width:44px;height:5px;border-radius:3px;background:#6a5d4f}
+.phone[data-o="quer"] .grab{display:none}
+.sheet h2{margin:0;font-size:32px;text-align:center}
+.sheet .status{margin:0;text-align:center;color:var(--muted);font-size:16px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 12px;background:#3a3027!important;border:1px solid #b79243!important;border-radius:4px;
+  box-shadow:inset 0 0 0 2px #1a1410,3px 3px 0 #000;font-weight:700;font-size:18px;color:var(--text)!important;width:100%;position:relative}
+.btn.gold{background:var(--gold)!important;color:#1a1410!important;border-color:#000!important}
+.btn.quiet{background:none!important;box-shadow:none;border-color:transparent!important;color:var(--muted)!important}
+.btn:disabled{opacity:.45}
+.btn .bi svg{width:22px;height:22px;display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shead{display:flex;align-items:baseline;gap:8px;min-height:44px}
+.shead b{font-family:var(--font-title);font-weight:400;font-size:24px;color:var(--gold)}
+.shead b.doc{color:#b48cf0}
+.shead span{color:var(--muted);font-size:14px;flex:1}
+.icon-btn{margin-left:auto;width:44px;height:44px;display:grid;place-items:center;background:#3a3027!important;border:2px solid #000!important;border-radius:4px;flex:none;align-self:center}
+.icon-btn svg{width:24px;height:24px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.phone[data-o="quer"] .cards{grid-template-columns:repeat(2,1fr)}
+.card{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-height:52px;padding:4px 8px 4px 18px;text-align:left;
+  background:#cbbd9f!important;color:#1a1410!important;border:2px solid #000!important;border-radius:3px;box-shadow:3px 3px 0 #000}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--doc)}
+.card.on{background:var(--gold)!important;outline:3px solid var(--rift);outline-offset:1px}
+.cn{font-weight:700;font-size:17px;line-height:1.1;white-space:nowrap}
+.cn em{font-style:italic;opacity:.55}
+.cr{font-size:14px;opacity:.8;line-height:1.1}
+.x{position:absolute;right:4px;top:4px;background:#d63a3a;color:#fff;border:2px solid #000;border-radius:3px;font-style:normal;font-weight:700;font-size:12px;padding:0 3px;line-height:15px}
+.actions{display:flex;flex-direction:column;gap:6px}
+.stats{display:grid;grid-template-columns:repeat(3,auto);gap:8px 14px;justify-content:space-between}
+.stats div{display:flex;flex-direction:column}
+.stats span{color:var(--muted);font-size:14px}
+.stats b{font-size:20px}
+.help ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.help li{display:flex;gap:10px;align-items:center;min-height:52px;border-top:1px solid rgba(255,255,255,.07)}
+.help li svg{width:34px;height:34px;flex:none}
+.help li div{display:flex;flex-direction:column;line-height:1.15}
+.help li b{font-size:18px;color:var(--gold)}
+.help li span{font-size:15px;color:var(--text)}
+.logo{position:absolute;left:0;right:0;top:calc(var(--st) + 36px);text-align:center;z-index:2}
+.logo h1{font-size:46px}
+.logo p{margin:4px 0 0;font-size:19px;color:var(--muted)}
+.phone[data-o="quer"] .logo{right:auto;left:var(--sl);width:calc(100% - min(46%,380px) - var(--sl));top:30%}
+.sheet.title{gap:10px}
+.phone[data-o="quer"] .sheet.info{top:auto;bottom:calc(var(--sb) + 8px);left:calc(var(--sl) + 150px);right:auto;width:300px;max-height:none;padding:6px 12px 10px;border:2px solid #000;border-radius:10px;box-shadow:4px 4px 0 #000}
+
+/* ---- Tutorial ---- */
+.tut{position:absolute;inset:0;z-index:20;pointer-events:none}
+.tut[hidden]{display:none}
+.tut .block{position:absolute;background:rgba(8,5,3,.62);pointer-events:auto}
+.tut .hole{position:absolute;border:3px solid var(--gold);border-radius:10px;box-shadow:0 0 0 3px #000;animation:ring 1.6s ease-in-out infinite;pointer-events:none}
+@keyframes ring{50%{border-color:#fff3c8}}
+@media (prefers-reduced-motion:reduce){.tut .hole{animation:none}}
+.coach{position:absolute;pointer-events:auto;background:#17100d;border:2px solid var(--gold);border-radius:8px;padding:10px 12px;box-shadow:4px 4px 0 #000;display:flex;flex-direction:column;gap:6px}
+.coach p{margin:0;font-size:18px;line-height:1.25}
+.cmeta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.cmeta b{color:var(--gold);font-weight:700}
+.crow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.crow .btn{width:auto;min-width:96px}
+.need{color:var(--gold);font-weight:700;font-size:15px;text-align:right;flex:1}
+
+/* ---- Hilfslagen: Daumenbereich und Aussparungen ---- */
+.thumbzone,.safe{position:absolute;inset:0;pointer-events:none;z-index:30;display:none}
+.phone[data-thumb="on"] .thumbzone{display:block}
+.thumbzone i{position:absolute;display:block}
+.phone[data-o="hoch"] .thumbzone .easy{left:0;right:0;bottom:0;height:34%;background:rgba(90,190,90,.22);border-top:2px dashed rgba(90,190,90,.8)}
+.phone[data-o="hoch"] .thumbzone .hard{left:0;right:0;top:0;height:30%;background:rgba(220,70,50,.2)}
+.phone[data-o="hoch"] .thumbzone .r{display:none}
+.phone[data-o="quer"] .thumbzone .easy{left:0;bottom:0;width:26%;height:70%;background:rgba(90,190,90,.22);border-right:2px dashed rgba(90,190,90,.8)}
+.phone[data-o="quer"] .thumbzone .easy.r{left:auto;right:0}
+.phone[data-o="quer"] .thumbzone .hard{left:30%;right:30%;top:0;bottom:0;background:rgba(220,70,50,.14)}
+.phone[data-safe="on"] .safe{display:block;background:
+  linear-gradient(rgba(220,70,50,.28),rgba(220,70,50,.28)) top/100% var(--st) no-repeat,
+  linear-gradient(rgba(220,70,50,.28),rgba(220,70,50,.28)) bottom/100% var(--sb) no-repeat,
+  linear-gradient(rgba(220,70,50,.28),rgba(220,70,50,.28)) left/var(--sl) 100% no-repeat,
+  linear-gradient(rgba(220,70,50,.28),rgba(220,70,50,.28)) right/var(--sr) 100% no-repeat}
+body.nosafeview .safe{display:none!important}
+
+/* ===================== Seite: Tabellen ===================== */
+table{border-collapse:collapse;width:100%;font-size:16px;margin:10px 0}
+th,td{border:1px solid #000;padding:6px 8px;text-align:left;vertical-align:middle}
+th{background:#2a211b;font-weight:700;color:var(--gold)}
+tr:nth-child(even) td{background:rgba(255,255,255,.025)}
+td small{display:block;color:var(--muted);font-size:13px}
+.disc.big{width:56px;height:56px}.disc.big svg{width:32px;height:32px}
+.disc.s48{width:48px;height:48px}.disc.s32{width:36px;height:36px;border-width:2px}.disc.s32 svg{width:20px;height:20px}
+.disc.s24{width:28px;height:28px;border-width:2px}.disc.s24 svg{width:16px;height:16px}
+.disc.s24::after,.disc.s32::after{display:none}
+.sizes{display:flex;gap:8px;align-items:center;border:0!important;min-height:64px}
+.oldtext{font-weight:700;font-size:14px;color:var(--text)}
+.tag{display:inline-block;background:#17100d;border:1px solid #b79243;border-radius:9px;padding:0 8px;font-size:14px;color:var(--muted)}
+.why{max-width:340px;color:var(--muted);font-size:15px}
+.num{text-align:right;white-space:nowrap}
+.bad{color:#ff8a6a}.good{color:#9be07a}
+.note{background:#241a14;border-left:4px solid var(--gold);padding:8px 12px;margin:10px 0;max-width:880px}
+footer{max-width:1280px;margin:30px auto;padding:0 20px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Handy und Bedienung</h1>
+  <p>Studie zu Auftrag A-23 (Issue #36), noch keine Regel. Auf PC und Tablet passt das HUD, auf dem Handy bleibt vom Spielfeld zu wenig. Links das heutige Spiel als Standbild, rechts der Entwurf in echten CSS-Pixeln, bedienbar. Der Entwurf ist nur Darstellung: Das Spielfeld ist ein Standbild, die Werte sind Platzhalter.</p>
+</header>
+
+<div class="bar" role="toolbar" aria-label="Ansicht">
+  <div class="grp"><span class="gl">Gerät</span>
+    <button data-size="390x844">390 × 844</button><button data-size="360x780">360 × 780</button><button data-size="430x932">430 × 932</button></div>
+  <div class="grp"><span class="gl">Lage</span>
+    <button data-orient="hoch">Hoch</button><button data-orient="quer">Quer</button></div>
+  <div class="grp"><span class="gl">Zustand</span>
+    <button data-screen="titel">Titel</button><button data-screen="planung">Planung</button><button data-screen="kapselwahl">Kapselwahl</button><button data-screen="welle">Welle</button><button data-screen="stellung">Stellung</button><button data-screen="pause">Pause</button><button data-screen="hilfe">Symbole</button></div>
+  <div class="grp"><span class="gl">Zeigen</span>
+    <button data-toggle="safe">Aussparungen</button><button data-toggle="thumb">Daumenbereich</button><button data-toggle="heute" class="on">Heute daneben</button></div>
+  <div class="grp"><span class="gl">Tutorial</span>
+    <button id="tutStart">Starten</button><button id="tutStop">Beenden</button></div>
+</div>
+<div class="readout" aria-live="polite">
+  <span>Frei vom HUD: <b id="outFree">-</b></span>
+  <span id="outHits" data-ok="1">-</span>
+  <span id="outStep">Tutorial aus</span>
+</div>
+
+<div id="stage">
+  <div class="col heute"><h3 id="heuteTitle">Heute</h3><div class="slot"><img id="heuteImg" alt="Heutiges Spiel"></div></div>
+  <div class="col"><h3>Entwurf</h3><div class="slot"><div class="phone" id="phone" data-o="hoch"></div></div></div>
+</div>
+
+<section>
+  <h2>Was der Entwurf ändert</h2>
+  <p>Fünf Regeln, aus der Bestandsaufnahme unten abgeleitet.</p>
+  <table>
+    <tr><th>Regel</th><th>Heute</th><th>Entwurf</th></tr>
+    <tr><td><b>Nichts außerhalb des Bildes.</b></td><td>Hochformat: Statusleiste 501 px breit auf 390 px, Rezepte und Menü liegen außerhalb. Das Pausenmenü ist per Touch nicht erreichbar.</td><td>Statusleiste mit vier Werten und dem Menü-Knopf, bei 360 px noch 20 px Luft. Rezepte liegen im Menü und im Kapselblatt.</td></tr>
+    <tr><td><b>Blätter statt Platten.</b></td><td>Menüs und Kapselwahl sind Platten über dem ganzen Bild, im Querformat scrollen sie.</td><td>Blatt von unten, höchstens 64 % der Höhe, leichter Schleier. Quer ein Blatt von rechts, höchstens 46 % der Breite.</td></tr>
+    <tr><td><b>Daumenbereich.</b></td><td>Salve, Werkzeuge und Tempo bilden unten eine Platte, quer mit dem Hilfeknopf übereinander.</td><td>Hoch eine Reihe unten. Quer links die Werkzeuge, rechts Salve und Tempo, jeweils am Rand unter dem Daumen, ohne Band.</td></tr>
+    <tr><td><b>Einklappbar.</b></td><td>Immer alles sichtbar.</td><td>Ein Tipp auf die Griffe an den Leisten klappt Statusleiste und Werkzeuge ein, die Salve bleibt.</td></tr>
+    <tr><td><b>Zeichen statt Text.</b></td><td>Wortknöpfe "Pause 1x 2x 3x", ein Fragezeichen mit überlappenden Sprechblasen.</td><td>Ein Tempo-Knopf mit Dreiecken, das Symbolblatt als Liste.</td></tr>
+  </table>
+  <p class="note">Im Spiel ersetzen Media-Abfragen (<code>orientation</code>, <code>max-width</code>) die Attribute <code>data-o</code> des Rahmens, und <code>env(safe-area-inset-*)</code> die Werte, die der Rahmen für Aussparung simuliert (47 px oben im Hochformat, 47 px links und rechts im Querformat).</p>
+</section>
+
+<section>
+  <h2>Ikonen: heute und neu</h2>
+  <p>Jede Ikone ist ein Ding, das man benennen kann. Die Scheibe zeigt, wie sie im Spiel aussieht, die kleinen Größen zeigen die Lesbarkeit bei 48, 36 und 28 px. Unter den Scheiben steht die Beschriftung, die im Entwurf dauerhaft darunter sitzt.</p>
+  <table>
+    <thead><tr><th>Bedienfeld</th><th>Heute</th><th>Neu</th><th>Größen</th><th>Beschriftung</th><th>Warum</th></tr></thead>
+    <tbody id="iconRows"></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Tutorial: die ersten zwei Runden</h2>
+  <p>Dreizehn Schritte, jederzeit überspringbar. Hervorgehoben ist immer genau ein Element, alles andere ist gesperrt, nur das Hervorgehobene nimmt das Tippen an. Schritte ohne Eingabe gehen mit "Weiter" weiter. Oben in der Leiste: "Tutorial Starten". Das Tutorial läuft nur in der ersten Partie eines Geräts (Merker <code>tutorialSeen</code> in den Einstellungen, in den Einstellungen unter "Hinweise" wieder einschaltbar).</p>
+  <table>
+    <thead><tr><th>#</th><th>Runde</th><th>Hervorgehoben</th><th>Text</th><th>Der Spieler</th></tr></thead>
+    <tbody id="tutRows"></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Bestandsaufnahme: das heutige Spiel auf dem Handy</h2>
+  <p>Gemessen mit Playwright (Chromium, <code>isMobile</code>, <code>hasTouch</code>, Pixelverhältnis 2) durch <code>tests/tools/handy-bestand.mjs</code>. Die Standbilder liegen als <code>heute-*.jpg</code> in <code>reference/konzept/handy/</code>, die Rohwerte in <code>bestand.json</code>. "Frei" ist der Anteil der Fläche, den keine Leiste, Scheibe oder Karte bedeckt. "Größte freie Fläche" ist das größte Rechteck ohne HUD.</p>
+  <table>
+    <thead><tr><th>Gerät, Lage</th><th class="num">Planung frei</th><th class="num">Kapselwahl frei</th><th class="num">Größte freie Fläche in der Kapselwahl</th><th class="num">Stellungs-Infos frei</th><th class="num">Titel: Platte</th><th class="num">Pause: Platte</th></tr></thead>
+    <tbody>
+      <tr><td>390 × 844 hoch</td><td class="num">74,6 %</td><td class="num">60,4 %</td><td class="num">56,9 %</td><td class="num">64,9 %</td><td class="num">60 %</td><td class="num">54 %</td></tr>
+      <tr><td>390 × 844 quer</td><td class="num">65,4 %</td><td class="num bad">35,0 %</td><td class="num bad">12,3 %</td><td class="num">52,0 %</td><td class="num bad">74 %, scrollt</td><td class="num bad">61 %, scrollt</td></tr>
+      <tr><td>360 × 780 hoch</td><td class="num">67,9 %</td><td class="num">50,9 %</td><td class="num">46,4 %</td><td class="num">51,3 %</td><td class="num">65 %</td><td class="num">58 %</td></tr>
+      <tr><td>360 × 780 quer</td><td class="num">60,7 %</td><td class="num bad">25,1 %</td><td class="num bad">8,6 %</td><td class="num bad">47,0 %</td><td class="num bad">79 %, scrollt</td><td class="num bad">65 %, scrollt</td></tr>
+      <tr><td>430 × 932 hoch</td><td class="num">76,9 %</td><td class="num">64,0 %</td><td class="num">60,9 %</td><td class="num">65,3 %</td><td class="num">51 %</td><td class="num">47 %</td></tr>
+      <tr><td>430 × 932 quer</td><td class="num">70,3 %</td><td class="num bad">45,3 %</td><td class="num bad">20,5 %</td><td class="num">58,7 %</td><td class="num bad">68 %, scrollt</td><td class="num bad">56 %, scrollt</td></tr>
+    </tbody>
+  </table>
+  <p>Die Platten von Titel und Pause bedecken zusätzlich das ganze Bild mit einem dunklen Schleier. Im Querformat reicht die Plattenhöhe (328 bis 398 px) nicht aus, der Inhalt scrollt im Menü.</p>
+  <table>
+    <thead><tr><th>Befund</th><th>Wo</th><th>Folge</th></tr></thead>
+    <tbody>
+      <tr><td><b>Statusleiste zu breit:</b> Inhalt 501 px, Platz 390 px (Titel ist ab 860 px ausgeblendet). Rezepte und Menü liegen 111 px außerhalb des Bildes.</td><td>alle drei Größen, hoch</td><td class="bad">Pausenmenü per Touch nicht erreichbar, Rezepte nicht erreichbar</td></tr>
+      <tr><td><b>Überlappung:</b> Plate "Leben" liegt unter "Nachschub" (35 bis 56 px).</td><td>alle drei Größen, hoch</td><td>Lebenspunkte schwer lesbar</td></tr>
+      <tr><td><b>Überlappung:</b> Hilfeknopf (44 px) über der unteren Leiste, bei 360 px auch über dem Salve-Knopf (24 px).</td><td>hoch</td><td>Fehlgriffe auf Salve</td></tr>
+      <tr><td><b>Kapselwahl deckt die Werkzeuge:</b> Blatt 366 × 65 px über der unteren Leiste, bei 360 px 105 px.</td><td>hoch</td><td>Scheiben schimmern durch und lenken ab</td></tr>
+      <tr><td><b>Kapselwahl quer:</b> Das Blatt und die Leiste lassen 56 bis 126 px Höhe in der Mitte, größtes freies Rechteck 8,6 bis 20,5 %.</td><td>quer</td><td class="bad">Kapseln auf der Karte kaum zu sehen und zu tippen</td></tr>
+      <tr><td><b>Stellungs-Infos quer:</b> Karte überlappt die untere Leiste (bis 157 × 49 px).</td><td>quer</td><td>verdeckt Abriss und Nachschub</td></tr>
+      <tr><td><b>Hilfe:</b> Sprechblasen überlagern sich, einige sind halb verdeckt (Nachschubstufe unter Abreißen, Rezepte unter Tempo).</td><td>alle</td><td class="bad">Erklärung ist an vielen Stellen unlesbar</td></tr>
+      <tr><td><b>Trefferflächen unter 44 px:</b> keine gefunden. Alle Knöpfe, Scheiben und Karten messen mindestens 44 × 44 px.</td><td>alle</td><td class="good">in Ordnung</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<footer>Studie, keine Regel. Texte und Ikonen im Entwurf sind Vorschläge; Balancing und Spielgefühl entscheidet Till im Board.</footer>
+
+<script type="module" src="handy-bedienung.js"></script>
+</body>
+</html>

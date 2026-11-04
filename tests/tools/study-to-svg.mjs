@@ -20,6 +20,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ROOT, startServer } from './server.mjs';
 import { installRecorder } from './canvas-to-svg.mjs';
+import { DOCTRINE_IDS, DOCTRINE_COLORS } from '../../src/data/doctrines.js';
 
 /**
  * The shared style block. Every sheet in a source folder has to carry the same
@@ -38,13 +39,8 @@ const STYLE =
  * draws one figure at the origin; whatever it paints becomes one symbol.
  */
 const FIGURES = [
-  // The bunker, one symbol per rank: the ranks build on each other, so each one
-  // is the whole emplacement rather than an overlay to stack.
-  ...[1, 2, 3, 4, 5].map((rank) => ({
-    id: `bunker-${rank}`,
-    sheet: 'bunker',
-    call: `drawBunker(0, 0, ${rank})`,
-  })),
+  // The standard bunker is no longer drawn here: since 0.11.0 it comes from the
+  // rework study (below). Only the special base is still the one of this study.
   { id: 'specialbase', sheet: 'bunker', call: 'drawSpecial(0, 0)' },
 
   // The six standard tops, drawn in their own local space and scaled the way
@@ -71,6 +67,7 @@ const FIGURES = [
 
 /** Sheets to write, and which symbols each one shows. */
 const SHEETS = {
+  // Only the special base now; the standard bunkers are in bunker-raenge.svg.
   bunker: 'reference/konzept/stellungen/bunker.svg',
   tops: 'reference/konzept/stellungen/aufsaetze.svg',
 };
@@ -190,7 +187,7 @@ console.log('Wirkungsanker (Studie, skaliert):', JSON.stringify(tips));
  * Writes one concept sheet: a shared <style>, the clip paths and one <g> per
  * figure in <defs>, and a <use> each so the sheet can be looked at.
  */
-async function writeSheet(path, figures, source) {
+async function writeSheet(path, figures, source, columns = figures.length) {
   // Clip regions become their own defs, one per distinct outline and named
   // after the figure that uses it, so two sheets never collide on an id.
   const clips = new Map();
@@ -209,8 +206,9 @@ async function writeSheet(path, figures, source) {
   ].join('\n    ');
   // The sheet shows its symbols side by side, which is only for looking at it
   // in a browser; the importer measures each symbol on its own.
-  const uses = figures.map((f, i) => `<use href="#${f.id}" x="${i * 140}" y="0"/>`).join('\n  ');
-  const body = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-90} ${-160} ${figures.length * 140 + 40} 260">
+  const rows = Math.ceil(figures.length / columns);
+  const uses = figures.map((f, i) => `<use href="#${f.id}" x="${(i % columns) * 140}" y="${Math.floor(i / columns) * 160}"/>`).join('\n  ');
+  const body = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-90} ${-160} ${columns * 140 + 40} ${rows * 160 + 100}">
   <title>Erzeugt aus ${source} - nicht von Hand ändern, npm run studies</title>
   <style>${STYLE}</style>
   <defs>
@@ -226,6 +224,37 @@ async function writeSheet(path, figures, source) {
 for (const [sheet, path] of Object.entries(SHEETS)) {
   await writeSheet(path, collected[sheet], 'reference/studien/stellungen-simulation.html');
 }
+
+// ---------- The standard bunker ----------
+// The bunker of reference/studien/stellungen-rework.html (M9, D1): one symbol per
+// doctrine and rank, because the doctrine colour is part of the drawing (rim,
+// chevrons, plates, roof platform, lamp) and a figure has no colour parameter.
+// The weapons stay as they were until D2.
+const bunkerPage = await browser.newPage();
+bunkerPage.on('pageerror', (e) => {
+  throw e;
+});
+await bunkerPage.goto(`${server.url}tests/ringcheck.html`);
+await bunkerPage.addScriptTag({ content: `window.__installRecorder = ${installRecorder.toString()};` });
+const bunkerFigures = [];
+for (const doctrine of DOCTRINE_IDS) {
+  for (let rank = 1; rank <= 5; rank++) {
+    const shapes = await bunkerPage.evaluate(
+      async ([colour, r]) => {
+        const { drawBunker } = await import('/reference/studien/stellungen-rework-modell.js');
+        const ctx = document.createElement('canvas').getContext('2d');
+        const recorder = window.__installRecorder(ctx);
+        drawBunker(ctx, r, colour, { flat: true });
+        return recorder.take();
+      },
+      [DOCTRINE_COLORS[doctrine], rank],
+    );
+    if (shapes.length === 0) throw new Error(`bunker ${doctrine} ${rank}: nothing was drawn`);
+    bunkerFigures.push({ id: `bunker-${doctrine}-${rank}`, shapes });
+  }
+}
+console.log(`  bunker: ${bunkerFigures.length} symbols, ${bunkerFigures.reduce((n, f) => n + f.shapes.length, 0)} shapes`);
+await writeSheet('reference/konzept/stellungen/bunker-raenge.svg', bunkerFigures, 'reference/studien/stellungen-rework-modell.js (drawBunker)', 5);
 
 // ---------- The supply capsule ----------
 // Draft B of reference/studien/kapsel-studie.html (docs/ART.md, "Nachschubkapsel").

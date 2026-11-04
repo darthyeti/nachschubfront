@@ -1,0 +1,741 @@
+[
+ {
+  "tag": "390x844-hoch",
+  "shots": {
+   "titel": {
+    "W": 390,
+    "H": 844,
+    "menuOpen": true,
+    "freePct": 74.6,
+    "freeBandPx": 620,
+    "biggestFreePct": 72,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (47x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": {
+     "w": 358,
+     "h": 556,
+     "scrolls": false
+    }
+   },
+   "planung": {
+    "W": 390,
+    "H": 844,
+    "menuOpen": false,
+    "freePct": 74.6,
+    "freeBandPx": 620,
+    "biggestFreePct": 72,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (47x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "kapselwahl": {
+    "W": 390,
+    "H": 844,
+    "menuOpen": false,
+    "freePct": 60.4,
+    "freeBandPx": 492,
+    "biggestFreePct": 56.9,
+    "overlaps": [
+     "selection(Eine Option wählen) x hud-bar (366x65)",
+     "selection(Eine Option wählen) x rune(Nachschub ausbauen) (72x55)",
+     "selection(Eine Option wählen) x rune(Trümmer abreißen) (72x55)",
+     "selection(Eine Option wählen) x rune(Bollwerk bauen) (72x55)",
+     "selection(Eine Option wählen) x salvo(Salve anfordern) (84x54)",
+     "plate(Leben 20) x plate(Nachschub 1) (47x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "welle": {
+    "W": 390,
+    "H": 844,
+    "menuOpen": false,
+    "freePct": 74.6,
+    "freeBandPx": 620,
+    "biggestFreePct": 72,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (47x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "stellung": {
+    "W": 390,
+    "H": 844,
+    "menuOpen": false,
+    "freePct": 64.9,
+    "freeBandPx": 486,
+    "biggestFreePct": 51.7,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (47x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "hilfe": {
+    "W": 390,
+    "H": 844,
+    "menuOpen": false,
+    "freePct": 74.6,
+    "freeBandPx": 620,
+    "biggestFreePct": 72,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (47x44)",
+     "hud-bar x help-button(Hilfe schließen) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "pause": {
+    "W": 390,
+    "H": 844,
+    "menuOpen": true,
+    "freePct": 74.6,
+    "freeBandPx": 620,
+    "biggestFreePct": 72,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (47x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": {
+     "w": 358,
+     "h": 497,
+     "scrolls": false
+    }
+   }
+  }
+ },
+ {
+  "tag": "390x844-quer",
+  "shots": {
+   "titel": {
+    "W": 844,
+    "H": 390,
+    "menuOpen": true,
+    "freePct": 65.4,
+    "freeBandPx": 224,
+    "biggestFreePct": 54.4,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": {
+     "w": 680,
+     "h": 358,
+     "scrolls": true
+    }
+   },
+   "planung": {
+    "W": 844,
+    "H": 390,
+    "menuOpen": false,
+    "freePct": 65.4,
+    "freeBandPx": 224,
+    "biggestFreePct": 54.4,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "kapselwahl": {
+    "W": 844,
+    "H": 390,
+    "menuOpen": false,
+    "freePct": 35,
+    "freeBandPx": 60,
+    "biggestFreePct": 12.3,
+    "overlaps": [
+     "selection(Eine Option wählen) x hud-bar (582x7)"
+    ],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "welle": {
+    "W": 844,
+    "H": 390,
+    "menuOpen": false,
+    "freePct": 65.4,
+    "freeBandPx": 224,
+    "biggestFreePct": 54.4,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "stellung": {
+    "W": 844,
+    "H": 390,
+    "menuOpen": false,
+    "freePct": 52,
+    "freeBandPx": 50,
+    "biggestFreePct": 37.9,
+    "overlaps": [
+     "hud-bar x info(Infos) (125x19)",
+     "rune(Nachschub ausbauen) x info(Infos) (72x9)",
+     "rune(Trümmer abreißen) x info(Infos) (27x9)"
+    ],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "hilfe": {
+    "W": 844,
+    "H": 390,
+    "menuOpen": false,
+    "freePct": 65.4,
+    "freeBandPx": 224,
+    "biggestFreePct": 54.4,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "pause": {
+    "W": 844,
+    "H": 390,
+    "menuOpen": true,
+    "freePct": 65.4,
+    "freeBandPx": 224,
+    "biggestFreePct": 54.4,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": {
+     "w": 560,
+     "h": 358,
+     "scrolls": true
+    }
+   }
+  }
+ },
+ {
+  "tag": "360x780-hoch",
+  "shots": {
+   "titel": {
+    "W": 360,
+    "H": 780,
+    "menuOpen": true,
+    "freePct": 67.9,
+    "freeBandPx": 516,
+    "biggestFreePct": 64.6,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (56x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)",
+     "salvo(Salve anfordern) x help-button(Hilfe: Symbole erklären) (24x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": {
+     "w": 328,
+     "h": 556,
+     "scrolls": false
+    }
+   },
+   "planung": {
+    "W": 360,
+    "H": 780,
+    "menuOpen": false,
+    "freePct": 67.9,
+    "freeBandPx": 516,
+    "biggestFreePct": 64.6,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (56x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)",
+     "salvo(Salve anfordern) x help-button(Hilfe: Symbole erklären) (24x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "kapselwahl": {
+    "W": 360,
+    "H": 780,
+    "menuOpen": false,
+    "freePct": 50.9,
+    "freeBandPx": 374,
+    "biggestFreePct": 46.4,
+    "overlaps": [
+     "selection(Eine Option wählen) x hud-bar (336x105)",
+     "selection(Eine Option wählen) x rune(Nachschub ausbauen) (72x87)",
+     "selection(Eine Option wählen) x rune(Trümmer abreißen) (72x87)",
+     "selection(Eine Option wählen) x rune(Bollwerk bauen) (72x87)",
+     "plate(Leben 20) x plate(Nachschub 1) (56x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "welle": {
+    "W": 360,
+    "H": 780,
+    "menuOpen": false,
+    "freePct": 67.9,
+    "freeBandPx": 516,
+    "biggestFreePct": 64.6,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (56x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)",
+     "salvo(Salve anfordern) x help-button(Hilfe: Symbole erklären) (24x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "stellung": {
+    "W": 360,
+    "H": 780,
+    "menuOpen": false,
+    "freePct": 51.3,
+    "freeBandPx": 322,
+    "biggestFreePct": 34.9,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (56x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)",
+     "salvo(Salve anfordern) x help-button(Hilfe: Symbole erklären) (24x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "hilfe": {
+    "W": 360,
+    "H": 780,
+    "menuOpen": false,
+    "freePct": 67.9,
+    "freeBandPx": 516,
+    "biggestFreePct": 64.6,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (56x44)",
+     "hud-bar x help-button(Hilfe schließen) (42x44)",
+     "salvo(Salve anfordern) x help-button(Hilfe schließen) (24x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "pause": {
+    "W": 360,
+    "H": 780,
+    "menuOpen": true,
+    "freePct": 67.9,
+    "freeBandPx": 516,
+    "biggestFreePct": 64.6,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (56x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)",
+     "salvo(Salve anfordern) x help-button(Hilfe: Symbole erklären) (24x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": {
+     "w": 328,
+     "h": 497,
+     "scrolls": false
+    }
+   }
+  }
+ },
+ {
+  "tag": "360x780-quer",
+  "shots": {
+   "titel": {
+    "W": 780,
+    "H": 360,
+    "menuOpen": true,
+    "freePct": 60.7,
+    "freeBandPx": 194,
+    "biggestFreePct": 50.6,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": {
+     "w": 680,
+     "h": 328,
+     "scrolls": true
+    }
+   },
+   "planung": {
+    "W": 780,
+    "H": 360,
+    "menuOpen": false,
+    "freePct": 60.7,
+    "freeBandPx": 194,
+    "biggestFreePct": 50.6,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "kapselwahl": {
+    "W": 780,
+    "H": 360,
+    "menuOpen": false,
+    "freePct": 25.1,
+    "freeBandPx": 30,
+    "biggestFreePct": 8.6,
+    "overlaps": [
+     "selection(Eine Option wählen) x hud-bar (582x7)"
+    ],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "welle": {
+    "W": 780,
+    "H": 360,
+    "menuOpen": false,
+    "freePct": 60.7,
+    "freeBandPx": 194,
+    "biggestFreePct": 50.6,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "stellung": {
+    "W": 780,
+    "H": 360,
+    "menuOpen": false,
+    "freePct": 47,
+    "freeBandPx": 50,
+    "biggestFreePct": 34,
+    "overlaps": [
+     "hud-bar x info(Infos) (157x49)",
+     "rune(Nachschub ausbauen) x info(Infos) (72x39)",
+     "rune(Trümmer abreißen) x info(Infos) (59x39)"
+    ],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "hilfe": {
+    "W": 780,
+    "H": 360,
+    "menuOpen": false,
+    "freePct": 60.7,
+    "freeBandPx": 194,
+    "biggestFreePct": 50.6,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "pause": {
+    "W": 780,
+    "H": 360,
+    "menuOpen": true,
+    "freePct": 60.7,
+    "freeBandPx": 194,
+    "biggestFreePct": 50.6,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": {
+     "w": 560,
+     "h": 328,
+     "scrolls": true
+    }
+   }
+  }
+ },
+ {
+  "tag": "430x932-hoch",
+  "shots": {
+   "titel": {
+    "W": 430,
+    "H": 932,
+    "menuOpen": true,
+    "freePct": 76.9,
+    "freeBandPx": 708,
+    "biggestFreePct": 74.7,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (35x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": {
+     "w": 398,
+     "h": 515,
+     "scrolls": false
+    }
+   },
+   "planung": {
+    "W": 430,
+    "H": 932,
+    "menuOpen": false,
+    "freePct": 76.9,
+    "freeBandPx": 708,
+    "biggestFreePct": 74.7,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (35x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "kapselwahl": {
+    "W": 430,
+    "H": 932,
+    "menuOpen": false,
+    "freePct": 64,
+    "freeBandPx": 580,
+    "biggestFreePct": 60.9,
+    "overlaps": [
+     "selection(Eine Option wählen) x hud-bar (406x65)",
+     "selection(Eine Option wählen) x rune(Nachschub ausbauen) (72x55)",
+     "selection(Eine Option wählen) x rune(Trümmer abreißen) (72x55)",
+     "selection(Eine Option wählen) x rune(Bollwerk bauen) (72x55)",
+     "selection(Eine Option wählen) x salvo(Salve anfordern) (84x54)",
+     "plate(Leben 20) x plate(Nachschub 1) (35x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "welle": {
+    "W": 430,
+    "H": 932,
+    "menuOpen": false,
+    "freePct": 76.9,
+    "freeBandPx": 708,
+    "biggestFreePct": 74.7,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (35x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "stellung": {
+    "W": 430,
+    "H": 932,
+    "menuOpen": false,
+    "freePct": 65.3,
+    "freeBandPx": 514,
+    "biggestFreePct": 49.8,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (35x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "hilfe": {
+    "W": 430,
+    "H": 932,
+    "menuOpen": false,
+    "freePct": 76.9,
+    "freeBandPx": 708,
+    "biggestFreePct": 74.7,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (35x44)",
+     "hud-bar x help-button(Hilfe schließen) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": null
+   },
+   "pause": {
+    "W": 430,
+    "H": 932,
+    "menuOpen": true,
+    "freePct": 76.9,
+    "freeBandPx": 708,
+    "biggestFreePct": 74.7,
+    "overlaps": [
+     "plate(Leben 20) x plate(Nachschub 1) (35x44)",
+     "hud-bar x help-button(Hilfe: Symbole erklären) (42x44)"
+    ],
+    "small": [],
+    "offscreen": [
+     "plate(Rezepte)",
+     "plate(Menü)"
+    ],
+    "panel": {
+     "w": 398,
+     "h": 476,
+     "scrolls": false
+    }
+   }
+  }
+ },
+ {
+  "tag": "430x932-quer",
+  "shots": {
+   "titel": {
+    "W": 932,
+    "H": 430,
+    "menuOpen": true,
+    "freePct": 70.3,
+    "freeBandPx": 264,
+    "biggestFreePct": 58.6,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": {
+     "w": 680,
+     "h": 398,
+     "scrolls": true
+    }
+   },
+   "planung": {
+    "W": 932,
+    "H": 430,
+    "menuOpen": false,
+    "freePct": 70.3,
+    "freeBandPx": 264,
+    "biggestFreePct": 58.6,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "kapselwahl": {
+    "W": 932,
+    "H": 430,
+    "menuOpen": false,
+    "freePct": 45.3,
+    "freeBandPx": 100,
+    "biggestFreePct": 20.5,
+    "overlaps": [
+     "selection(Eine Option wählen) x hud-bar (582x7)"
+    ],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "welle": {
+    "W": 932,
+    "H": 430,
+    "menuOpen": false,
+    "freePct": 70.3,
+    "freeBandPx": 264,
+    "biggestFreePct": 58.6,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "stellung": {
+    "W": 932,
+    "H": 430,
+    "menuOpen": false,
+    "freePct": 58.7,
+    "freeBandPx": 70,
+    "biggestFreePct": 42.5,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "hilfe": {
+    "W": 932,
+    "H": 430,
+    "menuOpen": false,
+    "freePct": 70.3,
+    "freeBandPx": 264,
+    "biggestFreePct": 58.6,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": null
+   },
+   "pause": {
+    "W": 932,
+    "H": 430,
+    "menuOpen": true,
+    "freePct": 70.3,
+    "freeBandPx": 264,
+    "biggestFreePct": 58.6,
+    "overlaps": [],
+    "small": [],
+    "offscreen": [],
+    "panel": {
+     "w": 560,
+     "h": 398,
+     "scrolls": true
+    }
+   }
+  }
+ }
+]

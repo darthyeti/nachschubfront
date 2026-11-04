@@ -17,7 +17,7 @@ import {
   canUpgradeTower,
   upgradeTower,
 } from './sim/actions.js';
-import { towerAt } from './sim/towers.js';
+import { towerAt, addTower } from './sim/towers.js';
 import { toggleZone } from './sim/zones.js';
 import { buySupply, demolish, canDemolish, buildBulwark, canBuildBulwark } from './sim/economy.js';
 import { useCommand, canUseCommand } from './sim/commands.js';
@@ -1092,6 +1092,8 @@ if (debug) {
       setWave: (n) => setWave(state, n),
       /** Fixes what the next salvo contains, so a check can set up a doctrine. */
       forcePod: (content) => forcePod(state, content),
+      /** Puts an emplacement on a cell without a pod, for screenshots of every doctrine and rank. Not recorded. */
+      placeTower: (spec) => addTower(state, spec).id,
     },
     sprites: () => ({ ...sprites.stats }),
     /** Rubble kit cells rastered so far (must not move while a match runs). */
