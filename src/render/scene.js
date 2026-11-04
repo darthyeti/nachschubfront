@@ -45,6 +45,7 @@ import { snapToAxis } from '../sim/commands.js';
 import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
 import { laneStart } from '../sim/koloss.js';
 import { drawTowerSprite, drawSpecialRing, towerAnchor, towerPictureBox } from './towerSprites.js';
+import { clipToGround } from './groundClip.js';
 import { coverHulls, coverHullsOfSquare, plateBounds, coveringObstacles, shadowPlan } from './cover.js';
 import {
   createPodRenderer,
@@ -1065,9 +1066,19 @@ export function createSceneRenderer(sprites) {
         // An obstacle in front of an emplacement that it covers stays see-through for good.
         const seen = seeThrough.has(o) ? OBSTACLE_SEE_THROUGH.alpha : 1;
         ctx.globalAlpha = seen;
-        drawBehindTerrain(ctx, cover, mx, my, lift, coverFade(revealLayers, cover.cells), () =>
-          drawObstacleCell(ctx, o, i, palette, obstacleRaster),
-        );
+        // Capsule remains and craters lie flat: what they spread over a lower neighbour or up the slope of a
+        // higher one is clipped away (the parts that stand keep their height, `sweep`).
+        const flat = o.kind === 'rubble' || o.kind === 'crater';
+        drawBehindTerrain(ctx, cover, mx, my, lift, coverFade(revealLayers, cover.cells), () => {
+          if (!flat) {
+            drawObstacleCell(ctx, o, i, palette, obstacleRaster);
+            return;
+          }
+          ctx.save();
+          clipToGround(ctx, field, cell.x, cell.y, 1, o.kind === 'rubble' ? 20 : 24, false, false);
+          drawObstacleCell(ctx, o, i, palette, obstacleRaster);
+          ctx.restore();
+        });
         ctx.globalAlpha = 1;
       }
       else if (kind === KIND_RIFT) {

@@ -178,18 +178,18 @@ const SHADOW_REACH = 1;
 
 /**
  * The fields a body on the square (x, y, `size`) can throw its shadow on, on the same level as the
- * square: the square and `SHADOW_REACH` fields around it. Fields past the rim of the map count as
+ * square: the square and `reach` fields around it (a shadow, a mark on the ground, a ring). Fields past the rim of the map count as
  * level 0 (the slab of the diorama), so on level 0 they belong to it and on a higher level they do not.
  * @returns {{cells: {x: number, y: number}[], edge: boolean}} `edge` is true when some field around
  *   has another level (the shadow would hang over a cliff or climb a slope).
  */
-export function groundAround(field, x, y, size = 1) {
+export function groundAround(field, x, y, size = 1, reach = SHADOW_REACH) {
   const n = fieldSize(field);
   const level = field[y * n + x];
   const cells = [];
   let edge = false;
-  for (let cy = y - SHADOW_REACH; cy < y + size + SHADOW_REACH; cy++) {
-    for (let cx = x - SHADOW_REACH; cx < x + size + SHADOW_REACH; cx++) {
+  for (let cy = y - reach; cy < y + size + reach; cy++) {
+    for (let cx = x - reach; cx < x + size + reach; cx++) {
       const outside = cx < 0 || cy < 0 || cx >= n || cy >= n;
       const l = outside ? 0 : field[cy * n + cx];
       if (l === level) cells.push({ x: cx, y: cy });

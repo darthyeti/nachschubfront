@@ -6,7 +6,7 @@
 // scene is built in its evaluation phase, when the gold route line of the planning is gone.
 //
 // Usage: node tests/tools/terrain-shots.mjs <out.png> --seed AIAIAI --zoom 1.4 --centre '[11,4]'
-//          --towers '{"towers":[[x,y,doctrine,rank]],"rubble":[[x,y]]}' [--no-wave] [--dpr 2]
+//          --towers '{"towers":[[x,y,doctrine,rank]],"rubble":[[x,y]]}' [--impacts '[[x,y]]'] [--no-wave] [--dpr 2]
 //          [--clip '{"x":0,"y":0,"width":800,"height":500}'] [--size 1800x1100] [--click '[x,y]']
 
 import * as playwright from 'playwright';
@@ -22,6 +22,7 @@ const zoomTarget = Number(arg('zoom', '1.4'));
 const wantWave = !process.argv.includes('--no-wave');
 const clip = arg('clip', null) ? JSON.parse(arg('clip', null)) : undefined;
 const scene = JSON.parse(arg('towers', '{"towers":[],"rubble":[]}'));
+const impacts = JSON.parse(arg('impacts', '[]'));
 const centre = JSON.parse(arg('centre', 'null'));
 const [width, height] = arg('size', '1440x900').split('x').map(Number);
 
@@ -108,6 +109,11 @@ const placed = await page.evaluate(({ towers, rubble }) => {
   return done;
 }, scene);
 console.log(JSON.stringify(placed));
+if (impacts.length) {
+  // Landings for the effects only (burn mark, rings, goo of the marks on the ground), then a moment to settle.
+  await page.evaluate((cells) => cells.forEach(([x, y]) => window.__nachschub.debug.impact({ x, y })), impacts);
+  await page.waitForTimeout(1800);
+}
 const click = JSON.parse(arg('click', 'null'));
 if (click) {
   // A tap on a cell: pins it as the field the player is looking at (the see-through of issue 35).
