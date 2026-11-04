@@ -96,6 +96,13 @@ async function touchDriver(context, page) {
  * Requests a salvo, waits for the pods to land and keeps the pod `anchor`.
  * @param {(x: number, y: number) => Promise<void>} tapAt  Tap or click driver.
  */
+/** Presses the tempo button until the game runs at `n` (it cycles 1x, 2x, 3x). */
+async function setTempo(page, n, how = 'tap') {
+  const tempo = page.locator('.speed-group .rune').nth(1);
+  for (let i = 0; i < 4 && (await game(page)).speed !== n; i++) await tempo[how]();
+  assert.equal((await game(page)).speed, n);
+}
+
 async function playRound(page, tapAt, anchor = 0) {
   await page.getByRole('button', { name: 'Salve anfordern' }).click();
   await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
@@ -134,68 +141,116 @@ try {
       assert.ok(cam.zoom * 64 >= 40, `cell ${cam.zoom * 64} px`);
     });
 
-    await check('the help layer names every symbol in line with it and gives way to other layers', async () => {
-      const bubbles = () =>
-        page.$$eval('.help-bubble', (bs) => bs.map((b) => {
-          const r = b.getBoundingClientRect();
-          return { title: b.querySelector('b').textContent, left: r.left, top: r.top, right: r.right, bottom: r.bottom };
-        }));
+    await check('the symbol sheet lists every symbol, fits the view and gives way to other layers', async () => {
       const view = await page.evaluate(() => [innerWidth, innerHeight]);
-      const sound = async (expected) => {
-        await frames(page, 25); // the pop-in has to be over, it scales the boxes
-        const list = await bubbles();
-        assert.equal(list.length, expected, list.map((b) => b.title).join(', '));
-        for (const b of list) {
-          assert.ok(b.left >= 0 && b.top >= 0 && b.right <= view[0] && b.bottom <= view[1], `${b.title} leaves the view: ${JSON.stringify(b)} in ${view}`);
-        }
-        for (let a = 0; a < list.length; a++) {
-          for (let c = a + 1; c < list.length; c++) {
-            const x = list[a];
-            const y = list[c];
-            const apart = x.right <= y.left || y.right <= x.left || x.bottom <= y.top || y.bottom <= x.top;
-            assert.ok(apart, `${x.title} and ${y.title} overlap`);
-          }
-        }
-        assert.equal((await page.$$('.help-lines line')).length, expected, 'one line per bubble');
-        // No bubble may hide a symbol, its own or another one.
-        const rings = await page.$$eval('.help-ring', (rs) => rs.map((r) => r.getBoundingClientRect().toJSON()));
-        for (const b of list) {
-          for (const r of rings) {
-            const clear = b.right <= r.left + 4 || r.right - 4 <= b.left || b.bottom <= r.top + 4 || r.bottom - 4 <= b.top;
-            assert.ok(clear, `${b.title} covers a symbol`);
-          }
-        }
-      };
       const helpButton = page.locator('.help-button');
       const wave = (await game(page)).wave;
+      const hit = await helpButton.boundingBox();
+      assert.ok(hit.width >= 44 && hit.height >= 44, `the "?" is ${hit.width} x ${hit.height}`);
 
       await helpButton.tap();
-      await frames(page);
-      await sound(13); // the rail is not there yet, so no command is explained
+      await frames(page, 25); // the pop-in has to be over, it scales the box
+      const sheet = await page.locator('.help-sheet').boundingBox();
+      assert.ok(sheet.x >= 0 && sheet.y >= 0 && sheet.x + sheet.width <= view[0] && sheet.y + sheet.height <= view[1], 'the sheet stays in the view');
+      assert.equal((await page.$$('.help-row')).length, 22, 'one row per symbol');
+      const names = await page.$$eval('.help-row b', (bs) => bs.map((b) => b.textContent));
+      for (const name of ['Welle', 'Leben', 'Kommandopunkte', 'Pause', 'Tempo', 'Orbitalschlag', 'Luftschlag', 'Rezepte', 'Menü']) {
+        assert.ok(names.includes(name), `${name} is on the sheet`);
+      }
+      const close = await page.locator('.help-close').boundingBox();
+      assert.ok(close.width >= 44 && close.height >= 44, `the close cross is ${close.width} x ${close.height}`);
       const speedBefore = (await game(page)).speed;
       await page.screenshot({ path: join(OUT, 'tablet-help.png') });
-      await page.locator('.help-layer').tap({ position: { x: 300, y: 400 } });
-      assert.ok(await page.locator('.help-layer').isHidden(), 'a tap closes it');
+      await page.locator('.help-layer').tap({ position: { x: 20, y: 400 } });
+      assert.ok(await page.locator('.help-layer').isHidden(), 'a tap beside the sheet closes it');
       assert.equal((await game(page)).speed, speedBefore, 'it does not stop the match');
 
-      await page.evaluate((n) => window.__nachschub.debug.setWave(n), 20);
-      await frames(page, 3);
       await helpButton.tap();
       await frames(page);
-      await sound(13 + 5); // the rail is up: all five discs, locked ones too
-      const titles = (await bubbles()).map((b) => b.title);
-      assert.ok(titles.includes('Orbitalschlag') && titles.includes('Luftschlag'), titles.join(', '));
-      await page.screenshot({ path: join(OUT, 'tablet-help-commands.png') });
+      await page.locator('.help-close').tap();
+      assert.ok(await page.locator('.help-layer').isHidden(), 'the cross closes it');
 
+      await helpButton.tap();
+      await frames(page);
       await page.keyboard.press('Escape');
-      assert.ok(await page.locator('.help-layer').isHidden(), 'escape closes only the help');
+      assert.ok(await page.locator('.help-layer').isHidden(), 'escape closes only the sheet');
       assert.ok(await page.locator('.menu[data-menu="pause"]').isHidden(), 'and does not open the pause screen');
 
       await helpButton.tap();
-      await page.evaluate(() => document.querySelector('[aria-label="Rezepte"]').click());
+      await page.keyboard.press('r');
       await frames(page, 3);
+      assert.ok(await page.locator('.codex').isVisible());
       assert.ok(await page.locator('.help-layer').isHidden(), 'the codex closes it');
       await page.getByRole('button', { name: 'Schließen' }).tap();
+      await page.evaluate((n) => window.__nachschub.debug.setWave(n), wave);
+      await frames(page, 3);
+    });
+
+    await check('the pause screen holds the recipes and the symbols', async () => {
+      await page.getByRole('button', { name: 'Menü' }).tap();
+      const menu = page.locator('.menu[data-menu="pause"]');
+      await menu.waitFor({ state: 'visible' });
+      await menu.getByRole('button', { name: 'Symbole erklären' }).tap();
+      await frames(page, 25);
+      assert.ok(await page.locator('.help-sheet').isVisible(), 'the sheet opens over the menu');
+      await page.locator('.help-close').tap();
+      await menu.getByRole('button', { name: 'Rezepte' }).tap();
+      await frames(page);
+      assert.ok(await page.locator('.codex').isVisible(), 'the codex opens over the menu');
+      assert.ok(await menu.isVisible(), 'the menu waits behind it');
+      await page.getByRole('button', { name: 'Schließen' }).tap();
+      await menu.getByRole('button', { name: 'Fortsetzen' }).tap();
+      await menu.waitFor({ state: 'hidden' });
+    });
+
+    await check('pause is a button of its own beside a tempo button that cycles 1x, 2x, 3x', async () => {
+      const pauseDisc = page.locator('.speed-group .rune').nth(0);
+      const tempo = page.locator('.speed-group .rune').nth(1);
+      for (const disc of [pauseDisc, tempo]) {
+        const box = await disc.boundingBox();
+        assert.ok(box.width >= 44 && box.height >= 44, `${box.width} x ${box.height}`);
+      }
+      await pauseDisc.tap();
+      assert.equal((await game(page)).speed, 0, 'pause stops at once');
+      await pauseDisc.tap();
+      assert.ok((await game(page)).speed > 0, 'and starts again');
+      const seen = [];
+      for (let i = 0; i < 4; i++) {
+        await tempo.tap();
+        seen.push((await game(page)).speed);
+      }
+      assert.deepEqual(seen, [seen[0], (seen[0] % 3) + 1, (seen[1] % 3) + 1, seen[0]], `the steps are ${seen}`);
+      assert.deepEqual([...new Set(seen)].sort(), [1, 2, 3]);
+      // The HUD updates the label on the next frame; WebKit can still show the old one right after the tap.
+      await frames(page, 2);
+      assert.equal(await tempo.getAttribute('aria-label'), `Tempo ${seen[3]}x`);
+    });
+
+    await check('the command points and the first command come with a bang, read off the wave', async () => {
+      const wave = (await game(page)).wave;
+      await page.evaluate(() => window.__nachschub.debug.setWave(10));
+      await frames(page, 5);
+      assert.ok(await page.locator('.plate-points').isHidden(), 'no command points on the bar yet');
+      assert.equal((await page.$$('.burst')).length, 0, 'and nothing goes off');
+      await page.evaluate(() => window.__nachschub.debug.setWave(15));
+      await frames(page, 5);
+      assert.ok(await page.locator('.plate-points').isVisible(), 'the plate is there now');
+      assert.equal((await page.$$('.plate-points .burst')).length, 1, 'the plate goes off');
+      assert.equal((await page.$$('.command-rail .burst')).length, 1, 'and so does the first command (only that one)');
+      await page.screenshot({ path: join(OUT, 'tablet-unlock.png') });
+      // The bang must not eat a tap: the layer lets everything through.
+      const none = await page.$$eval('.burst, .burst > *', (ns) => ns.every((n) => getComputedStyle(n).pointerEvents === 'none'));
+      assert.ok(none, 'the effect is not in the way of a finger');
+      await page.waitForFunction(() => document.querySelectorAll('.burst').length === 0, null, { timeout: 4000 });
+      // Going back and forward again lets it go off again; a match loaded far on does not.
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.evaluate(() => window.__nachschub.debug.setWave(10));
+      await frames(page, 3);
+      await page.evaluate(() => window.__nachschub.debug.setWave(15));
+      await frames(page, 5);
+      const ring = await page.$eval('.plate-points .burst-ring', (n) => getComputedStyle(n).display);
+      assert.equal(ring, 'none', 'with reduced motion there is no shock ring, only a muted flash');
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
       await page.evaluate((n) => window.__nachschub.debug.setWave(n), wave);
       await frames(page, 3);
     });
@@ -271,6 +326,7 @@ try {
     });
 
     await check('the recipe codex lists all six recipes and closes again', async () => {
+      await page.getByRole('button', { name: 'Menü' }).tap();
       await page.getByRole('button', { name: 'Rezepte' }).tap();
       await frames(page);
       assert.ok(await page.locator('.codex').isVisible());
@@ -280,6 +336,7 @@ try {
       await page.getByRole('button', { name: 'Schließen' }).tap();
       await frames(page);
       assert.ok(await page.locator('.codex').isHidden());
+      await page.getByRole('button', { name: 'Fortsetzen' }).tap();
       assert.equal((await game(page)).obstacles, before.obstacles, 'the codex does not touch the map');
     });
 
@@ -477,7 +534,7 @@ try {
     });
 
     await check('second salvo at 3x, the wave runs and the towers kill', async () => {
-      await page.getByRole('button', { name: '3x' }).tap();
+      await setTempo(page, 3);
       await playRound(page, (x, y) => page.touchscreen.tap(x, y));
       const s = await game(page);
       assert.equal(s.wave, 2);
@@ -695,7 +752,7 @@ try {
     });
 
     await check('after clicking a HUD button, Space still toggles pause', async () => {
-      await page.getByRole('button', { name: '2x' }).click();
+      await setTempo(page, 2, 'click');
       assert.equal((await game(page)).speed, 2);
       await page.keyboard.press(' ');
       await frames(page);
@@ -1161,7 +1218,7 @@ try {
 
       // The jump is only allowed from the planning phase, so the wave that just
       // started has to run out first; at 3x that is a few seconds.
-      await page.getByRole('button', { name: '3x' }).click();
+      await setTempo(page, 3, 'click');
       await page.waitForFunction(() => window.__nachschub.state().phase === 'planning', null, { timeout: 120000 });
       await page.evaluate(() => window.__nachschub.debug.setWave(30));
       await page.evaluate(() => {
@@ -1586,7 +1643,7 @@ try {
 
     await check('three rounds to wave 3, each planned against the rift that then attacks', async () => {
       await page.getByRole('button', { name: 'Unverwundbar' }).tap();
-      await page.getByRole('button', { name: '3x' }).tap();
+      await setTempo(page, 3);
       for (let round = 0; round < 2; round++) {
         const before = await game(page);
         await playRound(page, tap);

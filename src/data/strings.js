@@ -7,29 +7,71 @@ export const STRINGS = {
   /** Corner label; the number itself comes from data/version.js. */
   version: (v) => `v${v}`,
 
-  /** The "?" help overlay: one speech bubble per HUD symbol, [title, text]. */
+  /**
+   * The symbol sheet (the "?" at the bottom left): every symbol of the bars and
+   * the commands with its name and one sentence, [name, text]. A sheet, not
+   * speech bubbles: the bubbles covered each other on small screens (M10 E1).
+   */
   help: {
-    open: 'Hilfe: Symbole erklären',
-    close: 'Hilfe schließen',
-    dismiss: 'Tippen zum Schließen',
+    open: 'Symbole erklären',
+    close: 'Symbole schließen',
+    title: 'Symbole',
+    closeSheet: 'Schließen',
+    statusTitle: 'Obere Leiste',
+    barTitle: 'Untere Leiste',
+    commandsTitle: 'Kommandos',
+    menuTitle: 'Menü und Hilfe',
     wave: ['Welle', 'Aktuelle Welle und wie viele es insgesamt sind.'],
     lives: ['Leben', 'Jeder Durchbruch kostet Leben, Bosse und der Koloss mehr als normale Gegner. Bei 0 ist die Partie verloren.'],
     supply: ['Nachschubstufe', 'Je höher, desto bessere Ränge bringen neue Kapseln.'],
     requisition: ['Requisition', 'Deine Währung. Gibt es für Abschüsse und als Bonus nach jeder Welle.'],
     points: (fromWave) => ['Kommandopunkte', `Für Spezialkommandos ab Welle ${fromWave}. Gibt es für Bosse und Wellen ohne Durchbruch.`],
     route: ['Routenlänge', 'So viele Felder laufen die Gegner. Ein Strich heißt: Weg blockiert.'],
-    codex: ['Rezepte', 'Zeigt, welche Stellungen sich verschmelzen lassen.'],
-    menu: ['Menü', 'Pause, Einstellungen, Bestenliste und Neue Partie.'],
+    riftPlate: ['Angriffsrichtung', 'Aus welchem Riss diese Welle kommt, und welcher danach dran ist.'],
+    menu: ['Menü', 'Pause, Rezepte, Einstellungen, Bestenliste und Neue Partie.'],
+    codex: ['Rezepte', 'Zeigt, welche Stellungen sich verschmelzen lassen. Im Menü und bei der Kapselwahl, Taste R.'],
+    symbols: ['Symbole', 'Dieses Blatt. Es hält die Partie nicht an.'],
     supplyDisc: ['Nachschub', 'Baut die Nachschubstufe aus. Kostet Requisition.'],
     demolishDisc: ['Abreißen', 'Räumt ein Trümmerfeld und gibt das Feld frei.'],
     bulwarkDisc: ['Bollwerk', 'Macht aus Trümmern ein Bollwerk, das Rammstößen standhält.'],
     upgradeDisc: ['Aufwerten', 'Statt einer Salve steigt eine Stellung einen Rang. Die Welle beginnt sofort.'],
-    riftPlate: ['Angriffsrichtung', 'Aus welchem Riss diese Welle kommt, und welcher danach dran ist.'],
     salvo: ['Salve', 'Startet die Runde: Kapseln landen, du wählst eine Stellung, die Welle beginnt.'],
-    speed: ['Tempo', 'Pause, einfache, doppelte und dreifache Geschwindigkeit.'],
-    /** Third line of a command bubble; every number comes from data/commands.js. */
+    pause: ['Pause', 'Hält die Partie an und setzt sie fort. Leertaste.'],
+    tempo: ['Tempo', 'Schaltet reihum auf einfache, doppelte und dreifache Geschwindigkeit. Tasten 1, 2 und 3.'],
+    /** Third line of a command row; every number comes from data/commands.js. */
     commandMeta: (cost, fromWave, cooldown) =>
       `${cost} KP · ab Welle ${fromWave} · ${cooldown === 1 ? '1 Welle' : `${cooldown} Wellen`} Pause`,
+  },
+
+  /**
+   * The short word under a round symbol where there is room for one, by icon
+   * name (reference/konzept/handy/neu-ikonen.png, column "Beschriftung").
+   */
+  iconLabels: {
+    wave: 'Welle',
+    lives: 'Leben',
+    requisition: 'Requisition',
+    points: 'Kommando',
+    route: 'Weg',
+    supply: 'Nachschub',
+    demolish: 'Abriss',
+    bulwark: 'Bollwerk',
+    upgrade: 'Aufwerten',
+    salvo: 'Salve',
+    codex: 'Rezepte',
+    menu: 'Menü',
+    help: 'Symbole',
+    'tempo-0': 'Pause',
+    'tempo-1': 'Tempo',
+    'tempo-2': 'Tempo',
+    'tempo-3': 'Tempo',
+    orbitalStrike: 'Orbital',
+    stasisField: 'Stasis',
+    prioritySupply: 'Priorität',
+    holyBanner: 'Banner',
+    airstrike: 'Luftschlag',
+    lock: 'Gesperrt',
+    close: 'Schließen',
   },
 
   hud: {
@@ -83,8 +125,12 @@ export const STRINGS = {
     upgradeConfirmDetail: 'Keine Salve — die Welle beginnt sofort.',
     newGame: 'Neue Partie',
     pause: 'Pause',
-    speed: (n) => `${n}x`,
     speedGroup: 'Spielgeschwindigkeit',
+    pauseName: 'Pause',
+    pauseHint: 'Hält die Partie an, auch mitten in einer Welle. Noch einmal drücken setzt sie fort. Leertaste.',
+    tempoName: (n) => `Tempo ${n}x`,
+    tempoHint: 'Schaltet reihum auf einfache, doppelte und dreifache Geschwindigkeit. Tasten 1, 2 und 3.',
+    tempoNote: (n) => `${n}x`,
     codex: 'Rezepte',
     menu: 'Menü',
     obstacleMode: 'Hindernis-Modus',
@@ -203,6 +249,8 @@ export const STRINGS = {
       mode: ({ mode }) => `Das Protokoll gehört zum Modus „${mode}“, den diese Version des Spiels nicht kennt.`,
     },
     pauseTitle: 'Pausiert',
+    recipes: 'Rezepte',
+    symbols: 'Symbole erklären',
     pauseStatus: (wave, total, lives, requisition) =>
       `Welle ${wave}/${total} · Leben ${lives} · Requisition ${requisition}`,
     pauseDetail: (phase, seed) => `${phase} · Seed ${seed}`,
@@ -596,6 +644,7 @@ export const STRINGS = {
   selection: {
     title: 'Eine Option wählen',
     hint: 'Kapsel wählen, dann die Aktion. Der Rest wird zu Trümmern.',
+    recipes: 'Rezepte',
     pod: (n) => `Kapsel ${n}`,
     keep: 'Behalten',
     merge: (size, rank) => `Verschmelzen ×${size} → ${rank}`,

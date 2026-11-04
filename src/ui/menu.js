@@ -101,6 +101,8 @@ export function createMenus(root, {
   testEntry = false,
   onTestEntry = null,
   onTestProtocols = null,
+  onCodex = null,
+  onHelp = null,
   modes = [],
 }) {
   /** @type {'main'|'seed'|'pause'|'settings'|'records'|'end'|null} */
@@ -378,6 +380,9 @@ export function createMenus(root, {
       close();
       onResume();
     }),
+    // The recipes and the symbol sheet live here now, not on the status bar (M10 E1).
+    button(T.recipes, 'alt', () => onCodex?.()),
+    button(T.symbols, 'alt', () => onHelp?.()),
     button(T.settings, 'alt', () => show('settings', 'pause')),
     // A door of its own, not part of the profile export: that one carries best
     // scores to a friend, and a protocol has no business travelling with it (M6).
