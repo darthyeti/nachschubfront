@@ -2630,6 +2630,8 @@ button.mode-card.on {
   .menu-panel,
   .codex-panel,
   .help-sheet {
+    /* Opaque: a sheet can stand over another (the symbols over the pause menu). */
+    background: #1c1511;
     box-shadow: none;
     padding: 0 calc(14px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(14px + var(--safe-left));
     overscroll-behavior: contain;
@@ -2662,6 +2664,8 @@ button.mode-card.on {
   /* Selection and info sit on the edge themselves (not in an overlay). */
   .selection,
   .info {
+    /* Opaque: the bottom bar must not show through a sheet that stands over it. */
+    background: #1c1511;
     box-shadow: none;
     border-radius: 14px 14px 0 0;
     border-bottom: 0;
@@ -2862,7 +2866,7 @@ button.mode-card.on {
   .salvo {
     position: absolute;
     right: calc(8px + var(--safe-right));
-    bottom: calc(60px + var(--safe-bottom));
+    bottom: calc(82px + var(--safe-bottom));
   }
 
   .speed-group {
@@ -2926,7 +2930,7 @@ button.mode-card.on {
     right: 0;
     top: 0;
     bottom: 0;
-    width: min(46%, 340px);
+    width: min(44%, 320px);
     max-height: none;
     border-radius: 14px 0 0 14px;
     border: 2px solid var(--ink);
@@ -2941,6 +2945,12 @@ button.mode-card.on {
 
   .selection::before {
     display: none;
+  }
+
+  /* The info sheet has a head that runs out to the edges, so its padding is the one the head undoes. */
+  .info {
+    padding-left: calc(14px + var(--safe-left));
+    padding-right: calc(14px + var(--safe-right));
   }
 
   .selection-cards {

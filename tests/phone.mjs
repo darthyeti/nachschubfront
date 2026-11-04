@@ -172,9 +172,10 @@ try {
       });
 
       await startMatch(page);
-      // The click that started the match leaves the emulated mouse over a disc; a finger leaves nothing.
-      await page.mouse.move(w / 2, h / 2);
-      await page.evaluate(() => document.querySelector('#game').dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' })));
+      // The click that started the match leaves the emulated mouse where it was; a finger leaves
+      // nothing. Park it on the menu button, where it neither explains a disc nor shows a cell.
+      const parked = await page.locator('.plate-button[aria-label="Menü"]').boundingBox();
+      await page.mouse.move(parked.x + parked.width / 2, parked.y + parked.height / 2);
       await frames(page, 8);
 
       await check(`${tag}: the planning view is in order, four values and the menu`, async () => {
@@ -276,6 +277,24 @@ try {
         const tools2 = await page.locator('.rune-group').boundingBox();
         assert.ok(salvo2.x > tools2.x, 'right-handed again');
       });
+
+      if (engine === 'chromium') {
+        await check(`${tag}: a long press opens the info as a sheet, and its cross closes it`, async () => {
+          const cdp = await context.newCDPSession(page);
+          const at = { x: Math.round(w * 0.3), y: Math.round(h * 0.45), id: 0, radiusX: 4, radiusY: 4, force: 1 };
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] });
+          await page.waitForTimeout(900);
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+          await page.waitForSelector('.info:not([hidden])');
+          await page.waitForTimeout(300);
+          expectClean(await page.evaluate(audit), 'info sheet');
+          const box = await page.locator('.info').boundingBox();
+          if (sideways) assert.ok(Math.abs(box.x + box.width - w) <= 1, 'info from the right');
+          else assert.ok(Math.abs(box.y + box.height - h) <= 1, 'info from below');
+          await tap(page, page.locator('.info .sheet-close'));
+          await page.waitForSelector('.info', { state: 'hidden' });
+        });
+      }
 
       await check(`${tag}: the capsule choice leaves the board over ${MIN_FREE} percent free`, async () => {
         await frames(page, 4);

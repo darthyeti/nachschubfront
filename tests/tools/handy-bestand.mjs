@@ -181,7 +181,8 @@ try {
         const { context, page } = await openPage(w, h, `?seed=${SEED}&debug`);
         await startMatch(page);
         await frames(page, 5);
-        await page.getByRole('button', { name: 'Salve anfordern' }).click();
+        // The debug panel sits over the salvo button on a low screen; press it from the page.
+        await page.evaluate(() => document.querySelector('.salvo').click());
         await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
         await page.getByRole('button', { name: 'Behalten' }).click();
         await page.waitForFunction(() => window.__nachschub.state().phase === 'wave', null, { timeout: 10000 });
@@ -196,6 +197,10 @@ try {
       await page.waitForTimeout(400);
       await shoot('titel', page);
       await startMatch(page);
+      // Park the emulated mouse on the menu button: a finger leaves no mouse behind, and a mouse
+      // over the board would show cells and undo the long press when the camera moves.
+      const parked = await page.locator('.plate-button[aria-label="Menü"]').boundingBox();
+      await page.mouse.move(parked.x + parked.width / 2, parked.y + parked.height / 2);
       await frames(page, 8);
       await shoot('planung', page);
       await board('planung', page);
@@ -207,6 +212,8 @@ try {
       await page.waitForTimeout(5000);
       await shoot('welle', page);
       await board('welle', page);
+      // The clicks above moved the emulated mouse over the board; park it again.
+      await page.mouse.move(parked.x + parked.width / 2, parked.y + parked.height / 2);
       // The debug bar of pass 1 can shift the view a little; try a few spots around the tower.
       for (const [dx, dy] of [[0, 0], [0, -24], [0, 24], [-24, 0], [24, 0], [0, -48], [0, -72]]) {
         await longPress(context, page, towerAt[0] + dx, towerAt[1] + dy);
@@ -215,10 +222,23 @@ try {
       }
       await shoot('stellung', page);
       await page.evaluate(() => document.querySelector('.info button')?.click());
-      await page.getByRole('button', { name: 'Symbole erklären' }).click();
+      // The "?" is gone on the phone layout (M10 E2); the menu has the same door.
+      const helpButton = page.getByRole('button', { name: 'Symbole erklären' });
+      if (await helpButton.isVisible()) {
+        await helpButton.click();
+      } else {
+        await page.evaluate(() => document.querySelector('.plate-button[aria-label="Menü"]').click());
+        await page.waitForSelector('.menu[data-menu="pause"]:not([hidden])');
+        await page.locator('.menu[data-menu="pause"]').getByRole('button', { name: 'Symbole erklären' }).click();
+      }
       await page.waitForTimeout(300);
       await shoot('hilfe', page);
-      await page.getByRole('button', { name: 'Symbole schließen' }).click().catch(() => {});
+      await page.getByRole('button', { name: 'Symbole schließen' }).click({ timeout: 1000 }).catch(() => {});
+      await page.evaluate(() => {
+        document.querySelector('.help-layer .sheet-close')?.click();
+        document.querySelector('.menu[data-menu="pause"]:not([hidden]) .sheet-close')?.click();
+      });
+      await page.waitForTimeout(200);
       await page.evaluate(() => document.querySelector('.plate-button[aria-label="Menü"]').click());
       await page.waitForSelector('.menu[data-menu="pause"]:not([hidden])');
       await page.waitForTimeout(300);
