@@ -15,10 +15,10 @@ import { drawSprite, drawSpriteShadow, drawSpriteTurned, spriteOrigin } from './
 import { towerSpriteSet, specialSpriteSet, nextFlip, DOCTRINES, SPECIALS } from './sprites/compose.js';
 import { RANK_COUNT } from './sprites/manifest.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
-import { TURRET_TURN_SPEED, TURRET_ALIGN, TURRET_REST_ANGLE, TURRET_RECOIL } from '../data/art.js';
-import { drawWeaponGlow, drawWeaponSpark } from './towerFx.js';
+import { TURRET_TURN_SPEED, TURRET_ALIGN, TURRET_REST_ANGLE, TURRET_RECOIL, TURRET_ROCKET } from '../data/art.js';
+import { drawWeaponGlow, drawWeaponSpark, updateTurretFx, drawTurretFx } from './towerFx.js';
 import { turnFrame, renderSolids } from './model.js';
-import { buildTurret, muzzleOffset, autocannonBores, restPose, MOUNT_Z, TURRET_SCALE, CASING_PORT, TURRET_DOCTRINES } from './turrets.js';
+import { buildTurret, muzzleOffset, autocannonBores, restPose, MOUNT_Z, TURRET_SCALE, TURRET_DOCTRINES } from './turrets.js';
 import { stageEntry, stageIndex, STAGE_STEP, drawStage, drawStageShadow } from './turretCache.js';
 
 const sets = new Map();
@@ -37,7 +37,7 @@ const motion = new WeakMap();
 export const towerDraw = { ms: 0, calls: 0, staged: 0, live: 0 };
 
 /** True for the towers whose weapon is a turned model: every standard emplacement. */
-const isTurreted = (tower) => !tower.special && TURRET_DOCTRINES.includes(tower.doctrine);
+export const isTurreted = (tower) => !tower.special && TURRET_DOCTRINES.includes(tower.doctrine);
 
 /** Sprite set of an emplacement: doctrine and rank, or a recipe emplacement. */
 export function towerSet(tower) {
@@ -298,14 +298,20 @@ function updateTurret(tower, dt) {
       aligned: true,
       recoil: 0,
       spin: 0,
+      // The tube of the rocket launcher that fired last, and the one that fires next: the six
+      // tubes go off one after the other in the order of TURRET_ROCKET.mouths.
       tube: 0,
+      next: 0,
+      shot: false,
       cooldown: tower.cooldown,
     };
     motion.set(tower, m);
   }
-  if (tower.cooldown > m.cooldown + 1e-6) {
+  m.shot = tower.cooldown > m.cooldown + 1e-6;
+  if (m.shot) {
     m.recoil = 1;
-    m.tube = (m.tube + 1) % 6;
+    m.tube = m.next;
+    m.next = (m.next + 1) % TURRET_ROCKET.mouths.length;
   }
   m.cooldown = tower.cooldown;
   m.recoil = Math.max(0, m.recoil - dt * 7);
@@ -359,32 +365,24 @@ function drawTurretTower(ctx, cache, set, back, tower, zoom, dpr, t, dt, reduced
   drawSprite(ctx, set.back, back, sx, sy, { flash });
 
   const pose = { ...restPose(DOCTRINE_COLORS[doctrine], tower.rank), recoil: staged ? 0 : m.recoil, spin: m.spin, bob, tube: m.tube };
-  const roof = [sx, sy - MOUNT_Z];
-  const rel = muzzleOffset(doctrine, m.shown, pose);
-  const muzzle = [sx + rel[0] + shift[0], sy + rel[1] + shift[1]];
   const F = turnFrame(m.shown, MOUNT_Z, TURRET_SCALE);
-  const at = (p) => [sx + p[0] + shift[0], sy + p[1] + shift[1]];
-  const view = {
-    doctrine,
-    origin: roof,
-    pivot: roof,
-    muzzle,
-    ports: null,
-    glow: null,
-    anchor: muzzle,
-    // Where the psi core and the tesla coil glow from: the centre of the rings, the sphere.
-    core: psi ? at(F.W(0, 0, 28 + bob)) : doctrine === 'tesla' ? at(F.W(0, 0, 27.5)) : null,
-    casingPort: doctrine === 'autocannon' ? at(F.W(...CASING_PORT)) : null,
-    sparks: null,
-    sight: false,
-    casings: doctrine === 'autocannon',
-    fire: fireDirection(tower, roof[0], roof[1]),
-    shot: m.recoil,
-    scale: 1,
+
+  // The fire at the barrel (towerFx.js): its muzzle is the one of the model. What reaches away from the
+  // camera is drawn behind the weapon, the lights at the muzzle over it. All of it is a layer on top of
+  // the stage: firing never makes the stage be drawn again.
+  updateTurretFx(tower, {
+    dt,
+    shot: m.shot,
+    tube: m.tube,
+    shown: m.shown,
+    theta: m.theta,
+    push: staged ? TURRET_RECOIL[doctrine] * m.recoil : 0,
+    recoil: staged ? 0 : m.recoil,
+    bob,
     t,
     reducedMotion,
-  };
-  drawWeaponGlow(ctx, tower, view);
+  });
+  drawTurretFx(ctx, tower, 'behind');
 
   towerDraw[staged ? 'staged' : 'live'] += 1;
   if (staged) {
@@ -401,7 +399,7 @@ function drawTurretTower(ctx, cache, set, back, tower, zoom, dpr, t, dt, reduced
   }
 
   if (doctrine === 'autocannon') drawBores(ctx, autocannonBores(m.shown, m.spin, staged ? 0 : m.recoil), sx + shift[0], sy + shift[1]);
-  drawWeaponSpark(ctx, tower, view);
+  drawTurretFx(ctx, tower, 'front');
   return true;
 }
 
