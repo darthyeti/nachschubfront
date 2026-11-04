@@ -2263,6 +2263,16 @@ button.mode-card.on {
   }
 }
 
+/* The foot of the capsule sheet holds the recipes and, on the phone only, the pause
+   button (M10 E3). Elsewhere the foot is no box of its own and nothing changes. */
+.selection-foot {
+  display: contents;
+}
+
+.selection-pause {
+  display: none;
+}
+
 /* The recipes, one tap from the capsule choice. */
 .selection-recipes {
   display: flex;
@@ -2724,6 +2734,11 @@ button.mode-card.on {
     flex-wrap: nowrap;
   }
 
+  .selection-foot {
+    display: flex;
+    gap: 6px;
+  }
+
   .selection-actions button,
   .selection-recipes {
     width: 100%;
@@ -2731,8 +2746,36 @@ button.mode-card.on {
     min-height: 44px;
   }
 
+  .selection-foot .selection-recipes {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
   .selection-hint {
     display: none;
+  }
+
+  /* Pause within reach of the capsule choice: the bottom bar is away while the sheet
+     is up. A key like the ones in the bar, gold while the game stands still. */
+  .selection-pause {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 56px;
+    min-height: 44px;
+    padding: 0;
+  }
+
+  .selection-pause-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .selection-pause.on {
+    background: var(--gold);
+    outline: 3px solid var(--ink);
+    outline-offset: -3px;
   }
 
   .info {
@@ -2945,6 +2988,26 @@ button.mode-card.on {
 
   .selection::before {
     display: none;
+  }
+
+  /* In the free band at the top of the sheet, left of the menu button of the status bar:
+     the foot of the sheet may be scrolled out of sight, the band never is. */
+  .selection-foot {
+    display: contents;
+  }
+
+  .selection-foot .selection-recipes {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .selection-pause {
+    position: fixed;
+    top: calc(4px + var(--safe-top));
+    right: calc(64px + var(--safe-right));
+    z-index: 2;
+    width: 50px;
+    height: 44px;
   }
 
   /* The info sheet has a head that runs out to the edges, so its padding is the one the head undoes. */

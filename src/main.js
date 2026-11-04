@@ -730,6 +730,7 @@ const selectionPanel = createSelectionPanel(document.getElementById('hud'), {
   onChoose: applyChoice,
   onForfeit: giveUpChoice,
   onRecipes: () => codex.setOpen(true),
+  onPause: () => onAction('pause'),
   onPreview: (towerIds) => {
     ui.recipePreview = towerIds;
   },

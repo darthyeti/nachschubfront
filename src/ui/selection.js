@@ -120,8 +120,10 @@ export function badgeFor(options, index) {
  * @param {(towerIds: number[]) => void} callbacks.onPreview  Emplacements a recipe would eat.
  * @param {() => void} [callbacks.onForfeit]  Give the salvo up; offered only when
  *   not one of its capsules can be paid for.
+ * @param {() => void} [callbacks.onPause]  The pause button of the phone sheet (M10 E3):
+ *   the bottom bar with the pause disc is hidden there while the sheet is open.
  */
-export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onForfeit, onRecipes }) {
+export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onForfeit, onRecipes, onPause }) {
   const panel = el('div', 'selection interactive');
   panel.hidden = true;
   panel.setAttribute('role', 'group');
@@ -137,7 +139,21 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onFo
     recipes.blur();
     onRecipes?.();
   });
-  panel.append(cards, actions, recipes, hint);
+  // Pause stays within reach during the choice (M10 E3). On a tablet and a desktop the
+  // bottom bar is still on screen with its own pause disc, so style.css only shows this
+  // button in the phone layout.
+  const pause = el('button', 'selection-pause');
+  pause.type = 'button';
+  pause.setAttribute('aria-label', STRINGS.hud.pauseName);
+  pause.setAttribute('aria-pressed', 'false');
+  pause.append(icon('tempo-0', 'selection-pause-icon'));
+  pause.addEventListener('click', () => {
+    pause.blur();
+    onPause?.();
+  });
+  const foot = el('div', 'selection-foot');
+  foot.append(recipes, pause);
+  panel.append(cards, actions, foot, hint);
   root.prepend(panel);
 
   /** Rebuilt whenever the salvo or the pick changes; cheap enough at five pods. */
@@ -258,6 +274,11 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onFo
       if (!open) {
         key = '';
         return;
+      }
+      const paused = state.speed === 0;
+      if (pause.classList.contains('on') !== paused) {
+        pause.classList.toggle('on', paused);
+        pause.setAttribute('aria-pressed', String(paused));
       }
 
       const selected = ui.podSelected ?? 0;
