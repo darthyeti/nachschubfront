@@ -239,8 +239,20 @@ try {
       assert.equal((await page.$$('.command-rail .burst')).length, 1, 'and so does the first command (only that one)');
       await page.screenshot({ path: join(OUT, 'tablet-unlock.png') });
       // The bang must not eat a tap: the layer lets everything through.
-      const none = await page.$$eval('.burst, .burst > *', (ns) => ns.every((n) => getComputedStyle(n).pointerEvents === 'none'));
-      assert.ok(none, 'the effect is not in the way of a finger');
+      // Checked where a finger lands, not only in the computed style: the element under the middle
+      // of each layer must not belong to the effect.
+      const hits = await page.$$eval('.burst', (ns) =>
+        ns.map((n) => {
+          const r = n.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          const styles = [n, ...n.children].map((c) => getComputedStyle(c).pointerEvents);
+          return { blocked: !!hit?.closest('.burst'), on: hit ? hit.className || hit.tagName : 'nothing', styles };
+        }),
+      );
+      assert.ok(
+        hits.every((h) => !h.blocked),
+        `the effect is not in the way of a finger: ${JSON.stringify(hits)}`,
+      );
       await page.waitForFunction(() => document.querySelectorAll('.burst').length === 0, null, { timeout: 4000 });
       // Going back and forward again lets it go off again; a match loaded far on does not.
       await page.emulateMedia({ reducedMotion: 'reduce' });
