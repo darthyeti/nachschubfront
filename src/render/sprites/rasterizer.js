@@ -23,7 +23,8 @@ export function createSpriteCache() {
   const pending = new Map();
   const queue = [];
   let running = 0;
-  const stats = { rasterized: 0, failed: 0 };
+  /** `bytes`: pixel memory of everything rasterized so far (colour, flash and shadow canvas, 4 bytes a pixel). */
+  const stats = { rasterized: 0, failed: 0, bytes: 0 };
 
   const idOf = (def, level, dpr) => `${def.key}@${level}x${dpr}`;
 
@@ -58,6 +59,7 @@ export function createSpriteCache() {
       sh.fillStyle = '#000';
       sh.fillRect(0, 0, width, height);
       stats.rasterized += 1;
+      stats.bytes += width * height * 4 * 3;
       return { canvas, flash, shadow, level, dpr };
     } finally {
       URL.revokeObjectURL(url);

@@ -1,6 +1,6 @@
 # M10: Bedienung
 
-Status: **Entwurf, wartet auf Freigabe** (Akte E-23). Beschlossen am 04.11.2026 in E-21 (Wahl „Mergen, M10 mit Änderungen“). Läuft nach oder parallel zu M9; M9 ist Grafik, M10 ist Oberfläche, die Bereiche überschneiden sich nur in `src/data/strings.js` und `docs/ART.md`.
+Status: **freigegeben am 04.11.2026** (Akte E-23), läuft parallel zu M9. Beschlossen am 04.11.2026 in E-21 (Wahl „Mergen, M10 mit Änderungen“). Läuft nach oder parallel zu M9; M9 ist Grafik, M10 ist Oberfläche, die Bereiche überschneiden sich nur in `src/data/strings.js` und `docs/ART.md`.
 Referenz: `reference/studien/handy-bedienung.html` mit `handy-bedienung.js`, Standbilder und Messwerte in `reference/konzept/handy/` (Auftrag A-23, PR #40). Werkzeuge `tests/tools/handy-bestand.mjs` und `handy-studie.mjs`.
 
 ## Entscheidungen vom 04.11.2026 (E-21)
