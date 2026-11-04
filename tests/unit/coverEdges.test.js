@@ -93,3 +93,13 @@ test('a body behind a block keeps what stands above the block: the hull is only 
   assert.equal(inside(...p(0.9, 1.9, 0)), true, 'the foot of the ruin is hidden by the block');
   assert.equal(inside(...p(0.9, 1.5, 40)), false, 'the top of the ruin stands above it');
 });
+
+test('the ground a mark may lie on grows with its reach and stays on the level of its field', () => {
+  const f = field(['00000', '00000', '00100', '00000', '00000']);
+  const one = groundAround(f, 0, 0, 1, 1);
+  const two = groundAround(f, 0, 0, 1, 2);
+  assert.ok(two.cells.length > one.cells.length);
+  assert.ok(!two.cells.some((c) => c.x === 2 && c.y === 2), 'the raised field is no ground for it');
+  assert.equal(one.edge, false, 'nothing differs within one field');
+  assert.equal(two.edge, true, 'the raised field is within two');
+});
