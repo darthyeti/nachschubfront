@@ -32,5 +32,6 @@ git show <commit>:docs/meilensteine/M3-kampf-und-inhalte.md
 | M7b | Modus „King of the Hill" — [M7b-king-of-the-hill.md](M7b-king-of-the-hill.md) | 02.10.2026 |
 | M8 | Optik: Farbtrennung, Licht, Blockgelände, Rahmen, Trümmer, Kapsel — [M8-optik.md](M8-optik.md) | 03.11.2026 |
 | M9 | Stellungen: neuer Bunker, Ränge über Zierrat, drehbare Aufsätze, Mündungsfeuer — [M9-stellungen.md](M9-stellungen.md) | in Arbeit |
+| M10 | Bedienung: Ikonen, Menüs, Handy-Layout, Tutorial — [M10-bedienung.md](M10-bedienung.md) | in Arbeit |
 
 Der Stand steht in [`docs/PROGRESS.md`](../PROGRESS.md).
