@@ -38,6 +38,8 @@ import {
 } from './biomes.js';
 import { createTrail } from './trail.js';
 import { castShadows } from './shadows.js';
+import { occludersOf, occludersOfAll, cellsKey, fadeStep } from './occlusion.js';
+import { REVEAL } from '../data/art.js';
 import { STEP, heightField, setActiveTerrain, cellLift, liftAt } from './terrain.js';
 import { snapToAxis } from '../sim/commands.js';
 import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
@@ -532,6 +534,89 @@ function drawFoundation(ctx, tower) {
   ctx.translate(0, lift);
 }
 
+/**
+ * The fields the player is looking at: the one under the pointer or pinned by a tap, and the
+ * target of every capsule that is still coming or being chosen. Each with the colour of its outline.
+ */
+function lookedAtFields(state, ui, size) {
+  const out = [];
+  const seen = new Set();
+  const add = (cell, color) => {
+    if (!cell || cell.x < 0 || cell.y < 0 || cell.x >= size || cell.y >= size) return;
+    const key = cell.y * size + cell.x;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ x: cell.x, y: cell.y, color });
+  };
+  // The pointer and the pinned info panel only count while planning: once a wave runs (or a
+  // capsule was taken) nothing is being placed or chosen. A tap leaves `hoverCell` standing; on a
+  // field with an emplacement that is not a choice, so only `inspect` counts there.
+  if (PLANNING_PHASES.has(state.phase)) {
+    const same = (a, b) => a && b && a.x === b.x && a.y === b.y;
+    for (const cell of [ui.inspect, ui.hoverCell]) {
+      const tower = cell ? towerAt(state, cell) : null;
+      if (tower && !same(cell, ui.inspect)) continue;
+      add(cell, tower ? DOCTRINE_COLORS[towerStats(tower).doctrine] : C.gold);
+    }
+  }
+  const selecting = state.phase === 'selection';
+  state.pods.forEach((pod, index) => {
+    if (pod.landed && !(selecting && index === ui.podSelected)) return;
+    add(pod, selecting && pod.doctrine ? DOCTRINE_COLORS[pod.doctrine] : '#ff3a2a');
+  });
+  return out;
+}
+
+/**
+ * Moves the reveal layers (see ground.js, `drawReveal`) one frame on and returns the strongest
+ * fade among the layers that are being kept: the opacity of the outlines.
+ */
+function updateReveal(layers, field, looked, dt, reducedMotion) {
+  const cells = occludersOfAll(field, looked);
+  const key = cellsKey(cells);
+  let current = null;
+  if (cells.length) {
+    current = layers.find((l) => l.key === key);
+    if (!current) {
+      current = { key, cells, f: 0, active: true };
+      layers.push(current);
+    }
+  }
+  let strongest = 0;
+  for (const l of layers) {
+    l.active = l === current;
+    l.f = fadeStep(l.f, l.active ? 1 : 0, dt, reducedMotion);
+    if (l.active) strongest = l.f;
+  }
+  for (let i = layers.length - 1; i >= 0; i--) if (!layers[i].active && layers[i].f <= 0) layers.splice(i, 1);
+  while (layers.length > REVEAL.maxLayers) layers.shift();
+  return strongest;
+}
+
+/** Ink line under a colour line round the top face of every looked-at field that is covered. */
+function drawRevealOutlines(ctx, field, looked, fade) {
+  ctx.save();
+  ctx.globalAlpha = fade;
+  for (const f of looked) {
+    if (!occludersOf(field, f.x, f.y).length) continue;
+    const lift = cellLift(f.x, f.y);
+    ctx.translate(0, -lift);
+    cellPath(ctx, f.x, f.y, 0.04);
+    ctx.globalAlpha = fade * REVEAL.outlineFillAlpha;
+    ctx.fillStyle = f.color;
+    ctx.fill();
+    ctx.globalAlpha = fade;
+    ctx.strokeStyle = C.ink;
+    ctx.lineWidth = REVEAL.outlineInk;
+    ctx.stroke();
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = REVEAL.outlineColor;
+    ctx.stroke();
+    ctx.translate(0, lift);
+  }
+  ctx.restore();
+}
+
 export function createSceneRenderer(sprites) {
   const drawVignette = createVignette();
   const backdrop = createBackdropLayer();
@@ -541,6 +626,8 @@ export function createSceneRenderer(sprites) {
   const items = [];
   /** Render-side time of the last frame, for the ash drift. */
   let lastT = null;
+  /** Blocks of terrain shown see-through: one layer per set of covering fields, fading in or out. */
+  let revealLayers = [];
 
   /**
    * @param {object} ui  Render-side state: hover cell, flashes, reduced motion, art mode.
@@ -568,6 +655,9 @@ export function createSceneRenderer(sprites) {
 
     backdrop.draw(ctx, view, shaken, state.seed, shakeX, shakeY);
     ground.draw(ctx, shaken, view, map.size, state.seed, t * 1000, field);
+    const looked = lookedAtFields(state, ui, map.size);
+    const revealFade = updateReveal(revealLayers, field, looked, dt, ui.reducedMotion);
+    for (const layer of revealLayers) ground.drawReveal?.(ctx, shaken, view, layer.cells, layer.f);
 
     applyCamera(ctx, shaken, view);
     ctx.lineJoin = 'round';
@@ -849,6 +939,9 @@ export function createSceneRenderer(sprites) {
       comicText(ctx, f.label, x, y, 18, f.ok ? C.toxicL : '#ff6a4a');
       ctx.globalAlpha = 1;
     }
+
+    // The field the player looks at keeps an outline over everything while blocks cover it.
+    if (revealFade > 0) drawRevealOutlines(ctx, field, looked, revealFade);
 
     atmosphere.draw(ctx, view, t, ui.reducedMotion);
     drawVignette(ctx, view);
