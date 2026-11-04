@@ -27,6 +27,11 @@ export const CAMERA = {
   minCellPx: 40,
   /** Space kept free for HUD bars in the start view (CSS pixels). */
   insets: { top: 64, bottom: 84, side: 16 },
+  /** The same on a phone (M10 E2): a slim bar above, the tools below or at the edges. */
+  phoneInsets: {
+    portrait: { top: 56, bottom: 96, side: 8 },
+    landscape: { top: 52, bottom: 12, side: 84 },
+  },
   /** Zoom factor per mouse wheel notch and per +/- key press. */
   wheelZoomStep: 1.15,
   /** Pan speed for arrow keys in CSS pixels per second. */

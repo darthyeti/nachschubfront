@@ -19,13 +19,17 @@ Es sind bewusst drei, nicht eins.
 
 | Schlüssel | Inhalt | Modul | Wandert in den Export |
 | --- | --- | --- | --- |
-| `nachschubfront:prefs` | Lautstärken, Bewegung, weggeklickte Hinweise, zuletzt gespielter Modus | `src/core/prefs.js` | nein |
+| `nachschubfront:prefs` | Lautstärken, Bewegung, weggeklickte Hinweise, zuletzt gespielter Modus, Linkshänder | `src/core/prefs.js` | nein |
 | `nachschubfront:profile` | Bestwerte und Statistik | `src/storage/profile.js` | ja |
 | `nachschubfront:protocols` | die letzten fünf Partie-Protokolle (M6) | `src/storage/protocol.js` | eigene Datei |
 
 `prefs.lastRun` (`{ mode, difficulty }`, seit M7a) merkt sich die Lauf-Konfiguration
 der letzten Partie. Gespeichert werden nur die beiden Kennungen; ist der Modus in
 diesem Build nicht (mehr) wählbar, nimmt das Menü den Standard.
+
+`prefs.leftHanded` (Wahrheitswert, Standard `false`, seit 0.11.7) spiegelt im Querformat auf dem Handy
+Werkzeuge und Salve samt Tempo (M10 E2). Sie steht im Pausenmenü unter „Einstellungen“ → „Linkshänder“; die
+Seite trägt sie als `data-hand` am Wurzelelement. Ein anderer Wert als `true` oder `false` fällt auf den Standard zurück.
 
 Die Einstellungen gehören dem Gerät. Wer ein fremdes Profil einspielt, soll
 nicht plötzlich mit fremder Lautstärke spielen. Deshalb bleiben sie draußen

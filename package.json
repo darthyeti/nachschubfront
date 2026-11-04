@@ -9,6 +9,7 @@
     "test": "node --test \"tests/unit/**/*.test.js\"",
     "screenshots": "node tests/screenshots.mjs",
     "test:input": "node tests/input.mjs",
+    "test:phone": "node tests/phone.mjs",
     "test:perf": "node tests/perf.mjs",
     "test:battle": "node tests/battle.mjs",
     "test:offline": "node tests/offline.mjs",

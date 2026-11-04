@@ -113,6 +113,7 @@ export const ICONS = {
     <path d="M2.4 6.6 L8.4 12 L2.4 17.4 Z M9 6.6 L15 12 L9 17.4 Z M15.6 6.6 L21.6 12 L15.6 17.4 Z" fill="${BONE}" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>
   `,
   close: `${line('M6 6 L18 18 M18 6 L6 18', BONE, 2.6, 2.2)}`,
+  fold: `${line('M6 9 L12 15 L18 9', BONE, 2.6, 2.2)}`,
   orbitalStrike: `
     <circle cx="11" cy="13" r="7.4" fill="none" stroke="${GOLD}" stroke-width="1.8"/>
     <circle cx="11" cy="13" r="3.6" fill="none" stroke="${GOLD_DARK}" stroke-width="1.5"/>
