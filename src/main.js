@@ -601,7 +601,7 @@ function onAction(action) {
 
 const codex = createCodex(document.body);
 const hudRoot = document.getElementById('hud');
-const hud = createHud(hudRoot, { debug, onAction });
+const hud = createHud(hudRoot, { debug, onAction, onUnlock: () => audio.play('unlock') });
 // The line of three buttons after a wave (M6). It lives in the same column as
 // the bottom bar, so it is in thumb reach and can never cover it.
 const rating = createRatingRow(hud.bottom, {
@@ -611,8 +611,7 @@ const rating = createRatingRow(hud.bottom, {
     showBanner(STRINGS.rating.thanks);
   },
 });
-const commandBar = createCommandBar(hudRoot, { onPick: pickCommand });
-hud.help.setCommandDiscs(commandBar.helpTargets);
+const commandBar = createCommandBar(hudRoot, { onPick: pickCommand, onUnlock: () => audio.play('unlock') });
 
 // The note on the command rail (round 5): once per device, the first time the
 // rail turns up in a running match. It stops the game like the pause menu does.
@@ -659,6 +658,7 @@ const selectionPanel = createSelectionPanel(document.getElementById('hud'), {
   },
   onChoose: applyChoice,
   onForfeit: giveUpChoice,
+  onRecipes: () => codex.setOpen(true),
   onPreview: (towerIds) => {
     ui.recipePreview = towerIds;
   },
@@ -793,6 +793,8 @@ const menus = createMenus(document.body, {
   canStore: storage.persistent,
   onApplyUpdate: () => updates.apply(),
   onExportMatch: exportMatch,
+  onCodex: () => codex.setOpen(true),
+  onHelp: () => hud.help.open(),
   onToggle(open) {
     if (open) {
       hud.help.close();

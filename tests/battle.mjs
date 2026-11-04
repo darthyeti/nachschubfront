@@ -49,7 +49,10 @@ try {
   await page.goto(`${server.url}?seed=${SEED}&debug`, { waitUntil: 'networkidle' });
   await startMatch(page);
   await page.getByRole('button', { name: 'Unverwundbar' }).tap();
-  await page.getByRole('button', { name: `${SPEED}x` }).tap();
+  // One button cycles 1x, 2x, 3x (M10 E1): press it until the speed is the wanted one.
+  for (let i = 0; i < 4 && (await state(page)).speed !== SPEED; i++) {
+    await page.locator('.speed-group .rune').nth(1).tap();
+  }
 
   /** Marks up to five zones next to the route, starting in its middle. */
   async function markZones() {

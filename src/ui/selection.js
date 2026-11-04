@@ -6,6 +6,7 @@ import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { RECIPES } from '../data/recipes.js';
 import { selectionOptions, anchorCost, canAffordAnchor, salvoBuildable } from '../sim/selection.js';
 import { rankMarks } from './badges.js';
+import { icon } from './icons.js';
 
 const T = STRINGS.selection;
 
@@ -120,7 +121,7 @@ export function badgeFor(options, index) {
  * @param {() => void} [callbacks.onForfeit]  Give the salvo up; offered only when
  *   not one of its capsules can be paid for.
  */
-export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onForfeit }) {
+export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onForfeit, onRecipes }) {
   const panel = el('div', 'selection interactive');
   panel.hidden = true;
   panel.setAttribute('role', 'group');
@@ -128,7 +129,15 @@ export function createSelectionPanel(root, { onSelect, onChoose, onPreview, onFo
   const cards = el('div', 'selection-cards');
   const actions = el('div', 'selection-actions');
   const hint = el('p', 'selection-hint', T.hint);
-  panel.append(cards, actions, hint);
+  // The recipes are a tap away from the choice they inform (M10 E1).
+  const recipes = el('button', 'selection-recipes');
+  recipes.type = 'button';
+  recipes.append(icon('codex', 'selection-recipes-icon'), el('span', null, T.recipes));
+  recipes.addEventListener('click', () => {
+    recipes.blur();
+    onRecipes?.();
+  });
+  panel.append(cards, actions, recipes, hint);
   root.prepend(panel);
 
   /** Rebuilt whenever the salvo or the pick changes; cheap enough at five pods. */
