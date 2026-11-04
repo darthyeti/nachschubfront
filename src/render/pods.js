@@ -14,6 +14,7 @@ import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { STRINGS } from '../data/strings.js';
 import { PODS } from '../data/pods.js';
+import { POD_DIM_ALPHA, POD_PLATE } from '../data/art.js';
 import { PLANNING_PHASES } from '../core/phases.js';
 import { IMPACT_SECONDS, sinceImpact } from '../sim/pods.js';
 import { podSpriteSet } from './sprites/compose.js';
@@ -198,17 +199,34 @@ function drawVeil(ctx, z, t) {
  */
 const HOLO_SCALE = 0.8;
 
-/** How high the plate floats above its capsule before the stagger. */
-const HOLO_BASE = 150 * HOLO_SCALE;
-
 /**
- * Extra height, so two capsules on touching cells do not write their labels
- * into one another. Derived from the cell, not from the salvo, so it is the
- * same every time and needs no state: the step is 2 across and 3 down, which
- * puts all four neighbours of a cell on different levels.
+ * Emphasis of the plate of every pod, 0 (resting) to 1 (picked), eased like the lifting of the
+ * segments. The plate grows, rises and takes its label when it is picked.
  */
-export function hologramLift(x, y) {
-  return (((x * 2 + y * 3) % 4) + 4) % 4;
+const plateEase = new WeakMap();
+
+function plateEmphasis(pod, t, selectedPod) {
+  const target = selectedPod === pod ? 1 : 0;
+  let entry = plateEase.get(pod);
+  if (!entry) {
+    entry = { value: target, t };
+    plateEase.set(pod, entry);
+  }
+  const dt = Math.min(0.1, Math.max(0, t - entry.t));
+  entry.t = t;
+  entry.value += (target - entry.value) * Math.min(1, dt * FOCUS_EASE);
+  if (Math.abs(target - entry.value) < 0.003) entry.value = target;
+  return entry.value;
+}
+
+/** Scale of the plate at emphasis e (resting small, picked large). */
+export function plateScale(e) {
+  return HOLO_SCALE * (POD_PLATE.restScale + (POD_PLATE.pickedScale - POD_PLATE.restScale) * e);
+}
+
+/** Height of the plate over the foot of its capsule at emphasis e, in px (bobbing excluded). */
+export function plateHeight(e) {
+  return POD_PLATE.restHeight + (POD_PLATE.pickedHeight - POD_PLATE.restHeight) * e;
 }
 
 /** Opacity of the hologram, 0 until it fades in. */
@@ -216,9 +234,9 @@ function hologramAlpha(pod) {
   return clamp01((sinceImpact(pod) - PODS.hologramDelaySeconds) / PODS.hologramSeconds);
 }
 
-/** Height of the plate over the foot of its capsule, in px (bobbing included). */
-function plateY(pod, sy, t) {
-  return sy - HOLO_BASE - hologramLift(pod.x, pod.y) * 18 + Math.sin(t * 2.2 + pod.x) * 4;
+/** Screen height of the plate (bobbing included). */
+function plateY(pod, sy, t, e = 0) {
+  return sy - plateHeight(e) + Math.sin(t * 2.2 + pod.x) * 2.5;
 }
 
 /** Rising sparks in the light column of the chosen capsule. */
@@ -229,28 +247,28 @@ const COLUMN_SPARKS = 7;
  * capsule, behind it, so it does not tint the figure (docs/ART.md); the chosen capsule
  * gets a layered, stronger column with rising sparks.
  */
-function drawBeam(ctx, pod, sx, sy, t, focus, reducedMotion) {
+function drawBeam(ctx, pod, sx, sy, t, focus, reducedMotion, dim = 1) {
   const alpha = hologramAlpha(pod);
   if (alpha <= 0) return;
   const s = HOLO_SCALE;
-  const y = plateY(pod, sy, t);
+  const y = plateY(pod, sy, t, focus);
   const color = DOCTRINE_COLORS[pod.doctrine];
-  ctx.globalAlpha = alpha * 0.18;
+  ctx.globalAlpha = alpha * dim * 0.18;
   poly(ctx, [[sx - 16 * s, sy - 20], [sx + 16 * s, sy - 20], [sx + 30 * s, y], [sx - 30 * s, y]], color, null);
   if (focus > 0.01) {
     const top = sy - 100;
     for (const [w0, w1, a] of [[22, 34, 0.12], [15, 24, 0.16], [8, 14, 0.2]]) {
-      ctx.globalAlpha = alpha * a * focus;
+      ctx.globalAlpha = alpha * dim * a * focus;
       poly(ctx, [[sx - w0, sy - 30], [sx + w0, sy - 30], [sx + w1, top], [sx - w1, top]], color, null);
     }
     ctx.fillStyle = color;
     for (let k = 0; k < COLUMN_SPARKS; k++) {
       const u = reducedMotion ? k / COLUMN_SPARKS : (t * 0.6 + k / COLUMN_SPARKS) % 1;
-      ctx.globalAlpha = alpha * (1 - u) * 0.9 * focus;
+      ctx.globalAlpha = alpha * dim * (1 - u) * 0.9 * focus;
       ctx.fillRect(sx + Math.sin(k * 5.1) * 14 - 1.5, sy - 34 - u * 70, 3, 3);
     }
   }
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = dim;
 }
 
 /**
@@ -284,7 +302,7 @@ export function createPodRenderer(cache) {
    *   `selectedPod` is the pod the player has picked.
    * @returns {boolean} False when nothing is rasterized yet, so a caller can fall back.
    */
-  function drawPod(ctx, pod, t, view) {
+  function render(ctx, pod, t, view) {
     if (pod.t < PODS.warnSeconds) return true;
     const { zoom, dpr } = view;
     const [sx, sy] = iso(pod.x + 0.5, pod.y + 0.5);
@@ -293,13 +311,16 @@ export function createPodRenderer(cache) {
     const heat = view.heat ?? (pod.landed ? Math.max(0, 1 - since / HEAT_SECONDS) : 1);
     const color = DOCTRINE_COLORS[pod.doctrine];
     const focus = pod.landed ? focusFor(pod, t, view) : 0;
+    // While one capsule is picked, the others fade with the same easing that lifts the picked one.
+    const dim = pod.landed && view.selectedPod ? 1 - (1 - POD_DIM_ALPHA) * (1 - focus) : 1;
+    ctx.globalAlpha = dim;
     const k = 1 - Math.min(1, z / FALL_HEIGHT);
     // While it falls its shadow is an ellipse on the ground that grows as it comes down; once
     // it stands, the silhouette of shell or core takes over (below).
     if (!pod.landed) shadow(ctx, sx, sy + 2, 18 + 15 * k, 7 + 7 * k, 0.45 * k + 0.05);
 
     const by = sy - z;
-    if (pod.landed) drawBeam(ctx, pod, sx, sy, t, focus, view.reducedMotion);
+    if (pod.landed) drawBeam(ctx, pod, sx, sy, t, focus, view.reducedMotion, dim);
     if (!pod.landed) {
       ctx.save();
       ctx.translate(sx, by);
@@ -308,10 +329,10 @@ export function createPodRenderer(cache) {
     }
     if (heat > 0.05) {
       // The shield glows round its rim.
-      ctx.globalAlpha = heat * 0.5;
+      ctx.globalAlpha = dim * (heat * 0.5);
       const r = POD_ANCHORS.shieldRadius * (isOpening(pod) ? O : K);
       ell(ctx, sx, by - 2, r, r * 0.5, null, '#ffb15a', 3);
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = dim;
     }
 
     // Re-entry heat: the rasterizer keeps a bright variant of every sprite, and
@@ -320,9 +341,9 @@ export function createPodRenderer(cache) {
     // step; this way it cools down.
     const glowOver = (def, entry, alpha = 1) => {
       if (heat <= 0.02) return;
-      ctx.globalAlpha = heat * HEAT_ALPHA * alpha;
+      ctx.globalAlpha = dim * (heat * HEAT_ALPHA * alpha);
       drawSprite(ctx, def, entry, 0, 0, { flash: true });
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = dim;
     };
     const lamps = (scale) => {
       if (Math.floor(t * 2) % 2 === 0) return;
@@ -370,9 +391,9 @@ export function createPodRenderer(cache) {
       if (shell) {
         ctx.save();
         ctx.scale(1 / settle, 1 / settle);
-        ctx.globalAlpha = fade;
+        ctx.globalAlpha = dim * (fade);
         drawSprite(ctx, SET.shell, shell, 0, 0);
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = dim;
         glowOver(SET.shell, shell, fade);
         ctx.restore();
       }
@@ -398,18 +419,18 @@ export function createPodRenderer(cache) {
     if (glow > 0) {
       // It lights the ground between the plates ...
       for (const [r, a] of [[60, 0.1], [46, 0.14], [32, 0.2]]) {
-        ctx.globalAlpha = glow * a * (1 + focus * 0.6);
+        ctx.globalAlpha = dim * (glow * a * (1 + focus * 0.6));
         ell(ctx, 0, 0, r * O / 0.8, r * O * 0.5 / 0.8, color, null);
       }
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = dim;
     }
     drawSprite(ctx, SET.core, core, 0, 0);
     glowOver(SET.core, core, 1 - fade);
     if (focus > 0.01) {
       // ... and burns brighter in the chosen capsule.
-      ctx.globalAlpha = focus * 0.28 * glow;
+      ctx.globalAlpha = dim * (focus * 0.28 * glow);
       drawSprite(ctx, SET.core, core, 0, 0, { flash: true });
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = dim;
     }
     if (glow > 0.01) {
       // Rings of light round the core, the doctrine's colour over the dark groove of the sprite.
@@ -419,25 +440,25 @@ export function createPodRenderer(cache) {
         ctx.beginPath();
         ctx.ellipse(0, -ring * O, rc, rc * 0.5, 0, 0, Math.PI, false);
         ctx.strokeStyle = color;
-        ctx.globalAlpha = clamp01(glow * (0.7 + focus * 0.3));
+        ctx.globalAlpha = dim * (clamp01(glow * (0.7 + focus * 0.3)));
         ctx.lineWidth = 2.2;
         ctx.stroke();
         ctx.strokeStyle = '#ffffff';
-        ctx.globalAlpha = glow * (0.3 + focus * 0.4);
+        ctx.globalAlpha = dim * (glow * (0.3 + focus * 0.4));
         ctx.lineWidth = 0.8;
         ctx.stroke();
       }
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = dim;
       // The core's own halo.
       const cy = -17 * O;
       for (const [r, a] of [[12, 0.1], [7, 0.14], [3, 0.2]]) {
-        ctx.globalAlpha = glow * a * (1 + focus * 0.8);
+        ctx.globalAlpha = dim * (glow * a * (1 + focus * 0.8));
         const rr = rc + r * O;
         ell(ctx, 0, cy, rr, rr * 1.5, color, null);
       }
-      ctx.globalAlpha = glow * (0.5 + focus * 0.35);
+      ctx.globalAlpha = dim * (glow * (0.5 + focus * 0.35));
       ell(ctx, 0, -POD_ANCHORS.coreTop * O + 1, rc + 1, (rc + 1) * 0.5, color, null);
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = dim;
     }
     for (const p of SET.petals) if (p.layer === 'front') petal(p);
     lamps(O);
@@ -445,28 +466,54 @@ export function createPodRenderer(cache) {
     return true;
   }
 
+  function drawPod(ctx, pod, t, view) {
+    const drawn = render(ctx, pod, t, view);
+    ctx.globalAlpha = 1;
+    return drawn;
+  }
+
   return drawPod;
 }
 
-/** Hologram above an opened pod: doctrine colour, rank chevrons and label. The column is drawn with the capsule. */
-export function drawPodHologram(ctx, pod, t) {
+/**
+ * Plate above an opened pod: doctrine colour and rank chevrons. A resting plate is small and
+ * hangs low above its capsule, narrower than a cell, so six capsules on neighbouring cells never
+ * write into one another; the picked one grows, rises, gets a gold ring, a pointer down to its
+ * capsule and the label. The others fade while one is picked. The column is drawn with the capsule.
+ * @param {{selectedPod?: object|null}} [view]
+ */
+export function drawPodHologram(ctx, pod, t, view = {}) {
   if (!pod.landed) return;
-  const alpha = hologramAlpha(pod);
-  if (alpha <= 0) return;
+  const base = hologramAlpha(pod);
+  if (base <= 0) return;
+  const e = plateEmphasis(pod, t, view.selectedPod);
+  const alpha = base * (view.selectedPod ? 1 - (1 - POD_DIM_ALPHA) * (1 - e) : 1);
   const [sx, sy] = iso(pod.x + 0.5, pod.y + 0.5);
-  const s = HOLO_SCALE;
-  const y = plateY(pod, sy, t);
+  const s = plateScale(e);
+  const y = plateY(pod, sy, t, e);
   const color = DOCTRINE_COLORS[pod.doctrine];
 
-  ctx.globalAlpha = alpha * 0.3;
+  ctx.globalAlpha = alpha * (0.3 + 0.1 * e);
   ell(ctx, sx, y, 30 * s, 30 * s, color, null);
   ctx.globalAlpha = alpha;
 
-  const hex = [];
-  for (let i = 0; i < 6; i++) {
-    const a = Math.PI / 6 + (i * Math.PI) / 3;
-    hex.push([sx + Math.cos(a) * 18 * s, y + Math.sin(a) * 18 * s]);
+  const hexAt = (r) => {
+    const hex = [];
+    for (let i = 0; i < 6; i++) {
+      const a = Math.PI / 6 + (i * Math.PI) / 3;
+      hex.push([sx + Math.cos(a) * r, y + Math.sin(a) * r]);
+    }
+    return hex;
+  };
+  if (e > 0.01) {
+    // Pointer from the plate down to the capsule, then the gold ring round the plate.
+    ctx.globalAlpha = alpha * e;
+    poly(ctx, [[sx - 7 * s, y + 17 * s], [sx + 7 * s, y + 17 * s], [sx, y + 28 * s]], C.gold, C.ink, 3);
+    poly(ctx, hexAt(25 * s), null, C.ink, 9 * s);
+    poly(ctx, hexAt(25 * s), null, C.gold, 4 * s);
+    ctx.globalAlpha = alpha;
   }
+  const hex = hexAt(18 * s);
   poly(ctx, hex, 'rgba(26,20,16,.88)', C.ink, 6 * s);
   poly(ctx, hex, null, color, 2.5 * s);
 
@@ -480,7 +527,11 @@ export function drawPodHologram(ctx, pod, t) {
     ctx.lineTo(sx + 8 * s, yy - 3 * s);
     ctx.stroke();
   }
-  comicText(ctx, `${STRINGS.doctrines[pod.doctrine]} ${STRINGS.ranks[pod.rank]}`, sx, y + 40 * s, 17 * s, C.bone);
+  if (e > 0.05) {
+    // The label stands above the plate, so it covers neither the capsule nor a neighbour in front.
+    ctx.globalAlpha = alpha * e;
+    comicText(ctx, `${STRINGS.doctrines[pod.doctrine]} ${STRINGS.ranks[pod.rank]}`, sx, y - 36 * s, 17 * s, C.bone);
+  }
   ctx.globalAlpha = 1;
 }
 
@@ -491,7 +542,7 @@ export function drawPodHologram(ctx, pod, t) {
  */
 export function drawPodFrame(ctx, pod, { selected, t, reducedMotion }) {
   const pulse = reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(t * 5);
-  const inset = selected ? 0.04 - pulse * 0.02 : 0.1;
+  const inset = selected ? 0.02 - pulse * 0.03 : 0.1;
   const corners = [
     iso(pod.x + inset, pod.y + inset),
     iso(pod.x + 1 - inset, pod.y + inset),
@@ -501,14 +552,14 @@ export function drawPodFrame(ctx, pod, { selected, t, reducedMotion }) {
   if (!selected) {
     ctx.setLineDash([5, 6]);
     ctx.lineDashOffset = reducedMotion ? 0 : -t * 14;
-    poly(ctx, corners, null, 'rgba(242,193,78,.5)', 2);
+    poly(ctx, corners, null, 'rgba(242,193,78,.4)', 2);
     ctx.setLineDash([]);
     return;
   }
-  poly(ctx, corners, `rgba(242,193,78,${0.1 + pulse * 0.08})`, null);
+  poly(ctx, corners, `rgba(242,193,78,${0.2 + pulse * 0.1})`, null);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  for (const [lineWidth, stroke] of [[7, C.ink], [3.4, C.gold]]) {
+  for (const [lineWidth, stroke] of [[10, C.ink], [5, C.gold]]) {
     ctx.lineWidth = lineWidth;
     ctx.strokeStyle = stroke;
     for (let i = 0; i < 4; i++) {
@@ -516,9 +567,9 @@ export function drawPodFrame(ctx, pod, { selected, t, reducedMotion }) {
       const a = corners[(i + 1) % 4];
       const b = corners[(i + 3) % 4];
       ctx.beginPath();
-      ctx.moveTo(p[0] + (a[0] - p[0]) * 0.44, p[1] + (a[1] - p[1]) * 0.44);
+      ctx.moveTo(p[0] + (a[0] - p[0]) * 0.5, p[1] + (a[1] - p[1]) * 0.5);
       ctx.lineTo(p[0], p[1]);
-      ctx.lineTo(p[0] + (b[0] - p[0]) * 0.44, p[1] + (b[1] - p[1]) * 0.44);
+      ctx.lineTo(p[0] + (b[0] - p[0]) * 0.5, p[1] + (b[1] - p[1]) * 0.5);
       ctx.stroke();
     }
   }
