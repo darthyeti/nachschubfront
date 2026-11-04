@@ -494,6 +494,29 @@ export function createTutorial(root, { prefs, cellBox }) {
     }
   }
 
+  /**
+   * A button of the card that answers only to a press that began on it. The tap that just
+   * marked a field or pressed a button can still deliver its click a frame later, when the
+   * card of the next step already stands where the finger was: that click must not skip the
+   * walk. A click from the keyboard has no press (detail 0) and always counts.
+   */
+  function cardButton(label, className, onClick) {
+    let pressed = false;
+    const b = button(label, className, (ev) => {
+      const wasPressed = pressed;
+      pressed = false;
+      if (ev.detail > 0 && !wasPressed) return;
+      onClick(ev);
+    });
+    b.addEventListener('pointerdown', () => {
+      pressed = true;
+    });
+    b.addEventListener('pointercancel', () => {
+      pressed = false;
+    });
+    return b;
+  }
+
   function draw(shown, facts, hole, clear) {
     const { step, index, total } = shown;
     const text = stepText(step, facts);
@@ -539,7 +562,7 @@ export function createTutorial(root, { prefs, cellBox }) {
     meta.append(el('b', null, T.step(index + 1, total)), el('span', null, T.round(step.round)));
     const words = el('p', 'tutorial-text', text);
     const row = el('div', 'tutorial-row');
-    row.append(button(T.skip, 'alt tutorial-skip', () => {
+    row.append(cardButton(T.skip, 'alt tutorial-skip', () => {
       flow?.skip();
       finish();
     }));
@@ -547,7 +570,7 @@ export function createTutorial(root, { prefs, cellBox }) {
       if (need) row.append(el('span', 'tutorial-need', need));
     } else {
       row.append(
-        button(step.last ? T.last : T.next, 'primary tutorial-next', () => {
+        cardButton(step.last ? T.last : T.next, 'primary tutorial-next', () => {
           flow?.next();
           drawn = '';
         }),
