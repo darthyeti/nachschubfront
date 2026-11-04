@@ -147,6 +147,8 @@ export function createHud(root, { debug, onAction, onUnlock = () => {}, onFold =
     start.blur();
   });
   const restart = button(T.newGame, 'primary', () => onAction('newGame'));
+  // Hidden until a match is over; the first update would show it for a frame otherwise.
+  restart.hidden = true;
 
   // The supply disc carries the level as a badge and the price under it; what
   // the next level buys is in its bubble, in the rank colours.
