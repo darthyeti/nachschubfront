@@ -8,6 +8,7 @@
 // Everything is in cell coordinates until the caller projects it.
 
 import { createRng } from '../core/random.js';
+import { TRAIL } from '../data/art.js';
 
 /** Sample points of a round cap, as (cos, sin) of the angle from the side to the front. */
 const CAP = [
@@ -18,7 +19,7 @@ const CAP = [
 /** The inner side of a bend is mitred up to this: 1 + cos(turn angle) must stay above it. */
 const MITRE_MIN = 0.35;
 /** Spacing of the samples along a section in cells; an even count keeps one on the cell border. */
-const SAMPLE = 0.5;
+const SAMPLE = TRAIL.sample;
 
 const dist = (ax, ay, bx, by) => Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
 
@@ -132,13 +133,12 @@ const centreId = (c) => `c${c.x},${c.y}`;
 
 /**
  * The pieces of a section. A section inside one level is one piece. A section that joins two
- * levels is cut at the border of its two cells (the middle sample); of a straight step only the
- * half on the higher field is kept (the ramp lies on the lower one), a step across a diagonal keeps
- * both. Each piece lies on one cell, whose height lifts it.
+ * levels has none: the trail ends at the cell centre before the step and does not climb it, so
+ * nothing lies over a cliff or a wall. Each piece lies on one cell, whose height lifts it.
  * @param {{key: string, a: {x: number, y: number}, b: {x: number, y: number}}} section
  * @param {(cell: {x: number, y: number}) => number} levelOf  Level of the field of a cell.
- * @returns {{id: string, from: string | null, to: string | null, cell: {x: number, y: number},
- *   pts: {x: number, y: number, id: string}[]}[]}  `from` and `to` are cell centre ids, or null at a cut.
+ * @returns {{id: string, from: string, to: string, cell: {x: number, y: number},
+ *   pts: {x: number, y: number, id: string}[]}[]}  `from` and `to` are cell centre ids.
  */
 export function piecesOf(section, levelOf) {
   const { a, b } = section;
@@ -154,15 +154,8 @@ export function piecesOf(section, levelOf) {
     const id = k === 0 ? centreId(a) : k === n ? centreId(b) : `${section.key}#${k}`;
     all.push({ x: ax + (bx - ax) * t, y: ay + (by - ay) * t, id });
   }
-  const la = levelOf(a);
-  const lb = levelOf(b);
-  if (la === lb) return [{ id: section.key, from: centreId(a), to: centreId(b), cell: a, pts: all }];
-  const straight = a.x === b.x || a.y === b.y;
-  const mid = n / 2;
-  const out = [];
-  if (!straight || la > lb) out.push({ id: `${section.key}:a`, from: centreId(a), to: null, cell: a, pts: all.slice(0, mid + 1) });
-  if (!straight || lb > la) out.push({ id: `${section.key}:b`, from: null, to: centreId(b), cell: b, pts: all.slice(mid) });
-  return out;
+  if (levelOf(a) !== levelOf(b)) return [];
+  return [{ id: section.key, from: centreId(a), to: centreId(b), cell: a, pts: all }];
 }
 
 /**
@@ -237,5 +230,41 @@ export function jitterOf(seed, id, layers) {
   const r = createRng(`trail:${seed}`).fork(id);
   const out = [];
   for (let layer = 0; layer < layers; layer++) out.push({ shift: r.next() - 0.5, l: r.next() * 2 - 1, r: r.next() * 2 - 1 });
+  return out;
+}
+
+/** Roll of one sample point for the gaps of the trail, 0 to 1; its own stream, apart from the jitter. */
+export function gapOf(seed, id) {
+  return createRng(`trail-gap:${seed}`).fork(id).next();
+}
+
+/**
+ * Cuts a run into the stretches whose points `present` accepts. A stretch needs two points; a lone
+ * point is dropped. A stretch keeps the run's cap where it reaches the run's end and gets a round
+ * one where it ends in a gap.
+ * @param {{id: string}[]} pts
+ * @param {'round' | 'butt'} capStart
+ * @param {'round' | 'butt'} capEnd
+ * @param {(id: string) => boolean} present
+ * @returns {{pts: object[], capStart: string, capEnd: string, atEnd: boolean}[]}
+ */
+export function fragmentsOf(pts, capStart, capEnd, present) {
+  const out = [];
+  const m = pts.length;
+  let from = -1;
+  for (let i = 0; i <= m; i++) {
+    const on = i < m && present(pts[i].id);
+    if (on && from < 0) from = i;
+    if (on || from < 0) continue;
+    if (i - from >= 2) {
+      out.push({
+        pts: pts.slice(from, i),
+        capStart: from === 0 ? capStart : 'round',
+        capEnd: i === m ? capEnd : 'round',
+        atEnd: i === m,
+      });
+    }
+    from = -1;
+  }
   return out;
 }

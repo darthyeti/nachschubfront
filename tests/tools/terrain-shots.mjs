@@ -63,7 +63,7 @@ if (centre) {
 
 if (wantWave) {
   await page.getByRole('button', { name: 'Unverwundbar' }).click();
-  await page.getByRole('button', { name: '3x' }).click();
+  await page.keyboard.press('3');
   // One landing zone next to the end of the route, so the capsule's emplacement does not kill
   // the wave at the rift and the enemies walk the whole route.
   const zone = await page.evaluate(() => {
@@ -90,7 +90,7 @@ if (wantWave) {
     null,
     { timeout: 240000, polling: 20 },
   );
-  await page.getByRole('button', { name: '1x' }).click();
+  await page.keyboard.press('1');
   await page.waitForFunction(() => window.__nachschub.state().phase === 'evaluation', null, { timeout: 120000, polling: 20 });
 }
 
