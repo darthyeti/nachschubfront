@@ -525,6 +525,21 @@ export function solidKit(F, S = []) {
 
   tk.box = (x0, x1, y0, y1, z0, z1, colour, o) => tk.prism([[x0, z0], [x1, z0], [x1, z1], [x0, z1]], y0, y1, colour, o);
 
+  /** A rectangular frustum around (cx, cy): half sizes (hx0, hy0) below, (hx1, hy1) above. */
+  tk.frustum = (cx, cy, hx0, hy0, hx1, hy1, z0, z1, colour, o = {}) => {
+    const dz = (z1 - z0) / SOLID_K;
+    const mk = (nx, ny, nz, pts) => ({ p: pts, n: norm3([nx, ny, nz]) });
+    const faces = [
+      mk(dz, 0, hx0 - hx1, [[cx + hx0, cy - hy0, z0], [cx + hx0, cy + hy0, z0], [cx + hx1, cy + hy1, z1], [cx + hx1, cy - hy1, z1]]),
+      mk(-dz, 0, hx0 - hx1, [[cx - hx0, cy + hy0, z0], [cx - hx0, cy - hy0, z0], [cx - hx1, cy - hy1, z1], [cx - hx1, cy + hy1, z1]]),
+      mk(0, dz, hy0 - hy1, [[cx - hx0, cy + hy0, z0], [cx + hx0, cy + hy0, z0], [cx + hx1, cy + hy1, z1], [cx - hx1, cy + hy1, z1]]),
+      mk(0, -dz, hy0 - hy1, [[cx + hx0, cy - hy0, z0], [cx - hx0, cy - hy0, z0], [cx - hx1, cy - hy1, z1], [cx + hx1, cy - hy1, z1]]),
+      mk(0, 0, 1, [[cx - hx1, cy - hy1, z1], [cx + hx1, cy - hy1, z1], [cx + hx1, cy + hy1, z1], [cx - hx1, cy + hy1, z1]]),
+    ];
+    for (const [x, y, z] of [[hx0, hy0, z0], [hx1, hy1, z1]]) for (const sx of [-1, 1]) for (const sy of [-1, 1]) S.push([cx + sx * x, cy + sy * y, z]);
+    return solid(F, faces, colour, o.layer ?? 0, o.lw ?? 1.8);
+  };
+
   /** An upright faceted column (or cone frustum) of radius r0 below and r1 above. */
   tk.column = (cx, cy, r0, r1, z0, z1, colour, o = {}) => {
     const n = o.n ?? 8;

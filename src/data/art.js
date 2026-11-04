@@ -111,6 +111,79 @@ export const TURRET_ROCKET = {
   mouths: [[-1, 1], [1, -1], [0, 1], [-1, -1], [1, 1], [0, -1]],
 };
 
+// ---------- The special emplacements (M9 D4) ----------
+// Presentation only, from reference/studien/spezialstellungen-rework-modell.js, which is binding.
+// The six weapons of the recipes are turned models like the standard ones; they are keyed by the id of
+// the recipe (src/data/recipes.js). The base under them is a sprite per recipe (`specialbase-<id>`).
+
+/** Authored height of the roof platform of the special base in px, before the scale of the base. */
+export const SPECIAL_MOUNT_AUTHORED = 52;
+
+/** Height of the roof platform of the special base above the ground in world px: the weapon stands there. */
+export const SPECIAL_ROOF_HEIGHT = SPECIAL_MOUNT_AUTHORED * BUNKER_BASE_SCALE;
+
+/**
+ * Size of each special weapon relative to TURRET_SCALE. They are chosen so that none of them stands
+ * more than a tenth higher than its sprite did before (tests/unit/specials.test.js measures it).
+ */
+export const SPECIAL_SCALE = {
+  purgeShrine: 0.85,
+  stormBattery: 1.15,
+  emberCauldron: 0.9,
+  siegeMortar: 0.95,
+  thunderTower: 1.0,
+  soulfireObelisk: 1.0,
+};
+
+/** Turn speed of the drawing of each special weapon in radians per second (heavier is slower). */
+export const SPECIAL_TURN_SPEED = {
+  purgeShrine: 1.3,
+  stormBattery: 3.6,
+  emberCauldron: 2.2,
+  siegeMortar: 1.5,
+  thunderTower: 3,
+  soulfireObelisk: 2.2,
+};
+
+/** How fast the recoil of the barrels dies away, per second: the four barrels of the battery, the tube of the mortar. */
+export const SPECIAL_BAR_DECAY = 14;
+export const SPECIAL_RECOIL_DECAY = 7;
+
+/**
+ * The muzzle of each special weapon in local coordinates (as TURRET_MUZZLE): `x` along the barrel in
+ * cells, `z` above the plate in px before the scale. The battery has four barrels (`barrels`: sideways
+ * offset in cells and height offset in px, two over two, fired in turn) that each slide back by `recoil`
+ * cells. The siege mortar is a long tube on a low elevation about `pivot`. The shrine, the thunder tower
+ * and the obelisk fire from the middle of a part that floats, which bobs on top of `z`.
+ */
+export const SPECIAL_MUZZLE = {
+  purgeShrine: { z: 17.5 },
+  stormBattery: {
+    x: 0.56,
+    axisZ: 12,
+    recoil: 0.045,
+    barrels: [[0.085, 3.1], [-0.085, -3.1], [-0.085, 3.1], [0.085, -3.1]],
+  },
+  emberCauldron: { x: 0.225, z: 31.5 },
+  siegeMortar: { elevation: (50 * Math.PI) / 180, length: 0.8, pivot: [0, 0, 20], back: 0.12, recoil: 0.09 },
+  thunderTower: { z: 42 },
+  soulfireObelisk: { x: 0.06, z: 74 },
+};
+
+/** Where the spent cases of the storm battery leave it: the back of the housing, local [lx, ly, z]. */
+export const SPECIAL_CASING_PORT = [-0.21, 0, 15];
+
+/** Local points of the fire that belongs to a model: the flames in the cauldron, the foot of the obelisk. */
+export const SPECIAL_FIRE = {
+  cauldron: [0, 0, 21.5],
+  obeliskFeet: [[0.13, 0], [-0.13, 0], [0, 0.13], [0, -0.13]],
+  obeliskFootZ: 9,
+};
+
+/** Special weapons whose floating part is a layer of its own over a cached stage; the shrine is always drawn live. */
+export const SPECIAL_FLOATS = ['thunderTower', 'soulfireObelisk'];
+export const SPECIAL_LIVE_ALWAYS = ['purgeShrine'];
+
 // ---------- Muzzle fire and effects at the barrel (M9 D3) ----------
 // Presentation only: how long the flashes last, how far a jet reaches, how many particles the
 // muzzles may hold. Nothing here is a rule of the game; the shots themselves come from the simulation.
@@ -122,8 +195,19 @@ export const TURRET_ROCKET = {
  */
 export const FX_TIP_AHEAD = { mortar: 0.12, tesla: 0.05 };
 
-/** Seconds a muzzle flash lasts, by doctrine (the rockets flare twice as long as a gun). */
-export const FX_FLASH_SECONDS = { autocannon: 0.075, mortar: 0.15, tesla: 0.075 };
+/**
+ * Seconds a muzzle flash lasts, by doctrine (the rockets flare twice as long as a gun) and by special
+ * emplacement (M9 D4: one flash per barrel of the battery, a long one for the siege mortar).
+ */
+export const FX_FLASH_SECONDS = {
+  autocannon: 0.075,
+  mortar: 0.15,
+  tesla: 0.075,
+  stormBattery: 0.07,
+  siegeMortar: 0.154,
+  emberCauldron: 0.14,
+  thunderTower: 0.07,
+};
 
 /** Seconds the laser beam stays, the tesla bolt stays, and a psi pulse takes to run out. */
 export const FX_BEAM_SECONDS = 0.22;
@@ -155,6 +239,33 @@ export const FX_QUEUE = 24;
  * end point are those of the shell of the simulation.
  */
 export const FX_ROCKET = { lift: 28, reach: 0.42, endZ: 12, trail: 0.025, tail: 10 };
+
+// ---------- Fire of the special emplacements (M9 D4) ----------
+
+/**
+ * Seconds the bolt of the cauldron and the chain of the thunder tower stay, the soul beam of the
+ * obelisk stays, and the eye of the obelisk charges over the end of its reload when it has a target.
+ */
+export const FX_SPECIAL_BOLT_SECONDS = { emberCauldron: 0.32, thunderTower: 0.34 };
+export const FX_OBELISK_BEAM_SECONDS = 0.26;
+export const FX_OBELISK_CHARGE_SECONDS = 0.4;
+
+/** The scope of the siege mortar throws its red line over the last seconds of the reload. */
+export const FX_SIGHT_SECONDS = 0.8;
+
+/** The tracer of the storm battery: speed in cells per second (it fires a lot faster than the autocannon). */
+export const FX_STORM_TRACER_SPEED = 18;
+
+/**
+ * The shell of the siege mortar: it climbs `lift` px over the straight line plus `perCell` px for every cell
+ * of the way, ending `endZ` px above the ground. Flight time and end point are those of the shell of the
+ * simulation.
+ */
+export const FX_SHELL = { lift: 90, perCell: 22, endZ: 0 };
+
+/** Slowest and brightest pulse of the gold aura of the shrine on the ground, and how fast it rises and falls. */
+export const FX_AURA_IDLE = 0.35;
+export const FX_AURA_RATE = 3;
 
 // ---------- Choosing a capsule (issue 50) ----------
 
