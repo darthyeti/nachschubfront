@@ -548,9 +548,16 @@ function lookedAtFields(state, ui, size) {
     seen.add(key);
     out.push({ x: cell.x, y: cell.y, color });
   };
-  for (const cell of [ui.inspect, ui.hoverCell]) {
-    const tower = cell ? towerAt(state, cell) : null;
-    add(cell, tower ? DOCTRINE_COLORS[towerStats(tower).doctrine] : C.gold);
+  // The pointer and the pinned info panel only count while planning: once a wave runs (or a
+  // capsule was taken) nothing is being placed or chosen. A tap leaves `hoverCell` standing; on a
+  // field with an emplacement that is not a choice, so only `inspect` counts there.
+  if (PLANNING_PHASES.has(state.phase)) {
+    const same = (a, b) => a && b && a.x === b.x && a.y === b.y;
+    for (const cell of [ui.inspect, ui.hoverCell]) {
+      const tower = cell ? towerAt(state, cell) : null;
+      if (tower && !same(cell, ui.inspect)) continue;
+      add(cell, tower ? DOCTRINE_COLORS[towerStats(tower).doctrine] : C.gold);
+    }
   }
   const selecting = state.phase === 'selection';
   state.pods.forEach((pod, index) => {
@@ -595,6 +602,10 @@ function drawRevealOutlines(ctx, field, looked, fade) {
     const lift = cellLift(f.x, f.y);
     ctx.translate(0, -lift);
     cellPath(ctx, f.x, f.y, 0.04);
+    ctx.globalAlpha = fade * REVEAL.outlineFillAlpha;
+    ctx.fillStyle = f.color;
+    ctx.fill();
+    ctx.globalAlpha = fade;
     ctx.strokeStyle = C.ink;
     ctx.lineWidth = REVEAL.outlineInk;
     ctx.stroke();
