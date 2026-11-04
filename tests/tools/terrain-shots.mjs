@@ -107,8 +107,15 @@ const placed = await page.evaluate(({ towers, rubble }) => {
   return done;
 }, scene);
 console.log(JSON.stringify(placed));
+const click = JSON.parse(arg('click', 'null'));
+if (click) {
+  // A tap on a cell: pins it as the field the player is looking at (the see-through of issue 35).
+  const [sx, sy] = await page.evaluate(([x, y]) => window.__nachschub.screenOfCell(x, y), click);
+  await page.mouse.click(sx, sy);
+  await page.waitForTimeout(400);
+}
 await page.addStyleTag({ content: 'body > *:not(canvas) { visibility: hidden !important; }' });
-await page.mouse.move(5, 5);
+if (!click) await page.mouse.move(5, 5);
 await page.waitForTimeout(wantWave ? 250 : 2500);
 await page.screenshot({ path: out, clip });
 console.log('wrote', out);
