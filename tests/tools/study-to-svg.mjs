@@ -21,6 +21,7 @@ import { join } from 'node:path';
 import { ROOT, startServer } from './server.mjs';
 import { installRecorder } from './canvas-to-svg.mjs';
 import { DOCTRINE_IDS, DOCTRINE_COLORS } from '../../src/data/doctrines.js';
+import { RECIPES } from '../../src/data/recipes.js';
 
 /**
  * The shared style block. Every sheet in a source folder has to carry the same
@@ -39,12 +40,10 @@ const STYLE =
  * draws one figure at the origin; whatever it paints becomes one symbol.
  */
 const FIGURES = [
-  // The standard bunker is no longer drawn here: since 0.11.0 it comes from the
-  // rework study (below). Only the special base is still the one of this study.
-  { id: 'specialbase', sheet: 'bunker', call: 'drawSpecial(0, 0)' },
-
-  // The six standard tops, drawn in their own local space and scaled the way
-  // the study places them on the roof, so the sprite is ready to sit there.
+  // The standard bunker (since 0.11.0) and the special base (since 0.11.10) are no longer drawn here:
+  // they come from the rework studies (below). The six special tops of this study are gone with 0.11.10.
+  // The six standard tops, drawn in their own local space and scaled the way the study places them on
+  // the roof, so the sprite is ready to sit there (no longer read by the game since 0.11.2).
   ...[
     ['auto', 'top-auto'],
     ['fire', 'top-fire'],
@@ -53,22 +52,10 @@ const FIGURES = [
     ['laser', 'top-laser'],
     ['psi', 'top-psi'],
   ].map(([type, id]) => ({ id, sheet: 'tops', call: `drawTop('${type}')` })),
-
-  // And the six special weapons on the higher base.
-  ...[
-    ['purge', 'stop-purgeShrine'],
-    ['storm', 'stop-stormBattery'],
-    ['kessel', 'stop-emberCauldron'],
-    ['siege', 'stop-siegeMortar'],
-    ['storm_tower', 'stop-thunderTower'],
-    ['obelisk', 'stop-soulfireObelisk'],
-  ].map(([type, id]) => ({ id, sheet: 'tops', call: `drawTop('${type}')` })),
 ];
 
 /** Sheets to write, and which symbols each one shows. */
 const SHEETS = {
-  // Only the special base now; the standard bunkers are in bunker-raenge.svg.
-  bunker: 'reference/konzept/stellungen/bunker.svg',
   tops: 'reference/konzept/stellungen/aufsaetze.svg',
 };
 
@@ -255,6 +242,28 @@ for (const doctrine of DOCTRINE_IDS) {
 }
 console.log(`  bunker: ${bunkerFigures.length} symbols, ${bunkerFigures.reduce((n, f) => n + f.shapes.length, 0)} shapes`);
 await writeSheet('reference/konzept/stellungen/bunker-raenge.svg', bunkerFigures, 'reference/studien/stellungen-rework-modell.js (drawBunker)', 5);
+
+// ---------- The special base ----------
+// The base of reference/studien/spezialstellungen-rework.html (M9, D4): one symbol per recipe, because
+// the guide colour (rim, plates, lamp) and the three lamps in the colours of the ingredients are part of
+// the drawing. The six weapons are turned models (src/render/specials.js), not exported.
+const specialFigures = [];
+for (const recipe of RECIPES) {
+  const shapes = await bunkerPage.evaluate(
+    async ([lead, pips]) => {
+      const { drawSpecialBase } = await import('/reference/studien/spezialstellungen-rework-modell.js');
+      const ctx = document.createElement('canvas').getContext('2d');
+      const recorder = window.__installRecorder(ctx);
+      drawSpecialBase(ctx, lead, pips, { flat: true });
+      return recorder.take();
+    },
+    [DOCTRINE_COLORS[recipe.ingredients[0]], recipe.ingredients.map((d) => DOCTRINE_COLORS[d])],
+  );
+  if (shapes.length === 0) throw new Error(`special base ${recipe.id}: nothing was drawn`);
+  specialFigures.push({ id: `specialbase-${recipe.id}`, shapes });
+}
+console.log(`  special base: ${specialFigures.length} symbols, ${specialFigures.reduce((n, f) => n + f.shapes.length, 0)} shapes`);
+await writeSheet('reference/konzept/stellungen/spezialbasis.svg', specialFigures, 'reference/studien/spezialstellungen-rework-modell.js (drawSpecialBase)', 6);
 
 // ---------- The supply capsule ----------
 // Draft B of reference/studien/kapsel-studie.html (docs/ART.md, "Nachschubkapsel").

@@ -1,26 +1,22 @@
-// What used to be painted into the concept art and is animated in code from M4 on:
-// the pilot light of the flame thrower, the lens of the laser, the aura and rings
-// of the psi shrine, the glow and the arcs of the tesla coil. Since M4d also the
-// muzzle flashes, casings and the flame jet at the weapon's muzzle.
+// The fire of the emplacements, drawn in code at the muzzle of their weapon (M9 D3 for the standard
+// weapons, D4 for the recipe emplacements): it reads the muzzle point from the model (weapons.js) and
+// draws flash, sparks, smoke, cases, tracer, beam, bolt, jet, pulse, scope line and the flight of the
+// rockets and the shell from there, in the direction of the shot. The shapes and colours are those of
+// reference/studien/stellungen-rework.js and spezialstellungen-rework.js.
 //
-// These belong to the emplacement itself (they are there without a shot being
-// fired), unlike the muzzle flashes and beams in effects.js.
-//
-// The second half of the file (M9 D3) is the fire at the barrel of the turned weapons: it reads the
-// muzzle point from the model (turrets.js) and draws flash, sparks, smoke, cases, tracer, beam, bolt,
-// jet, psi pulse and the flight of the rockets from there, in the direction of the shot. The shapes and
-// colours are those of reference/studien/stellungen-rework.js. The recipe emplacements keep the
-// older drawing above until D4.
+// These belong to the emplacement itself (they are there without a shot being fired), unlike the
+// explosions and impacts in effects.js, which the simulation reports.
 
 import { ell, poly } from './draw.js';
 import { iso } from './iso.js';
 import { cellLift, liftAt } from './terrain.js';
 import { C } from './palette.js';
 import { turnFrame, SOLID_K as K } from './model.js';
-import { MUZZLE, MOUNT_Z, TURRET_SCALE, CASING_PORT } from './turrets.js';
+import { weaponOf } from './weapons.js';
+import { siegeSight } from './specials.js';
+import { CASING_PORT } from './turrets.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import {
-  FX_TIP_AHEAD,
   FX_FLASH_SECONDS,
   FX_BEAM_SECONDS,
   FX_BOLT_SECONDS,
@@ -34,21 +30,22 @@ import {
   FX_GRAVITY,
   FX_QUEUE,
   FX_ROCKET,
+  FX_SPECIAL_BOLT_SECONDS,
+  FX_OBELISK_BEAM_SECONDS,
+  FX_OBELISK_CHARGE_SECONDS,
+  FX_SIGHT_SECONDS,
+  FX_STORM_TRACER_SPEED,
+  FX_SHELL,
+  FX_AURA_IDLE,
+  FX_AURA_RATE,
+  SPECIAL_CASING_PORT,
+  SPECIAL_FIRE,
 } from '../data/art.js';
-
-/** Where the hero's banner stands on the base and how big it is (SVG units). */
-/** Arcs around the tesla sphere: idle it crackles, while firing it flares. */
-const ARC_IDLE = 1;
-const ARC_FIRING = 3;
-
-function isFiring(tower) {
-  return Boolean(tower.firing) || tower.cooldown > 0;
-}
 
 /** Soft round glow without shadowBlur (CLAUDE.md): a radial gradient. */
 function glow(ctx, x, y, radius, colour, alpha) {
   const g = ctx.createRadialGradient(x, y, radius * 0.1, x, y, radius);
-  g.addColorStop(0, `${colour}${Math.round(alpha * 255).toString(16).padStart(2, '0')}`);
+  g.addColorStop(0, `${colour}${Math.round(Math.max(0, Math.min(1, alpha)) * 255).toString(16).padStart(2, '0')}`);
   g.addColorStop(1, `${colour}00`);
   ctx.fillStyle = g;
   ctx.beginPath();
@@ -56,186 +53,8 @@ function glow(ctx, x, y, radius, colour, alpha) {
   ctx.fill();
 }
 
-/** One jagged arc from the sphere outwards. */
-function arc(ctx, x, y, angle, length, colour, jitter) {
-  const steps = 3;
-  const points = [[x, y]];
-  for (let i = 1; i <= steps; i++) {
-    const u = i / steps;
-    const off = i === steps ? 0 : (Math.random() - 0.5) * jitter;
-    points.push([x + Math.cos(angle) * length * u - Math.sin(angle) * off, y + Math.sin(angle) * length * u + Math.cos(angle) * off]);
-  }
-  for (const [width, stroke] of [[5, C.ink], [2.2, colour]]) {
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.moveTo(points[0][0], points[0][1]);
-    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
-    ctx.stroke();
-  }
-}
-
-/**
- * The glowing parts behind the weapon: psi aura and rings, tesla halo.
- * @param {{doctrine: string, pivot: number[], muzzle: number[], scale: number, t: number, reducedMotion: boolean}} view
- */
-export function drawWeaponGlow(ctx, tower, view) {
-  const { doctrine, pivot, scale, t, reducedMotion } = view;
-  const firing = isFiring(tower);
-
-  // Normally the doctrine decides the halo, but two recipe buildings hover a psi
-  // part whose colour is not their doctrine's: the shrine's splinter is violet
-  // on a flame building, the thunder tower's core is blue (docs/ART.md).
-  const kind = view.glow?.kind ?? doctrine;
-  const colour = view.glow?.colour ?? DOCTRINE_COLORS[doctrine] ?? C.gold;
-
-  // Since v5 the rings and the coil are part of the drawing, so only the light
-  // around them is left to the code: two sets of rings on one figure read as a
-  // mistake, not as a glow (docs/ART.md).
-  if (kind === 'psi' || kind === 'tesla') {
-    const [ax, ay] = view.core ?? view.anchor ?? pivot;
-    const bob = view.core ? 0 : reducedMotion ? 0 : Math.sin(t * 2 + tower.x) * 2 * scale;
-    glow(ctx, ax, ay - bob, 26 * scale, colour, firing ? 0.36 : 0.22);
-  }
-}
-
-/** A muzzle flash: the four-pointed star of the concept sheets. */
-function spark(ctx, x, y, radius, colour) {
-  ctx.beginPath();
-  for (let i = 0; i < 8; i++) {
-    const angle = (i / 8) * Math.PI * 2;
-    const r = i % 2 ? radius * 0.34 : radius;
-    const [px, py] = [x + Math.cos(angle) * r, y + Math.sin(angle) * r];
-    if (i) ctx.lineTo(px, py);
-    else ctx.moveTo(px, py);
-  }
-  ctx.closePath();
-  ctx.fillStyle = colour;
-  ctx.fill();
-}
-
-/**
- * Spent cases tumbling out of a rapid-firing gun (style test). They live off the
- * shot's own decay instead of a particle system: the drum fire is over in a
- * fraction of a second, and nothing has to be kept between frames.
- */
-/**
- * Spent brass tumbling out of the muzzle while firing. Driven by the recoil
- * phase (`view.shot`, 1 just fired, decaying to 0), so it animates per shot
- * without a persistent particle. Two cases arc out to the side away from the
- * line of fire, rise, then fall.
- */
-function drawEjectedCasings(ctx, { muzzle, casingPort, fire, shot, scale }) {
-  // The turned autocannon throws its cases from the belly of the housing; the older tops from the muzzle.
-  const from = casingPort ?? muzzle;
-  if (shot <= 0.05) return;
-  const age = 1 - shot;
-  // Sideways from the barrel, on the screen-up side, plus a fall.
-  const side = [-fire[1], -Math.abs(fire[0]) - 0.4];
-  const len = Math.hypot(side[0], side[1]) || 1;
-  const ux = side[0] / len;
-  const uy = side[1] / len;
-  ctx.fillStyle = '#e8c872';
-  ctx.strokeStyle = C.ink;
-  ctx.lineWidth = 0.8;
-  for (let n = 0; n < 2; n++) {
-    const out = (10 + n * 7) * scale * age;
-    const rise = (1 - (age * 2 - 1) ** 2) * 13 * scale;
-    const cx = from[0] + ux * out;
-    const cy = from[1] + uy * out - rise + age * age * 16 * scale;
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(age * (7 + n * 2));
-    ctx.beginPath();
-    ctx.rect(-1.4 * scale, -0.9 * scale, 2.8 * scale, 1.8 * scale);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-  }
-}
-
-
-
-/** The bright bits in front: pilot light, lens, arcs. */
-export function drawWeaponSpark(ctx, tower, view) {
-  const { doctrine, muzzle, pivot, scale, t, reducedMotion } = view;
-  const colour = DOCTRINE_COLORS[doctrine] ?? C.gold;
-  const firing = isFiring(tower);
-
-  if (view.ports) {
-    drawPortFire(ctx, tower, view);
-  } else if (doctrine === 'flame') {
-    // Blue pilot light when idle, a yellow tongue while burning (style test).
-    // The shrine and the cauldron burn in a bowl, not at a nozzle, so the fire
-    // sits on their anchor (docs/ART.md, "Wirkungsanker").
-    const [fx, fy] = view.anchor ?? muzzle;
-    const flicker = reducedMotion ? 1 : 0.85 + Math.sin(t * 20) * 0.15;
-    const bowl = Boolean(view.anchor);
-    const r = (tower.firing ? 5 : 2.5) * (bowl ? 1.8 : 1) * flicker * scale;
-    if (bowl) glow(ctx, fx, fy, (tower.firing ? 22 : 15) * scale, '#ff8a2a', tower.firing ? 0.5 : 0.3);
-    ell(ctx, fx, fy, r, r, tower.firing || bowl ? '#ffd23f' : '#6fb7ff', null);
-    if (bowl) ell(ctx, fx, fy - r * 0.5, r * 0.55, r * 0.7, '#fff3c4', null);
-  } else if (doctrine === 'autocannon') {
-    // A muzzle flash at the barrel while firing, and brass tumbling out of it.
-    if (tower.firing || view.shot > 0.05) {
-      const flare = Math.max(0.3, view.shot);
-      glow(ctx, muzzle[0], muzzle[1], 12 * scale * flare, '#ffd23f', 0.5 * flare);
-      spark(ctx, muzzle[0], muzzle[1], (4 + 3 * flare) * scale, '#fff3b0');
-    }
-    if (view.casings || doctrine === 'autocannon') drawEjectedCasings(ctx, view);
-  } else if (doctrine === 'laser') {
-    const pulse = reducedMotion ? 0.8 : 0.6 + Math.sin(t * 6) * 0.2;
-    glow(ctx, muzzle[0], muzzle[1], 14 * scale, colour, firing ? 0.55 : 0.3);
-    ell(ctx, muzzle[0], muzzle[1], 3 * scale, 3 * scale, colour, C.ink, 1.5);
-    ctx.globalAlpha = pulse;
-    ell(ctx, muzzle[0] - scale, muzzle[1] - scale, 1.4 * scale, 1.4 * scale, '#fff3e0', null);
-    ctx.globalAlpha = 1;
-  } else if (doctrine === 'tesla') {
-    const count = reducedMotion ? 1 : firing ? ARC_FIRING : ARC_IDLE;
-    const jitter = reducedMotion ? 0 : 6 * scale;
-    // The idle arcs leave the same point the chain does: the coil, not the psi
-    // core hovering above it (docs/ART.md, "Wirkungsanker").
-    const [cx, cy] = view.anchor ?? pivot;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    for (let i = 0; i < count; i++) {
-      // Slow drift plus a jump per arc, so the pattern never stands still.
-      const angle = -Math.PI / 2 + Math.sin(t * 3 + i * 2.1 + tower.x) * 1.6;
-      arc(ctx, cx, cy, angle, (16 + i * 6) * scale, '#bff2ff', jitter);
-    }
-    ell(ctx, cx - 5 * scale, cy - 5 * scale, 4.5 * scale, 4.5 * scale, '#dff6ff', null);
-  }
-
-  // The siege mortar's scope draws a thin line to where the shell will go, a
-  // moment before it leaves. Purely a warning; nothing is aimed by it.
-  if (view.sight && tower.aim) drawSight(ctx, tower, view);
-}
-
-/**
- * The laser sight of the siege mortar: a thin red line from the muzzle to the
- * target, brightest just before the shot and gone while the tube reloads.
- */
-function drawSight(ctx, tower, view) {
-  const { muzzle, t, reducedMotion } = view;
-  const [tx, ty] = iso(tower.aim.x + 0.5, tower.aim.y + 0.5, 6 + cellLift(tower.aim.x, tower.aim.y) - cellLift(tower.x, tower.y));
-  const pulse = reducedMotion ? 0.5 : 0.35 + Math.abs(Math.sin(t * 5)) * 0.35;
-  ctx.save();
-  ctx.globalAlpha = pulse;
-  ctx.strokeStyle = '#ff4a4a';
-  ctx.lineWidth = 1.4;
-  ctx.setLineDash([6, 5]);
-  ctx.beginPath();
-  ctx.moveTo(muzzle[0], muzzle[1]);
-  ctx.lineTo(tx, ty);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.globalAlpha = Math.min(1, pulse + 0.3);
-  ell(ctx, tx, ty, 3, 1.6, '#ff4a4a', null);
-  ctx.restore();
-}
-
 // ======================================================================================
-// M9 D3: fire at the barrel of the turned weapons
+// Fire at the barrel of the turned weapons
 // ======================================================================================
 
 const TAU = Math.PI * 2;
@@ -256,6 +75,8 @@ export function fxOf(tower) {
     fx = {
       queue: [],
       flash: 0,
+      // The flash of each of the four barrels of the storm battery.
+      flashK: [0, 0, 0, 0],
       beam: 0,
       beamEnd: null,
       bolt: 0,
@@ -265,8 +86,16 @@ export function fxOf(tower) {
       pulses: [],
       pulseCd: 0,
       pending: null,
+      // Everything the simulation said since the last shot (a volley reports one shot per target).
+      events: [],
       launch: null,
       frame: null,
+      // 1 while the eye of the obelisk charges or fires, level of the gold aura of the shrine, and how far
+      // the scope of the siege mortar has the target in its line (0 to 1).
+      glow: 0,
+      aura: FX_AURA_IDLE,
+      sight: 0,
+      charge: 0,
     };
     states.set(tower, fx);
   }
@@ -275,7 +104,9 @@ export function fxOf(tower) {
 
 /** What the simulation reported about the last shot (target, chain legs), for the next muzzle flash. */
 export function noteTowerEvent(tower, event) {
-  fxOf(tower).pending = event;
+  const fx = fxOf(tower);
+  fx.pending = event;
+  if (fx.events.length < 8) fx.events.push(event);
 }
 
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -292,13 +123,13 @@ function smokeSpec(fx, lift, x, y, z, vx, vy, vz, r0, r1, life, tone = 0) {
   queue(fx, { kind: 'wsmoke', x, y, z, vx, vy, vz, r0, r1, tone, life, floor: lift });
 }
 
-function sparkSpec(fx, lift, x, y, z, count, speed, life = 0.28) {
+function sparkSpec(fx, lift, x, y, z, count, speed, life = 0.28, colour = null) {
   for (let i = 0; i < count; i++) {
     const a = rand(0, TAU);
     const s = rand(0.3, 1) * speed;
     queue(fx, {
       kind: 'wspark', x, y, z, vx: Math.cos(a) * s * 0.02, vy: Math.sin(a) * s * 0.02, vz: rand(0.1, 1) * speed,
-      life: life * rand(0.6, 1.1), floor: lift,
+      life: life * rand(0.6, 1.1), floor: lift, colour,
     });
   }
 }
@@ -308,26 +139,34 @@ function sparkSpec(fx, lift, x, y, z, count, speed, life = 0.28) {
  * shot (x, y, and z in cells). The point follows the weapon as it is shown, the direction follows the
  * way it points. The fire leaves a little in front of the model's muzzle where something sticks out
  * (FX_TIP_AHEAD: the noses of the rockets, the tip of the tesla horn).
- * @param {{recoil?: number, tube?: number, bob?: number}} pose
+ * @param {{recoil?: number, tube?: number, bob?: number, bar?: number[]}} pose
  * @param {number} push  cells the stage has been shoved back along the barrel
  */
 export function muzzleWorld(tower, shown, theta, pose, push = 0) {
-  const doctrine = tower.doctrine;
+  const model = weaponOf(tower);
   const lift = cellLift(tower.x, tower.y);
-  const Fs = turnFrame(shown, MOUNT_Z, TURRET_SCALE);
-  const Fa = turnFrame(theta, MOUNT_Z, TURRET_SCALE);
-  const m = MUZZLE[doctrine]({ recoil: 0, tube: 0, bob: 0, ...pose });
-  const ahead = FX_TIP_AHEAD[doctrine] ?? 0;
+  const Fs = turnFrame(shown, model.mount, model.scale);
+  const Fa = turnFrame(theta, model.mount, model.scale);
+  const m = model.muzzle({ recoil: 0, tube: 0, bob: 0, bar: [0, 0, 0, 0], ...pose });
+  const ahead = model.ahead;
   const d = m.dir;
   const at = [m.at[0] + d[0] * ahead, m.at[1] + d[1] * ahead, m.at[2] + d[2] * ahead * K];
   const [px, py] = Fs.world(at[0], at[1]);
   return {
     x: tower.x + HALF + px - push * Math.cos(shown),
     y: tower.y + HALF + py - push * Math.sin(shown),
-    z: lift + MOUNT_Z + at[2] * TURRET_SCALE,
+    z: lift + model.mount + at[2] * model.scale,
     dir: Fa.wn(d[0], d[1], d[2]),
     lift,
   };
+}
+
+/** A local point of the weapon in the world: x, y in cells, z in px above level 0. */
+function localWorld(tower, fx, lx, ly, z) {
+  const model = weaponOf(tower);
+  const f = fx.frame;
+  const [px, py] = turnFrame(f.shown, model.mount, model.scale).world(lx, ly);
+  return [tower.x + HALF + px, tower.y + HALF + py, f.lift + model.mount + z * model.scale];
 }
 
 /** Screen point of a world point (x, y in cells, z in px above level 0). */
@@ -337,33 +176,48 @@ const P = (x, y, z) => iso(x, y, z);
  * Advances the fire of one turned weapon by `dt` real seconds and works out where its muzzle is this
  * frame. Called from the drawing of the emplacement, after the direction has been settled.
  * @param {{dt: number, shot: boolean, tube: number, shown: number, theta: number, push: number,
- *   recoil: number, bob: number, t: number, reducedMotion: boolean}} o  `shot` is true on the frame the
- *   reload counter jumped back up; `tube` is the tube of the rocket launcher that fired last.
+ *   recoil: number, bar: number[], bob: number, t: number, reducedMotion: boolean}} o  `shot` is true on
+ *   the frame the reload counter jumped back up; `tube` is the tube of the rocket launcher or the barrel of
+ *   the storm battery that fired last, `bar` the recoil of each of its barrels.
  */
 export function updateTurretFx(tower, o) {
   const fx = fxOf(tower);
   const { dt, shown, theta, t, reducedMotion } = o;
-  const doctrine = tower.doctrine;
-  const mw = muzzleWorld(tower, shown, theta, { recoil: o.recoil, tube: o.tube, bob: o.bob }, o.push);
+  const model = weaponOf(tower);
+  const doctrine = model.kind;
+  const pose = { recoil: o.recoil, tube: o.tube, bob: o.bob, bar: o.bar };
+  const mw = muzzleWorld(tower, shown, theta, pose, o.push);
   const lift = mw.lift;
-  fx.frame = { ...mw, t, reducedMotion, bob: o.bob, front: mw.dir[0] + mw.dir[1] >= 0 };
+  // What leaves from the top of a floating part (ball, eye, artefact) is above everything: it is "in front".
+  const aboveAll = doctrine === 'thunderTower' || doctrine === 'soulfireObelisk' || doctrine === 'purgeShrine';
+  fx.frame = {
+    ...mw, t, reducedMotion, bob: o.bob, shown, theta, push: o.push, pose, scale: model.scale,
+    front: aboveAll || mw.dir[0] + mw.dir[1] >= 0,
+  };
 
   fx.flash = Math.max(0, fx.flash - dt);
+  for (let k = 0; k < fx.flashK.length; k++) fx.flashK[k] = Math.max(0, fx.flashK[k] - dt);
   fx.beam = Math.max(0, fx.beam - dt);
   fx.bolt = Math.max(0, fx.bolt - dt);
 
   const aim = tower.aim ? [tower.aim.x, tower.aim.y] : [mw.x + mw.dir[0] * 3, mw.y + mw.dir[1] * 3];
   const dir = norm2(mw.dir);
+  // What the eye of the obelisk and the scope of the siege mortar do over the end of the reload: it fills
+  // while there is a target, the way the lens of the laser does.
+  fx.charge = doctrine === 'soulfireObelisk' ? chargeOf(tower, FX_OBELISK_CHARGE_SECONDS) : 0;
+  fx.sight = doctrine === 'siegeMortar' ? chargeOf(tower, FX_SIGHT_SECONDS) : 0;
   if (o.shot) {
     const event = fx.pending;
+    const events = fx.events;
     fx.pending = null;
+    fx.events = [];
     if (doctrine === 'autocannon') {
       fx.flash = FX_FLASH_SECONDS.autocannon;
       // A case leaves the port on the side of the housing and falls.
-      const Fs = turnFrame(shown, MOUNT_Z, TURRET_SCALE);
+      const Fs = turnFrame(shown, model.mount, model.scale);
       const [cx, cy] = Fs.world(CASING_PORT[0], CASING_PORT[1]);
       queue(fx, {
-        kind: 'wcasing', x: tower.x + HALF + cx, y: tower.y + HALF + cy, z: lift + MOUNT_Z + CASING_PORT[2] * TURRET_SCALE,
+        kind: 'wcasing', x: tower.x + HALF + cx, y: tower.y + HALF + cy, z: lift + model.mount + CASING_PORT[2] * model.scale,
         vx: Fs.s[0] * rand(0.9, 1.5), vy: Fs.s[1] * rand(0.9, 1.5), vz: rand(90, 170), rot: rand(0, TAU), vrot: rand(-18, 18),
         life: 1.1, floor: lift,
       });
@@ -393,17 +247,59 @@ export function updateTurretFx(tower, o) {
       const back = [-mw.dir[0], -mw.dir[1], -mw.dir[2]];
       const n = reducedMotion ? 2 : 5;
       for (let i = 0; i < n; i++) {
-        const r = 0.46 * TURRET_SCALE + i * 0.04;
+        const r = 0.46 * model.scale + i * 0.04;
         smokeSpec(
-          fx, lift, mw.x + back[0] * r, mw.y + back[1] * r, mw.z + back[2] * 0.46 * TURRET_SCALE * K,
+          fx, lift, mw.x + back[0] * r, mw.y + back[1] * r, mw.z + back[2] * 0.46 * model.scale * K,
           back[0] * 0.45 + rand(-0.12, 0.12), back[1] * 0.45 + rand(-0.12, 0.12), rand(-5, 25), 3, 12, rand(0.7, 1.1), 0.5,
         );
       }
       if (!reducedMotion) sparkSpec(fx, lift, mw.x, mw.y, mw.z, 4, 140, 0.25);
+    } else if (doctrine === 'stormBattery') {
+      shootStorm(tower, fx, o, mw, events, aim);
+    } else if (doctrine === 'emberCauldron') {
+      fx.flash = FX_FLASH_SECONDS.emberCauldron;
+      fx.bolt = FX_SPECIAL_BOLT_SECONDS.emberCauldron;
+      fx.boltSeed = Math.floor(t * 30);
+      // One bolt to each target the volley hit.
+      const legs = events.filter((e) => e.type === 'shot').map((e) => [e.tx, e.ty]);
+      fx.boltPoints = legs.length ? legs : [aim];
+      if (!reducedMotion) {
+        sparkSpec(fx, lift, mw.x, mw.y, mw.z, 4, 120, 0.25, '#ff8a2a');
+        for (const [hx, hy] of fx.boltPoints) sparkSpec(fx, lift, hx, hy, liftAt(hx, hy) + FX_HIT_Z, 5, 150, 0.3, '#ff8a2a');
+      }
+    } else if (doctrine === 'siegeMortar') {
+      fx.flash = FX_FLASH_SECONDS.siegeMortar;
+      // The shell leaves the muzzle where the tube stood before it slid back.
+      const at = muzzleWorld(tower, shown, theta, { ...pose, recoil: 0 }, 0);
+      fx.launch = { x: at.x, y: at.y, z: at.z, dir: at.dir, lift };
+      // A pillar of smoke up the tube and a puff behind the weapon.
+      const n = reducedMotion ? 3 : 8;
+      for (let i = 0; i < n; i++) {
+        smokeSpec(
+          fx, lift, at.x + at.dir[0] * i * 0.03, at.y + at.dir[1] * i * 0.03, at.z + i * 4,
+          at.dir[0] * 0.25 + rand(-0.12, 0.12), at.dir[1] * 0.25 + rand(-0.12, 0.12), 60 + i * 12, 5, 19, 1.3 + i * 0.1,
+        );
+      }
+      if (!reducedMotion) sparkSpec(fx, lift, at.x, at.y, at.z, 8, 140, 0.3, '#ffb02e');
+    } else if (doctrine === 'thunderTower') {
+      fx.flash = FX_FLASH_SECONDS.thunderTower;
+      fx.bolt = FX_SPECIAL_BOLT_SECONDS.thunderTower;
+      fx.boltSeed = Math.floor(t * 30);
+      const legs = event && event.type === 'chain' ? event.points.slice(1).map((p) => [p.x, p.y]) : [];
+      fx.boltPoints = legs.length ? legs : [aim];
+      if (!reducedMotion) for (const [hx, hy] of fx.boltPoints.slice(0, 3)) sparkSpec(fx, lift, hx, hy, liftAt(hx, hy) + FX_HIT_Z, 5, 160, 0.3, '#bff2ff');
+    } else if (doctrine === 'soulfireObelisk') {
+      fx.beam = FX_OBELISK_BEAM_SECONDS;
+      fx.beamEnd = event && event.type === 'soulfire' ? [event.tx, event.ty] : aim;
+      if (!reducedMotion) sparkSpec(fx, lift, fx.beamEnd[0], fx.beamEnd[1], liftAt(fx.beamEnd[0], fx.beamEnd[1]) + FX_HIT_Z, 14, 200, 0.5, '#b784ff');
     }
   }
   // The bolt flickers from frame to frame; with reduced motion it keeps the shape it was born with.
   if (!reducedMotion && fx.bolt > 0) fx.boltSeed = Math.floor(t * 28);
+
+  // The eye lights up over the charge and the beam; the gold aura of the shrine rises while it works.
+  fx.glow = fx.charge > 0.5 || fx.beam > 0 ? 1 : 0;
+  if (doctrine === 'purgeShrine') fx.aura += ((tower.firing ? 1 : FX_AURA_IDLE) - fx.aura) * Math.min(1, dt * FX_AURA_RATE);
 
   if (doctrine === 'flame') {
     fx.jet += ((tower.firing ? 1 : 0) - fx.jet) * Math.min(1, dt * FX_JET_RATE);
@@ -466,7 +362,7 @@ function flare(ctx, m, dir, len, wid, outer, inner) {
 }
 
 /** A jagged line with ink outline and two glows, for the lightning of the coil. */
-function bolt(ctx, a, b, seed, jitter, colour, width) {
+function bolt(ctx, a, b, seed, jitter, colour, width, core = '#ffffff') {
   const steps = 7;
   const pts = [a];
   const dx = b[0] - a[0];
@@ -483,7 +379,7 @@ function bolt(ctx, a, b, seed, jitter, colour, width) {
   pts.push(b);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  for (const [w, col] of [[width + 3.6, INK], [width, colour], [width * 0.4, '#ffffff']]) {
+  for (const [w, col] of [[width + 3.6, INK], [width, colour], [width * 0.4, core]]) {
     ctx.strokeStyle = col;
     ctx.lineWidth = w;
     ctx.beginPath();
@@ -591,18 +487,24 @@ function drawPulses(ctx, fx) {
   }
 }
 
-/** Charge of the laser lens, 0 to 1: it fills over the last part of the reload while there is a target. */
-function laserCharge(tower) {
-  if (!tower.aim || tower.cooldown <= 0 || tower.cooldown >= FX_LASER_CHARGE_SECONDS) return 0;
-  return 1 - tower.cooldown / FX_LASER_CHARGE_SECONDS;
+/**
+ * Charge of a lens, an eye or a scope, 0 to 1: it fills over the last `seconds` of the reload while there is a
+ * target.
+ */
+function chargeOf(tower, seconds) {
+  if (!tower.aim || tower.cooldown <= 0 || tower.cooldown >= seconds) return 0;
+  return 1 - tower.cooldown / seconds;
 }
+const laserCharge = (tower) => chargeOf(tower, FX_LASER_CHARGE_SECONDS);
 
 /** True when this weapon has fire that reaches out of the muzzle this frame. */
-function hasReach(fx, doctrine) {
-  if (doctrine === 'flame') return fx.jet >= 0.05;
-  if (doctrine === 'laser') return fx.beam > 0 && Boolean(fx.beamEnd);
-  if (doctrine === 'tesla') return fx.bolt > 0 && Boolean(fx.boltPoints);
-  if (doctrine === 'psi') return fx.pulses.length > 0;
+function hasReach(fx, kind) {
+  if (kind === 'flame') return fx.jet >= 0.05;
+  if (kind === 'laser') return fx.beam > 0 && Boolean(fx.beamEnd);
+  if (kind === 'tesla' || kind === 'thunderTower' || kind === 'emberCauldron') return fx.bolt > 0 && Boolean(fx.boltPoints);
+  if (kind === 'psi') return fx.pulses.length > 0;
+  if (kind === 'soulfireObelisk') return fx.beam > 0 && Boolean(fx.beamEnd);
+  if (kind === 'siegeMortar') return fx.sight > 0;
   return false;
 }
 
@@ -610,7 +512,7 @@ function hasReach(fx, doctrine) {
  * Where an effect is drawn in an emplacement's frame. A fire in the muzzle or round it (flash, glow,
  * lens, pilot light) always goes over the weapon. Fire that reaches out (jet, beam, bolt, pulses) goes
  * behind the weapon when it runs away from the camera, and over everything (drawTowerReach, from
- * effects.js) when it runs towards it.
+ * effects.js) when it runs towards it; what leaves from the top of a floating part is always over it.
  *
  * The context is the one of the emplacement's own drawing, shifted down by the height of its field; the
  * drawing here is in absolute world pixels, so the shift is taken back for the duration.
@@ -620,11 +522,14 @@ export function drawTurretFx(ctx, tower, phase) {
   const fx = states.get(tower);
   const f = fx?.frame;
   if (!f) return;
+  const kind = weaponOf(tower).kind;
   ctx.save();
   ctx.translate(0, f.lift);
   if (phase === 'behind') {
-    if (!f.front && hasReach(fx, tower.doctrine)) drawReach(ctx, fx, tower);
+    if (kind === 'soulfireObelisk') drawObeliskFlames(ctx, tower, fx, 'back');
+    if (!f.front && hasReach(fx, kind)) drawReach(ctx, fx, tower);
   } else {
+    if (kind === 'soulfireObelisk') drawObeliskFlames(ctx, tower, fx, 'front');
     drawAtMuzzle(ctx, fx, tower);
   }
   ctx.restore();
@@ -634,22 +539,140 @@ export function drawTurretFx(ctx, tower, phase) {
 export function drawTowerReach(ctx, tower, t) {
   const fx = states.get(tower);
   const f = fx?.frame;
-  if (!f || f.t !== t || !f.front || !hasReach(fx, tower.doctrine)) return;
+  if (!f || f.t !== t || !f.front || !hasReach(fx, weaponOf(tower).kind)) return;
   drawReach(ctx, fx, tower);
 }
 
 function drawReach(ctx, fx, tower) {
-  const doctrine = tower.doctrine;
-  if (doctrine === 'flame') drawJet(ctx, fx, tower);
-  else if (doctrine === 'laser') drawBeam(ctx, fx, tower);
-  else if (doctrine === 'tesla') drawBolt(ctx, fx);
-  else if (doctrine === 'psi') drawPulses(ctx, fx);
+  const kind = weaponOf(tower).kind;
+  if (kind === 'flame') drawJet(ctx, fx, tower);
+  else if (kind === 'laser') drawBeam(ctx, fx, tower);
+  else if (kind === 'tesla') drawBolt(ctx, fx);
+  else if (kind === 'psi') drawPulses(ctx, fx);
+  else if (kind === 'emberCauldron') drawEmberBolts(ctx, fx);
+  else if (kind === 'thunderTower') drawChain(ctx, fx);
+  else if (kind === 'soulfireObelisk') drawSoulBeam(ctx, fx);
+  else if (kind === 'siegeMortar') drawScope(ctx, fx, tower);
+}
+
+/** The bolts of the cauldron: from its electrode to every target the volley hit. */
+function drawEmberBolts(ctx, fx) {
+  const f = fx.frame;
+  const u = fx.bolt / FX_SPECIAL_BOLT_SECONDS.emberCauldron;
+  const mp = P(f.x, f.y, f.z);
+  fx.boltPoints.forEach(([x, y], i) => {
+    const to = P(x, y, liftAt(x, y) + FX_HIT_Z);
+    bolt(ctx, mp, to, fx.boltSeed + i * 5, 20 * (0.5 + u * 0.5), '#ff8a2a', 2.6 * (0.6 + u * 0.4), '#fff3c0');
+    glow(ctx, to[0], to[1], 18, '#ff8a2a', 0.55 * u);
+  });
+}
+
+/** The chain of the thunder tower: from the ball to the first, from each to the next, each hop a bolt of its own. */
+function drawChain(ctx, fx) {
+  const f = fx.frame;
+  const u = fx.bolt / FX_SPECIAL_BOLT_SECONDS.thunderTower;
+  let from = P(f.x, f.y, f.z);
+  fx.boltPoints.forEach(([x, y], i) => {
+    const to = P(x, y, liftAt(x, y) + FX_HIT_Z);
+    bolt(ctx, from, to, fx.boltSeed + i * 7, 22 * (0.5 + u * 0.5), '#bff2ff', 2.8 * (0.6 + u * 0.4));
+    glow(ctx, to[0], to[1], 20, '#5fd4ff', 0.6 * u);
+    from = to;
+  });
+}
+
+/** The soul beam: a violet band with a red heart, running from the pupil to the target. */
+function drawSoulBeam(ctx, fx) {
+  const f = fx.frame;
+  const u = fx.beam / FX_OBELISK_BEAM_SECONDS;
+  const mp = P(f.x, f.y, f.z);
+  const end = fx.beamEnd;
+  const t = P(end[0], end[1], liftAt(end[0], end[1]) + FX_HIT_Z);
+  const len = Math.sqrt((t[0] - mp[0]) ** 2 + (t[1] - mp[1]) ** 2) || 1;
+  const nx = -(t[1] - mp[1]) / len;
+  const ny = (t[0] - mp[0]) / len;
+  const wob = (s) => (f.reducedMotion ? 0 : Math.sin(f.t * 30 + s * 9) * 2.4 * Math.sin(s * Math.PI));
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const [w, col] of [[11 * u + 3, INK], [7 * u + 1.4, '#b784ff'], [3.4 * u + 0.6, '#ff6a8a'], [1.3 * u + 0.3, '#fff1f4']]) {
+    ctx.strokeStyle = col;
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    for (let i = 0; i <= 12; i++) {
+      const s = i / 12;
+      const x = mp[0] + (t[0] - mp[0]) * s + nx * wob(s);
+      const y = mp[1] + (t[1] - mp[1]) * s + ny * wob(s);
+      if (i) ctx.lineTo(x, y);
+      else ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+  }
+  glow(ctx, t[0], t[1], 26, '#b784ff', 0.7 * u);
+}
+
+/**
+ * The scope of the siege mortar: a red line from its lens to where it is aiming, over the last moments of
+ * the reload, with a mark on the ground that tightens as the shell gets ready.
+ */
+function drawScope(ctx, fx, tower) {
+  if (!tower.aim) return;
+  const f = fx.frame;
+  const q = fx.sight;
+  const [sx, sy, sz] = localWorld(tower, fx, ...siegeSight());
+  const a = P(sx, sy, sz);
+  const b = P(tower.aim.x, tower.aim.y, liftAt(tower.aim.x, tower.aim.y));
+  ctx.lineCap = 'round';
+  ctx.globalAlpha = 0.55 + 0.45 * (f.reducedMotion ? 1 : Math.abs(Math.sin(f.t * 22)));
+  for (const [w, col] of [[4.2, INK], [1.9, '#ff4a4a'], [0.7, '#ffd0c0']]) {
+    ctx.strokeStyle = col;
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  const ring = 5 + (1 - q) * 22;
+  ell(ctx, b[0], b[1], ring, ring * 0.5, 'rgba(255,74,74,.12)', '#ff4a4a', 1.6);
+  ell(ctx, b[0], b[1], 3 + q * 2, (3 + q * 2) * 0.5, '#ff4a4a', INK, 1);
+}
+
+/** A flame shape: a teardrop with a bright inside, base at (x, y). */
+function flameShape(ctx, x, y, s, outer, inner) {
+  for (const [k, col] of [[1, outer], [0.55, inner]]) {
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.bezierCurveTo(x - 5 * s * k, y - 4 * s * k, x - 2 * s * k, y - 9 * s * k, x, y - 14 * s * k);
+    ctx.bezierCurveTo(x + 3 * s * k, y - 9 * s * k, x + 5 * s * k, y - 4 * s * k, x, y);
+    ctx.closePath();
+    ctx.fillStyle = col;
+    ctx.fill();
+    if (k === 1) {
+      ctx.lineWidth = 1.3;
+      ctx.strokeStyle = INK;
+      ctx.stroke();
+    }
+  }
+}
+
+const flicker = (f, i, tower) => (f.reducedMotion ? 1 : 0.85 + Math.sin(f.t * 15 + i * 2.1 + tower.x) * 0.15);
+
+/** The four flames at the foot of the obelisk: the two behind the shaft before it, the two in front after it. */
+function drawObeliskFlames(ctx, tower, fx, phase) {
+  const f = fx.frame;
+  SPECIAL_FIRE.obeliskFeet.forEach(([lx, ly], i) => {
+    const [wx, wy, wz] = localWorld(tower, fx, lx, ly, SPECIAL_FIRE.obeliskFootZ);
+    const behind = wx + wy < tower.x + HALF + tower.y + HALF - 1e-6;
+    if ((phase === 'back') !== behind) return;
+    const [sx, sy] = P(wx, wy, wz);
+    flameShape(ctx, sx, sy, 0.75 * flicker(f, i, tower), '#ff8a2a', '#ffd23f');
+  });
 }
 
 /** The lights at the muzzle: flashes, glows, the lens, the pilot light, the idle arcs. */
 function drawAtMuzzle(ctx, fx, tower) {
   const f = fx.frame;
-  const doctrine = tower.doctrine;
+  const model = weaponOf(tower);
+  const doctrine = model.kind;
   const mp = P(f.x, f.y, f.z);
   const damp = f.reducedMotion ? 0.5 : 1;
   const shrink = f.reducedMotion ? 0.7 : 1;
@@ -660,8 +683,8 @@ function drawAtMuzzle(ctx, fx, tower) {
     flare(ctx, f, f.dir, 0.42 * (0.6 + 0.4 * u) * shrink, 0.1, '#ffd23f', '#fff3b0');
   } else if (doctrine === 'flame') {
     if (fx.jet < 0.1) {
-      const flicker = f.reducedMotion ? 1 : 0.8 + Math.sin(f.t * 20) * 0.2;
-      ell(ctx, mp[0], mp[1], 2.6 * flicker, 3.4 * flicker, '#6fb7ff', INK, 1);
+      const flick = f.reducedMotion ? 1 : 0.8 + Math.sin(f.t * 20) * 0.2;
+      ell(ctx, mp[0], mp[1], 2.6 * flick, 3.4 * flick, '#6fb7ff', INK, 1);
     } else {
       glow(ctx, mp[0], mp[1], 14, '#ff8a2a', 0.5 * fx.jet);
     }
@@ -670,7 +693,7 @@ function drawAtMuzzle(ctx, fx, tower) {
     glow(ctx, mp[0], mp[1], 20, '#ffd23f', 0.5 * u * damp);
     flare(ctx, f, f.dir, 0.42 * (0.6 + 0.4 * u) * shrink, 0.11, '#ff8a2a', '#ffe38a');
     // Back blast behind the pod.
-    const back = 0.45 * TURRET_SCALE;
+    const back = 0.45 * model.scale;
     const rear = { x: f.x - f.dir[0] * back, y: f.y - f.dir[1] * back, z: f.z - f.dir[2] * back * K };
     flare(ctx, rear, [-f.dir[0], -f.dir[1], -f.dir[2]], 0.42 * u * shrink, 0.12, '#d89a56', '#fff0c0');
   } else if (doctrine === 'laser') {
@@ -687,21 +710,133 @@ function drawAtMuzzle(ctx, fx, tower) {
       }
     }
   } else if (doctrine === 'tesla') {
-    const bolting = fx.bolt > 0;
-    glow(ctx, mp[0], mp[1], bolting ? 20 : 12, '#5fd4ff', bolting ? 0.7 * damp : 0.3 + (f.reducedMotion ? 0 : 0.1 * Math.sin(f.t * 9)));
-    if (!bolting && !f.reducedMotion) {
-      // Idle: a small arc now and then from the tip.
-      const k = Math.floor(f.t * 7);
-      const r = Math.sin(k * 91.7) * 1000;
-      if (r - Math.floor(r) < 0.6) {
-        const a = (Math.sin(k * 12.3) * 1000) % TAU;
-        bolt(ctx, mp, [mp[0] + Math.cos(a) * 12, mp[1] + Math.sin(a) * 9 - 3], k, 5, '#bff2ff', 1.4);
+    idleArc(ctx, f, mp, fx.bolt > 0, damp, 20);
+  } else if (doctrine === 'psi') {
+    const [ax, ay] = P(tower.x + HALF, tower.y + HALF, f.lift + model.mount + 28 * model.scale + (f.bob ?? 0));
+    glow(ctx, ax, ay, 30, '#b784ff', tower.firing ? 0.32 : 0.2);
+  } else if (doctrine === 'purgeShrine') {
+    // The artefact glows gold, the stronger the more the aura on the ground is up.
+    const pulse = f.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(f.t * 4);
+    glow(ctx, mp[0], mp[1], 17 + pulse * 3, '#ffb13b', (0.3 + 0.25 * pulse) * (0.4 + 0.6 * fx.aura));
+  } else if (doctrine === 'stormBattery') {
+    // One flash on each barrel that has fired lately, in the colour of its tracer.
+    for (let k = 0; k < fx.flashK.length; k++) {
+      if (fx.flashK[k] <= 0) continue;
+      const mk = muzzleWorld(tower, f.shown, f.theta, { ...f.pose, tube: k }, f.push);
+      const u = fx.flashK[k] / FX_FLASH_SECONDS.stormBattery;
+      const pk = P(mk.x, mk.y, mk.z);
+      glow(ctx, pk[0], pk[1], 11, '#7fd8ff', 0.55 * u * damp);
+      flare(ctx, mk, mk.dir, 0.3 * (0.6 + 0.4 * u) * shrink, 0.08, '#7fd8ff', '#e8fbff');
+    }
+  } else if (doctrine === 'emberCauldron') {
+    // Flames in the opening of the cauldron, and a glow at the tip of each electrode.
+    const [fx0, fy0, fz0] = localWorld(tower, fx, ...SPECIAL_FIRE.cauldron);
+    const base = P(fx0, fy0, fz0);
+    const charged = fx.bolt > 0 ? 1.25 : 1;
+    glow(ctx, base[0], base[1] - 8, 26, '#ff8a2a', 0.4 * charged);
+    [[-4.2, 0.62, 0], [3.6, 0.8, 1], [0, 1.05, 2], [6.4, 0.5, 3]].forEach(([dx, s, i]) => {
+      flameShape(ctx, base[0] + dx * f.scale, base[1] + 1 - Math.abs(dx) * 0.15, s * flicker(f, i, tower) * charged, i % 2 ? '#ffb13b' : '#ff8a2a', '#fff3c0');
+    });
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) / 2;
+      const [ex, ey, ez] = localWorld(tower, fx, Math.cos(a) * 0.225, Math.sin(a) * 0.225, 31.5);
+      const p = P(ex, ey, ez);
+      glow(ctx, p[0], p[1], fx.bolt > 0 && i === 0 ? 11 : 6, i === 0 ? '#ffb02e' : '#5fd4ff', fx.bolt > 0 ? 0.7 * damp : 0.4);
+    }
+  } else if (doctrine === 'siegeMortar') {
+    if (fx.flash > 0) {
+      const u = fx.flash / FX_FLASH_SECONDS.siegeMortar;
+      glow(ctx, mp[0], mp[1], 28, '#ffd23f', 0.6 * u * damp);
+      flare(ctx, f, f.dir, 0.62 * (0.6 + 0.4 * u) * shrink, 0.17, '#ff8a2a', '#ffe38a');
+    }
+    if (fx.sight > 0) {
+      const [sx, sy, sz] = localWorld(tower, fx, ...siegeSight());
+      const lens = P(sx, sy, sz);
+      glow(ctx, lens[0], lens[1], 7, '#ff4a4a', 0.7);
+    }
+  } else if (doctrine === 'thunderTower') {
+    idleArc(ctx, f, mp, fx.bolt > 0, damp, 24);
+  } else if (doctrine === 'soulfireObelisk') {
+    const ch = fx.charge;
+    const idle = 0.18 + (f.reducedMotion ? 0 : 0.06 * Math.sin(f.t * 5));
+    glow(ctx, mp[0], mp[1], 15 + ch * 18, '#b784ff', fx.beam > 0 ? 0.7 : ch > 0 ? 0.35 + ch * 0.4 : idle);
+    if (ch > 0) {
+      glow(ctx, mp[0], mp[1], 6 + ch * 8, '#ff3a1a', 0.4 + ch * 0.5);
+      // Violet motes converge on the pupil while the eye charges.
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU + (f.reducedMotion ? 0 : f.t * 7);
+        const r = (1 - ch) * 22 + 3;
+        ell(ctx, mp[0] + Math.cos(a) * r, mp[1] + Math.sin(a) * r * 0.7, 1.3, 1.3, '#d5b6ff', null);
       }
     }
-  } else if (doctrine === 'psi') {
-    const [ax, ay] = P(tower.x + HALF, tower.y + HALF, f.lift + MOUNT_Z + 28 * TURRET_SCALE + (f.bob ?? 0));
-    glow(ctx, ax, ay, 30, '#b784ff', tower.firing ? 0.32 : 0.2);
   }
+}
+
+/** Glow of a coil or a ball in blue, and while it is quiet a small arc now and then from the tip. */
+function idleArc(ctx, f, mp, bolting, damp, big) {
+  glow(ctx, mp[0], mp[1], bolting ? big : big * 0.6, '#5fd4ff', bolting ? 0.7 * damp : 0.3 + (f.reducedMotion ? 0 : 0.1 * Math.sin(f.t * 9)));
+  if (!bolting && !f.reducedMotion) {
+    const k = Math.floor(f.t * 7);
+    const r = Math.sin(k * 91.7) * 1000;
+    if (r - Math.floor(r) < 0.6) {
+      const a = (Math.sin(k * 12.3) * 1000) % TAU;
+      bolt(ctx, mp, [mp[0] + Math.cos(a) * 12, mp[1] + Math.sin(a) * 9 - 3], k, 5, '#bff2ff', 1.4);
+    }
+  }
+}
+
+/**
+ * The level of the gold aura on the ground around the shrine, 0 to 1: it stays at FX_AURA_IDLE while the
+ * shrine has nothing in reach and rises while it works. Read by effects.js, which draws the ring.
+ */
+export function auraLevel(tower) {
+  return states.get(tower)?.aura ?? FX_AURA_IDLE;
+}
+
+/** One barrel of the storm battery fires: flash, case from the back of the housing, smoke, tracer. */
+function shootStorm(tower, fx, o, mw, events, aim) {
+  const model = weaponOf(tower);
+  const lift = mw.lift;
+  const k = o.tube;
+  fx.flashK[k] = FX_FLASH_SECONDS.stormBattery;
+  fx.flash = FX_FLASH_SECONDS.stormBattery;
+  // A case leaves the back of the housing, against the line of the barrels, and falls.
+  const Fs = turnFrame(o.shown, model.mount, model.scale);
+  const [cx, cy] = Fs.world(SPECIAL_CASING_PORT[0], SPECIAL_CASING_PORT[1] + (k % 2 ? -0.02 : 0.02));
+  const dir = norm2(mw.dir);
+  queue(fx, {
+    kind: 'wcasing',
+    x: tower.x + HALF + cx,
+    y: tower.y + HALF + cy,
+    z: lift + model.mount + SPECIAL_CASING_PORT[2] * model.scale,
+    vx: -dir[0] * rand(0.9, 1.6) - dir[1] * rand(-0.4, 0.4),
+    vy: -dir[1] * rand(0.9, 1.6) + dir[0] * rand(-0.4, 0.4),
+    vz: rand(70, 150),
+    rot: rand(0, TAU),
+    vrot: rand(-18, 18),
+    life: 1.1,
+    floor: lift,
+  });
+  if (Math.random() < (o.reducedMotion ? 0.1 : 0.2)) smokeSpec(fx, lift, mw.x, mw.y, mw.z, mw.dir[0] * 0.4, mw.dir[1] * 0.4, 16, 2.5, 7, 0.5);
+  // The tracer flies to one of the targets the volley hit, in turn.
+  const hits = events.filter((e) => e.type === 'shot');
+  const target = hits.length ? [hits[k % hits.length].tx, hits[k % hits.length].ty] : aim;
+  const tx = target[0] + rand(-0.06, 0.06);
+  const ty = target[1] + rand(-0.06, 0.06);
+  const d = Math.sqrt((tx - mw.x) ** 2 + (ty - mw.y) ** 2);
+  queue(fx, {
+    kind: 'wtracer',
+    x0: mw.x,
+    y0: mw.y,
+    z0: mw.z,
+    x1: tx,
+    y1: ty,
+    z1: liftAt(tx, ty) + FX_HIT_Z,
+    life: Math.max(0.05, d / FX_STORM_TRACER_SPEED),
+    floor: lift,
+    colour: '#7fd8ff',
+    core: '#e8fbff',
+  });
 }
 
 // ---------- particles in the world ----------
@@ -749,7 +884,7 @@ export function drawWorldParticle(ctx, p, u) {
     const a = P(p.x, p.y, p.z);
     const b = P(p.x - p.vx * 0.03, p.y - p.vy * 0.03, p.z - p.vz * 0.03);
     ctx.globalAlpha = 1 - u * 0.7;
-    ctx.strokeStyle = '#ffe38a';
+    ctx.strokeStyle = p.colour ?? '#ffe38a';
     ctx.lineWidth = 1.8;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -777,7 +912,7 @@ export function drawWorldParticle(ctx, p, u) {
     const a = at(u);
     const b = at(Math.max(0, u - 0.28));
     ctx.lineCap = 'round';
-    for (const [w, col] of [[4, INK], [2.2, '#ffd23f'], [1, '#fff3b0']]) {
+    for (const [w, col] of [[4, INK], [2.2, p.colour ?? '#ffd23f'], [1, p.core ?? '#fff3b0']]) {
       ctx.strokeStyle = col;
       ctx.lineWidth = w;
       ctx.beginPath();
@@ -868,4 +1003,32 @@ export function drawRocket(ctx, rec, shell) {
     ctx.stroke();
   }
   ell(ctx, a[0], a[1], 2.8, 2.8, DOCTRINE_COLORS.mortar, INK, 1.3);
+}
+
+// ---------- the shell of the siege mortar ----------
+
+/**
+ * Position of the shell of the siege mortar: [x, y, z]. A heavy shell flies a high arc, as the study draws
+ * it: straight over the ground from the muzzle to the end point of the shell of the simulation, and
+ * FX_SHELL.lift px plus FX_SHELL.perCell px for every cell of the way over the straight line in height. The
+ * flight time and the end point are those of the simulation.
+ */
+export function shellPosition(launch, shell, u = Math.min(1, shell.t / shell.flight)) {
+  const x1 = shell.to.x;
+  const y1 = shell.to.y;
+  const d = Math.sqrt((x1 - launch.x) ** 2 + (y1 - launch.y) ** 2);
+  const arc = FX_SHELL.lift + d * FX_SHELL.perCell;
+  const z1 = liftAt(x1, y1) + FX_SHELL.endZ;
+  return [launch.x + (x1 - launch.x) * u, launch.y + (y1 - launch.y) * u, launch.z + (z1 - launch.z) * u + arc * 4 * u * (1 - u)];
+}
+
+/** The shell in flight: a dark ball with a gold band, and its shadow on the ground. */
+export function drawShell(ctx, rec, shell) {
+  const pos = shellPosition(rec.launch, shell);
+  const g = P(pos[0], pos[1], liftAt(pos[0], pos[1]));
+  ell(ctx, g[0], g[1], 7, 3.4, 'rgba(10,6,4,.3)', null);
+  const s = P(pos[0], pos[1], pos[2]);
+  ell(ctx, s[0], s[1], 5.4, 5.4, '#3a3630', INK, 1.8);
+  ell(ctx, s[0] - 1.6, s[1] - 1.6, 1.6, 1.6, '#8a857a', null);
+  ell(ctx, s[0], s[1], 5.4, 1.6, null, '#e0b83e', 1.2);
 }

@@ -14,7 +14,7 @@ import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { STRINGS } from '../data/strings.js';
 import { PODS } from '../data/pods.js';
 import { towerStats, towerById } from '../sim/towers.js';
-import { towerAnchor, towerSparks, isTurreted } from './towerSprites.js';
+import { towerAnchor, isTurreted } from './towerSprites.js';
 import {
   noteTowerEvent,
   drainFxQueue,
@@ -23,7 +23,9 @@ import {
   launchOf,
   rocketTrail,
   drawRocket,
+  drawShell,
   drawTowerReach,
+  auraLevel,
 } from './towerFx.js';
 import { FX_MAX_PARTICLES } from '../data/art.js';
 import { drawGunship } from './gunship.js';
@@ -279,31 +281,6 @@ export function createEffects() {
   }
 
   /**
-   * Where a chain of lightning leaves the emplacement. The cauldron has four
-   * electrodes and uses the one nearest the first target; everything else has
-   * the one anchor (docs/ART.md, "Wirkungsanker").
-   */
-  function chainOrigin(state, event) {
-    const tower = towerById(state, event.towerId);
-    if (!tower) return null;
-    const sparks = towerSparks(tower).map((p) => onField(tower, p));
-    if (!sparks.length) return onField(tower, towerAnchor(tower));
-    const first = event.points[1];
-    if (!first) return sparks[0];
-    const [tx, ty] = project(first.x, first.y, 12);
-    let best = sparks[0];
-    let bestDist = Infinity;
-    for (const spark of sparks) {
-      const d = (spark[0] - tx) ** 2 + (spark[1] - ty) ** 2;
-      if (d < bestDist) {
-        best = spark;
-        bestDist = d;
-      }
-    }
-    return best;
-  }
-
-  /**
    * Where a shot, beam or soul-strike leaves the figure on screen: the muzzle
    * of the top, not the middle of the cell. The tops sit up on the roof and
    * their barrels point off to the side, so the middle of the cell is visibly
@@ -314,18 +291,13 @@ export function createEffects() {
     return tower ? onField(tower, towerAnchor(tower)) : null;
   }
 
-  /** The muzzle a shell leaves from, when the emplacement has a tube worth the name. */
-  function launchPoint(state, event) {
-    const tower = towerById(state, event.towerId);
-    return tower?.special === 'siegeMortar' ? onField(tower, towerAnchor(tower)) : null;
-  }
-
   /** Takes one simulation event. Unknown events are ignored on purpose. */
   function handle(event, state, reducedMotion) {
     const colour = DOCTRINE_COLORS[event.doctrine] ?? C.gold;
-    // The turned weapons draw their own fire at the barrel (towerFx.js); the simulation only tells it
-    // where the shot went.
-    if (event.type === 'shot' || event.type === 'beam' || event.type === 'chain' || event.type === 'launch') {
+    // The turned weapons draw their own fire at the barrel (towerFx.js), those of the recipe emplacements
+    // too; the simulation only tells it where the shot went. What is left below is for an emplacement that
+    // is gone by the time its event is read.
+    if (event.type === 'shot' || event.type === 'beam' || event.type === 'chain' || event.type === 'launch' || event.type === 'soulfire') {
       const tower = towerById(state, event.towerId);
       if (tower && isTurreted(tower)) {
         noteTowerEvent(tower, event);
@@ -356,23 +328,16 @@ export function createEffects() {
       shots.push({ kind: 'beam', x: event.x, y: event.y, tx: event.tx, ty: event.ty, origin: muzzleOrigin(state, event), colour, life: BEAM_SECONDS * 2 });
       if (!reducedMotion) burst(event.tx, event.ty, 14, 'warp', 10, { speed: 60, size: 3, life: 0.5, gravity: -40 });
     } else if (event.type === 'chain') {
-      // The simulation starts the chain in the middle of the cell; the drawing
-      // starts it where the figure says it does — the coil on the mast, or the
-      // electrode of the cauldron nearest the first target (docs/ART.md).
       shots.push({
         kind: 'chain',
         points: event.points,
-        origin: chainOrigin(state, event),
+        origin: null,
         colour,
         life: BEAM_SECONDS,
       });
     } else if (event.type === 'launch') {
       shots.push({ kind: 'shot', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: FLASH_SECONDS });
-      // The siege mortar's tube reaches well past its cell, so its smoke leaves
-      // the muzzle rather than the middle of the emplacement.
-      const from = launchPoint(state, event);
-      if (from) burstAt(from[0], from[1], 'smoke', reducedMotion ? 2 : 5, { speed: 26, size: 4, grow: 6, life: 0.7, gravity: -10 });
-      else burst(event.x, event.y, 22, 'smoke', reducedMotion ? 2 : 5, { speed: 26, size: 4, grow: 6, life: 0.7, gravity: -10 });
+      burst(event.x, event.y, 22, 'smoke', reducedMotion ? 2 : 5, { speed: 26, size: 4, grow: 6, life: 0.7, gravity: -10 });
     } else if (event.type === 'explosion') {
       shots.push({ kind: 'blast', x: event.x, y: event.y, radius: event.radius, colour, life: 0.3 });
       if (event.source === 'orbitalStrike') {
@@ -582,7 +547,8 @@ export function createEffects() {
     }
     for (const shell of state.projectiles) {
       const tower = towerById(state, shell.towerId);
-      if (!tower || !isTurreted(tower)) continue;
+      // The shell of the siege mortar is a heavy ball that leaves no trail.
+      if (!tower || !isTurreted(tower) || tower.special) continue;
       const rec = launchOf(shell, tower, false);
       if (rec) for (const spec of rocketTrail(rec, shell, dt)) addWorldParticle(spec);
     }
@@ -750,11 +716,10 @@ export function createEffects() {
         drawStandingAura(ctx, tower, stats, t, reducedMotion);
         continue;
       }
-      if (!tower.firing || !tower.aim) continue;
-      // The behaviour, not the doctrine: a purge shrine is a flame tower with a ring.
+      // The behaviour, not the doctrine: a purge shrine is a flame tower with a ring. Its gold aura stands on
+      // the ground all the time and rises while it works (docs/ART.md, "Spezialstellungen"). The flame jets
+      // of the weapons are drawn at their nozzle (towerFx.js).
       if (stats.behaviour === 'aura') drawAura(ctx, tower, stats, t, reducedMotion);
-      // The turned flame weapon has its own jet at the nozzle (towerFx.js).
-      else if ((stats.behaviour === 'cone' || stats.behaviour === 'flame') && !isTurreted(tower)) drawCone(ctx, tower, t, reducedMotion);
     }
     drawBlaze(ctx);
   }
@@ -905,72 +870,40 @@ export function createEffects() {
     ctx.globalAlpha = 1;
   }
 
-  /** Ring on the ground in the guide colour of the tower's doctrine. */
-  function drawAura(ctx, tower, stats, t, reducedMotion) {
-    const [x, y] = project(tower.x + 0.5, tower.y + 0.5);
-    const pulse = reducedMotion ? 1 : 1 + Math.sin(t * 4) * 0.04;
-    const r = stats.range * 32 * pulse;
-    const colour = DOCTRINE_COLORS[stats.doctrine] ?? C.warpL;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(1, 0.5);
-    const g = ctx.createRadialGradient(0, 0, r * 0.25, 0, 0, r);
-    g.addColorStop(0, `${colour}00`);
-    g.addColorStop(0.75, `${colour}1f`);
-    g.addColorStop(1, `${colour}47`);
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = `${colour}88`;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.restore();
-  }
-
   /**
-   * A flame jet from the burner's muzzle along the aim. Since v5 the flame top
-   * has a real nozzle, so the fire leaves the muzzle as a narrow jet, not a
-   * flashlight cone from the middle of the cell (the old shared-bunker look).
-   * A few overlapping tongues that flare and shrink read as fire rather than a
-   * solid wedge.
+   * The gold aura of the purge shrine on the ground: a dashed ring the size of its reach with a golden wash,
+   * and twelve runes on a smaller ring that turn slowly. The level (`auraLevel`) says how bright: dim while
+   * the shrine has nothing in reach, full while it works. The enemies inside are gilded where they stand.
    */
-  function drawCone(ctx, tower, t, reducedMotion) {
-    const from = onField(tower, towerAnchor(tower));
-    const to = project(tower.aim.x, tower.aim.y, 6);
-    const dx = to[0] - from[0];
-    const dy = to[1] - from[1];
-    const length = Math.hypot(dx, dy) || 1;
-    const ux = dx / length;
-    const uy = dy / length;
-    // A jet, not a cone: reach a little short of the target, stay narrow.
-    const flicker = reducedMotion ? 1 : 0.9 + Math.sin(t * 24) * 0.1;
-    const reach = Math.min(length, 96) * flicker;
-    ctx.globalAlpha = 0.85;
-    for (const [span, half, colour] of [
-      [1.0, 0.2, 'rgba(226,83,31,.6)'],
-      [0.82, 0.14, 'rgba(255,138,42,.75)'],
-      [0.6, 0.085, 'rgba(255,210,63,.9)'],
-    ]) {
-      const wob = reducedMotion ? 0 : Math.sin(t * 30 + span * 6) * 0.05;
-      const tip = [from[0] + ux * reach * span, from[1] + uy * reach * span];
-      const w = reach * (half + wob);
-      const side = [-uy * w, ux * w];
-      poly(
-        ctx,
-        [
-          [from[0] + side[0] * 0.5, from[1] + side[1] * 0.5],
-          [tip[0] + side[0] * 0.4, tip[1] + side[1] * 0.4],
-          [tip[0], tip[1]],
-          [tip[0] - side[0] * 0.4, tip[1] - side[1] * 0.4],
-          [from[0] - side[0] * 0.5, from[1] - side[1] * 0.5],
-        ],
-        colour,
-        null,
-      );
+  function drawAura(ctx, tower, stats, t, reducedMotion) {
+    const level = auraLevel(tower);
+    const cx = tower.x + 0.5;
+    const cy = tower.y + 0.5;
+    const R = stats.range * (reducedMotion ? 1 : 0.985 + 0.015 * Math.sin(t * 4));
+    const ring = (r, steps = 48) => {
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        const [x, y] = project(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+        if (i) ctx.lineTo(x, y);
+        else ctx.moveTo(x, y);
+      }
+    };
+    ring(R);
+    ctx.fillStyle = `rgba(255,190,70,${0.08 + 0.1 * level})`;
+    ctx.fill();
+    ctx.setLineDash([9, 7]);
+    ctx.lineWidth = 2.2;
+    ctx.strokeStyle = `rgba(255,214,110,${0.35 + 0.4 * level})`;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + (reducedMotion ? 0 : t * 0.25);
+      const [x, y] = project(cx + Math.cos(a) * R * 0.82, cy + Math.sin(a) * R * 0.82);
+      ctx.globalAlpha = (0.35 + 0.4 * level) * (reducedMotion ? 1 : 0.7 + 0.3 * Math.sin(t * 3 + i));
+      poly(ctx, [[x, y - 4], [x + 3.2, y], [x, y + 4], [x - 3.2, y]], '#ffd23f', C.ink, 1);
     }
     ctx.globalAlpha = 1;
-    ell(ctx, from[0], from[1], 4 * flicker, 4 * flicker, '#fff3b0', null);
   }
 
   /**
@@ -1053,7 +986,7 @@ export function createEffects() {
       if (owner && isTurreted(owner)) {
         // Nothing for the one frame before the drawing has seen the shot leave.
         const rec = launchOf(shell, owner);
-        if (rec) drawRocket(ctx, rec, shell);
+        if (rec) (owner.special ? drawShell : drawRocket)(ctx, rec, shell);
         continue;
       }
       const u = Math.min(1, shell.t / shell.flight);
