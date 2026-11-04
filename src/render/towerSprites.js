@@ -49,6 +49,27 @@ export function towerAnchor(tower) {
 }
 
 /**
+ * The box of an emplacement's picture as `[x0, y0, x1, y1]` in world pixels, relative to the middle
+ * of its field on the ground: socket and top together. The top is drawn mirrored towards its
+ * target, so the box is symmetric in x.
+ */
+export function towerPictureBox(tower) {
+  const set = towerSet(tower);
+  let half = 0;
+  let top = 0;
+  let bottom = 0;
+  for (const def of [set.back, set.gun, set.front]) {
+    if (!def) continue;
+    const s = def.unitScale;
+    const [bx, by, bw, bh] = def.bbox;
+    half = Math.max(half, Math.abs(bx * s), Math.abs((bx + bw) * s));
+    top = Math.min(top, by * s - def.anchorZ);
+    bottom = Math.max(bottom, (by + bh) * s - def.anchorZ);
+  }
+  return [-half, top, half, bottom];
+}
+
+/**
  * A point of the weapon top on screen. Tops are mirrored towards the target
  * rather than turned (docs/ART.md), so a point on the left of the figure ends
  * up on its right when the emplacement is shooting the other way.

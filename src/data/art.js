@@ -30,3 +30,16 @@ export const REVEAL = {
   /** The hull of a block is grown by this many world pixels, to cover its ink outline. */
   hullGrow: 3,
 };
+
+/**
+ * Obstacles that stand in front of an emplacement and cover it (docs/ART.md, "Stellungen im Gelände"):
+ * they are drawn see-through all the time, the emplacement stays solid.
+ */
+export const OBSTACLE_SEE_THROUGH = {
+  /** Opacity of such an obstacle (0 to 1). */
+  alpha: 0.45,
+  /** It counts as covering when its picture lies over this share of the emplacement's picture. */
+  minShare: 0.15,
+  /** The share is measured on a grid of this many columns and rows over the emplacement's bounding box. */
+  grid: [4, 5],
+};
