@@ -7,7 +7,7 @@
 //
 // Usage: node tests/tools/terrain-shots.mjs <out.png> --seed AIAIAI --zoom 1.4 --centre '[11,4]'
 //          --towers '{"towers":[[x,y,doctrine,rank]],"rubble":[[x,y]]}' [--no-wave] [--dpr 2]
-//          [--clip '{"x":0,"y":0,"width":800,"height":500}']
+//          [--clip '{"x":0,"y":0,"width":800,"height":500}'] [--size 1800x1100] [--click '[x,y]']
 
 import * as playwright from 'playwright';
 import { startServer, launchBrowser, startMatch } from './server.mjs';
@@ -23,11 +23,12 @@ const wantWave = !process.argv.includes('--no-wave');
 const clip = arg('clip', null) ? JSON.parse(arg('clip', null)) : undefined;
 const scene = JSON.parse(arg('towers', '{"towers":[],"rubble":[]}'));
 const centre = JSON.parse(arg('centre', 'null'));
+const [width, height] = arg('size', '1440x900').split('x').map(Number);
 
 const server = await startServer();
 const browser = await launchBrowser(playwright, 'chromium');
 const context = await browser.newContext({
-  viewport: { width: 1440, height: 900 },
+  viewport: { width, height },
   deviceScaleFactor: Number(arg('dpr', '1')),
 });
 const page = await context.newPage();
@@ -47,8 +48,8 @@ for (let i = 0; i < 40; i++) {
 if (centre) {
   for (let i = 0; i < 80; i++) {
     const [sx, sy] = await page.evaluate(([x, y]) => window.__nachschub.screenOfCell(x, y), centre);
-    const dx = sx - 720;
-    const dy = sy - 450;
+    const dx = sx - width / 2;
+    const dy = sy - height / 2;
     if (Math.abs(dx) < 25 && Math.abs(dy) < 25) break;
     const horizontal = Math.abs(dx) > Math.abs(dy);
     const key = horizontal ? (dx > 0 ? 'ArrowRight' : 'ArrowLeft') : dy > 0 ? 'ArrowDown' : 'ArrowUp';
