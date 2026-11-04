@@ -33,6 +33,8 @@ import { createGroundLayer } from './render/ground.js';
 import { heightField, cellHeight } from './render/terrain.js';
 import { createSceneRenderer } from './render/scene.js';
 import { kitStats } from './render/rubbleCache.js';
+import { towerDraw } from './render/towerSprites.js';
+import { turretStats } from './render/turretCache.js';
 import { createEffects } from './render/effects.js';
 import { installPageGuards } from './input/guards.js';
 import { attachPointerInput } from './input/pointer.js';
@@ -1052,7 +1054,7 @@ if (debug) {
       stress: state.stress,
       zones: state.zones.map(({ x, y }) => ({ x, y })),
       pods: state.pods.map(({ index, x, y, doctrine, rank, landed }) => ({ index, x, y, doctrine, rank, landed })),
-      towers: state.towers.map(({ id, x, y, doctrine, rank, special, firing }) => ({ id, x, y, doctrine, rank, special, firing: Boolean(firing) })),
+      towers: state.towers.map(({ id, x, y, doctrine, rank, special, firing, aim }) => ({ id, x, y, doctrine, rank, special, firing: Boolean(firing), aiming: Boolean(aim) })),
       supplyLevel: state.supplyLevel,
       requisition: state.requisition,
       commandPoints: state.commandPoints,
@@ -1103,6 +1105,8 @@ if (debug) {
     sprites: () => ({ ...sprites.stats }),
     /** Rubble kit cells rastered so far (must not move while a match runs). */
     kit: () => ({ ...kitStats }),
+    /** Drawing time of the emplacements and the cached stages of their weapons (M9 D2). */
+    turrets: () => ({ ...turretStats, ...towerDraw }),
     /** Ground cache builds and reveal images rastered so far (see-through terrain, issue 35). */
     ground: () => ({ ...ground.stats }),
     audio: () => ({ ready: audio.ready, muted: audio.muted }),
