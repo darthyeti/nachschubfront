@@ -113,6 +113,40 @@ try {
     }
     const raster = await page.evaluate(() => window.__nachschub.sprites());
     report.push(`${label.padEnd(8)} sprite raster memory: ${(raster.bytes / 1048576).toFixed(1)} MB in ${raster.rasterized} sprites`);
+    // Zooming with a covered field selected must not raster anything per frame: the reveal image
+    // hangs on the settled zoom of the ground cache and is only scaled until then (issue 35).
+    {
+      for (let i = 0; i < 12; i++) await page.keyboard.press('-');
+      await page.waitForTimeout(2500);
+      const spot = await page.evaluate(({ w, h }) => {
+        const n = window.__nachschub;
+        const f = n.heights();
+        const size = Math.round(Math.sqrt(f.length));
+        for (let y = 1; y < size - 1; y++) {
+          for (let x = 1; x < size - 1; x++) {
+            const l = f[y * size + x];
+            if (l >= 2 || !n.canPlace(x, y)) continue;
+            const front = [[1, 0], [0, 1], [1, 1]].filter(([dx, dy]) => f[(y + dy) * size + x + dx] > l).length;
+            if (front < 2) continue;
+            const [sx, sy] = n.screenOfCell(x, y);
+            if (sx > 80 && sx < w - 80 && sy > 120 && sy < h - 120) return { sx, sy };
+          }
+        }
+        return null;
+      }, { w: options.viewport.width, h: options.viewport.height });
+      assert.ok(spot, `${label}: no covered field in view`);
+      await page.mouse.move(spot.sx, spot.sy);
+      await page.waitForTimeout(1500);
+      const g0 = await page.evaluate(() => window.__nachschub.ground());
+      for (let i = 0; i < 6; i++) await page.keyboard.press('+');
+      await sampleFrames(page, 6);
+      const g1 = await page.evaluate(() => window.__nachschub.ground());
+      const builds = g1.builds - g0.builds;
+      const reveals = g1.reveals - g0.reveals;
+      report.push(`${label.padEnd(8)} zooming with a covered field selected: ground builds ${builds}, reveal images ${reveals}`);
+      // A reveal image is only made after the cache was rebuilt at the settled zoom.
+      assert.ok(reveals <= builds, `${label}: reveal image rastered per frame while zooming (${reveals} against ${builds} builds)`);
+    }
     report.push(`${label.padEnd(8)} ${engine}, renderer: ${renderer}`);
     await context.close();
   }
