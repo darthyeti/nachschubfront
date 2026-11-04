@@ -29,6 +29,13 @@ const sets = new Map();
  */
 const motion = new WeakMap();
 
+/**
+ * What drawing the emplacements has cost so far (ms and calls), and how many of the turned weapons
+ * came from a stage and how many from the model. The browser checks read it to tell the drawing time
+ * of the emplacements from the rest of the frame.
+ */
+export const towerDraw = { ms: 0, calls: 0, staged: 0, live: 0 };
+
 /** True for the towers whose weapon is a turned model: every standard emplacement. */
 const isTurreted = (tower) => !tower.special && TURRET_DOCTRINES.includes(tower.doctrine);
 
@@ -175,6 +182,14 @@ function updateMotion(tower, set, dt) {
  * @returns {boolean} false if the sprite is not rasterized yet.
  */
 export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, reducedMotion = false) {
+  const start = performance.now();
+  const drawn = drawTower(ctx, cache, tower, zoom, dpr, t, dt, reducedMotion);
+  towerDraw.ms += performance.now() - start;
+  towerDraw.calls += 1;
+  return drawn;
+}
+
+function drawTower(ctx, cache, tower, zoom, dpr, t, dt, reducedMotion) {
   const set = towerSet(tower);
   const back = cache.get(set.back, zoom, dpr);
   if (!back) return false;
@@ -350,6 +365,7 @@ function drawTurretTower(ctx, cache, set, back, tower, zoom, dpr, t, dt, reduced
   };
   drawWeaponGlow(ctx, tower, view);
 
+  towerDraw[staged ? 'staged' : 'live'] += 1;
   if (staged) {
     entries.forEach((entry, i) => {
       // The hovering rings of the psi weapon bob over a pedestal that stands still.

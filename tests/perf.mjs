@@ -2,6 +2,10 @@
 // desktop and tablet. Measures frame intervals and verifies that no SVG is rasterized
 // while the game runs (the rasterizer counter must not move in the steady state).
 //
+// Since M9 D2 it also reports what drawing the emplacements costs apart from the rest of the frame
+// (the weapons are turned models drawn from cached stages), how many of them came from a stage, and
+// the memory the stages take; that memory must stay below STAGE_LIMIT_MB at the largest zoom.
+//
 // Frame-time limits are only enforced on a hardware GPU; with software rendering
 // (e.g. CI without GPU) the numbers are reported but not judged.
 //
@@ -19,6 +23,8 @@ const SAMPLE_FRAMES = 240;
 /** 60 fps budget with some slack for timer jitter. */
 const MEDIAN_LIMIT_MS = 17.5;
 const P95_LIMIT_MS = 25;
+/** Pixel memory of the cached weapon stages, at the largest zoom and the tablet's pixel ratio of 2. */
+const STAGE_LIMIT_MB = 40;
 
 await mkdir(OUT, { recursive: true });
 const server = await startServer();
@@ -90,7 +96,9 @@ try {
       }
       const before = (await page.evaluate(() => window.__nachschub.sprites())).rasterized;
       const kitBefore = (await page.evaluate(() => window.__nachschub.kit())).rasterized;
+      const turretsBefore = await page.evaluate(() => window.__nachschub.turrets());
       const gaps = (await sampleFrames(page, SAMPLE_FRAMES)).slice(10).sort((a, b) => a - b);
+      const turretsAfter = await page.evaluate(() => window.__nachschub.turrets());
       const after = (await page.evaluate(() => window.__nachschub.sprites())).rasterized;
       const kitAfter = (await page.evaluate(() => window.__nachschub.kit())).rasterized;
       const median = percentile(gaps, 0.5);
@@ -103,6 +111,17 @@ try {
           `, JS per frame ${work.toFixed(1)} ms` +
           `, rasterized during run: ${after - before}, kit cells: ${kitAfter - kitBefore}${hardware ? '' : ' (timings not judged)'}`,
       );
+      // The emplacements apart from the rest of the frame: time per frame, and where the weapons came from.
+      const frames = SAMPLE_FRAMES;
+      const towers = (await page.evaluate(() => window.__nachschub.state())).towers;
+      report.push(`${label.padEnd(8)} emplacements: ${towers.length}, with a target ${towers.filter((t) => t.aiming).length}, firing ${towers.filter((t) => t.firing).length}`);
+      const staged = turretsAfter.staged - turretsBefore.staged;
+      const live = turretsAfter.live - turretsBefore.live;
+      report.push(
+        `${label.padEnd(8)} zoom ${zoom.toFixed(2).padStart(4)}: emplacements ${((turretsAfter.ms - turretsBefore.ms) / frames).toFixed(2)} ms per frame` +
+          ` (${((turretsAfter.calls - turretsBefore.calls) / frames).toFixed(0)} drawn), weapons from a stage ${staged}, from the model ${live}` +
+          `, stages made during run: ${turretsAfter.rasterized - turretsBefore.rasterized}`,
+      );
       assert.equal(after - before, 0, `${label}/${zoomLabel}: SVG rasterized while running`);
       assert.equal(kitAfter - kitBefore, 0, `${label}/${zoomLabel}: rubble kit rastered while running`);
       if (hardware) {
@@ -113,6 +132,12 @@ try {
     }
     const raster = await page.evaluate(() => window.__nachschub.sprites());
     report.push(`${label.padEnd(8)} sprite raster memory: ${(raster.bytes / 1048576).toFixed(1)} MB in ${raster.rasterized} sprites`);
+    const stages = await page.evaluate(() => window.__nachschub.turrets());
+    report.push(
+      `${label.padEnd(8)} weapon stage memory: ${(stages.bytes / 1048576).toFixed(1)} MB in ${stages.entries} stages` +
+        ` (${stages.rasterized} made in all, ${stages.evicted} evicted)`,
+    );
+    assert.ok(stages.bytes / 1048576 < STAGE_LIMIT_MB, `${label}: weapon stages take ${(stages.bytes / 1048576).toFixed(1)} MB`);
     report.push(`${label.padEnd(8)} ${engine}, renderer: ${renderer}`);
     await context.close();
   }

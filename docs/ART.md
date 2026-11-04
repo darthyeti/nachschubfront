@@ -79,7 +79,7 @@ Die Rangstufen bauen aufeinander auf, jede Stufe behält alles der vorherigen. S
 
 Die Doktrinfarbe (`DOCTRINE_COLORS`) steckt in der Zeichnung (Rand, Winkel, Zeichen, Dachplatte, Lampe), und ein SVG kennt keinen Farbparameter. Deshalb gibt es **einen Bunker je Doktrin und Rang**: 30 Symbole `bunker-<doktrin>-<rang>` in `reference/konzept/stellungen/bunker-raenge.svg`. Gerastert wird nur, was im Spiel vorkommt; kein Filter pro Bild. Die Lampe leuchtet mit zwei flachen, halbtransparenten Scheiben, weil die Aufnahme des Exports keine Verläufe kennt. Das Fundament in der Doktrinfarbe (M8, C1) bleibt, ebenso der Silhouettenschatten (M8, C2) und das Treffer-Aufblitzen über die helle Variante.
 
-Der Aufsatz sitzt bis D2 unverändert (und gespiegelt zum Ziel) auf der Dachplatte; sein Ankerpunkt liegt auf der Dachhöhe des neuen Bunkers (`BUNKER_ROOF_HEIGHT`, 28 mal 0,74 Weltpixel). Die Spezialstellungen stehen weiter auf der Spezialbasis. Das Standbild des Zustands: `reference/konzept/stellungen/d1-raenge-1x.png` und `d1-raenge-klein.png` (alle Doktrinen mal alle Ränge im Spiel bei Zoom 0,95 und 0,4, erzeugt mit `node tests/tools/rank-sheet.mjs`).
+Der Aufsatz steht auf der Dachplatte in Höhe `BUNKER_ROOF_HEIGHT` (28 mal 0,74 Weltpixel) und richtet sich seit 0.11.2 zum Ziel aus (Abschnitt „Aufsätze als drehbare Modelle“ unten). Die Spezialstellungen stehen weiter auf der Spezialbasis. Das Standbild des Zustands: `reference/konzept/stellungen/d1-raenge-1x.png` und `d1-raenge-klein.png` (alle Doktrinen mal alle Ränge im Spiel bei Zoom 0,95 und 0,4, erzeugt mit `node tests/tools/rank-sheet.mjs`).
 
 Referenz der Studie: `reference/konzept/stellungen/rework-raenge.png`; die Spezialbasis zeigt `bunker-raenge-und-spezialbasis.png` (die Bunker darauf sind die der ersten Fassung).
 
@@ -384,7 +384,7 @@ Auftrag und Begründung in `docs/meilensteine/M8-optik.md`, Referenz `reference/
 | `-gun` / `-body` | Waffe, dreht sich zum Ziel | Körper |
 | `-front` | Sandsäcke und Kisten vor der Waffe | Beine oder Flügel vor dem Körper |
 
-  Für die Stellungen tritt seit v5 der Bunker-Baukasten an die Stelle dieser Aufteilung: ein Bunkerteil je Rangstufe und ein Aufsatz je Doktrin. Der Aufsatz dreht sich nicht, er wird zum Ziel hin gespiegelt, wie ein Gegner.
+  Für die Stellungen tritt seit v5 der Bunker-Baukasten an die Stelle dieser Aufteilung: ein Bunkerteil je Rangstufe und ein Aufsatz je Doktrin. Der Aufsatz der Standardstellungen ist seit 0.11.2 ein drehbares Modell mit Stufen-Cache (Abschnitt „Aufsätze als drehbare Modelle“); nur die Aufsätze der Spezialstellungen werden noch zum Ziel hin gespiegelt, wie ein Gegner.
 
   Die Kapsel kommt in M4c dazu: geschlossen ein Stück, geöffnet ein Kern (seit M4d mit dem Dach darauf) und vier einzeln ansteuerbare Segmentklappen, damit sie wie bisher nacheinander aufklappen. Seit 0.10.5 ist es Entwurf B, aus der Kapsel-Studie erzeugt: Hülle, Hitzeschild, Kern und vier Segmente (Abschnitt „Nachschubkapsel“).
 
@@ -404,6 +404,16 @@ Koloss und Gunship werden nicht als feste Flächen für eine Blickrichtung gezei
 - **Zeichenreihenfolge:** Teile nach Tiefe ihrer Mitte sortieren (x + y). Aufbauten bekommen einen Ebenen-Zuschlag, damit sie über dem Rumpf liegen.
 - **Zierbänder** (Rostband, rote Streifen) zeichnen nur ihre Seitenflächen, nie Ober- oder Unterseite. Sonst überdecken sie die Oberseite des Rumpfs.
 - **Rollen:** Laufrollen sind Ellipsen, die mit der Bildschirmrichtung der Fahrtachse geschert werden (`ctx.transform(u.x, u.y, 0, 1, 0, 0)`).
-- **Leistung:** Koloss und Gunship existieren höchstens einmal gleichzeitig. Farbwerte der Schattierung zwischenspeichern, wie in der Studie (`shadeCache`).
+- **Leistung:** Koloss und Gunship existieren höchstens einmal gleichzeitig. Farbwerte der Schattierung zwischenspeichern, wie in der Studie (`shadeCache`). Ausnahme: die Aufsätze der Standardstellungen, siehe unten.
 
 **Warum kein SVG.** Ein SVG kennt keine Normalen. Vier Standbilder statt des Modells würden bedeuten, dass jede Änderung viermal nachgezogen werden muss und die richtungsabhängige Schattierung verlorengeht. Für statische Figuren gilt die SVG-Regel deshalb unverändert weiter; die Ausnahme greift nur, wo eine Figur sich um die Hochachse dreht.
+
+### Aufsätze als drehbare Modelle (seit 0.11.2, M9 D2)
+
+Die sechs Aufsätze (`src/render/turrets.js`, der Mörser als Raketenwerfer) sind Modelle aus Körpern in lokalen Koordinaten, nach Form und Maß der Studie `stellungen-rework-modell.js`. Anders als Koloss und Gunship drehen sie sich um **beliebige Winkel**, deshalb sortiert `model.js` für sie (`turnFrame`, `solidKit`, `renderSolids`) jede sichtbare Fläche einzeln nach der Tiefe ihrer Mitte entlang des Sehstrahls; lange Flächen werden vorher geteilt. Koloss und Gunship behalten ihren einfacheren Weg.
+
+- **Richtung.** Aus `tower.aim` (Weltpunkt des letzten Ziels). Der Darstellungswinkel lebt auf der Darstellungsseite (`towerSprites.js`, nicht im Zustand, nicht gespeichert, nicht aufgezeichnet) und dreht mit `TURRET_TURN_SPEED` (`src/data/art.js`) zum Ziel. Ohne Ziel bleibt die letzte Richtung.
+- **Stufen-Cache** (`src/render/turretCache.js`). Zeigt die Waffe auf ihr Ziel (Abweichung unter `TURRET_ALIGN`) oder hat sie keins, steht sie auf der nächsten von 16 Stufen. Eine Stufe entsteht erst bei Bedarf, je Doktrin und Rang, zugeschnitten auf den belegten Bereich, nur für die Rasterstufe des Zooms (Wechsel erst nach 160 ms Ruhe, wie bei den Trümmern). Je Stufe liegen der Silhouettenschatten (halbe Auflösung) und, bei Bedarf, die helle Variante für das Treffer-Aufblitzen im Speicher. Höchstens `TURRET_CACHE_BYTES` (32 MB) Pixelspeicher, die am längsten ungenutzten Stufen weichen; höchstens `TURRET_BUILDS_PER_FRAME` neue Stufen je Bild, sonst wird die Waffe in diesem Bild aus dem Modell gezeichnet. Eine Waffe zwischen zwei Stufen wird pro Bild aus dem Modell gezeichnet.
+- **Feuern macht nicht teuer.** Der Rückstoß verschiebt die Stufe entlang des Laufs (`TURRET_RECOIL`), die Bohrungen der Autokanone drehen sich als Ebene darüber, Mündungsblitz, Hülsen und Leuchten liegen darüber. Die Psi-Ringe schweben als eigene Stufe über dem Sockel.
+- **Mündungspunkt.** Jede Waffe hat einen im Modell (`TURRET_MUZZLE`, `TURRET_ROCKET`); `towerAnchor` liefert ihn in der Richtung, in der die Waffe gerade gezeichnet wird, und alle bestehenden Effekte (Schuss, Strahl, Kette, Flamme) gehen von dort aus. Das Mündungsfeuer im Einzelnen folgt in D3.
+- Standbilder: `reference/konzept/stellungen/d2-16-richtungen.png` (alle sechs Aufsätze in 16 Richtungen im Spiel) und `d2-szene.png`.
