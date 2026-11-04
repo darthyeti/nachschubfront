@@ -53,7 +53,7 @@ Pull Request mit Label `spielgefuehl` nach `pr/<nr>/`; den Cache-Block in
 `sw.js` schreibt erst die Veröffentlichung, im Repository steht der
 Platzhalter. Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“.
 
-**Rezeptblatt (0.11.13, Issue 69):** Zwei kurze Hinweise über der Liste, „Was ein Rezept kostet“ (verbrauchte stehende Stellungen und die übrigen Kapseln werden Trümmer) und „Wann es sich lohnt“. Nur Text, keine Regeländerung.
+**Rezeptblatt (0.11.13, Issue 69):** Zwei kurze Hinweise über der Liste, „Was ein Rezept kostet“ (verbrauchte stehende Stellungen werden Trümmer, im ungünstigsten Fall wird aus drei Stellungen eine) und „Wann es sich lohnt“. Nur Text, keine Regeländerung.
 
 **Einweisung und Nachträge (M10 E3, Version 0.11.11):** Geführte Anleitung über die ersten zwei Runden für alle
 Geräte (`src/ui/tutorial.js`, 14 Schritte, ein Element je Schritt hervorgehoben, Rest gesperrt, jederzeit

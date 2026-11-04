@@ -417,7 +417,7 @@ export const STRINGS = {
     costTitle: 'Was ein Rezept kostet',
     costLines: [
       'Jede Zutat, die eine stehende Stellung liefert, wird verbraucht und zu Trümmern. Die Felder bleiben blockiert, die Route ändert sich nicht.',
-      'Auch die übrigen Kapseln der Salve werden zu Trümmern. Im ungünstigsten Fall werden aus drei Stellungen eine.',
+      'Verbraucht ein Rezept zwei stehende Stellungen, wird aus drei Stellungen eine.',
     ],
     worthTitle: 'Wann es sich lohnt',
     worthLines: [
