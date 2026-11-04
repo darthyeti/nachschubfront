@@ -12,7 +12,8 @@
 
 import { STRINGS } from '../data/strings.js';
 import { el, explain } from './controls.js';
-import { icon } from './icons.js';
+import { icon, ICONS } from './icons.js';
+import { burst } from './burst.js';
 
 const T = STRINGS.rune;
 
@@ -38,6 +39,8 @@ const BUBBLE_MS = 4000;
  * @property {boolean} [enabled]      false greys the disc out without changing its state
  * @property {boolean} [on]           the mode this disc switches is currently running
  * @property {boolean} [calling]      a pulsing ring: this is the disc to press now (ui/nudges.js)
+ * @property {string} [icon]          another symbol than the one the disc was made with (the tempo disc)
+ * @property {string} [name]          another spoken name than the one it was made with
  */
 
 /**
@@ -101,23 +104,28 @@ function disc() {
  * @param {string} options.iconName    key in ui/icons.js
  * @param {string} options.label       the disc's name, for the bubble and screen readers
  * @param {string} options.hint        the sentence the bubble explains it with
+ * @param {string} [options.caption]   the short word under the disc, where there is room for one
  * @param {Node} [options.bubbleExtra] more for the bubble below the sentence, e.g. the rank bars
  * @param {'top'|'left'} [options.side] where the bubble opens; the right-hand rail needs 'left'
  * @param {() => void} options.onClick
  */
-export function createRuneButton({ iconName, label, hint, bubbleExtra, side = 'top', onClick }) {
+export function createRuneButton({ iconName, label, hint, caption, bubbleExtra, side = 'top', onClick }) {
   const b = el('button', 'rune interactive');
   b.type = 'button';
   b.dataset.side = side;
 
   const face = el('span', 'rune-disc');
-  face.append(disc(), icon(iconName, 'rune-symbol'));
+  const symbol = icon(iconName, 'rune-symbol');
+  face.append(disc(), symbol);
   const pie = el('span', 'rune-pie');
   const waves = el('span', 'rune-waves');
   const lock = icon('lock', 'rune-lock');
   const badge = el('span', 'rune-badge');
   face.append(pie, waves, lock, badge);
 
+  // The word under the disc is for the eye; the button's spoken name is `label`.
+  const captionEl = el('span', 'rune-caption', caption ?? '');
+  captionEl.hidden = !caption;
   const note = el('span', 'rune-note');
   const flash = el('span', 'rune-flash', label);
   const bubble = el('span', 'rune-bubble');
@@ -125,7 +133,7 @@ export function createRuneButton({ iconName, label, hint, bubbleExtra, side = 't
   const bubbleText = el('span', null, hint);
   bubble.append(el('b', null, label), bubbleText);
   if (bubbleExtra) bubble.append(bubbleExtra);
-  b.append(face, note, flash, bubble);
+  b.append(face, captionEl, note, flash, bubble);
 
   b.addEventListener('click', () => {
     if (b.dataset.heldOpen === '1') {
@@ -161,6 +169,9 @@ export function createRuneButton({ iconName, label, hint, bubbleExtra, side = 't
     /** Closes the bubble from outside, when something else takes the screen. */
     hideBubble,
 
+    /** The disc's face, for a burst of the unlock effect (ui/burst.js). */
+    face,
+
     /** The sentence in the bubble, for a disc whose explanation moves with the match. */
     setHint(text) {
       if (bubbleText.textContent !== text) bubbleText.textContent = text;
@@ -170,7 +181,6 @@ export function createRuneButton({ iconName, label, hint, bubbleExtra, side = 't
     update(next) {
       const key = JSON.stringify(next);
       if (shown && JSON.stringify(shown) === key) return;
-      const was = shown;
       shown = next;
 
       b.dataset.state = next.state;
@@ -192,17 +202,26 @@ export function createRuneButton({ iconName, label, hint, bubbleExtra, side = 't
       note.textContent = next.note ?? '';
       note.hidden = !next.note;
 
-      let name = label;
-      if (next.state === 'locked' && next.badge) name = T.lockedLabel(label, next.badge);
-      else if (next.state === 'cooldown' && waveText) name = T.cooldownLabel(label, waveText);
-      b.setAttribute('aria-label', name);
-
-      // Freshly unlocked: say the name once, unasked, then fall silent.
-      if (was && was.state === 'locked' && next.state !== 'locked') {
-        clearTimeout(flashTimer);
-        b.classList.add('flashing');
-        flashTimer = setTimeout(() => b.classList.remove('flashing'), FLASH_MS);
+      if (next.icon && ICONS[next.icon] && symbol.dataset.icon !== next.icon) {
+        symbol.innerHTML = ICONS[next.icon];
+        symbol.dataset.icon = next.icon;
       }
+
+      let name = next.name ?? label;
+      if (next.state === 'locked' && next.badge) name = T.lockedLabel(name, next.badge);
+      else if (next.state === 'cooldown' && waveText) name = T.cooldownLabel(name, waveText);
+      b.setAttribute('aria-label', name);
+    },
+
+    /**
+     * Freshly unlocked: the bang (ui/burst.js), and the name said once,
+     * unasked, before the disc falls silent again.
+     */
+    celebrate() {
+      burst(face);
+      clearTimeout(flashTimer);
+      b.classList.add('flashing');
+      flashTimer = setTimeout(() => b.classList.remove('flashing'), FLASH_MS);
     },
   };
 }

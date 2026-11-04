@@ -122,6 +122,17 @@ export const SOUNDS = {
       { kind: 'tone', wave: 'sine', from: 420, to: 1200, seconds: 0.5, attack: 0.04, gain: 0.2, sweep: 'exp' },
     ],
   },
+  // A command or the command points unlock (M10 E1): a low thump under a rising
+  // bright sweep and a short bell, so the flash on the screen has a sound.
+  unlock: {
+    layers: [
+      { kind: 'tone', wave: 'sine', from: 140, to: 48, seconds: 0.45, attack: 0.004, gain: 0.5, sweep: 'exp' },
+      { kind: 'noise', seconds: 0.35, attack: 0.004, gain: 0.3, filter: ['bandpass', 2200, 0.8] },
+      { kind: 'tone', wave: 'triangle', from: 520, to: 1040, seconds: 0.3, attack: 0.02, gain: 0.22, sweep: 'exp' },
+      { kind: 'tone', wave: 'triangle', from: 1046, to: 1046, seconds: 0.9, attack: 0.1, gain: 0.16 },
+    ],
+    throttle: 0.4,
+  },
   victory: {
     layers: [
       { kind: 'tone', wave: 'triangle', from: 392, to: 392, seconds: 1.4, attack: 0.05, gain: 0.32 },

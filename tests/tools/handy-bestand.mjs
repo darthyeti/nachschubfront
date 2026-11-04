@@ -215,10 +215,10 @@ try {
       }
       await shoot('stellung', page);
       await page.evaluate(() => document.querySelector('.info button')?.click());
-      await page.getByRole('button', { name: 'Hilfe: Symbole erklären' }).click();
+      await page.getByRole('button', { name: 'Symbole erklären' }).click();
       await page.waitForTimeout(300);
       await shoot('hilfe', page);
-      await page.getByRole('button', { name: 'Hilfe schließen' }).click().catch(() => {});
+      await page.getByRole('button', { name: 'Symbole schließen' }).click().catch(() => {});
       await page.evaluate(() => document.querySelector('.plate-button[aria-label="Menü"]').click());
       await page.waitForSelector('.menu[data-menu="pause"]:not([hidden])');
       await page.waitForTimeout(300);
