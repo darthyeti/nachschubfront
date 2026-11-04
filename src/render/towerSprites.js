@@ -1,9 +1,11 @@
-// Towers drawn from concept-art sprites in three layers: everything behind the
-// weapon, the weapon itself and what covers it from the front.
+// Towers: a bunker sprite with a weapon on its roof.
 //
-// The weapon is a sprite of its own and is turned towards the target in code
-// (docs/ART.md: static parts from the SVG, movement in code). Recoil, barrel
-// wobble and the glows that used to be painted into the artwork live here too.
+// The bunker is a sprite from the concept art. The weapon of a doctrine tower is a turnable model
+// (turrets.js) that faces its target: it turns at a speed of the drawing, stands on one of 16
+// cached stages while it is not turning and is drawn from its model only in between
+// (turretCache.js, M9 D2). The weapons of the recipe emplacements are still sprites of their own,
+// mirrored towards the target (docs/ART.md: static parts from the SVG, movement in code). Recoil,
+// barrel wobble and the glows that used to be painted into the artwork live here too.
 
 import { iso } from './iso.js';
 import { cellLift, liftAt } from './terrain.js';
@@ -13,11 +15,22 @@ import { drawSprite, drawSpriteShadow, drawSpriteTurned, spriteOrigin } from './
 import { towerSpriteSet, specialSpriteSet, nextFlip, DOCTRINES, SPECIALS } from './sprites/compose.js';
 import { RANK_COUNT } from './sprites/manifest.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
+import { TURRET_TURN_SPEED, TURRET_ALIGN, TURRET_REST_ANGLE, TURRET_RECOIL } from '../data/art.js';
 import { drawWeaponGlow, drawWeaponSpark } from './towerFx.js';
+import { turnFrame, renderSolids } from './model.js';
+import { buildTurret, muzzleOffset, autocannonBores, restPose, MOUNT_Z, TURRET_SCALE, CASING_PORT, TURRET_DOCTRINES } from './turrets.js';
+import { stageEntry, stageIndex, STAGE_STEP, drawStage, drawStageShadow } from './turretCache.js';
 
 const sets = new Map();
-/** Render-side movement of each weapon; forgotten with the tower it belongs to. */
+/**
+ * Render-side movement of each weapon, including the direction the drawing of a turned weapon
+ * faces. It is not part of the game state, is never saved or recorded, and is forgotten with the
+ * tower it belongs to.
+ */
 const motion = new WeakMap();
+
+/** True for the towers whose weapon is a turned model: every standard emplacement. */
+const isTurreted = (tower) => !tower.special && TURRET_DOCTRINES.includes(tower.doctrine);
 
 /** Sprite set of an emplacement: doctrine and rank, or a recipe emplacement. */
 export function towerSet(tower) {
@@ -44,6 +57,12 @@ export function towerSet(tower) {
 export function towerAnchor(tower) {
   const set = towerSet(tower);
   const [sx, sy] = iso(tower.x + 0.5, tower.y + 0.5);
+  if (isTurreted(tower)) {
+    // The muzzle of the model, in the direction it is drawn facing now.
+    const m = motion.get(tower);
+    const off = muzzleOffset(tower.doctrine, m?.shown ?? TURRET_REST_ANGLE, { ...restPose('#fff'), tube: m?.tube ?? 0 });
+    return [sx + off[0], sy + off[1]];
+  }
   if (!set.weapon?.tip) return [sx, sy];
   return topPoint(tower, set, set.weapon.tip);
 }
@@ -78,8 +97,12 @@ export function allTowerDefs() {
   const add = (set) => {
     for (const def of [set.back, set.gun, set.front]) if (def) byKey.set(def.key, def);
   };
+  // The weapons of the doctrines are models, not sprites: only the bunkers are rastered.
   for (const doctrine of DOCTRINES) {
-    for (let rank = 1; rank <= RANK_COUNT; rank++) add(towerSet({ doctrine, rank }));
+    for (let rank = 1; rank <= RANK_COUNT; rank++) {
+      const set = towerSet({ doctrine, rank });
+      byKey.set(set.back.key, set.back);
+    }
   }
   for (const special of SPECIALS) add(towerSet({ special }));
   return [...byKey.values()];
@@ -156,6 +179,7 @@ export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, red
   const back = cache.get(set.back, zoom, dpr);
   if (!back) return false;
   const [sx, sy] = iso(tower.x + 0.5, tower.y + 0.5);
+  if (isTurreted(tower)) return drawTurretTower(ctx, cache, set, back, tower, zoom, dpr, t, dt, reducedMotion);
 
   const weapon = set.weapon;
   const scale = set.back.unitScale;
@@ -209,4 +233,149 @@ export function drawTowerSprite(ctx, cache, tower, zoom, dpr, t = 0, dt = 0, red
 
   drawWeaponSpark(ctx, tower, view);
   return true;
+}
+
+/**
+ * How a turned weapon is drawn right now: the direction it has turned to, the direction it is shown
+ * in (a stage while it stands, the live angle while it turns) and whether it comes from a stage.
+ * Null before its first frame. For the browser checks and the tests.
+ */
+export function turretView(tower) {
+  const m = motion.get(tower);
+  return m && 'staged' in m ? { theta: m.theta, shown: m.shown, aligned: m.aligned, staged: m.staged } : null;
+}
+
+/**
+ * Keeps the direction a turned weapon is drawn in, and what moves on it.
+ *
+ * The drawing turns at TURRET_TURN_SPEED towards the point the tower last aimed at (`tower.aim`,
+ * set by the simulation, never changed here); without a target it keeps the direction it had.
+ * A shot is recognised, as ever, by the reload counter jumping back up. Nothing here is read by the
+ * simulation.
+ */
+function updateTurret(tower, dt) {
+  let m = motion.get(tower);
+  if (!m) {
+    m = {
+      theta: TURRET_REST_ANGLE,
+      shown: TURRET_REST_ANGLE,
+      aligned: true,
+      recoil: 0,
+      spin: 0,
+      tube: 0,
+      cooldown: tower.cooldown,
+    };
+    motion.set(tower, m);
+  }
+  if (tower.cooldown > m.cooldown + 1e-6) {
+    m.recoil = 1;
+    m.tube = (m.tube + 1) % 6;
+  }
+  m.cooldown = tower.cooldown;
+  m.recoil = Math.max(0, m.recoil - dt * 7);
+  if (tower.doctrine === 'autocannon' && (m.recoil > 0 || tower.firing)) m.spin += dt * 26;
+
+  let want = m.theta;
+  if (tower.aim) want = Math.atan2(tower.aim.y - (tower.y + 0.5), tower.aim.x - (tower.x + 0.5));
+  // A long frame (a hidden tab) must not make the weapon whip round.
+  const step = (TURRET_TURN_SPEED[tower.doctrine] ?? 4) * Math.min(dt, 0.1);
+  m.theta += Math.max(-step, Math.min(step, angleDelta(m.theta, want)));
+  if (m.theta > Math.PI) m.theta -= Math.PI * 2;
+  else if (m.theta < -Math.PI) m.theta += Math.PI * 2;
+  m.aligned = Math.abs(angleDelta(m.theta, want)) < TURRET_ALIGN;
+  return m;
+}
+
+/** Screen offset of a push of `cells` back along the barrel of a weapon facing `theta`. */
+function recoilShift(theta, cells) {
+  const x = -cells * Math.cos(theta);
+  const y = -cells * Math.sin(theta);
+  return [(x - y) * 32, (x + y) * 16];
+}
+
+/**
+ * A standard emplacement: the bunker, and on its roof the weapon facing its target.
+ *
+ * A weapon that points at its target (or has none) stands on its cached stage, the nearest of 16
+ * directions. One that is still turning is drawn from its model every frame. Firing alone changes
+ * neither: the recoil shifts the stage along the barrel, the bores of the autocannon turn over it,
+ * the muzzle light and the glows are layers on top.
+ */
+function drawTurretTower(ctx, cache, set, back, tower, zoom, dpr, t, dt, reducedMotion) {
+  const [sx, sy] = iso(tower.x + 0.5, tower.y + 0.5);
+  const doctrine = tower.doctrine;
+  const m = updateTurret(tower, dt);
+  const flash = (tower.flash ?? 0) > 0;
+  const psi = doctrine === 'psi';
+
+  // The stages the weapon is nearest to; they carry the shadow even while it is drawn live.
+  const k = stageIndex(m.theta);
+  const layers = psi ? ['base', 'float'] : ['all'];
+  const entries = layers.map((layer) => stageEntry(doctrine, tower.rank, layer, k, zoom, dpr));
+  const staged = m.aligned && entries.every(Boolean);
+  m.shown = staged ? k * STAGE_STEP : m.theta;
+  m.staged = staged;
+  const bob = psi && !reducedMotion ? Math.sin(t * 2 + tower.x) * 2 : 0;
+  const shift = staged ? recoilShift(m.shown, TURRET_RECOIL[doctrine] * m.recoil) : [0, 0];
+
+  drawSpriteShadow(ctx, set.back, back, sx, sy);
+  for (const entry of entries) if (entry) drawStageShadow(ctx, entry, sx, sy);
+  drawSprite(ctx, set.back, back, sx, sy, { flash });
+
+  const pose = { ...restPose(DOCTRINE_COLORS[doctrine], tower.rank), recoil: staged ? 0 : m.recoil, spin: m.spin, bob, tube: m.tube };
+  const roof = [sx, sy - MOUNT_Z];
+  const rel = muzzleOffset(doctrine, m.shown, pose);
+  const muzzle = [sx + rel[0] + shift[0], sy + rel[1] + shift[1]];
+  const F = turnFrame(m.shown, MOUNT_Z, TURRET_SCALE);
+  const at = (p) => [sx + p[0] + shift[0], sy + p[1] + shift[1]];
+  const view = {
+    doctrine,
+    origin: roof,
+    pivot: roof,
+    muzzle,
+    ports: null,
+    glow: null,
+    anchor: muzzle,
+    // Where the psi core and the tesla coil glow from: the centre of the rings, the sphere.
+    core: psi ? at(F.W(0, 0, 28 + bob)) : doctrine === 'tesla' ? at(F.W(0, 0, 27.5)) : null,
+    casingPort: doctrine === 'autocannon' ? at(F.W(...CASING_PORT)) : null,
+    sparks: null,
+    sight: false,
+    casings: doctrine === 'autocannon',
+    fire: fireDirection(tower, roof[0], roof[1]),
+    shot: m.recoil,
+    scale: 1,
+    t,
+    reducedMotion,
+  };
+  drawWeaponGlow(ctx, tower, view);
+
+  if (staged) {
+    entries.forEach((entry, i) => {
+      // The hovering rings of the psi weapon bob over a pedestal that stands still.
+      const lift = layers[i] === 'float' ? [0, -bob] : null;
+      drawStage(ctx, entry, sx, sy, { shift: lift ? [shift[0] + lift[0], shift[1] + lift[1]] : shift, flash });
+    });
+  } else {
+    ctx.save();
+    ctx.translate(sx, sy);
+    renderSolids(ctx, buildTurret(doctrine, F, pose).parts);
+    ctx.restore();
+  }
+
+  if (doctrine === 'autocannon') drawBores(ctx, autocannonBores(m.shown, m.spin, staged ? 0 : m.recoil), sx + shift[0], sy + shift[1]);
+  drawWeaponSpark(ctx, tower, view);
+  return true;
+}
+
+/** The six bores at the muzzle end of the autocannon, turning with the barrel cluster. */
+function drawBores(ctx, { points, facing }, ox, oy) {
+  if (!facing) return;
+  ctx.fillStyle = C.ink;
+  ctx.beginPath();
+  for (const [px, py] of points) {
+    ctx.moveTo(ox + px + 1, oy + py);
+    ctx.arc(ox + px, oy + py, 1, 0, Math.PI * 2);
+  }
+  ctx.fill();
 }
