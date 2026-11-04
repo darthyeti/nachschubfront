@@ -442,6 +442,8 @@ const Z_MOUNT = 28;
 export const MOUNT_Z = Z_MOUNT * BASE_SCALE;
 /** Half the footprint of the bunker in cells, for its shadow. */
 export const BUNKER_HALF = 0.47 * BASE_SCALE;
+/** How far the doctrine-coloured rim of rank 2 reaches down the wall, in authored px. */
+const RIM_DEEP = 2.6;
 const HB = 0.44;
 const HB_TOP = 0.41;
 const PLATFORM = 0.31;
@@ -460,9 +462,13 @@ function rivet(ctx, p, r = 1, col = '#cfd5de') {
  *   3  dark plates beside the loop-holes with a doctrine mark, doctrine coloured roof platform, two chevrons
  *   4  merlons on the roof, skull plaque, antenna, three chevrons
  *   5  gold edges and rivets, a second antenna, four gold chevrons
+ * Rank 2 carries a taller rim than the others (decision E-18, 3): the band reaches
+ * RIM_DEEP px further down the wall, so the rank still reads at the smallest zoom.
  * @param {string} accent  guide colour of the doctrine
+ * @param {{flat?: boolean}} options  `flat` draws the lamp glow as two flat translucent
+ *   discs instead of a gradient, which is what the SVG export needs (no gradients in figures).
  */
-export function drawBunker(ctx, rank, accent) {
+export function drawBunker(ctx, rank, accent, { flat = false } = {}) {
   ctx.lineJoin = 'round';
   const F = makeFrame(0, 0, BASE_SCALE);
   const W = (lx, ly, z) => F.W(lx, ly, z);
@@ -481,7 +487,7 @@ export function drawBunker(ctx, rank, accent) {
   renderModel(ctx, [
     T.frustum(0, 0, 0.47, 0.47, 0.455, 0.455, 0, Z_LIP, STEEL_D, { lw: 1.7 }),
     T.frustum(0, 0, HB, HB, HB_TOP, HB_TOP, Z_LIP, Z_BODY, CONCRETE, { lw: 1.7 }),
-    T.frustum(0, 0, 0.43, 0.43, 0.43, 0.43, Z_BODY, Z_RIM, rimColour, { lw: 1.7 }),
+    T.frustum(0, 0, 0.43, 0.43, 0.43, 0.43, rank === 2 ? Z_BODY - RIM_DEEP : Z_BODY, Z_RIM, rimColour, { lw: 1.7 }),
     T.frustum(0, 0, 0.41, 0.41, PLATFORM, PLATFORM, Z_RIM, Z_ROOF, CONCRETE, { lw: 1.5 }),
   ]);
 
@@ -571,13 +577,24 @@ export function drawBunker(ctx, rank, accent) {
 
   // Doctrine lamp on the near roof corner.
   const lampP = W(PLATFORM, PLATFORM, Z_ROOF + 2);
-  const g = ctx.createRadialGradient(lampP[0], lampP[1] - 2, 1, lampP[0], lampP[1] - 2, 8);
-  g.addColorStop(0, `${accent}aa`);
-  g.addColorStop(1, `${accent}00`);
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(lampP[0], lampP[1] - 2, 8, 0, Math.PI * 2);
-  ctx.fill();
+  if (flat) {
+    ctx.fillStyle = accent;
+    for (const [r, a] of [[8, 0.12], [5, 0.2]]) {
+      ctx.globalAlpha = a;
+      ctx.beginPath();
+      ctx.arc(lampP[0], lampP[1] - 2, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else {
+    const g = ctx.createRadialGradient(lampP[0], lampP[1] - 2, 1, lampP[0], lampP[1] - 2, 8);
+    g.addColorStop(0, `${accent}aa`);
+    g.addColorStop(1, `${accent}00`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(lampP[0], lampP[1] - 2, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
   renderModel(ctx, [T.gem([PLATFORM, PLATFORM, Z_ROOF + 1.5], 0.034, 5, 1, accent, { n: 4, lw: 1.1 })]);
 
   // Skull plaque on the near corner (rank 4 up).

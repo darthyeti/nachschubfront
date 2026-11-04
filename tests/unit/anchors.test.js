@@ -117,7 +117,7 @@ test('every emplacement is a base and a top, and nothing in front of them', () =
   for (const doctrine of DOCTRINES) {
     for (let rank = 1; rank <= MAX_RANK; rank++) {
       const set = towerSet(bunker(doctrine, rank));
-      assert.equal(set.back.key, `tower:bunker-${rank}`, `${doctrine} rank ${rank}`);
+      assert.equal(set.back.key, `tower:bunker-${doctrine}-${rank}`, `${doctrine} rank ${rank}`);
       assert.equal(set.front, null);
     }
   }

@@ -28,6 +28,7 @@ import { POD_SPRITES } from '../../src/render/sprites/pods.js';
 import { rankMarks, markCount } from '../../src/ui/badges.js';
 import { DOCTRINE_COLORS } from '../../src/data/doctrines.js';
 import { MAX_RANK } from '../../src/data/ranks.js';
+import { BUNKER_ROOF_HEIGHT } from '../../src/data/art.js';
 import { petalOpen, isOpening, shellFade, keepClearedCells, POD_SPRITE_DEFS } from '../../src/render/pods.js';
 import { PODS } from '../../src/data/pods.js';
 import { ENEMIES, BOSSES, ALL_ENEMIES } from '../../src/data/enemies.js';
@@ -46,8 +47,11 @@ test('imported libraries contain all concept symbols', () => {
     assert.ok(ENEMY_SPRITES.symbols[id], id);
     assert.ok(ENEMY_SPRITES.defs.includes(`id="${id}"`), id);
   }
-  // v5: five bunkers, the taller special base, and a top per doctrine and recipe.
-  for (let rank = 1; rank <= 5; rank++) assert.ok(TOWER_SPRITES.symbols[`bunker-${rank}`], `bunker-${rank}`);
+  // 0.11.0: a bunker per doctrine and rank, the taller special base, and a top per doctrine and recipe.
+  for (const doctrine of DOCTRINES) {
+    for (let rank = 1; rank <= 5; rank++) assert.ok(TOWER_SPRITES.symbols[`bunker-${doctrine}-${rank}`], `bunker-${doctrine}-${rank}`);
+  }
+  for (let rank = 1; rank <= 5; rank++) assert.ok(!TOWER_SPRITES.symbols[`bunker-${rank}`], `the bunker of v5 (rank ${rank}) is gone`);
   assert.ok(TOWER_SPRITES.symbols.specialbase, 'specialbase');
   for (const doctrine of DOCTRINES) {
     assert.ok(TOWER_SPRITES.symbols[towerLayers(doctrine, 1).top], doctrine);
@@ -227,11 +231,11 @@ test('nextFlip mirrors when moving right on screen, with a dead zone', () => {
 });
 
 test('an emplacement is a bunker and a top, one per rank', () => {
-  assert.deepEqual(towerLayers('flame', 1), { base: 'bunker-1', top: 'top-fire' });
-  assert.deepEqual(towerLayers('tesla', 5), { base: 'bunker-5', top: 'top-tesla' });
-  assert.deepEqual(towerLayers('mortar', 3), { base: 'bunker-3', top: 'top-mortar' });
+  assert.deepEqual(towerLayers('flame', 1), { base: 'bunker-flame-1', top: 'top-fire' });
+  assert.deepEqual(towerLayers('tesla', 5), { base: 'bunker-tesla-5', top: 'top-tesla' });
+  assert.deepEqual(towerLayers('mortar', 3), { base: 'bunker-mortar-3', top: 'top-mortar' });
   // Every doctrine gets the same five bunkers; only the top tells them apart.
-  assert.equal(new Set(DOCTRINES.map((d) => towerLayers(d, 4).base)).size, 1, 'one bunker per rank');
+  assert.equal(new Set(DOCTRINES.map((d) => towerLayers(d, 4).base)).size, DOCTRINES.length, 'a bunker per doctrine, the colour is part of it');
   assert.equal(new Set(DOCTRINES.map((d) => towerLayers(d, 4).top)).size, DOCTRINES.length, 'a top each');
 
   assert.throws(() => towerLayers('flame', 0));
@@ -268,13 +272,15 @@ test('the bunker sits on the ground and its top on the roof plate', () => {
   assert.ok(SPECIAL_ROOF > BUNKER_ROOF, 'the special base is the taller building (docs/ART.md)');
 });
 
-test('the bunker covers exactly one cell', () => {
+test('the bunker stands inside its cell', () => {
   // The sheets come out of the study, which draws in the same projection the
-  // game uses, so a unit is a world pixel and a cell is 64 of them across.
+  // game uses, so a unit is a world pixel and a cell is 64 of them across. Since
+  // 0.11.0 the bunker is drawn at 74 % (BUNKER_BASE_SCALE), so it is narrower than the cell.
   assert.equal(SPRITE_SCALE.tower, 1);
   const [x, , w, h] = towerSpriteSet('flame', 1).back.bbox;
   assert.ok(Math.abs(x + w / 2) < 1, 'centred on its cell');
-  assert.ok(w >= 60 && w <= 96, `a bunker is ${w} world pixels wide, a cell is 64 plus its ink`);
+  assert.ok(w >= 64 * 0.74 && w <= 64, `a bunker is ${w} world pixels wide, a cell is 64`);
+  assert.equal(BUNKER_ROOF, BUNKER_ROOF_HEIGHT, 'the top stands on the roof of the scaled bunker');
   assert.ok(w > h, `${w} x ${h}: squat, wider than it is tall (docs/ART.md)`);
 });
 
@@ -304,12 +310,15 @@ test('the ranks are drawn into the bunker, not stacked on it', () => {
     const to = TOWER_SPRITES.defs.indexOf('</g>', at);
     return TOWER_SPRITES.defs.slice(from, to);
   };
-  const bunkers = [1, 2, 3, 4, 5].map((rank) => symbol(`bunker-${rank}`));
+  const bunkers = [1, 2, 3, 4, 5].map((rank) => symbol(`bunker-flame-${rank}`));
   assert.equal(new Set(bunkers).size, 5, 'five distinct bunkers');
-  // Cumulative: each rank is longer than the one below it.
-  for (let i = 1; i < bunkers.length; i++) {
+  // Cumulative: each rank from 3 up is longer than the one below it (rank 2 only
+  // recolours and widens the rim, so it is compared with the recruit separately).
+  assert.ok(bunkers[1].length > bunkers[0].length, 'rank 2 adds a guard and a chevron to rank 1');
+  for (let i = 2; i < bunkers.length; i++) {
     assert.ok(bunkers[i].length > bunkers[i - 1].length, `rank ${i + 1} adds to rank ${i}`);
   }
+  // No sandbags any more: the study's bunker has none, the ranks are trim and colour.
   // The legend's gold edging is in the drawing, and only there.
   assert.ok(bunkers[4].includes('#f2c14e'), 'the legend has gold edges');
   assert.ok(!bunkers[0].includes('#f2c14e'), 'the recruit has none');
@@ -372,7 +381,7 @@ test('rank marks: one stroke fewer than the rank, gold only at legend', () => {
 });
 
 test('layers that look the same at several ranks share one raster', () => {
-  // Only the back layer changes with the rank (chevrons, sandbags).
+  // Only the back layer changes with the rank (rim, plates, chevrons, antennas).
   assert.equal(towerSpriteSet('laser', 3).gun.key, towerSpriteSet('laser', 5).gun.key);
   assert.notEqual(towerSpriteSet('laser', 3).back.key, towerSpriteSet('laser', 5).back.key);
   assert.notEqual(towerSpriteSet('mortar', 1).gun.key, towerSpriteSet('laser', 1).gun.key);
@@ -384,16 +393,30 @@ test('effects painted into the concept art are gone; code draws them now', () =>
   for (const id of ['ac-core', 'bunker-mg', 'bunker-flame', 'bunker2-mg', 'bunker2-flame', 't-laser-s']) {
     assert.ok(!TOWER_SPRITES.defs.includes(`id="${id}"`), `${id} is out of the library`);
   }
-  // The two bunkers of M4d are one building for all six doctrines now, so the
-  // doctrine colour is not in the base at all — it is in the top and the effect.
+  // Since 0.11.0 the doctrine colour is part of the bunker (lamp, rim, marks), so
+  // it is the doctrine's own colour in its own bunker and no other doctrine's.
   for (let rank = 1; rank <= 5; rank++) {
-    const svg = towerSpriteSet('flame', rank).back.svg(1);
-    const bunker = svg.slice(svg.indexOf('id="bunker-'), svg.indexOf('</g>', svg.indexOf('id="bunker-')));
-    assert.ok(!bunker.includes('#ff8a2a'), `rank ${rank}: no flame colour in the bunker`);
-    assert.ok(!bunker.includes('#f0e2b8'), `rank ${rank}: no autocannon colour either`);
+    const bunker = (doctrine) => {
+      const svg = towerSpriteSet(doctrine, rank).back.svg(1);
+      return svg.slice(svg.indexOf('id="bunker-'), svg.indexOf('</g>', svg.indexOf('id="bunker-')));
+    };
+    const flame = bunker('flame');
+    assert.ok(flame.includes(DOCTRINE_COLORS.flame), `rank ${rank}: the lamp carries the flame colour`);
+    assert.ok(!flame.includes(DOCTRINE_COLORS.autocannon), `rank ${rank}: no autocannon colour in the flame bunker`);
   }
 });
 
+test('a tower sprite carries only its own symbol, not the whole library', () => {
+  // The library holds a bunker per doctrine and rank; every raster would otherwise parse all of them.
+  const set = towerSpriteSet('flame', 3);
+  const svg = set.back.svg(1);
+  assert.ok(svg.includes('id="bunker-flame-3"'));
+  assert.ok(!svg.includes('id="bunker-tesla-3"'), 'no other bunker in the document');
+  assert.ok(!svg.includes('id="top-fire"'), 'no top in the bunker document');
+  assert.ok(svg.length < TOWER_SPRITES.defs.length / 10, `${svg.length} bytes against a library of ${TOWER_SPRITES.defs.length}`);
+  const gun = set.gun.svg(1);
+  assert.ok(gun.includes('id="top-fire"') && !gun.includes('id="top-auto"'));
+});
 
 test('svg pixel size follows the requested scale', () => {
   const s = enemySprite('warrior');
