@@ -69,8 +69,8 @@ export function drawWeaponGlow(ctx, tower, view) {
   // around them is left to the code: two sets of rings on one figure read as a
   // mistake, not as a glow (docs/ART.md).
   if (kind === 'psi' || kind === 'tesla') {
-    const [ax, ay] = view.anchor ?? pivot;
-    const bob = reducedMotion ? 0 : Math.sin(t * 2 + tower.x) * 2 * scale;
+    const [ax, ay] = view.core ?? view.anchor ?? pivot;
+    const bob = view.core ? 0 : reducedMotion ? 0 : Math.sin(t * 2 + tower.x) * 2 * scale;
     glow(ctx, ax, ay - bob, 26 * scale, colour, firing ? 0.36 : 0.22);
   }
 }
@@ -101,7 +101,9 @@ function spark(ctx, x, y, radius, colour) {
  * without a persistent particle. Two cases arc out to the side away from the
  * line of fire, rise, then fall.
  */
-function drawEjectedCasings(ctx, { muzzle, fire, shot, scale }) {
+function drawEjectedCasings(ctx, { muzzle, casingPort, fire, shot, scale }) {
+  // The turned autocannon throws its cases from the belly of the housing; the older tops from the muzzle.
+  const from = casingPort ?? muzzle;
   if (shot <= 0.05) return;
   const age = 1 - shot;
   // Sideways from the barrel, on the screen-up side, plus a fall.
@@ -115,8 +117,8 @@ function drawEjectedCasings(ctx, { muzzle, fire, shot, scale }) {
   for (let n = 0; n < 2; n++) {
     const out = (10 + n * 7) * scale * age;
     const rise = (1 - (age * 2 - 1) ** 2) * 13 * scale;
-    const cx = muzzle[0] + ux * out;
-    const cy = muzzle[1] + uy * out - rise + age * age * 16 * scale;
+    const cx = from[0] + ux * out;
+    const cy = from[1] + uy * out - rise + age * age * 16 * scale;
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(age * (7 + n * 2));
