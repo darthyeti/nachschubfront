@@ -15,11 +15,13 @@ Felder); er holt sie nach (Akte E-16). Das
 Höhenfeld ist reine Darstellung (`src/render/terrain.js`), die Simulation rechnet weiter auf der
 flachen Karte. Offen im Blick: King of the Hill hat eine Bastion über 2 x 2 Felder, die auf
 verschiedenen Stufen liegen können (das Feld behält seine Stufe, wie beauftragt). **M7 Spielmodi**
-ruht seit dem 02.11.2026 (Entscheidung E-02), bis der Grafik-Rework steht. **M9 Stellungen**
-(neuer Bunker, drehbare Aufsätze, Mündungsfeuer) ist freigegeben (E-18) und in Arbeit, Auftrag
-[`M9-stellungen.md`](meilensteine/M9-stellungen.md). D1 (neuer Bunker, Ränge ohne Sandsäcke, 0.11.0), die Durchsicht durch Anhöhen (0.11.1), D2 (drehbare Aufsätze mit 16 Stufen, 0.11.2), die Stellungen im Gelände (#44, 0.11.4) und D3 (Mündungsfeuer, Raketenwerfer mit Bogenflug nach dem Geschoss der Simulation, 0.11.5, `towerFx.js`) sind gemergt, dazu in 0.11.8 die Hindernisse an Stufen (#58: Ruinen, Mauern, Krater, Trümmer, Bollwerk, Bastion, Signalfeuer und ihre Schatten stehen hinter höheren Blöcken und bleiben auf ihrer Stufe, siehe `docs/ART.md`); Tills Blick auf dem iPad steht aus. D4 (Spezialstellungen: Spezialbasis je Rezept als SVG, die sechs Waffen als drehbare Modelle in `specials.js`, Feuer am Mündungspunkt, 0.11.10) ist umgesetzt und wartet auf Tills Blick; danach ist M9 fertig. Alle zwölf Waffen sind drehbare Modelle (`turrets.js`, `specials.js`, gemeinsam über `weapons.js`, Stufen in `turretCache.js`); die Doktrin-Einträge in `TOWER_TOPS` und die alten `top-*`-Symbole werden dafür nicht mehr gelesen.
-**M10 Bedienung** (Ikonen, Menüs, Handy-Layout, Tutorial, für alle Geräte) ist freigegeben (E-23) und läuft parallel zu M9,
-Auftrag [`M10-bedienung.md`](meilensteine/M10-bedienung.md).
+ruht seit dem 02.11.2026 (Entscheidung E-02), bis der Grafik-Rework steht. Seit dem 04.11.2026 sind auch **M9 Stellungen** und **M10 Bedienung** abgenommen (Akten E-34, E-35).
+**M9** (Auftrag [`M9-stellungen.md`](meilensteine/M9-stellungen.md)): neuer Bunker, Ränge ohne Sandsäcke, Durchsicht durch
+Anhöhen, Hindernisse hinter Stufen (`docs/ART.md`), Mündungsfeuer, Raketenwerfer im Bogenflug. Alle zwölf Waffen sind
+drehbare Modelle (`turrets.js`, `specials.js`, gemeinsam über `weapons.js`, Stufen in `turretCache.js`); die
+Doktrin-Einträge in `TOWER_TOPS` und die alten `top-*`-Symbole werden dafür nicht mehr gelesen.
+**M10** (Auftrag [`M10-bedienung.md`](meilensteine/M10-bedienung.md)): Ikonensatz, Menüs, Handy-Layout, Einweisung, für
+alle Geräte; Einzelheiten unten.
 
 | | | abgenommen |
 |---|---|---|
@@ -31,6 +33,8 @@ Auftrag [`M10-bedienung.md`](meilensteine/M10-bedienung.md).
 | M7a | Modus-Gerüst | 02.10.2026 |
 | M7b | Modus „King of the Hill" (im Menü als „Experimentell") | 02.10.2026 |
 | M8 | Optik: Biome, Licht, Gelände, Rahmen, Trümmer, Kapsel | 03.11.2026 |
+| M9 | Stellungen: Bunker, drehbare Aufsätze, Mündungsfeuer, Spezialstellungen | 04.11.2026 |
+| M10 | Bedienung: Ikonen, Menüs, Handy-Layout, Einweisung | 04.11.2026 |
 
 **Leitstand (seit 02.11.2026):** Entscheidungen, Aufgaben und abgelieferte
 Protokolle laufen über das Artefakt
@@ -56,14 +60,13 @@ sich aus dem Protokoll genauso nach. Start mit dem ersten Spiel je Gerät (`tuto
 Einstellungen, „Hinweise“. Dazu: Die eingeklappte Statusleiste des Handys wird gemerkt (`statusFolded`), Pause ist während
 der Kapselwahl auch auf dem Handy erreichbar (eigener Knopf im Blatt), Titel und Endbildschirm bleiben ganzseitig.
 Prüfung `npm run test:input` (Tablet, alle Schritte, Überspringen, Wiederholen) und `npm run test:phone` (390 x 844 alle
-Schritte hoch und quer, die anderen Größen bis zur Kapselwahl). Tills Blick auf Tablet und Handy steht aus (Text, Tempo
-der Schritte, Sperre). Beschreibung in `docs/ART.md`, „Einweisung“.
+Schritte hoch und quer, die anderen Größen bis zur Kapselwahl). Beschreibung in `docs/ART.md`, „Einweisung“.
 
 **Handy-Layout (M10 E2, Version 0.11.7):** Auf Touch-Bildschirmen bis 600 px Breite oder 500 px Höhe schmale Statusleiste
 (vier Werte plus Menü, einklappbar), Werkzeuge, Salve und Tempo im Daumenbereich (quer an den Rändern, Einstellung
 „Linkshänder“ spiegelt sie), Menüs, Kapselwahl, Info, Symbolblatt und Rezepte als Blätter, Einzug der Kamera für
 Kapseln und Zielfeld (`src/ui/cover.js`, nur Darstellung). Prüfung `npm run test:phone` (drei Größen, hoch und quer; im Job
-`voll`). Tills Blick auf einem echten Handy steht aus. Beschreibung in `docs/ART.md`, „HUD auf dem Handy“.
+`voll`). Beschreibung in `docs/ART.md`, „HUD auf dem Handy“.
 
 **Bedienung (M10 E1, Version 0.11.3):** Neuer Ikonensatz nach der Studie
 (`src/ui/icons.js`), Rezepte im Pausenmenü und im Kapselblatt (nicht mehr in der
@@ -71,8 +74,7 @@ Statusleiste, Taste R bleibt), Pause als eigener Knopf neben einem Tempo-Knopf
 (1x, 2x, 3x reihum), Hilfe als Symbolblatt statt Sprechblasen (`src/ui/help.js`,
 Zeilen als reine Funktion `sheetSections`), Freischalt-Effekt für Kommandopunkte
 und Kommandos (`src/ui/burst.js`, Ton `unlock`), erkannt am Zustand. Die
-Kommandopunkte stehen erst ab der Welle des ersten Kommandos in der Leiste. Offen
-in M10: Tills Blick auf Gefühl des Effekts und Tempo-Knopf. Beschreibung in
+Kommandopunkte stehen erst ab der Welle des ersten Kommandos in der Leiste. Beschreibung in
 `docs/ART.md`, Abschnitte „Ikonensatz“, „Symbolblatt“, „Freischalt-Effekt“.
 
 Die Updates 2 bis 7 waren Einschübe, keine Meilensteine: 2 → M4b, 3 → M4c,
