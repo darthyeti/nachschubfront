@@ -414,6 +414,16 @@ export const STRINGS = {
     intro:
       'Drei verschiedene Doktrinen ab dem genannten Rang ergeben eine Spezialstellung. ' +
       'Zutaten dürfen aus der Salve und aus stehenden Stellungen kommen, mindestens eine aus der Salve.',
+    costTitle: 'Was ein Rezept kostet',
+    costLines: [
+      'Jede Zutat, die eine stehende Stellung liefert, wird verbraucht und zu Trümmern. Die Felder bleiben blockiert, die Route ändert sich nicht.',
+      'Verbraucht ein Rezept zwei stehende Stellungen, wird aus drei Stellungen eine.',
+    ],
+    worthTitle: 'Wann es sich lohnt',
+    worthLines: [
+      'Zutaten aus der Salve kosten keine stehende Stellung. Je mehr die Salve selbst liefert, desto weniger geht verloren.',
+      'Zutaten unter dem Mindestrang zählen nicht. Spezialstellungen sind keine Zutaten.',
+    ],
     minRank: (rank) => `ab ${rank}`,
     close: 'Schließen',
   },

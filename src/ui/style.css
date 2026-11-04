@@ -880,6 +880,30 @@ button[hidden] {
   color: var(--muted);
 }
 
+.codex-notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.codex-note {
+  border-left: 4px solid var(--btn);
+  padding: 2px 0 2px 10px;
+}
+
+.codex-note-title {
+  margin: 0 0 3px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--btn);
+}
+
+.codex-note-line {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
 .codex-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

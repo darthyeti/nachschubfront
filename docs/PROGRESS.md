@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.11.12**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
+Version **0.11.13**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
 03.11.2026 **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md)): Farbtrennung und drei Biome,
 Licht und Schatten, Blockgelände, Diorama-Rahmen, Trümmer aus dem Baukasten, die neue Kapsel. Offen ist
 **M6 Balancing**. Von M8 steht noch Tills Prüfung auf dem iPad aus (Leistung, Speicher, Tippen auf hohe
@@ -52,6 +52,8 @@ Screenshots, Battle, Perf). Pages baut `main` in den Wurzelordner und jeden
 Pull Request mit Label `spielgefuehl` nach `pr/<nr>/`; den Cache-Block in
 `sw.js` schreibt erst die Veröffentlichung, im Repository steht der
 Platzhalter. Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“.
+
+**Rezeptblatt (0.11.13, Issue 69):** Zwei kurze Hinweise über der Liste, „Was ein Rezept kostet“ (verbrauchte stehende Stellungen werden Trümmer, im ungünstigsten Fall wird aus drei Stellungen eine) und „Wann es sich lohnt“. Nur Text, keine Regeländerung.
 
 **Einweisung und Nachträge (M10 E3, Version 0.11.11):** Geführte Anleitung über die ersten zwei Runden für alle
 Geräte (`src/ui/tutorial.js`, 14 Schritte, ein Element je Schritt hervorgehoben, Rest gesperrt, jederzeit
