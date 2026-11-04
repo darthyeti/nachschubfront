@@ -144,3 +144,31 @@ test('screenToCell with heights agrees with the flat answer on a flat field', ()
     assert.deepEqual(screenToCell(createCamera(), view, sx, sy, heights), screenToCell(createCamera(), view, sx, sy));
   }
 });
+
+test('a sheet covering the bottom moves the view so the centre of the free part stays put (M10 E2)', async () => {
+  const { shiftForCover, worldToScreen } = await import('../../src/render/camera.js');
+  const cam = { x: 100, y: 50, zoom: 2 };
+  const view = { width: 400, height: 800 };
+  const before = worldToScreen(cam, view, 120, 80);
+  shiftForCover(cam, { right: 0, bottom: 300 });
+  const after = worldToScreen(cam, view, 120, 80);
+  assert.equal(after[0], before[0]);
+  assert.equal(after[1], before[1] - 150, 'moved up by half the cover');
+  shiftForCover(cam, { right: 0, bottom: -300 });
+  assert.deepEqual(worldToScreen(cam, view, 120, 80), before, 'closing undoes it');
+});
+
+test('focusRect centres a rectangle in the free part and zooms out only as far as needed', async () => {
+  const { focusRect, worldToScreen } = await import('../../src/render/camera.js');
+  const view = { width: 400, height: 800 };
+  const limits = { minZoom: 0.4, maxZoom: 2.5 };
+  const free = { left: 0, top: 60, right: 400, bottom: 500 };
+  const cam = focusRect({ x: 0, y: 0, zoom: 1 }, view, { x0: 0, y0: 0, x1: 200, y1: 100 }, free, limits);
+  assert.equal(cam.zoom, 1, 'fits already, no zoom change');
+  const [cx, cy] = worldToScreen(cam, view, 100, 50);
+  assert.equal(cx, 200);
+  assert.equal(cy, 280);
+  const wide = focusRect({ x: 0, y: 0, zoom: 1 }, view, { x0: 0, y0: 0, x1: 800, y1: 100 }, free, limits);
+  assert.equal(wide.zoom, 352 / 800, 'zoomed out to fit');
+  assert.equal(focusRect({ x: 0, y: 0, zoom: 1 }, view, { x0: 0, y0: 0, x1: 5000, y1: 100 }, free, limits).zoom, 0.4);
+});

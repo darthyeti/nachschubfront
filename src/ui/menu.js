@@ -12,6 +12,8 @@ import { validateSeed, randomSeed } from '../core/seed.js';
 import { PREF_DEFAULTS } from '../core/prefs.js';
 import { createRecordsScreen } from './records.js';
 import { createModeScreen } from './modes.js';
+import { sheetHead } from './sheet.js';
+import { APP_VERSION } from '../data/version.js';
 
 const T = STRINGS.menu;
 const TS = STRINGS.settings;
@@ -400,6 +402,8 @@ export function createMenus(root, {
     pauseStatus,
     pauseDetail,
     el('p', 'menu-hint', T.hint),
+    // The build number rides on the sheet where the phone layout has no corner for it.
+    el('p', 'menu-hint menu-version', STRINGS.version(APP_VERSION)),
   );
 
   // ---------- Settings ----------
@@ -450,6 +454,22 @@ export function createMenus(root, {
   });
   settings.panel.append(ratingGroup, el('p', 'menu-hint', TS.ratingHint));
 
+  // Phone in landscape only (M10 E2): which side the tools and the salvo are on.
+  settings.panel.append(el('h3', 'menu-section', TS.hand));
+  const handGroup = el('div', 'menu-choice');
+  handGroup.setAttribute('role', 'group');
+  handGroup.setAttribute('aria-label', TS.hand);
+  const handButtons = [
+    [false, TS.handOff],
+    [true, TS.handOn],
+  ].map(([value, label]) => {
+    const b = button(label, 'alt', () => prefs.set('leftHanded', value));
+    b.dataset.hand = value ? 'left' : 'right';
+    handGroup.append(b);
+    return b;
+  });
+  settings.panel.append(handGroup, el('p', 'menu-hint', TS.handHint));
+
   // The one-time notes (ui/intro.js): seen once per device, back on from here.
   settings.panel.append(el('h3', 'menu-section', TS.intros));
   const introRow = el('div', 'menu-choice');
@@ -484,6 +504,7 @@ export function createMenus(root, {
     }
     for (const b of motionButtons) b.classList.toggle('on', b.dataset.motion === values.motion);
     for (const b of ratingButtons) b.classList.toggle('on', (b.dataset.rate === 'on') === values.rateWaves);
+    for (const b of handButtons) b.classList.toggle('on', (b.dataset.hand === 'left') === values.leftHanded);
     introReset.disabled = !values.commandIntroSeen;
   }
   prefs.onChange(syncSettings);
@@ -641,23 +662,27 @@ export function createMenus(root, {
   }
 
   // A tap beside the panel resumes, but only where that is safe: the main menu
-  // and the end screen have no game to go back to.
+  // and the end screen have no game to go back to. The handle and the cross of a
+  // sheet on the phone (M10 E2) do the same.
+  function dismiss(name) {
+    if (name === 'pause') {
+      close();
+      onResume();
+    } else if (name === 'settings') {
+      show(settingsReturn);
+    } else if (name === 'records') {
+      show(recordsReturn);
+    } else if (name === 'seed' || name === 'testEntry') {
+      show('main');
+    } else if (name === 'mode') {
+      show(modeReturn);
+    }
+  }
   for (const [name, screen] of Object.entries(screens)) {
     screen.overlay.addEventListener('click', (ev) => {
-      if (ev.target !== screen.overlay) return;
-      if (name === 'pause') {
-        close();
-        onResume();
-      } else if (name === 'settings') {
-        show(settingsReturn);
-      } else if (name === 'records') {
-        show(recordsReturn);
-      } else if (name === 'seed' || name === 'testEntry') {
-        show('main');
-      } else if (name === 'mode') {
-        show(modeReturn);
-      }
+      if (ev.target === screen.overlay) dismiss(name);
     });
+    if (name !== 'main' && name !== 'end') screen.panel.prepend(sheetHead(() => dismiss(name)));
   }
 
   return {

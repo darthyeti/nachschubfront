@@ -303,6 +303,8 @@ Angeboten wird eine Möglichkeit je Rangstufe, nicht je Stellung — ab Welle 30
 
 Regeln: Nichts darf ausschließlich über Hover erreichbar sein. Trefferflächen mindestens 44 x 44 CSS-Pixel. Die Standard-Zoomstufe auf dem Tablet sorgt dafür, dass ein Feld mindestens etwa 40 Pixel breit ist. Wichtige Knöpfe liegen in Daumenreichweite am unteren Rand. Zwischen Tippen und Ziehen wird über eine kleine Bewegungsschwelle unterschieden, damit beim Verschieben keine Markierungen entstehen.
 
+**Handy (schmal oder niedrig, Touch).** Die Gesten bleiben. Das Layout ändert sich (`docs/ART.md`, „HUD auf dem Handy“): Statusleiste mit vier Werten und Menü, einklappbar; Werkzeuge, Salve, Pause und Tempo im Daumenbereich, quer an den Rändern (Einstellung „Linkshänder“ vertauscht sie); Menüs, Kapselwahl, Info, Symbolblatt und Rezepte als Blätter mit Griff und Schließen-Kreuz.
+
 ## 14. Offene Punkte
 
 - Fortschritt über mehrere Partien (Freischaltungen, Erfahrung): Entscheidung nach den ersten Tests.

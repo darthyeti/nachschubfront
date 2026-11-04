@@ -25,3 +25,9 @@ test('the note on the command rail is remembered per device, and only as a yes o
   assert.equal(sanitizePrefs({ commandIntroSeen: true }).commandIntroSeen, true);
   assert.equal(sanitizePrefs({ commandIntroSeen: 'yes' }).commandIntroSeen, false, 'junk falls back');
 });
+
+test('left-handed mode is off by default and only a yes or no is kept (M10 E2)', () => {
+  assert.equal(PREF_DEFAULTS.leftHanded, false);
+  assert.equal(sanitizePrefs({ leftHanded: true }).leftHanded, true);
+  assert.equal(sanitizePrefs({ leftHanded: 1 }).leftHanded, false, 'junk falls back');
+});

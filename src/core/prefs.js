@@ -32,6 +32,8 @@ export const PREF_DEFAULTS = {
   lastRun: { mode: 'standard', difficulty: 'normal' },
   /** The note on the command rail has been shown on this device (ui/intro.js). */
   commandIntroSeen: false,
+  /** Phone in landscape: tools and salvo swap sides (M10 E2). */
+  leftHanded: false,
 };
 
 const isId = (value) => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,31}$/.test(value);
@@ -51,6 +53,7 @@ export function sanitizePrefs(raw) {
   if (typeof raw.installHintDismissed === 'boolean') out.installHintDismissed = raw.installHintDismissed;
   if (typeof raw.rateWaves === 'boolean') out.rateWaves = raw.rateWaves;
   if (typeof raw.commandIntroSeen === 'boolean') out.commandIntroSeen = raw.commandIntroSeen;
+  if (typeof raw.leftHanded === 'boolean') out.leftHanded = raw.leftHanded;
   const last = raw.lastRun;
   if (last && typeof last === 'object' && isId(last.mode) && isId(last.difficulty)) {
     out.lastRun = { mode: last.mode, difficulty: last.difficulty };

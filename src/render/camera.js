@@ -85,3 +85,34 @@ export function applyCamera(ctx, cam, view) {
   const s = cam.zoom * view.dpr;
   ctx.setTransform(s, 0, 0, s, (view.width / 2 - cam.x * cam.zoom) * view.dpr, (view.height / 2 - cam.y * cam.zoom) * view.dpr);
 }
+
+/**
+ * A sheet on the phone covers `right` pixels at the right edge and `bottom` at the
+ * bottom (M10 E2). The camera follows the centre of what is left: what was in the
+ * middle of the screen stays in the middle of the free part. Called with the
+ * change of the cover, so opening and closing cancel out. Presentation only.
+ * @param {{right: number, bottom: number}} delta  change of the cover in CSS pixels
+ */
+export function shiftForCover(cam, delta) {
+  cam.x += delta.right / 2 / cam.zoom;
+  cam.y += delta.bottom / 2 / cam.zoom;
+}
+
+/**
+ * Brings a world rectangle into the free part of the screen: centred, and zoomed
+ * out (never in) until it fits with `margin` pixels to spare. The zoom floor holds.
+ * @param {{x0: number, y0: number, x1: number, y1: number}} rect  world pixels
+ * @param {{left: number, top: number, right: number, bottom: number}} free  CSS pixels
+ */
+export function focusRect(cam, view, rect, free, limits, margin = 24) {
+  const freeW = Math.max(1, free.right - free.left - margin * 2);
+  const freeH = Math.max(1, free.bottom - free.top - margin * 2);
+  const w = Math.max(1, rect.x1 - rect.x0);
+  const h = Math.max(1, rect.y1 - rect.y0);
+  cam.zoom = Math.max(limits.minZoom, Math.min(cam.zoom, freeW / w, freeH / h));
+  const fx = (free.left + free.right) / 2;
+  const fy = (free.top + free.bottom) / 2;
+  cam.x = (rect.x0 + rect.x1) / 2 - (fx - view.width / 2) / cam.zoom;
+  cam.y = (rect.y0 + rect.y1) / 2 - (fy - view.height / 2) / cam.zoom;
+  return cam;
+}

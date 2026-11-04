@@ -49,6 +49,12 @@ Pull Request mit Label `spielgefuehl` nach `pr/<nr>/`; den Cache-Block in
 `sw.js` schreibt erst die Veröffentlichung, im Repository steht der
 Platzhalter. Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“.
 
+**Handy-Layout (M10 E2, Version 0.11.7):** Auf Touch-Bildschirmen bis 600 px Breite oder 500 px Höhe schmale Statusleiste
+(vier Werte plus Menü, einklappbar), Werkzeuge, Salve und Tempo im Daumenbereich (quer an den Rändern, Einstellung
+„Linkshänder“ spiegelt sie), Menüs, Kapselwahl, Info, Symbolblatt und Rezepte als Blätter, Einzug der Kamera für
+Kapseln und Zielfeld (`src/ui/cover.js`, nur Darstellung). Prüfung `npm run test:phone` (drei Größen, hoch und quer; im Job
+`voll`). Tills Blick auf einem echten Handy steht aus. Beschreibung in `docs/ART.md`, „HUD auf dem Handy“.
+
 **Bedienung (M10 E1, Version 0.11.3):** Neuer Ikonensatz nach der Studie
 (`src/ui/icons.js`), Rezepte im Pausenmenü und im Kapselblatt (nicht mehr in der
 Statusleiste, Taste R bleibt), Pause als eigener Knopf neben einem Tempo-Knopf
@@ -56,7 +62,7 @@ Statusleiste, Taste R bleibt), Pause als eigener Knopf neben einem Tempo-Knopf
 Zeilen als reine Funktion `sheetSections`), Freischalt-Effekt für Kommandopunkte
 und Kommandos (`src/ui/burst.js`, Ton `unlock`), erkannt am Zustand. Die
 Kommandopunkte stehen erst ab der Welle des ersten Kommandos in der Leiste. Offen
-in M10: E2 Layout fürs Handy, E3 Tutorial; Tills Blick auf Gefühl des Effekts und
+in M10: E3 Tutorial; Tills Blick auf Gefühl des Effekts und
 Tempo-Knopf steht aus. Beschreibung in `docs/ART.md`, Abschnitte „Ikonensatz“,
 „Symbolblatt“, „Freischalt-Effekt“.
 

@@ -72,6 +72,7 @@ export const STRINGS = {
     airstrike: 'Luftschlag',
     lock: 'Gesperrt',
     close: 'Schließen',
+    fold: 'Einklappen',
   },
 
   hud: {
@@ -80,6 +81,9 @@ export const STRINGS = {
     seed: 'Seed',
     route: (cells) => `Route: ${cells} Felder`,
     routeLabel: 'Routenlänge',
+    foldTop: 'Statusleiste einklappen',
+    unfoldTop: 'Statusleiste ausklappen',
+    sheetClose: 'Blatt schließen',
     routeBlocked: 'Route blockiert',
     /** On the status plate there is room for the number alone. */
     routeBlockedShort: '—',
@@ -381,6 +385,10 @@ export const STRINGS = {
     intros: 'Hinweise',
     introsReset: 'Erneut zeigen',
     introsHint: 'Die Erklärung zur Kommandoleiste erscheint auf jedem Gerät nur einmal. Hier lässt sie sich für die nächste Partie wieder einschalten.',
+    hand: 'Linkshänder',
+    handOff: 'Aus',
+    handOn: 'An',
+    handHint: 'Nur im Querformat am Handy: Werkzeuge rechts, Salve und Tempo links statt umgekehrt.',
     percent: (v) => `${Math.round(v * 100)} %`,
     storageWarning: 'Einstellungen können in diesem Browser nicht gespeichert werden.',
   },

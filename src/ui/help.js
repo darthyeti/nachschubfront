@@ -13,6 +13,7 @@ import { COMMANDS, commandById } from '../data/commands.js';
 import { railOrder } from './commands.js';
 import { el } from './controls.js';
 import { icon } from './icons.js';
+import { sheetHead } from './sheet.js';
 
 const T = STRINGS.help;
 
@@ -114,7 +115,7 @@ export function createHelp(root) {
       part.append(list);
       body.append(part);
     }
-    sheet.append(head, body);
+    sheet.append(sheetHead(() => api.close(), T.closeSheet), head, body);
     sheet.addEventListener('click', (ev) => ev.stopPropagation());
     return sheet;
   }
