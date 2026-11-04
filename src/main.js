@@ -1210,6 +1210,11 @@ if (debug) {
       forcePod: (content) => forcePod(state, content),
       /** Puts an emplacement on a cell without a pod, for screenshots of every doctrine and rank. Not recorded. */
       placeTower: (spec) => addTower(state, spec).id,
+      /** Lets a capsule land on a cell for the effects only (burn mark, shock rings), for screenshots. Not recorded. */
+      impact: (cell) => {
+        state.events.push({ type: 'podImpact', x: cell.x, y: cell.y, index: 1 });
+        return true;
+      },
       /** Puts a heap of capsule rubble on a cell, for screenshots of the terrain. Not recorded. */
       placeRubble: (cell) => {
         addRubble(state, cell);

@@ -7,7 +7,8 @@
 // busy wave cannot drag the frame rate down.
 
 import { iso } from './iso.js';
-import { cellLift, liftAt } from './terrain.js';
+import { cellLift, liftAt, activeTerrain } from './terrain.js';
+import { clipToGround } from './groundClip.js';
 import { ell, poly, comicText, shadow } from './draw.js';
 import { C } from './palette.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
@@ -119,6 +120,23 @@ const between = (a, b) => a + Math.random() * (b - a);
  */
 function project(x, y, z = 0) {
   return iso(x, y, z + liftAt(x, y));
+}
+
+/** A point on the plane of its own field: marks lying on the ground do not follow the blended height of a step. */
+function onPlane(x, y) {
+  return iso(x, y, cellLift(x, y));
+}
+
+/**
+ * Draws a mark that lies on the ground of the field around (x, y) and reaches `reach` fields from it:
+ * it stays on the fields of its own level and behind the higher blocks in front (`clipToGround`), so
+ * it never hangs over a cliff or climbs a slope.
+ */
+function onGround(ctx, x, y, reach, draw) {
+  ctx.save();
+  clipToGround(ctx, activeTerrain(), Math.floor(x), Math.floor(y), reach);
+  draw();
+  ctx.restore();
 }
 
 /** A screen point of an emplacement (an anchor, a spark) raised onto the height of its field. */
@@ -682,43 +700,49 @@ export function createEffects() {
   function drawGround(ctx, state, t, reducedMotion) {
     for (const d of decals) {
       const a = Math.min(1, d.life / 2);
-      const [x, y] = project(d.x, d.y);
+      const [x, y] = onPlane(d.x, d.y);
+      // The burn mark reaches two fields, a scorch as far as its radius, goo one.
+      const reach = d.kind === 'crater' ? 2 : d.kind === 'scorch' ? Math.ceil(d.radius) + 1 : 1;
       ctx.globalAlpha = a;
-      if (d.kind === 'scorch') {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(1, 0.5);
-        const r = d.radius * 32;
-        const g = ctx.createRadialGradient(0, 0, 2, 0, 0, r);
-        g.addColorStop(0, 'rgba(18,12,9,.8)');
-        g.addColorStop(1, 'rgba(18,12,9,0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(-r, -r, r * 2, r * 2);
-        ctx.restore();
-      } else if (d.kind === 'crater') {
-        drawBurnMark(ctx, d, x, y);
-      } else {
-        ell(ctx, x, y, d.radius * 26, d.radius * 13, C.toxicD, 'rgba(26,20,16,.6)', 1);
-      }
+      onGround(ctx, d.x, d.y, reach, () => {
+        if (d.kind === 'scorch') {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(1, 0.5);
+          const r = d.radius * 32;
+          const g = ctx.createRadialGradient(0, 0, 2, 0, 0, r);
+          g.addColorStop(0, 'rgba(18,12,9,.8)');
+          g.addColorStop(1, 'rgba(18,12,9,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(-r, -r, r * 2, r * 2);
+          ctx.restore();
+        } else if (d.kind === 'crater') {
+          drawBurnMark(ctx, d, x, y);
+        } else {
+          ell(ctx, x, y, d.radius * 26, d.radius * 13, C.toxicD, 'rgba(26,20,16,.6)', 1);
+        }
+      });
     }
     ctx.globalAlpha = 1;
 
     // Shockwaves run out over the ground.
     for (const ring of rings) {
       const u = 1 - ring.life / ring.max;
-      const [x, y] = project(ring.x, ring.y);
+      const [x, y] = onPlane(ring.x, ring.y);
       const spread = ring.wash ? 1 - (1 - u) * (1 - u) : u;
       const rx = (0.3 + spread) * ring.radius * 32;
       ctx.globalAlpha = (1 - u) * 0.9;
-      ctx.strokeStyle = ring.colour;
-      ctx.lineWidth = ring.width * (1 - u * 0.6);
-      ctx.beginPath();
-      ctx.ellipse(x, y, rx, rx * 0.5, 0, 0, Math.PI * 2);
-      if (ring.wash) {
-        ctx.fillStyle = `rgba(255,236,200,${0.1 * (1 - u)})`;
-        ctx.fill();
-      }
-      ctx.stroke();
+      onGround(ctx, ring.x, ring.y, Math.ceil(ring.radius) + 1, () => {
+        ctx.strokeStyle = ring.colour;
+        ctx.lineWidth = ring.width * (1 - u * 0.6);
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, rx * 0.5, 0, 0, Math.PI * 2);
+        if (ring.wash) {
+          ctx.fillStyle = `rgba(255,236,200,${0.1 * (1 - u)})`;
+          ctx.fill();
+        }
+        ctx.stroke();
+      });
     }
     ctx.globalAlpha = 1;
 
@@ -819,10 +843,11 @@ export function createEffects() {
 
   /** A stasis field: a cold disc with a crystal lattice, fading as it runs out. */
   function drawStasis(ctx, field, t, reducedMotion) {
-    const [x, y] = project(field.x, field.y);
+    const [x, y] = onPlane(field.x, field.y);
     const r = field.radius * 32;
     const fade = Math.min(1, field.life / 0.6);
     ctx.save();
+    clipToGround(ctx, activeTerrain(), Math.floor(field.x), Math.floor(field.y), Math.ceil(field.radius) + 1);
     ctx.translate(x, y);
     ctx.scale(1, 0.5);
     ctx.globalAlpha = fade * 0.55;
