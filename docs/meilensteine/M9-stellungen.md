@@ -14,7 +14,7 @@ Referenz: `reference/studien/stellungen-rework.html` mit `stellungen-rework.js` 
 ## Entscheidungen vom 03.11.2026 zur Freigabe (E-18)
 
 1. **Raketenwerfer statt Mörser.** Sechs Rohre, Rauchspur, Bogenflug. Der Mörser der Studie entfällt im Spiel. Name und Doktrin bleiben „Mörser“, solange GDD und Doktrin nicht umbenannt werden; eine Umbenennung wäre eine eigene Akte.
-2. **Spezialstellungen** bleiben in M9 wie heute. Ihre Studie entsteht sofort parallel (Aufgabe A-21) und wird danach als eigener Schritt beauftragt.
+2. **Spezialstellungen** kommen als Schritt D4 nach D3, nach der Studie `reference/studien/spezialstellungen-rework.html` (A-21, PR #38), so wie sie ist (E-19, 04.11.2026).
 3. **Rang 2** bekommt einen kräftigeren Rand in der Doktrinfarbe, damit er sich auch bei kleinem Zoom von Rang 3 abhebt.
 
 ## Berührte Bereiche und Dateien
@@ -72,6 +72,13 @@ Nicht verbindlich: der Zeichencode der Studie im Einzelnen, ihre Messwerte (Chro
 - Raketenwerfer: sechs Rohre, die nacheinander abfeuern, Rauchspur und Bogenflug der Rakete bis zum Einschlag. Bogen und Flugzeit folgen dem Projektil der Simulation, nicht einer eigenen Flugbahn.
 - `prefers-reduced-motion`: gedämpfte Mündungsblitze, kein Wackeln.
 
+### D4 Spezialstellungen (vierter Pull Request)
+
+- Spezialbasis und die sechs Spezialwaffen nach `reference/studien/spezialstellungen-rework.html` mit `spezialstellungen-rework-modell.js`, ohne Änderungen an Farbe oder Größe (E-19: so wie sie ist).
+- Die Basis ist statisch und kommt wie der Bunker aus D1 als SVG durch `npm run sprites`. Die Waffen sind drehbare Modelle mit Stufen-Cache und Mündungspunkt wie in D2 und D3; schwebende Teile (Ring und Kugel des Gewitterturms, Auge des Obelisken) liegen als eigene Ebene über der Stufe. Der Reinigungsschrein wird immer pro Bild gezeichnet, weil sein Artefakt zwischen den Säulen schwebt.
+- Reinigungsschrein mit vier Säulen und Dach statt zwei Säulen mit Bogen (Abweichung der Studie, mit E-19 angenommen); ART.md wird angepasst.
+- Höhe höchstens 10 Prozent über dem heutigen Sprite.
+
 ## Abnahme
 
 - `npm test` grün, Golden und `RULESET_VERSION` unverändert, Protokoll 4RCC95 spielt sich nach.
@@ -79,7 +86,7 @@ Nicht verbindlich: der Zeichencode der Studie im Einzelnen, ihre Messwerte (Chro
 - Speicher der Stufen bei 2x Zoom und devicePixelRatio 2 unter 40 MB, im Perf-Test gemessen.
 - Kontaktbild aller sechs Aufsätze in 16 Richtungen ohne durchscheinende Flächen.
 - Eine Partie auf dem iPad mit Tills Urteil zu Leistung und Lesbarkeit.
-- Jeder Schritt ein eigener Pull Request mit Vorschau (`spielgefuehl`), gemergt nach Tills Blick. Version 0.11.0 bis 0.11.2.
+- Jeder Schritt ein eigener Pull Request mit Vorschau (`spielgefuehl`), gemergt nach Tills Blick. Version 0.11.0 bis 0.11.3.
 
 ## Dokumentation
 
