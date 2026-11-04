@@ -1,6 +1,6 @@
 # M7b: Modus "King of the Hill"
 
-Status: **freigegeben am 02.10.2026**, läuft parallel zu M6, **erst nach Auftrag A** ([`M7a-modi.md`](M7a-modi.md)).
+Status: **zurückgestellt seit 04.11.2026 (E-36): nur mit `?debug` im Menü**, bis der Standardmodus final ist. Freigegeben war er am 02.10.2026, lief parallel zu M6, **erst nach Auftrag A** ([`M7a-modi.md`](M7a-modi.md)).
 Referenz: `reference/studien/king-of-the-hill.html` (spielbarer Prototyp mit Bots, Tabs Spiel, Bots, Werte).
 
 ## Entscheidungen vom 02.10.2026
@@ -29,7 +29,7 @@ Geteilte Quellen, die dieser Auftrag ändert: **src/core** (ausdrücklich, siehe
 
 Ein zweiter Modus: Die Bastion liegt in der Mitte einer 24x24-Karte, die Gegner kommen aus vier Rissen an den Kartenrändern im Wechsel. Es gibt keine Signalfeuer. Gegen Ring-Strategien (alles dicht um die Bastion) gibt es eine Sperrzone. Im Planungsschritt kann statt einer Salve ein Stellungsrang angehoben werden.
 
-Der Modus erscheint im Menü als **"Experimentell"**, bis die Kalibrierung (B7) abgenommen ist.
+Der Modus erscheint nur mit `?debug` im Menü (E-36, `debugOnly: true`) und ist dort als **"Experimentell"** gekennzeichnet, bis die Kalibrierung (B7) abgenommen ist.
 
 ## Verbindlich und nicht verbindlich in der Studie
 
@@ -70,7 +70,7 @@ Nicht verbindlich: alle Zahlen für Gegner-Lebenspunkte und Kampfstärke (Platzh
 
 ```js
 koth: {
-  id: 'koth', rev: 1, status: 'experimental', debugOnly: false,
+  id: 'koth', rev: 1, status: 'experimental', debugOnly: true,
   map: { size: 24, bastion: [[11,11],[12,12]], beacons: false, ruins: [12, 20] },
   rifts: [ /* Nord, Ost, Süd, West mit je zwei Torfeldern */ ],
   riftOrder: 'mixed',

@@ -1722,16 +1722,15 @@ try {
     watchProblems(page, `modes-${label}`, problems);
     const modeScreen = page.locator('.menu[data-menu="mode"]');
 
-    await check(`${label}: without ?debug a player chooses between Standard and King of the Hill`, async () => {
+    await check(`${label}: without ?debug there is one mode, so no mode screen and no King of the Hill`, async () => {
       await page.goto(`${server.url}?seed=${SEED}`, { waitUntil: 'networkidle' });
       await page.waitForSelector('body[data-ready]');
       await page.getByRole('button', { name: 'Neue Partie' }).tap();
-      await modeScreen.waitFor({ state: 'visible' });
-      const ids = await modeScreen.locator('.mode-card').evaluateAll((list) => list.map((c) => c.dataset.mode));
-      assert.deepEqual(ids, ['standard', 'koth'], 'the clone stays a debug tool');
-      const badge = modeScreen.locator('[data-mode="koth"] .mode-card-badge');
-      assert.equal(await badge.textContent(), 'Experimentell');
-      await modeScreen.getByRole('button', { name: 'Zurück' }).tap();
+      await page.waitForSelector('.menu[data-menu="main"]', { state: 'hidden' });
+      assert.equal(await page.locator('.menu[data-menu="mode"]').count(), 0, 'no mode screen is built');
+      assert.equal(await page.locator('[data-mode="koth"]').count(), 0, 'King of the Hill is not offered');
+      // Straight into the match: the HUD's salvo button is there without a "Los" in between.
+      await page.getByRole('button', { name: 'Salve' }).first().waitFor({ state: 'visible' });
     });
 
     await check(`${label}: with ?debug the mode screen comes first, every card a fair target`, async () => {

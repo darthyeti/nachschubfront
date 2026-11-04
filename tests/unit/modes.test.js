@@ -53,7 +53,7 @@ test('from outside, an unknown id falls back for a player and throws in debug', 
 });
 
 test('debug-only modes are offered only with ?debug', () => {
-  assert.deepEqual(listSelectableModes(false).map((m) => m.id), ['standard', 'koth']);
+  assert.deepEqual(listSelectableModes(false).map((m) => m.id), ['standard']);
   assert.deepEqual(listSelectableModes(true).map((m) => m.id), ['standard', 'standard-klon', 'koth']);
 });
 
@@ -81,6 +81,10 @@ test('the mode screen preselects the last run while its mode is still offered', 
   assert.deepEqual(initialChoice(klon, listSelectableModes(false)), { ...DEFAULT_CONFIG });
   assert.deepEqual(initialChoice({ mode: 'aus-der-zukunft', difficulty: 'albtraum' }, all), { ...DEFAULT_CONFIG });
   assert.deepEqual(initialChoice(undefined, all), { ...DEFAULT_CONFIG });
+  // King of the Hill is on hold (E-36): a stored last run in it falls back to standard without ?debug.
+  const koth = { mode: 'koth', difficulty: 'normal' };
+  assert.deepEqual(initialChoice(koth, all), koth);
+  assert.deepEqual(initialChoice(koth, listSelectableModes(false)), { ...DEFAULT_CONFIG });
 });
 
 test('the run key names mode, its revision and the difficulty', () => {

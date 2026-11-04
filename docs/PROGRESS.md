@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.11.11**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
+Version **0.11.12**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
 03.11.2026 **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md)): Farbtrennung und drei Biome,
 Licht und Schatten, Blockgelände, Diorama-Rahmen, Trümmer aus dem Baukasten, die neue Kapsel. Offen ist
 **M6 Balancing**. Von M8 steht noch Tills Prüfung auf dem iPad aus (Leistung, Speicher, Tippen auf hohe
@@ -29,7 +29,7 @@ Auftrag [`M10-bedienung.md`](meilensteine/M10-bedienung.md).
 | M5d | Koloss, Stellungsgrafik, Gunship (Update 7) | 27.09.2026 |
 | **M6** | **Balancing und Feinschliff** | **in Arbeit** |
 | M7a | Modus-Gerüst | 02.10.2026 |
-| M7b | Modus „King of the Hill" (im Menü als „Experimentell") | 02.10.2026 |
+| M7b | Modus „King of the Hill" (zurückgestellt, nur mit `?debug`) | 02.10.2026 |
 | M8 | Optik: Biome, Licht, Gelände, Rahmen, Trümmer, Kapsel | 03.11.2026 |
 
 **Leitstand (seit 02.11.2026):** Entscheidungen, Aufgaben und abgelieferte
@@ -292,13 +292,14 @@ M7b erst nach M7a.
   `createGameState(seed, config)`, Protokollformat 2, Profilformat 2 mit
   Migration, `prefs.lastRun`, Modus-Bildschirm und Umschalter in der
   Bestenliste. GDD Abschnitt 15, `docs/SPEICHER.md` und ART.md nachgezogen.
-- **M7b ✓** (02.10., von Till abgenommen und nach `main` zusammengeführt,
-  Version 0.9.5): King of the Hill steht **für alle im Menü, gekennzeichnet
-  „Experimentell"** (Entscheidung 02.10.: schon vor der Kalibrierung). Damit
-  führt „Neue Partie" jetzt immer über den Modus-Bildschirm. Karte, Wege aus
-  einem Entfernungsfeld, Rissfolge, Sperrzone, Aufwertung statt Salve
-  (`upgrade.kind: 'ladder'`), Darstellung, Modus-Karte, Bots
-  (`npm run koth-bots`). GDD Abschnitt 15 und ART nachgezogen.
+- **M7b ✓** (02.10., Version 0.9.5): King of the Hill ist **zurückgestellt und aus
+  dem Spielmenü genommen** (Entscheidung E-36, 04.11.2026, `debugOnly: true`): nur mit
+  `?debug` wählbar, bis der Standardmodus final ist. Ohne `?debug` bleibt ein Modus,
+  „Neue Partie" startet direkt ohne Modus-Bildschirm; ein gemerkter letzter Lauf in
+  `koth` fällt auf `standard` zurück. Regeln, Tests, Bots (`npm run koth-bots`) und
+  Protokolle bleiben unverändert. Karte, Wege aus einem Entfernungsfeld, Rissfolge,
+  Sperrzone, Aufwertung statt Salve (`upgrade.kind: 'ladder'`), Darstellung, Modus-Karte.
+  GDD Abschnitt 15 und ART nachgezogen.
 - **Offen für King of the Hill:** Die erste gespielte Partie
   ([`koth-2.md`](../balancing/runden/koth-2.md), Sieg mit 5 von 20 Leben)
   bestätigt Kalibrierung 1: Die Stärke passt, aber **Welle 1 kostet die Hälfte
