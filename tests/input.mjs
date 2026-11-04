@@ -348,6 +348,10 @@ try {
       assert.ok(await page.locator('.codex').isVisible());
       assert.equal((await page.$$('.codex-card')).length, 6);
       assert.match(await page.locator('.codex-card').first().textContent(), /Reinigungsschrein/);
+      const notes = await page.locator('.codex-notes').textContent();
+      assert.match(notes, /Was ein Rezept kostet/);
+      assert.match(notes, /zu Trümmern/);
+      assert.match(notes, /Wann es sich lohnt/);
       await page.screenshot({ path: join(OUT, 'tablet-codex.png') });
       await page.getByRole('button', { name: 'Schließen' }).tap();
       await frames(page);

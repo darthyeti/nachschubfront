@@ -48,7 +48,15 @@ export function createCodex(root, { onToggle } = {}) {
     list.append(card);
   }
 
-  panel.append(sheetHead(() => api.setOpen(false)), head, el('p', 'codex-intro', T.intro), list);
+  const notes = el('div', 'codex-notes');
+  for (const [title, lines] of [[T.costTitle, T.costLines], [T.worthTitle, T.worthLines]]) {
+    const note = el('div', 'codex-note');
+    note.append(el('h3', 'codex-note-title', title));
+    for (const line of lines) note.append(el('p', 'codex-note-line', line));
+    notes.append(note);
+  }
+
+  panel.append(sheetHead(() => api.setOpen(false)), head, el('p', 'codex-intro', T.intro), notes, list);
   overlay.append(panel);
   root.append(overlay);
 
