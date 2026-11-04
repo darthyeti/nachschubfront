@@ -221,6 +221,8 @@ try {
       }
       assert.deepEqual(seen, [seen[0], (seen[0] % 3) + 1, (seen[1] % 3) + 1, seen[0]], `the steps are ${seen}`);
       assert.deepEqual([...new Set(seen)].sort(), [1, 2, 3]);
+      // The HUD updates the label on the next frame; WebKit can still show the old one right after the tap.
+      await frames(page, 2);
       assert.equal(await tempo.getAttribute('aria-label'), `Tempo ${seen[3]}x`);
     });
 
