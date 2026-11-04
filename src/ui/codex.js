@@ -3,6 +3,7 @@
 
 import { STRINGS } from '../data/strings.js';
 import { recipeList } from './selection.js';
+import { sheetHead } from './sheet.js';
 
 const T = STRINGS.codex;
 
@@ -47,7 +48,7 @@ export function createCodex(root, { onToggle } = {}) {
     list.append(card);
   }
 
-  panel.append(head, el('p', 'codex-intro', T.intro), list);
+  panel.append(sheetHead(() => api.setOpen(false)), head, el('p', 'codex-intro', T.intro), list);
   overlay.append(panel);
   root.append(overlay);
 

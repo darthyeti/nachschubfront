@@ -69,6 +69,8 @@ jobs:
         run: node tests/input.mjs
       - name: Offline (Chromium)
         run: node tests/offline.mjs
+      - name: Handy-Layout (Chromium)
+        run: node tests/phone.mjs
       - name: Eingabe (WebKit)
         run: node tests/input.mjs --browser webkit
       - name: Offline (WebKit)

@@ -85,6 +85,21 @@ export function createHud(root, { debug, onAction, onUnlock = () => {} }) {
   }
   plateButton('menu', T.menu, 'menu');
 
+  // Phone only (style.css shows it there): the bar folds up to the menu button, so
+  // the board gets the strip back. The menu stays in reach folded or not.
+  const fold = el('button', 'hud-fold interactive');
+  fold.type = 'button';
+  fold.append(icon('fold', 'hud-fold-icon'));
+  fold.setAttribute('aria-expanded', 'true');
+  fold.setAttribute('aria-label', T.foldTop);
+  fold.addEventListener('click', () => {
+    const folded = top.classList.toggle('folded');
+    fold.setAttribute('aria-expanded', String(!folded));
+    fold.setAttribute('aria-label', folded ? T.unfoldTop : T.foldTop);
+    fold.blur();
+  });
+  top.append(fold);
+
   // Bottom: the rune discs, the main action, the speed group (docs/ART.md,
   // "Untere Leiste").
   const bar = el('div', 'hud-bar');
@@ -240,6 +255,8 @@ export function createHud(root, { debug, onAction, onUnlock = () => {} }) {
     update(state, ui, { totalWaves, canStart }) {
       // The "?" belongs to the running game: pod selection and the end screens
       // have their own explanations and need the whole view.
+      // The phone layout swaps the bottom bar for the capsule sheet by phase.
+      set('phase', state.phase, (v) => (root.dataset.phase = v));
       help.setAvailable(state.phase !== 'selection' && state.phase !== 'defeat' && state.phase !== 'victory');
       set('wave', `${state.wave}/${totalWaves}`, (v) => {
         wave.value.textContent = v;
