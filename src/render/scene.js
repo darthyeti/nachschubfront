@@ -615,19 +615,20 @@ function obstacleBodies(obstacle, index) {
  * cover it (`coveringObstacles`).
  */
 function createCoverTracker() {
-  let sig = '';
+  let last = [];
+  let scratch = [];
   let known = null;
   let set = new Set();
   return function update(state, heights) {
-    const parts = [];
-    for (const t of state.towers) parts.push(`${t.x},${t.y},${t.doctrine},${t.rank},${t.special ?? ''}`);
-    parts.push('|');
-    for (const o of state.map.obstacles) {
-      parts.push(`${o.kind},${o.cells.length},${o.cells[0]?.x},${o.cells[0]?.y},${o.variant}`);
-    }
-    const next = parts.join(';');
-    if (next === sig && heights === known) return set;
-    sig = next;
+    // A flat list of what decides the result, compared with the last one: no strings built per frame.
+    scratch.length = 0;
+    for (const t of state.towers) scratch.push(t.x, t.y, t.rank, t.doctrine, t.special ?? '');
+    scratch.push(-1);
+    for (const o of state.map.obstacles) scratch.push(o.kind, o.cells.length, o.cells[0]?.x, o.cells[0]?.y, o.variant);
+    let same = heights === known && scratch.length === last.length;
+    for (let i = 0; same && i < scratch.length; i++) same = scratch[i] === last[i];
+    if (same) return set;
+    [last, scratch] = [scratch, last];
     known = heights;
     const entries = state.map.obstacles
       .filter((o) => o.kind !== 'bulwark' && o.kind !== 'crater')

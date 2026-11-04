@@ -119,12 +119,12 @@ export function createTrail() {
   let currentKeys = new Set();
   let routeRef = null;
   /** Outlines of the runs, rebuilt when the wear steps, the seed or the field change. */
-  let shapes = { sig: null, groups: new Map() };
+  let shapes = { seed: null, field: null, groups: new Map(), steps: null };
 
   function reset() {
     wear.clear();
     entered = new WeakMap();
-    shapes = { sig: null, groups: new Map() };
+    shapes = { seed: null, field: null, groups: new Map(), steps: null };
   }
 
   return {
@@ -218,8 +218,11 @@ export function createTrail() {
    * @returns {Map<number, object[]>}
    */
   function shapesOf(steps, seed, field) {
-    const sig = `${seed}|${field ? 1 : 0}|${steps.map((e) => `${e.section.key}:${e.q}`).join(';')}`;
-    if (shapes.sig === sig && shapes.field === field) return shapes.groups;
+    // Compared entry by entry with the last call: nothing is built per frame while the wear steps stand.
+    const prev = shapes.steps;
+    let same = shapes.seed === seed && shapes.field === field && prev && prev.length === steps.length;
+    for (let i = 0; same && i < steps.length; i++) same = prev[i].key === steps[i].section.key && prev[i].q === steps[i].q;
+    if (same) return shapes.groups;
     const size = field ? fieldSize(field) : 0;
     const lift = (cell) => (field ? cellHeight(field, size, cell.x, cell.y) : 0);
     const levelOf = (cell) => lift(cell) / STEP;
@@ -262,7 +265,7 @@ export function createTrail() {
       if (!groups.has(run.q)) groups.set(run.q, []);
       groups.get(run.q).push({ layers });
     }
-    shapes = { sig, field, groups };
+    shapes = { seed, field, groups, steps: steps.map((e) => ({ key: e.section.key, q: e.q })) };
     return groups;
   }
 }
