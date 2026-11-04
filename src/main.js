@@ -24,7 +24,7 @@ import { useCommand, canUseCommand } from './sim/commands.js';
 import { commandById } from './data/commands.js';
 import { podAt } from './sim/pods.js';
 import { checkPlacement } from './sim/route.js';
-import { isRubble } from './sim/rubble.js';
+import { isRubble, addRubble } from './sim/rubble.js';
 import { totalWaves } from './sim/waves.js';
 import { createCanvasView } from './render/canvas.js';
 import { createCamera, fitCamera, clampCamera, panBy, zoomAt, screenToCell, worldToScreen } from './render/camera.js';
@@ -1098,12 +1098,19 @@ if (debug) {
       forcePod: (content) => forcePod(state, content),
       /** Puts an emplacement on a cell without a pod, for screenshots of every doctrine and rank. Not recorded. */
       placeTower: (spec) => addTower(state, spec).id,
+      /** Puts a heap of capsule rubble on a cell, for screenshots of the terrain. Not recorded. */
+      placeRubble: (cell) => {
+        addRubble(state, cell);
+        return true;
+      },
     },
     sprites: () => ({ ...sprites.stats }),
     /** Rubble kit cells rastered so far (must not move while a match runs). */
     kit: () => ({ ...kitStats }),
     /** Drawing time of the emplacements and the cached stages of their weapons (M9 D2). */
     turrets: () => ({ ...turretStats, ...towerDraw }),
+    /** Particles alive (all, and those the muzzles threw off, M9 D3). */
+    particles: () => ui.effects.counts(),
     /** Ground cache builds and reveal images rastered so far (see-through terrain, issue 35). */
     ground: () => ({ ...ground.stats }),
     audio: () => ({ ready: audio.ready, muted: audio.muted }),

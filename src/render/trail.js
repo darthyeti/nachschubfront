@@ -4,10 +4,10 @@
 // that are no longer part of the route. Presentation state beside `ui`: never in `state`, never
 // saved, never recorded. The numbers are the starting points of reference/studien/optik-studie.js.
 
-import { createRng } from '../core/random.js';
 import { iso } from './iso.js';
 import { rgba, shade } from './biomes.js';
 import { STEP, cellHeight, fieldSize, rampsOf, rampCorners } from './terrain.js';
+import { lineOutline, bendWedge, piecesOf, buildRuns, jitterOf } from './trailShape.js';
 
 /** Width of the three layers in cells, and the opacity factor of each layer (times the wear). */
 export const TRAIL_WIDTHS = [0.55, 0.42, 0.28];
@@ -118,55 +118,13 @@ export function createTrail() {
   let sections = [];
   let currentKeys = new Set();
   let routeRef = null;
-  /** Ribbon geometry per section key, rebuilt when the seed changes. */
-  let geometry = new Map();
-  let geometrySeed = null;
+  /** Outlines of the runs, rebuilt when the wear steps, the seed or the field change. */
+  let shapes = { seed: null, field: null, groups: new Map(), steps: null };
 
   function reset() {
     wear.clear();
     entered = new WeakMap();
-    geometry = new Map();
-  }
-
-  /** Ribbon of one layer: left and right edge points per sample, in cell coordinates. */
-  function ribbonOf(section, seed) {
-    let g = geometry.get(section.key);
-    if (g) return g;
-    const base = createRng(`trail:${seed}`);
-    const { a, b } = section;
-    const ax = a.x + 0.5;
-    const ay = a.y + 0.5;
-    const bx = b.x + 0.5;
-    const by = b.y + 0.5;
-    const len = Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
-    const nx = -(by - ay) / len;
-    const ny = (bx - ax) / len;
-    // Even, so one sample lies exactly on the border of the two cells (the terrain splits there).
-    const n = 2 * Math.max(1, Math.round(len / TRAIL_SAMPLE / 2));
-    // The two end samples come from the cell they sit in, so neighbouring sections join up.
-    const rngs = [];
-    for (let k = 0; k <= n; k++) {
-      const label = k === 0 ? `c${a.x},${a.y}` : k === n ? `c${b.x},${b.y}` : `${section.key}#${k}`;
-      rngs.push(base.fork(label));
-    }
-    g = TRAIL_WIDTHS.map(() => ({ left: [], right: [], outerLeft: [], outerRight: [] }));
-    for (let k = 0; k <= n; k++) {
-      const r = rngs[k];
-      const t = k / n;
-      const px = ax + (bx - ax) * t;
-      const py = ay + (by - ay) * t;
-      TRAIL_WIDTHS.forEach((w, layer) => {
-        const shift = (r.next() - 0.5) * TRAIL_SHIFT;
-        const l = (w / 2) * (1 + TRAIL_RAG * (r.next() * 2 - 1));
-        const rr = (w / 2) * (1 + TRAIL_RAG * (r.next() * 2 - 1));
-        g[layer].left.push([px + nx * (shift + l), py + ny * (shift + l)]);
-        g[layer].right.push([px - nx * (rr - shift), py - ny * (rr - shift)]);
-        g[layer].outerLeft.push([px + nx * (shift + l + TRAIL_EDGE.width), py + ny * (shift + l + TRAIL_EDGE.width)]);
-        g[layer].outerRight.push([px - nx * (rr - shift + TRAIL_EDGE.width), py - ny * (rr - shift + TRAIL_EDGE.width)]);
-      });
-    }
-    geometry.set(section.key, g);
-    return g;
+    shapes = { seed: null, field: null, groups: new Map(), steps: null };
   }
 
   return {
@@ -210,45 +168,40 @@ export function createTrail() {
      */
     draw(ctx, palette, art, seed, field = null) {
       if (art !== 'sprites') return;
-      if (seed !== geometrySeed) {
-        geometry = new Map();
-        geometrySeed = seed;
-      }
       const all = new Map(sections.map((s) => [s.key, s]));
       if (wear.size) {
-        const byStep = new Map();
+        const steps = [];
         for (const [key, w] of wear) {
-          let section = all.get(key);
-          if (!section) section = parseKey(key);
           const q = Math.round(w * WEAR_STEPS);
-          if (q <= 0) continue;
-          if (!byStep.has(q)) byStep.set(q, []);
-          byStep.get(q).push(section);
+          if (q > 0) steps.push({ section: all.get(key) ?? parseKey(key), q });
         }
+        const groups = shapesOf(steps, seed, field);
         ctx.save();
         // The hems first, wide layers before narrow ones, so the fills of the wider layers
         // soften the hems inside and only the outer ones stay clear.
         ctx.fillStyle = palette.pathEdge;
         for (let layer = 0; layer < TRAIL_WIDTHS.length; layer++) {
-          for (const [q, list] of byStep) {
+          for (const [q, runs] of groups) {
             ctx.globalAlpha = (q / WEAR_STEPS) * TRAIL_EDGE.alpha;
             ctx.beginPath();
-            for (const section of list) {
-              const g = ribbonOf(section, seed)[layer];
-              addRibbon(ctx, g.outerLeft, g.left, section, field);
-              addRibbon(ctx, g.right, g.outerRight, section, field);
+            for (const run of runs) {
+              const shape = run.layers[layer];
+              addPoly(ctx, shape.hemOuter, false);
+              addPoly(ctx, shape.fill, true);
+              for (const wedge of shape.hemWedges) addPoly(ctx, wedge, false);
             }
             ctx.fill();
           }
         }
         ctx.fillStyle = palette.path;
         for (let layer = 0; layer < TRAIL_WIDTHS.length; layer++) {
-          for (const [q, list] of byStep) {
+          for (const [q, runs] of groups) {
             ctx.globalAlpha = (q / WEAR_STEPS) * TRAIL_ALPHAS[layer];
             ctx.beginPath();
-            for (const section of list) {
-              const { left, right } = ribbonOf(section, seed)[layer];
-              addRibbon(ctx, left, right, section, field);
+            for (const run of runs) {
+              const shape = run.layers[layer];
+              addPoly(ctx, shape.fill, false);
+              for (const wedge of shape.fillWedges) addPoly(ctx, wedge, false);
             }
             ctx.fill();
           }
@@ -258,30 +211,76 @@ export function createTrail() {
       if (field) drawRamps(ctx, palette, field, sections, wear, currentKeys);
     },
   };
-}
 
-/** Section length in cells is 1 (axis) or about 1.4 (diagonal); `a` and `b` are cells. */
-function levelOf(field, size, cell) {
-  return cellHeight(field, size, cell.x, cell.y);
+  /**
+   * The outlines of all runs, by wear step. Cached: they only change when a section changes its
+   * wear step, the seed or the field.
+   * @returns {Map<number, object[]>}
+   */
+  function shapesOf(steps, seed, field) {
+    // Compared entry by entry with the last call: nothing is built per frame while the wear steps stand.
+    const prev = shapes.steps;
+    let same = shapes.seed === seed && shapes.field === field && prev && prev.length === steps.length;
+    for (let i = 0; same && i < steps.length; i++) same = prev[i].key === steps[i].section.key && prev[i].q === steps[i].q;
+    if (same) return shapes.groups;
+    const size = field ? fieldSize(field) : 0;
+    const lift = (cell) => (field ? cellHeight(field, size, cell.x, cell.y) : 0);
+    const levelOf = (cell) => lift(cell) / STEP;
+    const entries = [];
+    for (const { section, q } of steps) {
+      for (const piece of piecesOf(section, levelOf)) entries.push({ piece, q, lift: lift(piece.cell) });
+    }
+    const jitter = new Map();
+    const jitterAt = (id) => {
+      let j = jitter.get(id);
+      if (!j) jitter.set(id, (j = jitterOf(seed, id, TRAIL_WIDTHS.length)));
+      return j;
+    };
+    const groups = new Map();
+    for (const run of buildRuns(entries)) {
+      const layers = TRAIL_WIDTHS.map((width, layer) => {
+        const half = width / 2;
+        const pts = run.pts.map((p) => {
+          const j = jitterAt(p.id)[layer];
+          const shift = j.shift * TRAIL_SHIFT;
+          return { x: p.x, y: p.y, l: half * (1 + TRAIL_RAG * j.l) + shift, r: half * (1 + TRAIL_RAG * j.r) - shift };
+        });
+        const project = (poly) => poly.map(([x, y]) => iso(x, y, run.lift));
+        const fill = project(lineOutline(pts, run.capStart, run.capEnd));
+        const hem = pts.map((p) => ({ ...p, l: p.l + TRAIL_EDGE.width, r: p.r + TRAIL_EDGE.width }));
+        const hemOuter = project(lineOutline(hem, run.capStart, run.capEnd));
+        const fillWedges = [];
+        const hemWedges = [];
+        if (run.bendTo) {
+          const m = pts.length;
+          const last = pts[m - 1];
+          const d = Math.sqrt((last.x - pts[m - 2].x) * (last.x - pts[m - 2].x) + (last.y - pts[m - 2].y) * (last.y - pts[m - 2].y)) || 1;
+          const dir = [(last.x - pts[m - 2].x) / d, (last.y - pts[m - 2].y) / d];
+          const w = (last.l + last.r) / 2;
+          fillWedges.push(project(bendWedge([last.x, last.y], dir, run.bendTo, w)));
+          hemWedges.push(project(bendWedge([last.x, last.y], dir, run.bendTo, w + TRAIL_EDGE.width, w)));
+        }
+        return { fill, hemOuter, fillWedges, hemWedges };
+      });
+      if (!groups.has(run.q)) groups.set(run.q, []);
+      groups.get(run.q).push({ layers });
+    }
+    shapes = { seed, field, groups, steps: steps.map((e) => ({ key: e.section.key, q: e.q })) };
+    return groups;
+  }
 }
 
 /**
- * Adds the band between two polylines of one section. Where the section joins two levels the
- * band is split at the border (the middle sample): each half lies on the height of its own cell.
- * The half in the lower cell of a straight step is left out: the ramp lies there.
+ * Adds a polygon of world pixels as a closed subpath, backwards if `reverse` (the inner edge of a
+ * hem ring runs against the outer one, so the ring is what is left between them).
  */
-function addRibbon(ctx, a, b, section, field) {
-  const n = a.length - 1;
-  if (!field) return strip(ctx, a, b, 0, n, 0);
-  const size = fieldSize(field);
-  const ha = levelOf(field, size, section.a);
-  const hb = levelOf(field, size, section.b);
-  if (ha === hb) return strip(ctx, a, b, 0, n, ha);
-  const straight = section.a.x === section.b.x || section.a.y === section.b.y;
-  const mid = n / 2;
-  if (!straight || ha > hb) strip(ctx, a, b, 0, mid, ha);
-  if (!straight || hb > ha) strip(ctx, a, b, mid, n, hb);
-  return undefined;
+function addPoly(ctx, poly, reverse) {
+  const m = poly.length;
+  if (m < 3) return;
+  const at = (i) => poly[reverse ? m - 1 - i : i];
+  ctx.moveTo(at(0)[0], at(0)[1]);
+  for (let i = 1; i < m; i++) ctx.lineTo(at(i)[0], at(i)[1]);
+  ctx.closePath();
 }
 
 /**
@@ -340,22 +339,4 @@ function parseKey(key) {
     return { x, y };
   });
   return { key, a, b };
-}
-
-/**
- * Adds the band between samples `k0` to `k1` of two polylines of cell points as a closed subpath,
- * in world pixels, raised by `lift` px.
- */
-function strip(ctx, a, b, k0, k1, lift) {
-  let p = iso(a[k0][0], a[k0][1], lift);
-  ctx.moveTo(p[0], p[1]);
-  for (let k = k0 + 1; k <= k1; k++) {
-    p = iso(a[k][0], a[k][1], lift);
-    ctx.lineTo(p[0], p[1]);
-  }
-  for (let k = k1; k >= k0; k--) {
-    p = iso(b[k][0], b[k][1], lift);
-    ctx.lineTo(p[0], p[1]);
-  }
-  ctx.closePath();
 }
