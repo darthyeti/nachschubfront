@@ -173,6 +173,7 @@ Rauch, Staub und Dampf sind Partikel mit Lebensdauer. Sie **breiten sich aus** (
 - **Eckwinkel-Rahmen auf der Zelle**, auf Feldhöhe, als Überlagerung nach den Figuren (`drawPodFrame`, ersetzt den Ring `drawPodHighlight`): die gewählte Kapsel mit goldenen Winkeln in den Ecken der Raute, leichtem Puls und blassem Fülllicht, die übrigen mit gestricheltem Rahmen. Mit `prefers-reduced-motion` ohne Puls und ohne laufende Striche.
 - **Die gewählte Kapsel hebt ihre Klappen** (6 SVG-Einheiten, 5 Prozent größer), der **Kern leuchtet heller** (Ringe, Halo, heller Überzug) und die **Lichtsäule ist kräftiger** (drei Schichten, aufsteigende Funken). Das Heben geht weich (`FOCUS_EASE`), nicht in einem Bild.
 - Die Zwei-Tipp-Regel der Auswahl bleibt unverändert; die Eingabe ist nicht angefasst.
+- **Rezepte im Kapselblatt (M10 E1):** Unter den Aktionen steht ein Knopf „Rezepte“ mit dem Rezepte-Zeichen (mindestens 44 px hoch), der das Rezeptblatt öffnet; es liegt über dem Kapselblatt, die Wahl bleibt, wie sie war.
 
 ### Farbe im Kern und Leuchten
 
@@ -270,7 +271,9 @@ Drei Zustände, für jede Scheibe gleich:
 | Abklingzeit | Dunkler Tortenausschnitt über der Scheibe, Zahl in der Mitte zeigt die verbleibenden Wellen |
 | Gesperrt | Ganze Scheibe abgedunkelt, kleines Schloss-Symbol, goldenes Zahlen-Badge oben rechts nennt die Welle der Freischaltung |
 
-**Bedienung.** Klick oder Tippen löst die Aktion aus. Langes Drücken (am Desktop: Hover) zeigt eine kurze Erklärung als Sprechblase — dieselbe Regel wie bei Stellungen und Gegnern (GDD Abschnitt 13). Das lange Drücken darf die Aktion nicht zusätzlich auslösen. Bei einer neu freigeschalteten Scheibe blitzt die Beschriftung einmalig auf und verschwindet von selbst; danach ist sie nur noch über langes Drücken zu erreichen.
+**Bedienung.** Klick oder Tippen löst die Aktion aus. Langes Drücken (am Desktop: Hover) zeigt eine kurze Erklärung als Sprechblase — dieselbe Regel wie bei Stellungen und Gegnern (GDD Abschnitt 13). Das lange Drücken darf die Aktion nicht zusätzlich auslösen. Bei einer neu freigeschalteten Scheibe geht der Freischalt-Effekt los (eigener Abschnitt unten), dazu blitzt die Beschriftung einmalig auf und verschwindet von selbst; danach ist sie nur noch über langes Drücken zu erreichen.
+
+**Beschriftung unter der Scheibe.** Wo Platz ist, steht ein kurzes Wort unter der Scheibe (Spalte „Beschriftung" in `reference/konzept/handy/neu-ikonen.png`, Texte in `STRINGS.iconLabels`), der Preis darunter. Auf der rechten Kommandoleiste nur bei mindestens 880 px Höhe; darunter bleibt der Name der Sprechblase.
 
 **Ruf.** Eine Scheibe, die jetzt gedrückt werden sollte, trägt einen goldenen Ring am Rand und einen zweiten, der alle 1,6 Sekunden aus ihm herauswächst und verblasst (`src/ui/nudges.js`). Kein Leuchtfilter, nur Ringe; bei `prefers-reduced-motion` bleibt nur der feste Ring. Er steht nur, solange die Bedingung gilt:
 
@@ -281,7 +284,7 @@ Grund (Balancing-Runde 5): Drei neue Spieler setzten in sieben Partien kein einz
 
 ### Untere Leiste
 
-Von links nach rechts: Nachschub-Scheibe (Stufe als goldenes Zahlen-Badge oben rechts, Preis klein darunter), Abriss-Scheibe (Mülleimer), Bollwerk-Scheibe, mittig der große goldene Hauptknopf „Salve anfordern" mit kleinem Kapsel-Symbol — er bleibt bewusst größer und mit Text, weil er die zentrale Handlung jeder Runde ist —, rechts die kompakte Tempo-Gruppe (Pause, 1x, 2x, 3x) als einfache quadratische Knöpfe, der aktive golden hervorgehoben.
+Von links nach rechts: Nachschub-Scheibe (Stufe als goldenes Zahlen-Badge oben rechts, Preis klein darunter), Abriss-Scheibe (Mülleimer), Bollwerk-Scheibe, mittig der große goldene Hauptknopf „Salve anfordern" mit kleinem Kapsel-Symbol — er bleibt bewusst größer und mit Text, weil er die zentrale Handlung jeder Runde ist —, rechts Pause und Tempo als zwei kleinere Scheiben (60 px). Pause ist ein Knopf für sich, damit sie mitten in einer Welle sofort erreichbar ist; sie leuchtet golden, solange das Spiel steht. Der Tempo-Knopf schaltet reihum 1x, 2x, 3x, zeigt die Stufe als ein, zwei oder drei Dreiecke und schreibt sie klein darunter. Die Tasten Leertaste, 1, 2, 3 bleiben.
 
 Der Zonenzähler steht auf dem Salve-Knopf, nicht mehr in der Statusleiste. Die Rang-Wahrscheinlichkeiten des Nachschubs stehen in der Sprechblase seiner Scheibe, nicht mehr als Balkenreihe auf dem Knopf.
 
@@ -295,11 +298,31 @@ Eigene senkrechte Leiste am rechten Bildschirmrand, ausschließlich Runenscheibe
 
 ### Obere Statusleiste
 
-Durchgehende Metallplatte statt einzelner schwarzer Kästchen, die Werte in kleinen Abschnitten mit Nietentrennern. Von links: Spieltitel, Welle (Standarte, „aktuelle/gesamt"), Bastion-Leben (Turm; die Zahl färbt sich bei kritischem Stand orange und rot). Rechts: Nachschubstufe (Antenne), Requisition (Münze), Kommandopunkte (Stern — die Ergänzung v4 nennt einen Blitz-Chevron, die Skizze zeichnet einen Stern, und die Skizze gilt), Routenlänge (gepunkteter Pfad). Ganz rechts zwei kleine Plattenknöpfe für Rezepte und Menü — sie gehören zur Verwaltung, nicht zur Handlung der Runde, und darum nicht in die untere Leiste.
+Durchgehende Metallplatte statt einzelner schwarzer Kästchen, die Werte in kleinen Abschnitten mit Nietentrennern. Von links: Spieltitel, Welle (Insektenkopf, „aktuelle/gesamt"), Bastion-Leben (Herz; die Zahl färbt sich bei kritischem Stand orange und rot). Rechts: Nachschubstufe (Kiste mit Pfeil), Requisition (Münzstapel), Kommandopunkte (Blitz im Sechseck), Routenlänge (Weg vom Riss zur Bastion). Die Kommandopunkte stehen erst, wenn die Welle des ersten Kommandos erreicht ist (oder Punkte da sind), und erscheinen mit dem Freischalt-Effekt. Ganz rechts der Plattenknopf für das Menü; die Rezepte liegen im Pausenmenü und im Kapselblatt (Taste R bleibt). Das Menü gehört zur Verwaltung, nicht zur Handlung der Runde, und darum nicht in die untere Leiste.
 
 Was **nicht** dauerhaft in der Leiste steht: Seed und Phase (beide im Pausenmenü), der Zonenzähler (auf dem Salve-Knopf), Sieg und Niederlage (eigener Bildschirm), die Koloss-Ankündigung (situative Einblendung, solange ein Lauf angekündigt ist).
 
 Bei sechs Feldern wird die Leiste auf dem Tablet-Querformat eng. Kommen weitere Werte dazu, gehören sie eher ins Pausenmenü als dauerhaft auf den Bildschirm.
+
+### Ikonensatz (M10 E1)
+
+Der Satz folgt der Studie `reference/studien/handy-bedienung.js` (`ICON_ROWS`, Blatt `reference/konzept/handy/neu-ikonen.png`) und gilt auf PC, Tablet und Handy; im Spiel stehen alle Zeilen außer „Leiste einklappen", die das Handy-Layout (E2) mitbringt. Die Zeichen stehen in `src/ui/icons.js`, Tuschekontur, flache Flächen, 24 x 24. Es sind Dinge, die man benennen kann, keine Zeichen, die man lernen muss: Welle ist der Insektenkopf (die Fahne sagte „Ziel"), Leben das Herz, Requisition ein Münzstapel, Kommandopunkte ein Blitz im Sechseck, Nachschub eine Kiste mit Pfeil nach oben, Abriss der Vorschlaghammer auf Schutt, Bollwerk eine Mauer mit Zinnen, Aufwerten eine Stellung mit Pfeil, Salve die fallende Kapsel mit Feuerschweif, Rezepte drei Zutaten auf dem goldenen Ergebnis, Pause zwei Balken, Tempo ein, zwei oder drei Dreiecke, Hilfe ein goldenes Fragezeichen, Stasisfeld ein Eiskristall mit hellem Kern, Priorisierter Nachschub eine Kapsel mit goldenem Stern. Orbitalschlag, Heiliges Banner, Luftschlag und das Schloss bleiben wie sie waren.
+
+### Symbolblatt
+
+Der „?"-Knopf unten links (48 px, goldener Ring, Hilfe-Zeichen) und der Menüpunkt „Symbole erklären" öffnen ein Blatt in der Mitte des Bildschirms: Zeile für Zeile Scheibe mit Symbol, Name und ein Satz, in vier Gruppen (obere Leiste, untere Leiste, Kommandos mit Preis, Freischaltwelle und Pause, Menü und Hilfe), zwei Spalten, auf schmalen Bildschirmen eine. Es löst die Sprechblasen ab, die einander auf kleinen Bildschirmen verdeckten. Das Blatt hält das Spiel nicht an; ein Tipp daneben, das Kreuz (44 x 44 px) und Escape schließen es. Es liegt über den Menüs (`src/ui/help.js`, Zeilen als reine Funktion `sheetSections`).
+
+### Freischalt-Effekt
+
+Wenn die Kommandopunkte oder ein Kommando freigeschaltet werden, kommt ihr Symbol nicht einfach hinzu: Es gibt einen Knall (`src/ui/burst.js`, Look in `.burst` in `style.css`).
+
+| Zeit | Was |
+|---|---|
+| 0 bis 0,4 s | Aufblitzen: weißgelber Verlauf, der auf das 1,1fache anschwillt und verlischt |
+| ab 0 s | Druckwelle: zwei Ringe (hell, dann golden, 0,12 s später), die auf das 3,6fache der Scheibe wachsen und ausblenden (0,85 s) |
+| 0 bis 1,8 s | Nachleuchten: goldener Verlauf um das Symbol, der langsam verlischt |
+
+Dazu der Ton `unlock` (tiefer Schlag, Rauschen, steigender Klang, kurze Glocke; `src/data/audio.js`). Erkannt wird das am Zustand, nicht an einer Meldung der Simulation: Die Kommandopunkte kommen, wenn `pointsVisible` wahr wird (Welle des ersten Kommandos erreicht oder Punkte da), eine Scheibe, wenn ihr `commandStatus` von gesperrt auf frei wechselt (`newlyUnlocked`). Der erste Blick auf den Zustand setzt nur den Ausgangswert, eine weit fortgeschrittene Partie knallt also beim Laden nicht. Ein Kommando, das freigeschaltet wird, solange die Leiste noch nicht steht, knallt, sobald sie erscheint. Nur Verläufe und halbtransparente Formen, kein `shadowBlur`, kein Filter; die Ebene lässt jeden Tipp durch. Bei `prefers-reduced-motion` gedämpft: keine Ringe, nichts wächst, nur ein weiches Aufleuchten und das Nachleuchten; Bildschirmwackeln gibt es ohnehin nicht.
 
 ## Menüs außerhalb der Partie
 
@@ -311,7 +334,7 @@ Fünf Bildschirme, alle mit dem Skyline-Motiv aus dem Stiltest im Hintergrund, T
 |---|---|
 | Hauptmenü | Neue Partie (golden), Fortsetzen, Seed eingeben, Bestenliste, Einstellungen |
 | Seed-Eingabe | Dialog über abgedunkeltem Hauptmenü: Eingabefeld für den Seed-Code, „Zufällig", „Übernehmen", darunter der Start-Knopf |
-| Pause | Halbtransparent über der laufenden Partie: Fortsetzen (golden), Einstellungen, Partie verlassen, darunter eine kompakte Statuszeile (Welle, Leben, Requisition) zur Orientierung |
+| Pause | Halbtransparent über der laufenden Partie: Fortsetzen (golden), Rezepte, Symbole erklären, Einstellungen, Partie exportieren, Partie verlassen, darunter eine kompakte Statuszeile (Welle, Leben, Requisition) zur Orientierung. Rezepte und Symbolblatt öffnen sich über dem Menü; das Menü wartet dahinter |
 | Einstellungen | Regler für Musik- und Effektlautstärke, Schalter für reduzierte Bewegung, Sprachanzeige (fest Deutsch), Exportieren und Importieren des Spielstands, Zurück (golden) |
 | Ende | Titel Sieg oder Niederlage, Kennzahlen (Punkte, verbleibende Leben, Abschüsse, gegebenenfalls neuer Bestwert), Nochmal (golden) und Hauptmenü |
 | Modus wählen (M7a) | Nur, wenn mehr als ein Modus wählbar ist. Eine Karte je Modus als Textknopf-Platte: Name in Pirata One, ein Satz Beschreibung, Bestwert, rotes Kennzeichen „Experimentell". Die gewählte Karte bekommt einen goldenen Innenrand. Zwei Karten nebeneinander im Querformat, untereinander im Hochformat, ab fünf scrollt die Liste. Darunter „Los" (golden) und Zurück |

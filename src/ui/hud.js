@@ -9,21 +9,23 @@ import { createRuneButton } from './runeButton.js';
 import { icon } from './icons.js';
 import { createHelp } from './help.js';
 import { APP_VERSION } from '../data/version.js';
-import { GAME_SPEEDS } from '../data/settings.js';
 import { RANK_COLORS } from '../data/ranks.js';
 import { supplyWeights, MAX_SUPPLY_LEVEL } from '../data/supply.js';
 import { previewRoute, zoneLimit } from '../sim/zones.js';
 import { canBuySupply, nextSupplyCost, nextRubbleCost, nextBulwarkCost } from '../sim/economy.js';
 import { supplyCalls } from './nudges.js';
+import { pointsVisible } from './commands.js';
+import { burst } from './burst.js';
 import { RULES } from '../data/rules.js';
 
 const T = STRINGS.hud;
 
 /**
  * @param {HTMLElement} root
- * @param {{debug: boolean, onAction: (action: string) => void}} options
+ * @param {{debug: boolean, onAction: (action: string) => void, onUnlock?: () => void}} options
+ *        `onUnlock` is for the sound that goes with the bang of an unlocked symbol
  */
-export function createHud(root, { debug, onAction }) {
+export function createHud(root, { debug, onAction, onUnlock = () => {} }) {
   // One riveted plate bar across the top, the values in sections (docs/ART.md,
   // "Obere Statusleiste"). Seed and phase are not in it: they live in the pause
   // screen now, so six fields still fit on a tablet in landscape.
@@ -58,14 +60,17 @@ export function createHud(root, { debug, onAction }) {
   const supply = plate(rightPlates, 'supply', 'plate-supply', T.supplyLabel);
   const requisition = plate(rightPlates, 'requisition', 'plate-requisition', T.requisitionLabel);
   const points = plate(rightPlates, 'points', 'plate-points', T.commandPointsTitle);
+  // Not there before the first command can be reached; it comes with a bang.
+  points.box.hidden = true;
   // King of the Hill: which rift attacks, and which one after it (M7b, B8).
   // Only on a map with more than one rift; the standard bar stays as it was.
   const rift = plate(rightPlates, 'wave', 'plate-rift', T.riftPlateLabel);
   rift.box.hidden = true;
   const route = plate(rightPlates, 'route', 'plate-route', T.routeLabel);
 
-  // Housekeeping, not the action of the round: the codex and the menu sit at
-  // the end of the status bar rather than in the bottom bar.
+  // Housekeeping, not the action of the round: the menu sits at the end of the
+  // status bar rather than in the bottom bar. The recipes are in the menu and
+  // on the capsule sheet now (M10 E1), the key R is still there.
   function plateButton(iconName, label, action) {
     const b = el('button', 'plate plate-button interactive');
     b.type = 'button';
@@ -78,21 +83,35 @@ export function createHud(root, { debug, onAction }) {
     rightPlates.append(b);
     return b;
   }
-  plateButton('codex', T.codex, 'codex');
   plateButton('menu', T.menu, 'menu');
 
   // Bottom: the rune discs, the main action, the speed group (docs/ART.md,
   // "Untere Leiste").
   const bar = el('div', 'hud-bar');
+  // Pause is a button of its own, so it can be reached in the middle of a wave
+  // at once; beside it one button that cycles 1x, 2x, 3x and shows the step as
+  // triangles (M10 E1). The keys Space, 1, 2 and 3 do the same.
+  const L = STRINGS.iconLabels;
   const speedGroup = el('div', 'speed-group');
   speedGroup.setAttribute('role', 'group');
   speedGroup.setAttribute('aria-label', T.speedGroup);
-  const speedButtons = GAME_SPEEDS.map((s) => {
-    const b = button(s === 0 ? T.pause : T.speed(s), 'alt speed', () => onAction(`speed${s}`));
-    b.dataset.speed = String(s);
-    speedGroup.append(b);
-    return b;
+  const pauseDisc = createRuneButton({
+    iconName: 'tempo-0',
+    label: T.pauseName,
+    hint: T.pauseHint,
+    caption: L['tempo-0'],
+    onClick: () => onAction('pause'),
   });
+  /** The last running speed, which the tempo button goes on from. */
+  let runSpeed = 1;
+  const tempoDisc = createRuneButton({
+    iconName: 'tempo-1',
+    label: T.tempoName(1),
+    hint: T.tempoHint,
+    caption: L['tempo-1'],
+    onClick: () => onAction(`speed${(runSpeed % 3) + 1}`),
+  });
+  speedGroup.append(pauseDisc.el, tempoDisc.el);
 
   // The main action keeps its size and its word: it is what every round is
   // about, and the only round button with a label.
@@ -125,12 +144,14 @@ export function createHud(root, { debug, onAction }) {
     label: T.supplyName,
     hint: T.supplyHint,
     bubbleExtra: supplyChances,
+    caption: L.supply,
     onClick: () => onAction('buySupply'),
   });
   const demolishDisc = createRuneButton({
     iconName: 'demolish',
     label: T.demolishName,
     hint: T.demolishHint,
+    caption: L.demolish,
     onClick: () => onAction('demolishMode'),
   });
   // Beside the demolish disc because the two are the same gesture on the same
@@ -139,6 +160,7 @@ export function createHud(root, { debug, onAction }) {
     iconName: 'bulwark',
     label: T.bulwarkName,
     hint: T.bulwarkHint,
+    caption: L.bulwark,
     onClick: () => onAction('bulwarkMode'),
   });
 
@@ -148,6 +170,7 @@ export function createHud(root, { debug, onAction }) {
     iconName: 'upgrade',
     label: T.upgradeName,
     hint: T.upgradeHint,
+    caption: L.upgrade,
     onClick: () => onAction('upgradeMode'),
   });
   upgradeDisc.el.hidden = true;
@@ -191,19 +214,15 @@ export function createHud(root, { debug, onAction }) {
   // report can say which build it happened on.
   const version = el('div', 'hud-version', STRINGS.version(APP_VERSION));
 
-  const help = createHelp(root, {
-    plates: { wave, lives, supply, requisition, points, route, rift },
-    codex: rightPlates.children[rightPlates.children.length - 2],
-    menu: rightPlates.children[rightPlates.children.length - 1],
-    discs: [supplyDisc.el, demolishDisc.el, bulwarkDisc.el, upgradeDisc.el],
-    salvo: start,
-    speed: speedGroup,
-  });
+  // The sheet goes on the page itself, not in the HUD layer: the HUD is a stacking
+  // context under the menus, and the pause menu opens the sheet.
+  const help = createHelp(document.body);
 
   root.append(top, bottom, banner, version, help.button);
   if (debugEl) root.append(debugEl);
 
   const cache = new Map();
+  let seenPoints = false;
   const set = (key, value, apply) => {
     if (cache.get(key) === value) return;
     cache.set(key, value);
@@ -265,6 +284,18 @@ export function createHud(root, { debug, onAction }) {
       set('points', state.commandPoints, (v) => {
         points.value.textContent = String(v);
         points.box.setAttribute('aria-label', T.commandPoints(v));
+      });
+      // Read off the state: the plate comes once the first command is within
+      // reach. The very first look only sets the baseline, so a match that is
+      // loaded far on does not go off like a bomb.
+      set('pointsShown', pointsVisible(state), (v) => {
+        const first = !seenPoints;
+        seenPoints = true;
+        points.box.hidden = !v;
+        if (v && !first) {
+          burst(points.box);
+          onUnlock();
+        }
       });
       const supplyCost = nextSupplyCost(state);
       const supplyTop = supplyCost === null;
@@ -348,8 +379,13 @@ export function createHud(root, { debug, onAction }) {
         // The button keeps its plain name; the count speaks for itself.
         startZones.setAttribute('aria-label', T.zones(...v.split('/')));
       });
-      set('speed', state.speed, (v) => {
-        for (const b of speedButtons) b.classList.toggle('on', Number(b.dataset.speed) === v);
+      if (state.speed > 0) runSpeed = state.speed;
+      pauseDisc.update({ state: 'ready', on: state.speed === 0 });
+      tempoDisc.update({
+        state: 'ready',
+        icon: `tempo-${runSpeed}`,
+        name: T.tempoName(runSpeed),
+        note: T.tempoNote(runSpeed),
       });
       const over = state.phase === 'defeat' || state.phase === 'victory';
       set('canStart', canStart, (v) => (start.disabled = !v));

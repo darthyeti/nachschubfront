@@ -229,7 +229,8 @@ body {
   white-space: nowrap;
 }
 
-.plate-rift[hidden] {
+.plate-rift[hidden],
+.plate-points[hidden] {
   display: none;
 }
 
@@ -348,16 +349,10 @@ button.hud-rating-answer {
   gap: 4px;
 }
 
-/* Plain squares, as on the sheet; the active one is gold, not red. Red is the
-   colour of a running mode, and the speed is not a mode. */
-button.speed {
-  min-width: 44px;
-  padding: 6px 8px;
-}
-
-button.speed.on {
-  background: var(--btn);
-  color: #1a1410;
+/* Pause and tempo are discs like the rest (M10 E1), a little smaller than the
+   tools: they are pressed all the time, but they are not the action of the round. */
+.speed-group .rune {
+  --disc: 60px;
 }
 
 /* The one round button with a word on it: the action of the round. */
@@ -844,7 +839,8 @@ button[hidden] {
   padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom))
     calc(16px + var(--safe-left));
   background: rgba(10, 6, 4, 0.72);
-  z-index: 5;
+  /* Above the pause menu (6): the menu opens the recipes. */
+  z-index: 8;
 }
 
 .codex[hidden] {
@@ -2021,117 +2017,186 @@ button.mode-card.on {
   }
 }
 
-/* ---------- Help overlay: the "?" and its speech bubbles ---------- */
+/* ---------- Symbol sheet: the "?" and the sheet it opens (ui/help.js) ---------- */
 
 .help-button {
   position: absolute;
   left: calc(10px + var(--safe-left));
-  bottom: calc(26px + var(--safe-bottom));
+  bottom: calc(30px + var(--safe-bottom));
   z-index: 12;
-  width: 44px;
-  height: 44px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
   border-radius: 50%;
-  border: 2px solid var(--ink);
-  background: rgba(24, 18, 14, 0.92);
-  color: var(--btn, #e8c872);
-  font-family: var(--font-title);
-  font-size: 26px;
-  line-height: 1;
+  border: 3px solid var(--gold);
+  background: #3a322b;
   box-shadow: 2px 2px 0 var(--ink);
   cursor: pointer;
 }
 
+.help-icon {
+  width: 32px;
+  height: 32px;
+}
+
 .help-button[aria-pressed='true'] {
   background: var(--btn, #e8c872);
-  color: var(--ink);
-}
-
-.help-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 11;
-  /* The HUD layer lets clicks through to the map; this one must catch them. */
-  pointer-events: auto;
-  background: rgba(10, 7, 5, 0.55);
-}
-
-.help-layer[hidden] {
-  display: none;
-}
-
-.help-bubble {
-  position: absolute;
-  box-sizing: border-box;
-  width: 132px;
-  padding: 4px 7px;
-  background: rgba(24, 18, 14, 0.97);
-  border: 2px solid var(--ink);
-  border-radius: 4px;
-  box-shadow: 3px 3px 0 var(--ink);
-  color: var(--text);
-  font-size: 12px;
-  line-height: 1.2;
-  pointer-events: none;
-  animation: help-pop 0.18s ease-out both;
-}
-
-.help-bubble b {
-  display: block;
-  font-family: var(--font-title);
-  font-weight: 400;
-  font-size: 14px;
-  color: var(--btn, #e8c872);
 }
 
 .help-button[hidden] {
   display: none;
 }
 
-.help-meta {
-  display: block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.help-lines {
-  position: absolute;
+.help-layer {
+  position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom))
+    calc(16px + var(--safe-left));
+  box-sizing: border-box;
+  /* The HUD layer lets clicks through to the map; this one must catch them. */
+  pointer-events: auto;
+  background: rgba(10, 7, 5, 0.62);
 }
 
-.help-lines line {
-  stroke: var(--btn, #e8c872);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 4;
-  opacity: 0.85;
+.help-layer[hidden] {
+  display: none;
 }
 
-.help-ring {
-  position: absolute;
-  border: 2px solid var(--btn, #e8c872);
-  border-radius: 8px;
-  pointer-events: none;
+.help-sheet {
+  display: flex;
+  flex-direction: column;
+  width: min(860px, 100%);
+  max-height: 100%;
+  background: var(--panel);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  border-radius: 4px;
+  animation: help-pop 0.18s ease-out both;
 }
 
-.help-dismiss {
-  position: absolute;
-  left: calc(64px + var(--safe-left));
-  bottom: calc(38px + var(--safe-bottom));
-  color: var(--muted);
+.help-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 16px;
+  border-bottom: 2px solid var(--ink);
+}
+
+.help-title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 26px;
+  color: var(--btn, #e8c872);
+}
+
+.help-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  background: #3a322b;
+  cursor: pointer;
+}
+
+.help-close-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.help-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 22px;
+  padding: 8px 16px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.help-section-title {
+  margin: 4px 0 2px;
   font-size: 14px;
-  pointer-events: none;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.help-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.help-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+/* The symbol on a disc like the buttons wear, so it is found by shape and colour. */
+.help-disc {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #3a322b;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 2px var(--ink), 2px 2px 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.help-disc-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.help-words {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.help-words b {
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--btn, #e8c872);
+}
+
+.help-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .help-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @keyframes help-pop {
-  from { opacity: 0; transform: scale(0.92); }
+  from { opacity: 0; transform: scale(0.94); }
   to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .help-bubble { animation: none; }
+  .help-sheet { animation: none; }
 }
 
 /* ---------- One-time notes (ui/intro.js) ---------- */
@@ -2172,4 +2237,131 @@ button.mode-card.on {
 .intro .menu-primary {
   min-width: 160px;
   min-height: 52px;
+}
+
+/* ---------- Captions under the discs (M10 E1) ---------- */
+/* The short word where there is room for one; the price stays below it. */
+.rune-caption {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  text-shadow: 1px 1px 0 var(--ink);
+  white-space: nowrap;
+}
+
+.rune-caption[hidden] {
+  display: none;
+}
+
+/* On the rail the five discs with a word each need height: below it they go
+   without, the bubble still has the name. */
+@media (max-height: 880px) {
+  .command-rail .rune-caption {
+    display: none;
+  }
+}
+
+/* The recipes, one tap from the capsule choice. */
+.selection-recipes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 14px;
+  font-size: 15px;
+}
+
+.selection-recipes-icon {
+  width: 26px;
+  height: 26px;
+}
+
+/* ---------- The unlock effect (ui/burst.js, docs/ART.md "Freischalt-Effekt") ----------
+   Flash, shock ring, afterglow, all translucent shapes: no blur, no filter.
+   It sits on the symbol that has just come and lets every tap through. */
+.burst {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.burst > * {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.burst-flash {
+  inset: -40%;
+  background: radial-gradient(circle, #fff 0, rgba(255, 244, 200, 0.95) 26%, rgba(255, 214, 110, 0.5) 52%, rgba(255, 214, 110, 0) 70%);
+  opacity: 0;
+  animation: burst-flash 0.42s ease-out both;
+}
+
+.burst-ring {
+  inset: 0;
+  border: 5px solid #fff3c4;
+  opacity: 0;
+  animation: burst-ring 0.85s cubic-bezier(0.1, 0.7, 0.3, 1) both;
+}
+
+.burst-ring-late {
+  border-color: var(--gold);
+  border-width: 3px;
+  animation-delay: 0.12s;
+}
+
+.burst-glow {
+  inset: -30%;
+  background: radial-gradient(circle, rgba(255, 214, 110, 0.6) 0, rgba(255, 214, 110, 0.28) 38%, rgba(255, 214, 110, 0) 68%);
+  opacity: 0;
+  animation: burst-glow 1.8s ease-out both;
+}
+
+@keyframes burst-flash {
+  0% { opacity: 1; transform: scale(0.3); }
+  35% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+
+@keyframes burst-ring {
+  0% { opacity: 1; transform: scale(0.9); }
+  100% { opacity: 0; transform: scale(3.6); }
+}
+
+@keyframes burst-glow {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  45% { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Muted: nothing swells, nothing jumps; one soft flash and the afterglow. */
+  .burst-ring {
+    display: none;
+  }
+
+  .burst-flash {
+    animation: burst-flash-still 0.8s ease-out both;
+  }
+
+  .burst-glow {
+    animation: burst-glow-still 1.6s ease-out both;
+  }
+
+  @keyframes burst-flash-still {
+    0% { opacity: 0.55; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes burst-glow-still {
+    0% { opacity: 0; }
+    20% { opacity: 0.6; }
+    100% { opacity: 0; }
+  }
 }
