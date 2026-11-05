@@ -13,9 +13,9 @@ import { drawTeslaArc, lightSpec, lightAlpha, groundLight, drawBurnPatch } from 
 import { SPECIALS as SPECIAL_DEFS } from '../../src/data/specials.js';
 import { FX_LIGHT, FX_BALLS, FX_BURN, FX_THUNDER, FX_TESLA, FX_MAX_PARTICLES } from '../../src/data/art.js';
 
-/** A context that records what matters: gradients, composite mode, full-picture fills and lines. */
+/** A context that records what matters: gradients, pictures, composite mode, full-picture fills and lines. */
 function recorder() {
-  const log = { gradients: 0, composite: [], fills: [], rects: [] };
+  const log = { gradients: 0, images: 0, composite: [], fills: [], rects: [] };
   const target = { canvas: { width: 100, height: 100 }, globalAlpha: 1 };
   const ctx = new Proxy(target, {
     get(t, prop) {
@@ -27,6 +27,7 @@ function recorder() {
         };
       }
       if (prop === 'fillRect') return (...a) => log.rects.push({ style: t.fillStyle, a });
+      if (prop === 'drawImage') return () => (log.images += 1);
       return () => {};
     },
     set(t, prop, value) {
@@ -126,8 +127,9 @@ test('idle lights and kicked lights together stay within the ceiling when drawn'
   const state = stateOf(towers);
   const { ctx, log } = recorder();
   effects.drawGround(ctx, state, 1, false, 1);
-  assert.ok(log.gradients <= FX_LIGHT.max, `gradients ${log.gradients}`);
-  assert.ok(log.gradients > 0);
+  // A ground light is a picture of its gradient, made once per colour and size (issue 95).
+  assert.ok(log.gradients + log.images <= FX_LIGHT.max, `gradients ${log.gradients}, pictures ${log.images}`);
+  assert.ok(log.images > 0);
 });
 
 test('no composite mode anywhere in the weapon effects', () => {
