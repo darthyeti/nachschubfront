@@ -5,6 +5,11 @@
 //   npm run bots -- --seeds 200 --strategy maze    the order's own example
 //   npm run bots -- --seeds 50 --csv balancing/runden/bots-1.csv
 //   npm run bots -- --seeds 20 --protocols balancing/protokolle/bot
+//   npm run bots -- --per-wave                     mean lives, damage, requisition per wave
+//   npm run bots -- --supply 8                    start on supply level 8 (not playable: shows what promoting does
+//                                                  when the bot would otherwise die before it is open)
+//   npm run bots -- --ruleset 8                    the capsule-upgrade rules, for comparison
+//   npm run bots -- --promotion off|after          bot without / with late promoting (default first)
 //
 // The output is the survival rate per wave, the lives left at the end and the
 // waves that cost lives — over all seeds, so a single lucky map cannot pass for
@@ -38,9 +43,9 @@ const HERE = fileURLToPath(import.meta.url);
 // One match per message, so a long strategy does not block the others and a
 // crash takes one seed with it rather than the whole run.
 if (process.env.NACHSCHUB_BOT_WORKER) {
-  process.on('message', ({ seed, strategy, protocols }) => {
+  process.on('message', ({ seed, strategy, protocols, promotion, ruleset, supply }) => {
     try {
-      const run = playBotMatch({ seed, strategy });
+      const run = playBotMatch({ seed, strategy, promotion, ruleset, supply });
       const last = run.waves[run.waves.length - 1] ?? null;
       process.send({
         seed,
@@ -56,6 +61,10 @@ if (process.env.NACHSCHUB_BOT_WORKER) {
         commandDamage: run.waves.reduce((sum, w) => sum + w.commandDamage, 0),
         requisition: last?.requisition ?? 0,
         commandPoints: last?.commandPoints ?? 0,
+        perWave: run.waves.map((w) => ({
+          w: w.w, lives: w.lives, leaked: w.leaked, damage: w.damage, requisition: w.requisition, towers: w.towers,
+        })),
+        promotions: run.log.actions?.filter((a) => a.a === 'promote').length ?? 0,
         protocol: protocols ? exportProtocol(run.log) : null,
       });
     } catch (error) {
@@ -76,6 +85,9 @@ async function main() {
   const only = option('strategy');
   const csvFile = option('csv');
   const protocolPrefix = option('protocols');
+  const promotion = option('promotion', undefined);
+  const ruleset = option('ruleset') === null ? undefined : Number(option('ruleset'));
+  const supply = option('supply') === null ? undefined : Number(option('supply'));
   const workers = Math.max(1, Number(option('workers', Math.min(8, availableParallelism()))));
   const strategies = only ? [strategyById(only)] : STRATEGIES;
   const seeds = makeSeeds(count);
@@ -90,13 +102,14 @@ async function main() {
   const rows = [];
   for (const strategy of strategies) {
     const started = Date.now();
-    const results = await runAll(seeds, strategy.id, workers, Boolean(protocolPrefix));
+    const results = await runAll(seeds, strategy.id, workers, Boolean(protocolPrefix), { promotion, ruleset, supply });
     const failed = results.filter((r) => r.error);
     const ok = results.filter((r) => !r.error).sort((a, b) => a.seed.localeCompare(b.seed));
 
     console.log(`## ${strategy.title} (${strategy.id})`);
     console.log(`   ${strategy.about}`);
     report(ok, seeds.length);
+    if (args.includes('--per-wave')) perWave(ok);
     if (failed.length > 0) {
       console.log(`   ${failed.length} Seeds abgebrochen: ${failed.map((f) => `${f.seed} (${f.error})`).join(', ')}`);
     }
@@ -140,7 +153,7 @@ function makeSeeds(count) {
 }
 
 /** Spreads the seeds over worker processes and collects what comes back. */
-function runAll(seeds, strategy, workers, protocols) {
+function runAll(seeds, strategy, workers, protocols, extra) {
   return new Promise((resolve) => {
     const results = [];
     const queue = [...seeds];
@@ -154,7 +167,7 @@ function runAll(seeds, strategy, workers, protocols) {
         return;
       }
       running += 1;
-      child.send({ seed, strategy, protocols });
+      child.send({ seed, strategy, protocols, ...extra });
     };
 
     for (let i = 0; i < Math.min(workers, seeds.length); i++) {
@@ -215,4 +228,27 @@ function report(results, total) {
       ` · Verschwendeter Schaden: ${Math.round((overkill / Math.max(1, damage)) * 100)} % des angekommenen` +
       ` · Requisition übrig: Mittel ${Math.round(results.reduce((s, r) => s + r.requisition, 0) / results.length)}`,
   );
+}
+
+/**
+ * Lives, damage and requisition per wave, averaged over the seeds still in the
+ * match at that wave (n says how many). Matches that ended earlier drop out, so
+ * read the later rows together with n.
+ */
+function perWave(results) {
+  const marks = [1, 5, 8, 10, 12, 15, 20, 25, 30, 35, 40, 45, 50];
+  console.log('   Je Welle (Mittel über die Partien, die die Welle erreichen):');
+  console.log('   Welle   n  Leben  Durchbrüche  Schaden  Requisition  Stellungen');
+  for (const mark of marks) {
+    const rows = results.map((r) => r.perWave.find((w) => w.w === mark)).filter(Boolean);
+    if (rows.length === 0) continue;
+    const mean = (key) => rows.reduce((sum, w) => sum + w[key], 0) / rows.length;
+    console.log(
+      `   ${String(mark).padStart(5)} ${String(rows.length).padStart(3)} ${mean('lives').toFixed(1).padStart(6)}` +
+        ` ${mean('leaked').toFixed(1).padStart(12)} ${String(Math.round(mean('damage'))).padStart(8)}` +
+        ` ${String(Math.round(mean('requisition'))).padStart(12)} ${mean('towers').toFixed(1).padStart(11)}`,
+    );
+  }
+  const promos = results.reduce((sum, r) => sum + r.promotions, 0) / results.length;
+  console.log(`   Beförderungen je Partie: Mittel ${promos.toFixed(1)}`);
 }
