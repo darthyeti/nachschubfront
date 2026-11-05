@@ -7,7 +7,7 @@
 import { iso } from '../../src/render/iso.js';
 import { C } from '../../src/render/palette.js';
 import { castShadow } from '../../src/render/shadows.js';
-import { drawKoloss } from '../../src/render/koloss.js';
+import { drawKoloss } from './koloss-schwarm-heute.js';
 import { PALETTES } from '../../src/render/biomes.js';
 import { drawKitCell, kitVariant } from '../../src/render/rubbleKit.js';
 import { createSpriteCache, drawSprite } from '../../src/render/sprites/rasterizer.js';

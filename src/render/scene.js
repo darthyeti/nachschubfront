@@ -1145,7 +1145,7 @@ export function createSceneRenderer(sprites) {
       } else if (isKolossEnemy(o) && ui.art === 'sprites') {
         // A model, not a sprite: it has to read on all four axes, and it draws
         // its own health bar with the airstrike mark on it.
-        drawKoloss(ctx, o, { t, dt, reducedMotion: ui.reducedMotion });
+        drawKoloss(ctx, o, { t, dt, reducedMotion: ui.reducedMotion, simTime: state.time });
       } else {
         if (ui.art !== 'sprites' || !drawEnemySprite(ctx, o, t, enemyView)) drawEnemy(ctx, o, t);
         drawEnemyBar(ctx, o, ENEMY_TOP[o.type] ?? 20);

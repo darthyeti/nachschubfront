@@ -183,31 +183,37 @@ Kern-Leuchten, Lichtsäule und Hologramm tragen die Leitfarbe der Doktrin und bl
 
 ## Koloss
 
-Die späte Bedrohung aus GDD Abschnitt 9. Eine monströse Kriegsmaschine, kein Insekt: Der Koloss ist das einzige Gegenstück auf dem Feld, das gebaut und nicht gezüchtet wirkt. Eigenständiger Entwurf nach Tills Skizze, keine Anlehnung an geschützte Vorlagen, Name weiterhin „Koloss".
+Die späte Bedrohung aus GDD Abschnitt 9. Eine riesige Schwarmbestie, die „Grabwalze“: ein langer, flacher Segmentkriecher der Brut, der zu den insektoiden Schwarmmonstern der Wellen passt und doch auf einen Blick als das Einzelstück der späten Bedrohung zu erkennen ist. Eigenständiger Entwurf (Studie `reference/studien/koloss-schwarm.html`, Akte E-43, Entscheidung von Till), keine Anlehnung an geschützte Vorlagen, Name weiterhin „Koloss“. Die Regeln (GDD Abschnitt 9) bleiben, wie sie sind.
 
 **Aufbau:**
 
-- Zwei Ketten mit je sechs Laufrollen. Die Rollen drehen sich mit der Fahrt und sind nur auf der sichtbaren Kettenseite gezeichnet.
-- Rumpf mit schrägem Bug, rostfarbenes Band an den Seiten, Knochendornen oben, zwei Seitengeschütze pro Seite.
-- Räumschild mit fünf Knochenzähnen vorn — das Teil, mit dem er die Schneise schlägt, muss sichtbar sein, damit der Durchbruch nicht aus dem Nichts kommt.
-- Turm mit zwei roten Augen, Hauptgeschütz mit Rückstoß, vier schräg nach oben zeigende Flakrohre, Antenne hinten mit roter Spitze und Funken.
+- Fünf gewölbte Panzerschalen mit Knochenrand am vorderen Rand, die wie Schindeln übereinanderliegen (hinten schmaler und niedriger), eine Stachelreihe auf dem Rücken und Seitenstacheln auf den ersten drei Segmenten.
+- Vorne ein Pflugschädel aus Knochen: ein Keil, dessen Schneide vorne in der Mitte liegt und die Trümmer zu beiden Seiten teilt, dahinter die Kopfkapsel mit zwei orangen Augen, daneben zwei Mandibeln. Das Teil, mit dem er die Schneise schlägt, muss sichtbar sein, damit der Durchbruch nicht aus dem Nichts kommt.
+- Fünf kurze Beinpaare als Tuschestäbe mit Knochengelenken, die in einer Welle vom Kopf nach hinten laufen. Keine Waffen, keine Antenne, keine Ketten.
+- Palette und Formsprache der Brut (`reference/konzept/gegner/`): dunkles Chitin, Knochen, orange Augen.
 
-**Größe:** Skalierung 1,3 Felder, also optisch etwa 1,7 Felder breit. Die Schneise bleibt trotzdem 1 Feld breit (GDD Abschnitt 9). Sortierwert in der Tiefensortierung: seine Mitte plus 0,4.
+**Größe:** etwa 4,0 Felder lang, Leib etwa 1,5 Felder breit, mit den Beinen etwa 2,3. Beine und Pflug dürfen breiter als ein Feld sein; die Schneise bleibt genau 1 Feld breit (GDD Abschnitt 9) und wird beim Durchbruch klar so gezeigt. Bildhöhe etwa 80 px (Stacheln), niedriger als der Kolossbrecher der Welle 20, die Stellungen dahinter bleiben sichtbar. Sortierwert in der Tiefensortierung: seine Mitte plus 0,4. Alle Zahlen stehen als `KOLOSS_MODEL` in `src/data/art.js`.
+
+**Ein drehbares Modell** (`src/render/koloss.js`, Baukasten `src/render/bodyKit.js`): aus Körpern in lokalen Koordinaten, pro Bild gezeichnet. Anders als die Aufsätze der Standardstellungen nutzt es nicht `solidKit`, denn der zerteilt lange Flächen in bis zu 16 Stücke (in der Studie 551 Füllungen je Bild). Die Körper werden nach ihrer Mitte sortiert, jeder zeichnet seine zur Kamera zeigenden Flächen; verdeckte Flächen (Kappen an den Nähten der Segmente, die Fleischschicht unter den Schalen, Stachelspitzen) entfallen. Ziel: unter 110 Füllungen je Bild. Beine und Mandibeln sind keine Körper, sondern werden je Bild im Code aus dem Gangzyklus berechnet und in dieselbe Tiefenordnung gelegt.
+
+**Zustand statt Meldung:** Position, Richtung, Drehung und Halt liest die Darstellung nur aus dem Datensatz der Simulation ab (`dx`, `dy`, Ortsänderung, `charging`, `ram`); es gibt dafür kein Ereignis.
+
+- **Gehen:** Die Beine laufen mit der gegangenen Strecke (ein Zyklus je 0,55 Felder), im Stand stehen sie.
+- **Drehen an der Ecke:** Die Simulation setzt die neue Richtung sofort und hält 0,6 s (`KOLOSS_RUN.turnSeconds`). Die Darstellung zeigt die Drehung über diese 0,6 s: Der Schädel führt, jedes Segment erreicht die neue Richtung etwas später, die Beine laufen dabei weiter. Reine Darstellung, die Regel ändert sich nicht.
+- **Atmen** (Höhe der Segmente) und das Schnappen der Mandibeln (schneller beim Durchbruch); bei `prefers-reduced-motion` ohne beides.
 
 **Anzeigen:**
 
 - Lebensbalken über dem Modell, mit einer Markierung bei 70 %. Die Markierung zeigt, wie viel ein einzelner Luftschlag höchstens abziehen kann.
-- Beim Treffer blitzt das Modell kurz hell auf.
+- Beim Treffer blitzt das Modell kurz hell auf: Die Flächenfarben werden für die Dauer des Blitzes zu Knochenweiß gemischt, Beine und Mandibeln ebenso. Kein Filter, keine zusätzliche Fläche.
 
 **Effekte:**
 
-- Beim Fahren wackelt das Modell leicht und wirbelt Staub hinter den Ketten auf.
-- Alle 2,4 s feuert das Hauptgeschütz mit Mündungsblitz und Rauch.
-- Zwischendurch geben die Flakrohre Leuchtspur-Salven nach oben ab.
-- **Durchbruch:** Trümmer brechen mit Brocken, Staub und Rissen am Boden.
+- **Durchbruch:** Die Trümmer der Schneise brechen und werden zu beiden Seiten weggeschoben (Brocken und Staub fliegen quer zur Fahrtrichtung), dazu Risse am Boden; die Trümmer neben der Schneise bleiben stehen.
 - **Bollwerk-Stopp:** Funkenregen und starkes Wackeln (bei reduzierter Bewegung ohne Wackeln).
+- Hauptkanone, Flak und Antenne des früheren Modells (und ihre Effekte) gibt es nicht mehr.
 
-Referenz: `reference/konzept/koloss/1-zielvorhersage.png`, `2-durchbruch.png`, `3-bollwerk-stoppt.png`, `modellbogen-4-richtungen.png`.
+Referenz: `reference/konzept/koloss-schwarm/` (Standbilder der Studie, Entwurf A), die Studie selbst, und die Standbilder des Spielmodells aus `node tests/tools/koloss-modell.mjs` (nach `tests/output/`). Die alten Bilder in `reference/konzept/koloss/` zeigen noch die frühere Kriegsmaschine; für Zielvorhersage, Bollwerk-Stopp und Luftschlag gelten sie weiter.
 
 ### Zielankündigung
 
@@ -458,7 +464,7 @@ Auftrag und Begründung in `docs/meilensteine/M8-optik.md`, Referenz `reference/
 ## Technische Umsetzung
 
 - **SVG als Quelle, Canvas als Ausgabe.** Die SVGs werden beim Start einmal in Offscreen-Canvas gerastert und danach nur noch per `drawImage` gezeichnet. Kein SVG-Zeichnen pro Frame.
-- **Ausnahme: drehbare Modelle.** Figuren, die in mehreren Achsrichtungen stimmen müssen — Koloss und Gunship — sind kein SVG, sondern werden aus einfachen Körpern in lokalen Koordinaten aufgebaut (siehe „Drehbare Modelle" unten). Sie werden auch nicht gerastert, sondern pro Bild gezeichnet: Es gibt höchstens einen von jedem auf dem Feld, ihre beweglichen Teile (Laufrollen, Rückstoß, Flak) gehören zum Modell, und zwischengespeichert werden die Schattierungsfarben. Genau das schreibt Abschnitt „Drehbare Modelle" als Leistungsregel fest.
+- **Ausnahme: drehbare Modelle.** Figuren, die in mehreren Achsrichtungen stimmen müssen — Koloss und Gunship — sind kein SVG, sondern werden aus einfachen Körpern in lokalen Koordinaten aufgebaut (siehe „Drehbare Modelle" unten). Sie werden auch nicht gerastert, sondern pro Bild gezeichnet: Es gibt höchstens einen von jedem auf dem Feld, ihre beweglichen Teile (Beine, Mandibeln, Flak des Gunships) gehören zum Modell, und zwischengespeichert werden die Schattierungsfarben. Genau das schreibt Abschnitt „Drehbare Modelle" als Leistungsregel fest.
 - **Bunker und Aufsätze kommen aus dem Zeichencode der Studie**, aber als SVG: Der Zeichencode aus `reference/studien/stellungen-simulation.html` (Aufsätze, Spezialbasis, Spezialwaffen) und seit 0.11.0 für den Standardbunker aus `reference/studien/stellungen-rework-modell.js` (`drawBunker`, je Doktrin und Rang) wird einmalig nach `reference/konzept/stellungen/` exportiert und läuft danach durch dieselbe Pipeline wie jede andere Figur (`npm run sprites`). Sie sind statisch, also bleibt die SVG-Regel für sie in Kraft.
 - **Rasterstufen nach Zoom.** Pro Figur werden wenige Auflösungsstufen vorgehalten (etwa 0,5x, 1x, 2x mal devicePixelRatio) und die passende gewählt, damit beim Zoomen nichts unscharf wird.
 - **Statische Teile als Sprite, Bewegung im Code.** Bunker, Gehäuse, Körper, Köpfe und Klingen kommen aus dem SVG. Was sich bewegt, wird wie im Stiltest per Code gezeichnet: schwenkende Waffen, Flammen, Blitze, Insektenbeine im Laufzyklus, Flügelschlag.
@@ -481,7 +487,7 @@ Auftrag und Begründung in `docs/meilensteine/M8-optik.md`, Referenz `reference/
 
 ## Drehbare Modelle
 
-Koloss und Gunship werden nicht als feste Flächen für eine Blickrichtung gezeichnet, sondern aus einfachen Körpern in lokalen Koordinaten aufgebaut. So stimmen sie in allen vier Achsrichtungen, ohne dass vier Zeichnungen gepflegt werden müssen. Das Prinzip steht vollständig in `reference/studien/koloss-studie.html` (Funktionen `kframe3`, `prism`, `boxP`, `nacelle`, `render`) und wird als kleines Modul in `src/render/` übernommen.
+Koloss und Gunship werden nicht als feste Flächen für eine Blickrichtung gezeichnet, sondern aus einfachen Körpern in lokalen Koordinaten aufgebaut. So stimmen sie in allen vier Achsrichtungen, ohne dass vier Zeichnungen gepflegt werden müssen. Das Prinzip steht in `reference/studien/koloss-studie.html` (Funktionen `kframe3`, `prism`, `boxP`, `nacelle`, `render`) und ist als kleines Modul in `src/render/` übernommen; der Koloss nutzt seit 0.11.17 den eigenen Körperbaukasten `bodyKit.js` (siehe Abschnitt „Koloss“).
 
 - **Lokale Achsen:** lx vorwärts und ly seitwärts, beide in Feldern, dazu z nach oben in Pixeln. Die Welt-Position ergibt sich aus Mitte + lx · vorwärts + ly · seitwärts, mit seitwärts = (-vorwärts.y, vorwärts.x). Danach folgt die normale Iso-Projektion.
 - **Körper:** Prisma — ein Querschnitt in (lx, z), extrudiert entlang ly; ein Quader ist ein Sonderfall davon. Dazu Zylinder entlang lx für die Triebwerke.
@@ -489,7 +495,7 @@ Koloss und Gunship werden nicht als feste Flächen für eine Blickrichtung gezei
 - **Schattierung nach Normale:** Oben am hellsten, +y mittel, +x dunkler. Damit fällt das Licht in allen Richtungen gleich.
 - **Zeichenreihenfolge:** Teile nach Tiefe ihrer Mitte sortieren (x + y). Aufbauten bekommen einen Ebenen-Zuschlag, damit sie über dem Rumpf liegen.
 - **Zierbänder** (Rostband, rote Streifen) zeichnen nur ihre Seitenflächen, nie Ober- oder Unterseite. Sonst überdecken sie die Oberseite des Rumpfs.
-- **Rollen:** Laufrollen sind Ellipsen, die mit der Bildschirmrichtung der Fahrtachse geschert werden (`ctx.transform(u.x, u.y, 0, 1, 0, 0)`).
+- **Rollen:** Laufrollen (nur noch am Gunship-Umfeld und in der älteren Studie `koloss-studie.html`) sind Ellipsen, die mit der Bildschirmrichtung der Fahrtachse geschert werden (`ctx.transform(u.x, u.y, 0, 1, 0, 0)`).
 - **Leistung:** Koloss und Gunship existieren höchstens einmal gleichzeitig. Farbwerte der Schattierung zwischenspeichern, wie in der Studie (`shadeCache`). Ausnahme: die Aufsätze der Standardstellungen, siehe unten.
 
 **Warum kein SVG.** Ein SVG kennt keine Normalen. Vier Standbilder statt des Modells würden bedeuten, dass jede Änderung viermal nachgezogen werden muss und die richtungsabhängige Schattierung verlorengeht. Für statische Figuren gilt die SVG-Regel deshalb unverändert weiter; die Ausnahme greift nur, wo eine Figur sich um die Hochachse dreht.

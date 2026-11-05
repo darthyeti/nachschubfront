@@ -184,6 +184,34 @@ try {
     report.push(`${label.padEnd(8)} ${engine}, renderer: ${renderer}`);
     await context.close();
   }
+
+// The Koloss on the field (wave 35): the model is drawn every frame, so its cost counts. Desktop
+// only; the figure is the JS time per frame with the Koloss walking, next to the frame interval.
+try {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  watchProblems(page, 'koloss', problems);
+  await page.goto(`${server.url}?seed=BASTION&debug`, { waitUntil: 'networkidle' });
+  await startMatch(page, mode);
+  await page.locator('.debug-panel input[type=number]').fill('35');
+  await page.getByRole('button', { name: 'Springen' }).click();
+  await page.getByRole('button', { name: 'Salve anfordern' }).click();
+  await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
+  const pod = (await page.evaluate(() => window.__nachschub.state())).pods[0];
+  const [sx, sy] = await page.evaluate(([x, y]) => window.__nachschub.screenOfCell(x, y), [pod.x, pod.y]);
+  await page.mouse.click(sx, sy);
+  await page.getByRole('button', { name: 'Behalten' }).click();
+  await page.waitForFunction(() => window.__nachschub.state().enemyTypes.includes('koloss'), null, { timeout: 60000 });
+  await page.waitForTimeout(1500);
+  const gaps = (await sampleFrames(page, SAMPLE_FRAMES)).slice(10).sort((a, b) => a - b);
+  const work = (await page.evaluate(() => window.__nachschub.ui())).frameMs ?? NaN;
+  const k = (await page.evaluate(() => window.__nachschub.state())).kolossEnemy;
+  report.push(`koloss on the field (desktop, ${k ? `at ${k.x.toFixed(1)}, ${k.y.toFixed(1)}` : 'gone'}): median ${percentile(gaps, 0.5).toFixed(1)} ms, p95 ${percentile(gaps, 0.95).toFixed(1)} ms, JS per frame ${work.toFixed(1)} ms`);
+  await page.screenshot({ path: join(OUT, 'perf-koloss.png') });
+  await context.close();
+} catch (error) {
+  problems.push(`koloss perf: ${error.message}`);
+}
 } finally {
   await browser.close();
   server.close();
