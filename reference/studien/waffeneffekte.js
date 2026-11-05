@@ -17,6 +17,12 @@
 // simulation and does nothing the game would not do. The explosions are the study's own and the same
 // on both sides.
 //
+// Round 2 (issue 81, Till's answer of 05.11.2026, file E-40): the right side shows round 1 or round 2
+// ("Rechts: Runde 1 / Runde 2"). Round 2 adds a ground light for the special emplacements, two new
+// looks for the flame and burning patches on the ground, three kinds of lightning told apart, three
+// rockets per hit for the rocket launcher, a heavier siege launcher and the mist of the purge shrine;
+// its pieces are in waffeneffekte-runde2.js. The page counts its drawing steps per picture (`cost`).
+//
 // Fixed step of 1/60 s; Math.random is seeded on every restart (only on this page), so the stills are
 // reproducible (`window.__waffen`). Nothing here touches src/.
 
@@ -48,6 +54,7 @@ import {
   FX_ROCKET,
   FX_TRACER_SPEED,
   FX_STORM_TRACER_SPEED,
+  FX_AURA_IDLE,
 } from '../../src/data/art.js';
 import { createSpriteCache, drawSprite, drawSpriteShadow } from '../../src/render/sprites/rasterizer.js';
 import { allTowerDefs, drawTowerSprite, drawSpecialRing, towerSet, towerPictureBox } from '../../src/render/towerSprites.js';
@@ -83,6 +90,27 @@ import {
   drawReticle,
   drawImpactZone,
 } from './waffeneffekte-modell.js';
+import {
+  R2,
+  CELL_RX,
+  groundLight,
+  createLights,
+  lightAlpha,
+  drawFlameStream,
+  drawFireball,
+  drawBurnPatch,
+  drawTeslaArc,
+  drawEmberThreads,
+  drawSkyStrike,
+  drawThunderHop,
+  drawPressureRing,
+  drawHeavyRocket,
+  drawBigImpact,
+  drawCrater,
+  drawMistFlow,
+} from './waffeneffekte-runde2.js';
+import { fxOf, auraLevel } from '../../src/render/towerFx.js';
+import { FX_JET_LENGTH, FX_JET_RATE } from '../../src/data/art.js';
 
 const INK = C.ink;
 const TAU = Math.PI * 2;
@@ -144,6 +172,21 @@ const WEAPONS = [
   { kind: 'thunderTower', label: 'Gewitterturm', R: 2.4, change: 'Kettenblitz filigran mit elektrischer Aura je Sprung.' },
   { kind: 'soulfireObelisk', label: 'Seelenfeuer-Obelisk', R: 3.0, change: 'Seelenstrahl etwa halb so breit, Feueraura an der Pupille.' },
 ];
+/** What the second round (Till's answer of 05.11.2026, file E-40) changes, by weapon. */
+const CHANGE2 = {
+  autocannon: 'Runde 2: wie Runde 1.',
+  flame: 'Runde 2: zwei neue Feuerdarstellungen, beide fallen im flachen Bogen auf das Ziel statt waagerecht darüber zu stehen, und Feuer brennt nach oben (Strom: brennender Strahl mit aufrechten Flammenzungen und Spritzer am Ziel; Ballen: rollende Feuerbälle). Dazu Nachbrennen am Boden, nur Darstellung.',
+  mortar: 'Runde 2: Ein Treffer sind drei Raketen in schneller Folge (0,06 s Abstand), die dicht beieinander einschlagen; die mittlere fällt auf den Zeitpunkt der Simulation. Werte unverändert.',
+  tesla: 'Runde 2: kalter, eckiger Doppelschlag (zweimal kurz, dazwischen 0,03 s dunkel), schmale Aura, eine Gabel.',
+  laser: 'Runde 2: wie Runde 1 (Till: in Ordnung).',
+  psi: 'Runde 2: keine Änderung.',
+  purgeShrine: 'Runde 2: Nebelfluss: Aus dem Artefakt fällt Nebel zum Fuß und läuft in Wellen bis an den Rand der Aura (2,8 Felder), dort liegt er als Bank.',
+  stormBattery: 'Runde 2: Bodenlicht: Das Feuer erhellt den Boden im Umkreis von 2,2 Feldern (Schalter „Bodenlicht“, auch für alle sechs Spezialstellungen).',
+  emberCauldron: 'Runde 2: feine, gewundene Glutfäden (drei je Ziel), die zum Ziel kriechen und als Glut verlöschen: Feuer statt Elektrizität.',
+  siegeMortar: 'Runde 2: wuchtiger: größere Rakete mit langem Feuerstrahl und dichtem Rauch, Rückstrahl mit Staub, großer Einschlag mit Druckring in Splash-Größe, Trümmern, Krater, Bodenlicht.',
+  thunderTower: 'Runde 2: Einschlag von oben auf das erste Ziel, dann Kaskade über die Kette (0,035 s je Sprung), Druckring je Treffer, Bodenlicht, kurzer Bildaufheller (bei „Weniger Bewegung“ gedämpft).',
+  soulfireObelisk: 'Runde 2: wie Runde 1, dazu Bodenlicht als Option.',
+};
 const SPECIAL_KINDS = new Set(Object.keys(SPECIALS));
 const isSpecial = (kind) => SPECIAL_KINDS.has(kind);
 const defOf = (kind) => (isSpecial(kind) ? SPECIALS[kind] : DOCTRINES[kind]);
@@ -165,7 +208,18 @@ const ui = {
   reduced: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   sound: 'aus', // aus | heute | neu
   table: false,
+  /** Which round the right side shows: 1 (04.11.2026) or 2 (05.11.2026). */
+  round: 2,
+  /** Ground light of round 2: aus | sturm (storm battery only) | alle (all six specials). */
+  light: 'sturm',
+  /** Look of the flame jet in round 2: strom | ballen. */
+  flame: 'strom',
+  /** Patches that burn on the ground after the jet (round 2). */
+  burn: true,
+  /** How the ground light mixes: normal (half-transparent colour) or addiert ('lighter'). */
+  blend: 'addiert',
 };
+const R2ON = () => ui.round === 2;
 
 let scene = null;
 let clock = 0;
@@ -245,6 +299,16 @@ function newScene(kind) {
     shells: [],
     particles: [],
     booms: [],
+    // Round 2: ground lights, burning patches, fireballs, pressure rings, the three rockets of a salvo,
+    // the big impacts and craters of the siege launcher, the brightening of the picture.
+    lights: createLights(),
+    burns: [],
+    balls: [],
+    rings: [],
+    subs: [],
+    bigBooms: [],
+    craters: [],
+    flash: { a: 0, life: 0, max: 1 },
   };
 }
 
@@ -297,10 +361,12 @@ function simStep(dt) {
     s.t += dt;
     if (s.t >= s.flight) {
       curSide = s.owner.side;
-      boom(s.to.x, s.to.y, s.splash);
+      if (s.heavy) bigImpact(s.to.x, s.to.y, s.splash);
+      else if (!s.salvo) boom(s.to.x, s.to.y, s.splash);
       scene.shells.splice(i, 1);
     }
   }
+  stepRound2(dt);
   for (let i = scene.booms.length - 1; i >= 0; i--) {
     scene.booms[i].life -= dt;
     if (scene.booms[i].life <= 0) scene.booms.splice(i, 1);
@@ -350,9 +416,9 @@ function shoot(rec, inRange, lead, centre) {
   sound(rec, events);
 }
 
-function boom(x, y, splash) {
+function boom(x, y, splash, puffs = 5) {
   scene.booms.push({ x, y, r: splash, life: 0.55, max: 0.55, side: curSide });
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < puffs; i++) {
     addParticle({
       kind: 'wsmoke', x: x + rand(-0.3, 0.3) * splash, y: y + rand(-0.3, 0.3) * splash, z: 4, vx: rand(-0.3, 0.3), vy: rand(-0.3, 0.3),
       vz: rand(14, 30), r0: 6, r1: 10 + splash * 6, tone: 1, life: rand(0.9, 1.4), floor: 0,
@@ -496,11 +562,16 @@ function shootNeu(rec, events, lead) {
   } else if (kind === 'tesla' || kind === 'thunderTower' || kind === 'emberCauldron') {
     n.flash = FX_FLASH_SECONDS[kind] ?? 0.075;
     n.bolt = kind === 'tesla' ? FX_BOLT_SECONDS : FX_SPECIAL_BOLT_SECONDS[kind];
+    if (R2ON() && kind === 'thunderTower') n.bolt += (events[0].points.length - 2) * R2.thunder.delay;
     n.boltSeed = Math.floor(clock * 30);
     if (kind === 'emberCauldron') n.boltPoints = events.map((e) => [e.tx, e.ty]);
     else n.boltPoints = events[0].points.slice(1).map((p) => [p.x, p.y]);
     const colour = kind === 'emberCauldron' ? '#ff8a2a' : '#bff2ff';
     for (const [hx, hy] of n.boltPoints.slice(0, 3)) sparks(hx, hy, hitZ, 5, 160, colour);
+  } else if (kind === 'mortar' && R2ON()) {
+    // Round 2: the hit of the simulation is three rockets in quick succession (see salvoOf).
+    rec.lastShell.salvo = true;
+    scene.subs.push(...salvoOf(rec, rec.lastShell));
   } else if (kind === 'mortar') {
     n.flash = FX_FLASH_SECONDS.mortar;
     rec.lastShell.launch = { x: mw.x, y: mw.y, z: mw.z, dir: mw.dir, lift: 0 };
@@ -539,6 +610,7 @@ function shootNeu(rec, events, lead) {
     rec.lastShell.launch = { x: mw.x, y: mw.y, z: mw.z, dir: mw.dir, lift: 0 };
     rec.lastShell.trail = 0;
     rec.lastShell.big = true;
+    rec.lastShell.heavy = R2ON();
     const back = [-mw.dir[0], -mw.dir[1]];
     for (let i = 0; i < (ui.reduced ? 3 : 7); i++) {
       const r = 0.5 * SCALE(rec) + i * 0.05;
@@ -549,6 +621,379 @@ function shootNeu(rec, events, lead) {
     n.beam = FX_OBELISK_BEAM_SECONDS;
     n.beamEnd = [lead.x, lead.y];
     sparks(lead.x, lead.y, hitZ, 10, 200, '#b784ff');
+  }
+  if (R2ON()) shootR2(rec, events, lead, mw);
+}
+
+
+// ======================================================================================
+// Round 2 (issue 81): motion and fire of the right side
+// ======================================================================================
+
+/** Whether the right side shows the ground light of `kind`. */
+function lightOn(kind) {
+  if (!R2ON() || ui.light === 'aus') return false;
+  return ui.light === 'alle' ? isSpecial(kind) : kind === 'stormBattery';
+}
+
+function kickLight(kind, x, y, which = null, key = null, k = 1) {
+  if (!lightOn(kind)) return;
+  const L = R2.light[kind];
+  const spec = which ? L[which] : L;
+  scene.lights.kick(x, y, spec.r, L.colour, spec.a * k, spec.fade ?? L.fade, key);
+}
+
+function flashPicture(alpha, seconds) {
+  const a = ui.reduced ? Math.min(alpha, R2.thunder.flash.reduced) : alpha;
+  if (a >= scene.flash.a * (scene.flash.life / scene.flash.max || 0)) Object.assign(scene.flash, { a, life: seconds, max: seconds });
+}
+
+/**
+ * The three rockets of one hit of the rocket launcher. The simulation fires one shell with flight time
+ * `flight` onto `to`; the drawing sends three rockets `gap` s apart from three neighbouring tubes, each
+ * flying `flight - gap`, so the middle one lands exactly when the simulation hits and the other two
+ * `gap` s before and after it, tightly round the point of impact.
+ */
+function salvoOf(rec, shell) {
+  const S = R2.salvo;
+  const out = [];
+  for (let i = 0; i < S.count; i++) {
+    const a = (i / S.count) * TAU + 0.6;
+    const r = i === 1 ? 0 : S.spread;
+    out.push({
+      owner: rec, side: rec.side, t: -i * S.gap, flight: shell.flight - S.gap, launch: null, trail: 0, flash: 0,
+      tube: (rec.n.next + i) % 6, to: { x: shell.to.x + Math.cos(a) * r, y: shell.to.y + Math.sin(a) * r }, splash: shell.splash,
+    });
+  }
+  rec.n.next = (rec.n.next + S.count - 1) % 6;
+  return out;
+}
+
+/** What a shot of the right side adds in round 2: lights, strikes, rings, the flash of the picture. */
+function shootR2(rec, events, lead, mw) {
+  const n = rec.n;
+  const kind = rec.kind;
+  const tw = rec.tower;
+  n.age = 0;
+  if (kind === 'stormBattery') {
+    kickLight(kind, mw.x, mw.y, null, 'storm', 0.8 + 0.2 * Math.random());
+    kickLight(kind, lead.x, lead.y, 'hit', 'storm-hit');
+  } else if (kind === 'emberCauldron') {
+    kickLight(kind, tw.x + HALF, tw.y + HALF);
+    for (const e of events) kickLight(kind, e.tx, e.ty, 'hit');
+  } else if (kind === 'siegeMortar') {
+    kickLight(kind, mw.x, mw.y);
+    // Back blast: dust thrown over the ground in a fan behind the launcher.
+    const back = norm2([-mw.dir[0], -mw.dir[1]]);
+    for (let i = 0; i < (ui.reduced ? 4 : 10); i++) {
+      const a = Math.atan2(back[1], back[0]) + rand(-0.9, 0.9);
+      const v = rand(0.6, 1.4);
+      addParticle({ kind: 'wsmoke', x: tw.x + HALF + back[0] * 0.3, y: tw.y + HALF + back[1] * 0.3, z: 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: rand(4, 16), r0: 5, r1: 20, tone: 1, life: rand(1, 1.6), floor: 0 });
+    }
+  } else if (kind === 'thunderTower') {
+    const H = R2.thunder;
+    const pts = n.boltPoints;
+    pts.forEach(([x, y], i) => {
+      scene.rings.push({ side: rec.side, x, y, r: i === 0 ? H.ring.first : H.ring.other, age: -i * H.delay, max: H.ring.seconds, colour: H.colours[1], width: H.ring.width });
+    });
+    kickLight(kind, pts[0][0], pts[0][1]);
+    for (const [x, y] of pts.slice(1)) kickLight(kind, x, y, 'hit');
+    flashPicture(H.flash.alpha, H.flash.seconds);
+    for (const [x, y] of pts.slice(0, 3)) sparks(x, y, FX_HIT_Z, 6, 200, H.colours[0]);
+  } else if (kind === 'soulfireObelisk') {
+    kickLight(kind, mw.x, mw.y);
+    kickLight(kind, lead.x, lead.y, 'hit');
+  }
+}
+
+/** The big impact of the siege launcher (round 2): fireball, ring, dust, debris, crater, light, flash. */
+function bigImpact(x, y, splash) {
+  const B = R2.bigBoom;
+  scene.bigBooms.push({ side: curSide, x, y, r: splash, age: 0, seed: Math.random() * 10 });
+  scene.craters.push({ side: curSide, x, y, r: splash, age: 0, max: B.scorch });
+  if (scene.craters.length > 4) scene.craters.shift();
+  for (let i = 0; i < (ui.reduced ? 5 : B.dust); i++) {
+    const a = (i / B.dust) * TAU + rand(-0.2, 0.2);
+    const v = rand(1.2, 2.2);
+    addParticle({ kind: 'wsmoke', x: x + Math.cos(a) * 0.4, y: y + Math.sin(a) * 0.4, z: 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: rand(4, 14), r0: 6, r1: 22, tone: 1, life: rand(1.1, 1.7), floor: 0 });
+  }
+  for (let i = 0; i < 4; i++) {
+    addParticle({ kind: 'wsmoke', x: x + rand(-0.4, 0.4), y: y + rand(-0.4, 0.4), z: 18, vx: rand(-0.2, 0.2), vy: rand(-0.2, 0.2), vz: rand(30, 50), r0: 10, r1: 28, tone: 2, life: rand(1.6, 2.2), floor: 0 });
+  }
+  if (!ui.reduced) {
+    for (let i = 0; i < B.debris; i++) {
+      const a = rand(0, TAU);
+      const v = rand(0.8, 2);
+      addParticle({ kind: 'ndebris', x, y, z: 6, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: rand(120, 220), rot: rand(0, TAU), vrot: rand(-12, 12), size: rand(1.6, 3.2), life: 1.3, floor: 0 });
+    }
+  }
+  sparks(x, y, 8, 10, 260, '#ffd23f');
+  kickLight('siegeMortar', x, y, 'hit');
+  flashPicture(B.brighten, 0.12);
+}
+
+/** Steps everything of round 2 that lives outside the emplacements. */
+function stepRound2(dt) {
+  scene.lights.step(dt);
+  for (const side of ['neu']) {
+    const rec = scene.towers[side];
+    rec.n.age = (rec.n.age ?? 9) + dt;
+    if (R2ON() && rec.kind === 'flame') stepFlameR2(rec, dt);
+    if (R2ON() && lightOn(rec.kind)) idleLights(rec);
+  }
+  for (const list of [scene.burns, scene.balls, scene.rings, scene.bigBooms, scene.craters]) {
+    for (let i = list.length - 1; i >= 0; i--) {
+      const it = list[i];
+      it.age += dt;
+      if (it.age >= (it.max ?? it.life ?? 1)) list.splice(i, 1);
+    }
+  }
+  for (let i = scene.subs.length - 1; i >= 0; i--) {
+    const r = scene.subs[i];
+    r.t += dt;
+    r.flash = Math.max(0, r.flash - dt);
+    if (r.t >= 0 && !r.launch) {
+      const rec = r.owner;
+      const mw = neuMuzzle(rec, { tube: r.tube, recoil: 0 });
+      r.launch = { x: mw.x, y: mw.y, z: mw.z, dir: mw.dir, lift: 0 };
+      r.flash = FX_FLASH_SECONDS.mortar;
+      rec.n.recoil = 1;
+      rec.n.tube = r.tube;
+      curSide = r.side;
+      const back = [-mw.dir[0], -mw.dir[1], -mw.dir[2]];
+      for (let k = 0; k < (ui.reduced ? 1 : 2); k++) {
+        addParticle({ kind: 'wsmoke', x: mw.x + back[0] * 0.25, y: mw.y + back[1] * 0.25, z: mw.z, vx: back[0] * 0.45 + rand(-0.12, 0.12), vy: back[1] * 0.45 + rand(-0.12, 0.12), vz: rand(-5, 25), r0: 3, r1: 11, tone: 0.5, life: rand(0.7, 1), floor: 0 });
+      }
+      sparks(mw.x, mw.y, mw.z, 2, 140);
+    }
+    if (r.t >= r.flight) {
+      curSide = r.side;
+      boom(r.to.x, r.to.y, r.splash * R2.salvo.boom, 2);
+      scene.subs.splice(i, 1);
+    }
+  }
+  if (scene.flash.life > 0) scene.flash.life = Math.max(0, scene.flash.life - dt);
+}
+
+/** Lights that stay while an emplacement works: the fire of the cauldron, the ball of the tower, the shrine. */
+function idleLights(rec) {
+  const tw = rec.tower;
+  const L = R2.light[rec.kind];
+  if (!L.idle) return;
+  const level = rec.kind === 'purgeShrine' ? auraLevel(tw) : 1;
+  const flick = ui.reduced ? 1 : 0.85 + 0.15 * Math.sin(clock * 13 + tw.x);
+  rec.idleLight = { x: tw.x + HALF, y: tw.y + HALF, r: L.idle.r, colour: L.colour, a: (L.idle.a + (rec.kind === 'purgeShrine' ? L.a * level : 0)) * flick };
+}
+
+/** Muzzle frame of the flame on the right: the game draws the emplacement, so its frame is the game's. */
+function flameFrame(rec) {
+  return fxOf(rec.tower).frame;
+}
+
+function jetLengthOf(rec, f) {
+  const tw = rec.tower;
+  if (!tw.aim) return FX_JET_LENGTH;
+  return Math.min(FX_JET_LENGTH, Math.hypot(tw.aim.x - f.x, tw.aim.y - f.y) + 0.25);
+}
+
+function stepFlameR2(rec, dt) {
+  const n = rec.n;
+  const tw = rec.tower;
+  const f = flameFrame(rec);
+  n.jet = (n.jet ?? 0) + ((tw.firing ? 1 : 0) - (n.jet ?? 0)) * Math.min(1, dt * FX_JET_RATE);
+  if (!f) return;
+  const dh = norm2(f.dir);
+  const L = jetLengthOf(rec, f);
+  curSide = rec.side;
+  if (ui.flame === 'ballen' && tw.firing) {
+    const B = R2.balls;
+    n.ballAcc = (n.ballAcc ?? 0) + dt * B.rate;
+    while (n.ballAcc >= 1) {
+      n.ballAcc -= 1;
+      const a = Math.atan2(dh[1], dh[0]) + rand(-0.16, 0.16);
+      if (scene.balls.filter((b) => b.side === rec.side).length >= B.max) scene.balls.shift();
+      scene.balls.push({ side: rec.side, x0: f.x, y0: f.y, z0: f.z, dx: Math.cos(a), dy: Math.sin(a), L: L * rand(0.85, 1.05), age: 0, life: B.life * rand(0.85, 1.1), spin: rand(0, TAU), wob: rand(0, TAU) });
+    }
+  }
+  if (ui.burn && tw.firing && n.jet > 0.6) {
+    const B = R2.burn;
+    n.burnAcc = (n.burnAcc ?? 0) + dt;
+    if (n.burnAcc >= B.every) {
+      n.burnAcc -= B.every;
+      const s = L * rand(0.6, 1.0);
+      const side = rand(-0.45, 0.45) * s * 0.5;
+      const mine = scene.burns.filter((b) => b.side === rec.side);
+      if (mine.length >= B.max) scene.burns.splice(scene.burns.indexOf(mine[0]), 1);
+      scene.burns.push({ side: rec.side, x: f.x + dh[0] * s - dh[1] * side, y: f.y + dh[1] * s + dh[0] * side, age: 0, max: B.life * rand(0.85, 1.15), seed: rand(0, 10) });
+    }
+  }
+}
+
+/** The flame jet of round 2 on the right, in the look picked. */
+function drawFlameR2(rec) {
+  const f = flameFrame(rec);
+  const n = rec.n;
+  if (!f) return;
+  const dh = norm2(f.dir);
+  const L = jetLengthOf(rec, f);
+  // The arc: from the nozzle to the hit height at the end, a little above the straight line.
+  const arcAt = (x0, y0, z0, dx, dy, len, arc) => (u) => P(x0 + dx * u * len, y0 + dy * u * len, z0 + (FX_HIT_Z - z0) * u * u + arc * 4 * u * (1 - u));
+  if (ui.flame === 'strom') {
+    if ((n.jet ?? 0) < 0.05) return;
+    drawFlameStream(ctx, arcAt(f.x, f.y, f.z, dh[0], dh[1], L * n.jet, R2.stream.arc), clock, n.jet, ui.reduced, rec.tower.x);
+    const o = P(f.x, f.y, f.z);
+    ell(ctx, o[0], o[1], 3.2, 2.6, '#ffffff', null);
+  } else {
+    const B = R2.balls;
+    const mine = scene.balls.filter((b) => b.side === rec.side).sort((a, b) => b.age / b.life - a.age / a.life);
+    for (const b of mine) {
+      const u = Math.min(1, b.age / b.life);
+      const s = 1 - Math.pow(1 - u, 1.5);
+      const wob = ui.reduced ? 0 : Math.sin(clock * 20 + b.wob) * 1.5;
+      const p = arcAt(b.x0, b.y0, b.z0, b.dx, b.dy, b.L, B.arc)(s);
+      drawFireball(ctx, p[0], p[1] + wob - (B.r[0] + (B.r[1] - B.r[0]) * Math.pow(u, 0.7)) * 0.6, B.r[0] + (B.r[1] - B.r[0]) * Math.pow(u, 0.7), u, b.spin + (ui.reduced ? 0 : u * 3));
+    }
+    if (tw_firing(rec)) {
+      const o = P(f.x, f.y, f.z);
+      ell(ctx, o[0], o[1], 4.2, 3.4, '#fff3c4', INK, 1.2);
+      ell(ctx, o[0], o[1], 2.4, 2, '#ffffff', null);
+    }
+  }
+}
+const tw_firing = (rec) => rec.tower.firing;
+
+/** On the ground, under the figures: auras, lights, craters, burning patches, rings. */
+function drawGroundR2() {
+  const sides = shownSides();
+  for (const side of sides) {
+    const rec = scene.towers[side];
+    if (rec.kind !== 'purgeShrine') continue;
+    if (side === 'neu' && R2ON()) {
+      const tw = rec.tower;
+      const f = fxOf(tw).frame;
+      const pour = f ? P(f.x, f.y, f.z - 6) : P(tw.x + HALF, tw.y + HALF, 40);
+      drawMistFlow(ctx, (x, y) => P(x, y), tw.x + HALF, tw.y + HALF, rec.range, pour, auraLevel(tw), clock, ui.reduced);
+    } else {
+      drawShrineAuraToday(rec.tower, rec.range);
+    }
+  }
+  if (!sides.includes('neu')) return;
+  const rn = scene.towers.neu;
+  if (rn.idleLight && lightOn(rn.kind)) {
+    const l = rn.idleLight;
+    const [x, y] = P(l.x, l.y);
+    groundLight(ctx, x, y, l.r, l.colour, l.a, ui.blend === 'addiert');
+  }
+  for (const l of scene.lights.list) {
+    const [x, y] = P(l.x, l.y);
+    groundLight(ctx, x, y, l.r, l.colour, lightAlpha(l), ui.blend === 'addiert');
+  }
+  for (const c of scene.craters) {
+    if (!sides.includes(c.side)) continue;
+    const [x, y] = P(c.x, c.y);
+    drawCrater(ctx, x, y, c.r, c.age / c.max);
+  }
+  for (const b of scene.burns) {
+    if (!sides.includes(b.side)) continue;
+    const [x, y] = P(b.x, b.y);
+    drawBurnPatch(ctx, x, y, b.age / b.max, clock, b.seed, ui.reduced);
+  }
+  for (const r of scene.rings) {
+    if (!sides.includes(r.side) || r.age < 0) continue;
+    const [x, y] = P(r.x, r.y);
+    drawPressureRing(ctx, x, y, r.r, r.age / r.max, r.colour, r.width, ui.reduced);
+  }
+}
+
+/** Over the figures: the same lights again, weaker, so the emplacement and the targets are lit too. */
+function drawOverR2() {
+  if (!shownSides().includes('neu')) return;
+  for (const l of scene.lights.list) {
+    const [x, y] = P(l.x, l.y);
+    groundLight(ctx, x, y - 10, l.r * 0.8, l.colour, lightAlpha(l) * R2.light.over, ui.blend === 'addiert');
+  }
+  for (const b of scene.bigBooms) {
+    if (!shownSides().includes(b.side)) continue;
+    const [x, y] = P(b.x, b.y);
+    drawBigImpact(ctx, x, y, b.r, b.age, b.seed, ui.reduced);
+  }
+}
+
+/** The brightening of the whole picture (thunder tower, siege impact), in screen space. */
+function drawPictureFlash() {
+  const f = scene.flash;
+  if (f.life <= 0 || !shownSides().includes('neu')) return;
+  const u = f.life / f.max;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = `rgba(236,232,255,${(f.a * u * u).toFixed(3)})`;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+}
+
+/**
+ * Today's gold aura of the purge shrine on the ground, copied from drawAura in src/render/effects.js
+ * (it lives inside createEffects there and cannot be imported): dashed ring, golden wash, twelve runes.
+ */
+function drawShrineAuraToday(tower, range) {
+  const level = auraLevel(tower);
+  const cx = tower.x + HALF;
+  const cy = tower.y + HALF;
+  const R = range * (ui.reduced ? 1 : 0.985 + 0.015 * Math.sin(clock * 4));
+  ctx.beginPath();
+  for (let i = 0; i <= 48; i++) {
+    const a = (i / 48) * TAU;
+    const [x, y] = P(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+    if (i) ctx.lineTo(x, y);
+    else ctx.moveTo(x, y);
+  }
+  ctx.fillStyle = `rgba(255,190,70,${0.08 + 0.1 * level})`;
+  ctx.fill();
+  ctx.setLineDash([9, 7]);
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = `rgba(255,214,110,${0.35 + 0.4 * level})`;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * TAU + (ui.reduced ? 0 : clock * 0.25);
+    const [x, y] = P(cx + Math.cos(a) * R * 0.82, cy + Math.sin(a) * R * 0.82);
+    ctx.globalAlpha = (0.35 + 0.4 * level) * (ui.reduced ? 1 : 0.7 + 0.3 * Math.sin(clock * 3 + i));
+    ctx.beginPath();
+    ctx.moveTo(x, y - 4);
+    ctx.lineTo(x + 3.2, y);
+    ctx.lineTo(x, y + 4);
+    ctx.lineTo(x - 3.2, y);
+    ctx.closePath();
+    ctx.fillStyle = '#ffd23f';
+    ctx.fill();
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** The three rockets of the salvos in flight (round 2). */
+function drawSubs(dt) {
+  if (!shownSides().includes('neu')) return;
+  for (const r of scene.subs) {
+    if (!r.launch) continue;
+    const u = Math.min(1, r.t / r.flight);
+    const pos = rocketPosition(r.launch, r, u);
+    const before = rocketPosition(r.launch, r, Math.max(0, u - 0.04 / r.flight));
+    const a = P(pos[0], pos[1], pos[2]);
+    const b = P(before[0], before[1], before[2]);
+    const l = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1;
+    const flick = ui.reduced ? 1 : 0.85 + 0.15 * Math.sin(clock * 40 + r.tube);
+    drawRocketBody(ctx, a[0], a[1], (a[0] - b[0]) / l, (a[1] - b[1]) / l, NEU.rocket, DOCTRINE_COLORS.mortar, flick);
+    r.trail -= dt;
+    let guard = 3;
+    curSide = r.side;
+    while (r.trail <= 0 && guard-- > 0) {
+      r.trail += FX_ROCKET.trail * 1.4;
+      addParticle({ kind: 'wsmoke', x: before[0], y: before[1], z: before[2], vx: 0, vy: 0, vz: 8, r0: 2, r1: 6.5, tone: 0, life: 0.6, floor: 0 });
+    }
+    if (r.trail < 0) r.trail = 0;
   }
 }
 
@@ -561,6 +1006,25 @@ const SCALE = (rec) => neuWeapon(rec).scale;
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+/**
+ * Cost of a picture: fill and stroke calls (also fillRect and the text calls) and the gradients made,
+ * counted on this page's context only. `last` is the picture before.
+ */
+const cost = { fills: 0, gradients: 0, last: { fills: 0, gradients: 0 } };
+for (const name of ['fill', 'stroke', 'fillRect', 'fillText', 'strokeText']) {
+  const f = ctx[name].bind(ctx);
+  ctx[name] = (...a) => {
+    cost.fills++;
+    return f(...a);
+  };
+}
+for (const name of ['createRadialGradient', 'createLinearGradient']) {
+  const f = ctx[name].bind(ctx);
+  ctx[name] = (...a) => {
+    cost.gradients++;
+    return f(...a);
+  };
+}
 const cache = createSpriteCache();
 const view = { w: 1, h: 1, dpr: 1 };
 
@@ -621,7 +1085,7 @@ function drawLabel(side) {
   ctx.lineWidth = 4;
   ctx.strokeStyle = INK;
   ctx.fillStyle = side === 'heute' ? '#eadfc4' : '#e8c872';
-  const text = side === 'heute' ? 'HEUTE' : 'NEU';
+  const text = side === 'heute' ? 'HEUTE' : `RUNDE ${ui.round}`;
   ctx.strokeText(text, sx, sy + 18);
   ctx.fillText(text, sx, sy + 18);
 }
@@ -748,6 +1212,12 @@ function drawAtMuzzleNeu(rec, mw) {
   if (kind === 'autocannon' && n.flash > 0) {
     const u = n.flash / FX_FLASH_SECONDS.autocannon;
     flare(mw, mw.dir, 0.36 * (0.6 + 0.4 * u) * shrink, 0.08, '#ffd23f', '#fff3b0');
+  } else if (kind === 'mortar' && R2ON()) {
+    for (const r of scene.subs) {
+      if (r.owner !== rec || r.flash <= 0 || !r.launch) continue;
+      const u = r.flash / FX_FLASH_SECONDS.mortar;
+      flare(r.launch, r.launch.dir, 0.3 * (0.6 + 0.4 * u) * shrink, 0.08, '#ff8a2a', '#ffe38a');
+    }
   } else if (kind === 'mortar' && n.flash > 0) {
     const u = n.flash / FX_FLASH_SECONDS.mortar;
     const at = n.auraAt;
@@ -847,6 +1317,10 @@ function drawReachNeu(rec) {
   const kind = rec.kind;
   const mw = rec.mw;
   const mp = P(mw.x, mw.y, mw.z);
+  if (R2ON() && n.bolt > 0 && (kind === 'tesla' || kind === 'thunderTower' || kind === 'emberCauldron')) {
+    drawBoltsR2(rec, mp);
+    return;
+  }
   if (kind === 'laser' && n.beam > 0) {
     const hit = P(n.beamHit[0], n.beamHit[1], FX_HIT_Z);
     const end = P(n.beamEnd[0], n.beamEnd[1], FX_HIT_Z);
@@ -870,6 +1344,42 @@ function drawReachNeu(rec) {
     });
   } else if (kind === 'soulfireObelisk' && n.beam > 0) {
     drawSoulThin(ctx, mp, P(n.beamEnd[0], n.beamEnd[1], FX_HIT_Z), n.beam / FX_OBELISK_BEAM_SECONDS, clock, ui.reduced);
+  }
+}
+
+/** The three kinds of lightning of round 2: tesla, thunder tower, ember cauldron. */
+function drawBoltsR2(rec, mp) {
+  const n = rec.n;
+  const kind = rec.kind;
+  const age = n.age ?? 0;
+  if (kind === 'tesla') {
+    const u = n.bolt / FX_BOLT_SECONDS;
+    let from = mp;
+    n.boltPoints.forEach(([x, y], i) => {
+      const to = P(x, y, FX_HIT_Z);
+      drawTeslaArc(ctx, from, to, n.boltSeed + i * 7, age, u, ui.reduced, i === 0);
+      from = to;
+    });
+  } else if (kind === 'emberCauldron') {
+    const u = n.bolt / FX_SPECIAL_BOLT_SECONDS.emberCauldron;
+    n.boltPoints.forEach(([x, y], i) => drawEmberThreads(ctx, mp, P(x, y, FX_HIT_Z), n.boltSeed * 0 + i * 2.1 + rec.tower.x, age, u, clock, ui.reduced));
+  } else {
+    const H = R2.thunder;
+    const T = FX_SPECIAL_BOLT_SECONDS.thunderTower;
+    // The ball sends a short bolt up into the sky: the tower calls the strike down.
+    const u0 = Math.max(0, 1 - age / T);
+    drawThunderHop(ctx, mp, [mp[0] + 4, mp[1] - 70], n.boltSeed, u0);
+    n.boltPoints.forEach(([x, y], i) => {
+      const local = age - i * H.delay;
+      if (local < 0) return;
+      const u = Math.max(0, 1 - local / T);
+      const to = P(x, y, FX_HIT_Z);
+      if (i === 0) drawSkyStrike(ctx, to, n.boltSeed, u, ui.reduced);
+      else {
+        const [px, py] = n.boltPoints[i - 1];
+        drawThunderHop(ctx, P(px, py, FX_HIT_Z), to, n.boltSeed + i * 5, u);
+      }
+    });
   }
 }
 
@@ -906,7 +1416,7 @@ function drawShells(dt, late = false) {
       }
       continue;
     }
-    if (!shownSides().includes('neu') || !s.launch) continue;
+    if (!shownSides().includes('neu') || !s.launch || s.salvo) continue;
     const u = Math.min(1, s.t / s.flight);
     const pos = s.big ? bigRocketPosition(s.launch, s, u) : rocketPosition(s.launch, s, u);
     const before = s.big ? bigRocketPosition(s.launch, s, Math.max(0, u - 0.03)) : rocketPosition(s.launch, s, Math.max(0, u - 0.04 / s.flight));
@@ -919,12 +1429,16 @@ function drawShells(dt, late = false) {
       drawImpactZone(ctx, g[0], g[1], s.splash * 32 * Math.SQRT2, u);
       ell(ctx, P(pos[0], pos[1])[0], P(pos[0], pos[1])[1], 6, 2.8, 'rgba(10,6,4,.28)', null);
     }
-    drawRocketBody(ctx, a[0], a[1], (a[0] - b[0]) / l, (a[1] - b[1]) / l, s.big ? NEU.bigRocket : NEU.rocket, DOCTRINE_COLORS.mortar, flick);
+    if (s.heavy) drawHeavyRocket(ctx, a[0], a[1], (a[0] - b[0]) / l, (a[1] - b[1]) / l, DOCTRINE_COLORS.mortar, flick);
+    else drawRocketBody(ctx, a[0], a[1], (a[0] - b[0]) / l, (a[1] - b[1]) / l, s.big ? NEU.bigRocket : NEU.rocket, DOCTRINE_COLORS.mortar, flick);
     s.trail = (s.trail ?? 0) - dt;
     let guard = 3;
+    const HR = R2.bigRocket;
     while (s.trail <= 0 && guard-- > 0) {
-      s.trail += s.big ? 0.03 : FX_ROCKET.trail;
-      addParticle({ kind: 'wsmoke', x: before[0], y: before[1], z: before[2], vx: 0, vy: 0, vz: 8, r0: s.big ? 4 : 2.5, r1: s.big ? 12 : 8, tone: 0, life: s.big ? 1.1 : 0.8, floor: 0 });
+      s.trail += s.heavy ? HR.trail : s.big ? 0.03 : FX_ROCKET.trail;
+      s.puffs = (s.puffs ?? 0) + 1;
+      if (s.heavy) addParticle({ kind: 'wsmoke', x: before[0], y: before[1], z: before[2], vx: rand(-0.1, 0.1), vy: rand(-0.1, 0.1), vz: 10, r0: HR.smoke[0], r1: HR.smoke[1], tone: s.puffs % 3 ? 0 : 1, life: HR.smokeLife, floor: 0 });
+      else addParticle({ kind: 'wsmoke', x: before[0], y: before[1], z: before[2], vx: 0, vy: 0, vz: 8, r0: s.big ? 4 : 2.5, r1: s.big ? 12 : 8, tone: 0, life: s.big ? 1.1 : 0.8, floor: 0 });
     }
     if (s.trail < 0) s.trail = 0;
   }
@@ -954,6 +1468,25 @@ function drawParticles() {
       const a = P(p.x0, p.y0, p.z0);
       const b = P(p.x1, p.y1, p.z1);
       drawTracerFixed(ctx, a, b, u, p.colour, p.core);
+    } else if (p.kind === 'ndebris') {
+      const [x, y] = P(p.x, p.y, p.z);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = u > 0.8 ? (1 - u) / 0.2 : 1;
+      ctx.beginPath();
+      ctx.moveTo(-p.size, -p.size * 0.4);
+      ctx.lineTo(p.size * 0.3, -p.size);
+      ctx.lineTo(p.size, p.size * 0.5);
+      ctx.lineTo(-p.size * 0.5, p.size * 0.7);
+      ctx.closePath();
+      ctx.fillStyle = '#4a3c30';
+      ctx.fill();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+      ctx.globalAlpha = 1;
     } else {
       drawWorldParticle(ctx, p, u);
     }
@@ -968,11 +1501,27 @@ function stepParticles(dt) {
       scene.particles.splice(i, 1);
       continue;
     }
-    if (p.kind !== 'ntracer') stepWorldParticle(p, dt);
+    if (p.kind === 'ndebris') {
+      p.vz -= 520 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.z += p.vz * dt;
+      p.rot += p.vrot * dt;
+      if (p.z < 0) {
+        p.z = 0;
+        p.vz = Math.abs(p.vz) > 60 ? -p.vz * 0.3 : 0;
+        p.vx *= 0.5;
+        p.vy *= 0.5;
+        p.vrot *= 0.5;
+      }
+    } else if (p.kind !== 'ntracer') stepWorldParticle(p, dt);
   }
 }
 
 function render(dt) {
+  cost.last = { fills: cost.fills, gradients: cost.gradients };
+  cost.fills = 0;
+  cost.gradients = 0;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#1c1410';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -980,6 +1529,11 @@ function render(dt) {
   const s = ui.zoom * view.dpr;
   ctx.setTransform(s, 0, 0, s, canvas.width / 2 - cx * s, canvas.height / 2 - cy * s);
   drawGround();
+  drawGroundR2();
+  const rf = scene.towers.neu;
+  const flameR2 = R2ON() && rf.kind === 'flame' && shownSides().includes('neu');
+  const flameFront = flameR2 && (flameFrame(rf)?.front ?? true);
+  if (flameR2 && !flameFront) drawFlameR2(rf);
   // Entities by depth: the emplacements and their targets.
   const items = [];
   for (const side of shownSides()) {
@@ -992,13 +1546,17 @@ function render(dt) {
   // Above everything: shells, reach that runs towards the camera, particles, explosions, the reticle.
   for (const side of shownSides()) {
     const rec = scene.towers[side];
+    if (side === 'neu' && flameR2) continue;
     if (side === 'heute' || weaponByKind[rec.kind].same) drawTowerReach(ctx, rec.tower, clock);
     else if (rec.front) drawReachNeu(rec);
   }
+  if (flameR2 && flameFront) drawFlameR2(rf);
   drawShells(dt);
   drawParticles();
   drawShells(dt, true);
+  drawSubs(dt);
   drawBooms();
+  drawOverR2();
   const rn = scene.towers.neu;
   if (shownSides().includes('neu') && rn.kind === 'siegeMortar') {
     const q = siegeAim(rn);
@@ -1008,6 +1566,7 @@ function render(dt) {
     }
   }
   for (const side of shownSides()) drawLabel(side);
+  drawPictureFlash();
 }
 
 // ======================================================================================
@@ -1152,8 +1711,13 @@ function refresh() {
   $('reduced').classList.toggle('on', ui.reduced);
   $('scale').classList.toggle('on', ui.table);
   $('table').hidden = !ui.table;
+  for (const r of [1, 2]) $(`r-${r}`).classList.toggle('on', ui.round === r);
+  for (const l of ['aus', 'sturm', 'alle']) $(`l-${l}`).classList.toggle('on', ui.light === l);
+  for (const f of ['strom', 'ballen']) $(`f-${f}`).classList.toggle('on', ui.flame === f);
+  $('burn').classList.toggle('on', ui.burn);
+  for (const b of ['normal', 'addiert']) $(`b-${b}`).classList.toggle('on', ui.blend === b);
   const w = weaponByKind[ui.weapon];
-  $('note').textContent = `${w.label}: ${w.change}`;
+  $('note').textContent = `${w.label}: ${ui.round === 2 ? CHANGE2[w.kind] : w.change}`;
 }
 
 function buildUi() {
@@ -1202,6 +1766,12 @@ function buildUi() {
     $('speed-out').textContent = `${Math.round(ui.speed * 100)} %`;
   });
   $('reduced').addEventListener('click', () => ((ui.reduced = !ui.reduced), refresh()));
+  // Round, light and flame start the scene again, so what is on screen is all of one kind.
+  for (const r of [1, 2]) $(`r-${r}`).addEventListener('click', () => ((ui.round = r), setWeapon(ui.weapon)));
+  for (const l of ['aus', 'sturm', 'alle']) $(`l-${l}`).addEventListener('click', () => ((ui.light = l), setWeapon(ui.weapon)));
+  for (const f of ['strom', 'ballen']) $(`f-${f}`).addEventListener('click', () => ((ui.flame = f), setWeapon(ui.weapon)));
+  $('burn').addEventListener('click', () => ((ui.burn = !ui.burn), setWeapon(ui.weapon)));
+  for (const b of ['normal', 'addiert']) $(`b-${b}`).addEventListener('click', () => ((ui.blend = b), refresh()));
   $('scale').addEventListener('click', () => ((ui.table = !ui.table), refresh()));
   $('snd-heute').addEventListener('click', () => play('launch', SOUNDS.launch));
   $('snd-neu').addEventListener('click', () => play('rocket', ROCKET_SOUNDS.rocket));
@@ -1235,6 +1805,7 @@ function frame(now) {
   }
   if (!sheetHold) render(dt);
   $('clock').textContent = `${fmt(clock, 2)} s`;
+  $('cost').textContent = `${cost.last.fills} Zeichenschritte, ${cost.last.gradients} Verläufe, ${scene.particles.length} Teilchen`;
   requestAnimationFrame(frame);
 }
 
@@ -1313,6 +1884,35 @@ window.__waffen = {
     ctx.textAlign = 'left';
     ctx.fillText('HEUTE: Belagerungsmörser', 16, 40);
     ctx.fillText('NEU: Raketenturm (Arbeitstitel), jede zweite Richtung mit halb geladenem Rohr', 16, 40 + 170 * zoom);
+  },
+  /**
+   * Cost of the right side over the whole loop: average and peak of the drawing steps (fill and stroke)
+   * and gradients per picture, and the peak of particles, for `kind` with the options given.
+   */
+  measure(kind, opts = {}) {
+    Object.assign(ui, { view: 'neu', ...opts });
+    ui.paused = true;
+    scene = newScene(kind);
+    ui.weapon = kind;
+    refresh();
+    let sum = 0;
+    let peak = 0;
+    let gSum = 0;
+    let gPeak = 0;
+    let parts = 0;
+    let frames = 0;
+    for (let i = 0; i < LOOP * 60; i++) {
+      simStep(STEP);
+      stepParticles(STEP);
+      render(STEP);
+      sum += cost.fills;
+      peak = Math.max(peak, cost.fills);
+      gSum += cost.gradients;
+      gPeak = Math.max(gPeak, cost.gradients);
+      parts = Math.max(parts, scene.particles.length);
+      frames++;
+    }
+    return { mean: Math.round(sum / frames), peak, gMean: Math.round((gSum / frames) * 10) / 10, gPeak, parts };
   },
   /** Seconds until the next shot of the weapon of `side`, for picking the moment of a still. */
   cooldown: (side = 'neu') => scene.towers[side].tower.cooldown,

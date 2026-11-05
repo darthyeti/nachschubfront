@@ -1,0 +1,371 @@
+[
+ {
+  "kind": "autocannon",
+  "opts": {},
+  "r1": {
+   "mean": 841,
+   "peak": 915,
+   "gMean": 0.3,
+   "gPeak": 1,
+   "parts": 6
+  },
+  "r2": {
+   "mean": 841,
+   "peak": 915,
+   "gMean": 0.3,
+   "gPeak": 1,
+   "parts": 6
+  }
+ },
+ {
+  "kind": "flame",
+  "opts": {
+   "flame": "strom"
+  },
+  "r1": {
+   "mean": 529,
+   "peak": 647,
+   "gMean": 1,
+   "gPeak": 1,
+   "parts": 31
+  },
+  "r2": {
+   "mean": 604,
+   "peak": 659,
+   "gMean": 7.6,
+   "gPeak": 8,
+   "parts": 29
+  }
+ },
+ {
+  "kind": "flame",
+  "opts": {
+   "flame": "strom",
+   "burn": false
+  },
+  "r1": {
+   "mean": 529,
+   "peak": 647,
+   "gMean": 1,
+   "gPeak": 1,
+   "parts": 31
+  },
+  "r2": {
+   "mean": 541,
+   "peak": 659,
+   "gMean": 2,
+   "gPeak": 2,
+   "parts": 31
+  }
+ },
+ {
+  "kind": "flame",
+  "opts": {
+   "flame": "ballen"
+  },
+  "r1": {
+   "mean": 529,
+   "peak": 647,
+   "gMean": 1,
+   "gPeak": 1,
+   "parts": 31
+  },
+  "r2": {
+   "mean": 614,
+   "peak": 633,
+   "gMean": 6.6,
+   "gPeak": 7,
+   "parts": 35
+  }
+ },
+ {
+  "kind": "mortar",
+  "opts": {},
+  "r1": {
+   "mean": 749,
+   "peak": 793,
+   "gMean": 0.6,
+   "gPeak": 2,
+   "parts": 45
+  },
+  "r2": {
+   "mean": 768,
+   "peak": 829,
+   "gMean": 1.5,
+   "gPeak": 4,
+   "parts": 59
+  }
+ },
+ {
+  "kind": "tesla",
+  "opts": {},
+  "r1": {
+   "mean": 658,
+   "peak": 707,
+   "gMean": 3,
+   "gPeak": 7,
+   "parts": 15
+  },
+  "r2": {
+   "mean": 652,
+   "peak": 689,
+   "gMean": 2.7,
+   "gPeak": 6,
+   "parts": 15
+  }
+ },
+ {
+  "kind": "laser",
+  "opts": {},
+  "r1": {
+   "mean": 651,
+   "peak": 679,
+   "gMean": 1.3,
+   "gPeak": 3,
+   "parts": 4
+  },
+  "r2": {
+   "mean": 651,
+   "peak": 679,
+   "gMean": 1.3,
+   "gPeak": 3,
+   "parts": 4
+  }
+ },
+ {
+  "kind": "psi",
+  "opts": {},
+  "r1": {
+   "mean": 485,
+   "peak": 683,
+   "gMean": 1,
+   "gPeak": 1,
+   "parts": 0
+  },
+  "r2": {
+   "mean": 485,
+   "peak": 683,
+   "gMean": 1,
+   "gPeak": 1,
+   "parts": 0
+  }
+ },
+ {
+  "kind": "purgeShrine",
+  "opts": {},
+  "r1": {
+   "mean": 813,
+   "peak": 819,
+   "gMean": 1,
+   "gPeak": 1,
+   "parts": 0
+  },
+  "r2": {
+   "mean": 798,
+   "peak": 804,
+   "gMean": 8,
+   "gPeak": 8,
+   "parts": 0
+  }
+ },
+ {
+  "kind": "stormBattery",
+  "opts": {
+   "light": "aus"
+  },
+  "r1": {
+   "mean": 845,
+   "peak": 902,
+   "gMean": 0.8,
+   "gPeak": 1,
+   "parts": 27
+  },
+  "r2": {
+   "mean": 845,
+   "peak": 903,
+   "gMean": 0.8,
+   "gPeak": 1,
+   "parts": 28
+  }
+ },
+ {
+  "kind": "stormBattery",
+  "opts": {
+   "light": "sturm"
+  },
+  "r1": {
+   "mean": 845,
+   "peak": 902,
+   "gMean": 0.8,
+   "gPeak": 1,
+   "parts": 27
+  },
+  "r2": {
+   "mean": 849,
+   "peak": 907,
+   "gMean": 4.8,
+   "gPeak": 5,
+   "parts": 28
+  }
+ },
+ {
+  "kind": "emberCauldron",
+  "opts": {
+   "light": "aus"
+  },
+  "r1": {
+   "mean": 701,
+   "peak": 746,
+   "gMean": 6,
+   "gPeak": 9,
+   "parts": 15
+  },
+  "r2": {
+   "mean": 702,
+   "peak": 749,
+   "gMean": 6.6,
+   "gPeak": 12,
+   "parts": 15
+  }
+ },
+ {
+  "kind": "emberCauldron",
+  "opts": {
+   "light": "alle"
+  },
+  "r1": {
+   "mean": 701,
+   "peak": 746,
+   "gMean": 6,
+   "gPeak": 9,
+   "parts": 15
+  },
+  "r2": {
+   "mean": 706,
+   "peak": 758,
+   "gMean": 10.3,
+   "gPeak": 21,
+   "parts": 15
+  }
+ },
+ {
+  "kind": "siegeMortar",
+  "opts": {
+   "light": "aus"
+  },
+  "r1": {
+   "mean": 929,
+   "peak": 987,
+   "gMean": 0.7,
+   "gPeak": 2,
+   "parts": 51
+  },
+  "r2": {
+   "mean": 965,
+   "peak": 1052,
+   "gMean": 1,
+   "gPeak": 2,
+   "parts": 110
+  }
+ },
+ {
+  "kind": "siegeMortar",
+  "opts": {
+   "light": "alle"
+  },
+  "r1": {
+   "mean": 929,
+   "peak": 987,
+   "gMean": 0.7,
+   "gPeak": 2,
+   "parts": 51
+  },
+  "r2": {
+   "mean": 965,
+   "peak": 1054,
+   "gMean": 1.6,
+   "gPeak": 4,
+   "parts": 110
+  }
+ },
+ {
+  "kind": "thunderTower",
+  "opts": {
+   "light": "aus"
+  },
+  "r1": {
+   "mean": 706,
+   "peak": 744,
+   "gMean": 2.7,
+   "gPeak": 6,
+   "parts": 15
+  },
+  "r2": {
+   "mean": 712,
+   "peak": 770,
+   "gMean": 3.2,
+   "gPeak": 8,
+   "parts": 33
+  }
+ },
+ {
+  "kind": "thunderTower",
+  "opts": {
+   "light": "alle"
+  },
+  "r1": {
+   "mean": 706,
+   "peak": 744,
+   "gMean": 2.7,
+   "gPeak": 6,
+   "parts": 15
+  },
+  "r2": {
+   "mean": 715,
+   "peak": 779,
+   "gMean": 5.9,
+   "gPeak": 17,
+   "parts": 33
+  }
+ },
+ {
+  "kind": "soulfireObelisk",
+  "opts": {
+   "light": "alle"
+  },
+  "r1": {
+   "mean": 660,
+   "peak": 688,
+   "gMean": 1.5,
+   "gPeak": 3,
+   "parts": 10
+  },
+  "r2": {
+   "mean": 660,
+   "peak": 692,
+   "gMean": 2.1,
+   "gPeak": 7,
+   "parts": 10
+  }
+ },
+ {
+  "kind": "purgeShrine",
+  "opts": {
+   "light": "alle"
+  },
+  "r1": {
+   "mean": 813,
+   "peak": 819,
+   "gMean": 1,
+   "gPeak": 1,
+   "parts": 0
+  },
+  "r2": {
+   "mean": 799,
+   "peak": 805,
+   "gMean": 9,
+   "gPeak": 9,
+   "parts": 0
+  }
+ }
+]

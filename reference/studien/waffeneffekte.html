@@ -28,6 +28,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .sep{width:2px;height:28px;background:#000;margin:0 4px}
 label{display:flex;align-items:center;gap:6px;font-weight:700}
 input[type=range]{width:140px;min-height:44px}
+#cost{min-width:150px;font-variant-numeric:tabular-nums;color:var(--muted)}
 #clock,#speed-out{min-width:56px;font-variant-numeric:tabular-nums}
 #table{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));top:calc(12px + env(safe-area-inset-top,0px));max-width:min(900px,calc(100% - 24px));max-height:calc(100% - 260px);overflow:auto;background:#241a14ee;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);border-radius:8px;padding:10px 14px;font-size:14px;user-select:text;-webkit-user-select:text}
 #table h2{font-family:'Pirata One',Georgia,serif;font-weight:400;font-size:24px;margin:4px 0}
@@ -37,7 +38,7 @@ input[type=range]{width:140px;min-height:44px}
 </style>
 </head>
 <body>
-<canvas id="game" aria-label="Isometrische Fläche mit zwei Stellungen derselben Waffe: links die heutige Fassung aus dem Spiel, rechts der Vorschlag, beide feuern auf eine kleine Gruppe von Zielen"></canvas>
+<canvas id="game" aria-label="Isometrische Fläche mit zwei Stellungen derselben Waffe: links die heutige Fassung aus dem Spiel, rechts der Vorschlag der ersten oder zweiten Runde, beide feuern auf eine kleine Gruppe von Zielen"></canvas>
 <div class="hud"><h1>Waffeneffekte</h1><p id="note"></p></div>
 <div id="table" hidden></div>
 <div class="bar" id="bar">
@@ -56,6 +57,24 @@ input[type=range]{width:140px;min-height:44px}
     <button id="z-05" type="button">0,5x</button>
     <button id="z-1" type="button">1x</button>
     <button id="z-2" type="button">2x</button>
+  </div>
+  <div class="row">
+    Rechts:
+    <button id="r-1" type="button">Runde 1</button>
+    <button id="r-2" type="button">Runde 2</button>
+    <span class="sep"></span>
+    Bodenlicht:
+    <button id="l-aus" type="button">Aus</button>
+    <button id="l-sturm" type="button">Sturmbatterie</button>
+    <button id="l-alle" type="button">Alle sechs</button>
+    <button id="b-normal" type="button">Normal</button>
+    <button id="b-addiert" type="button">Addiert</button>
+    <span class="sep"></span>
+    Flamme:
+    <button id="f-strom" type="button">Strom</button>
+    <button id="f-ballen" type="button">Ballen</button>
+    <button id="burn" type="button">Nachbrennen</button>
+    <span id="cost"></span>
   </div>
   <div class="row">
     <button id="scale" type="button">Maßstab</button>
