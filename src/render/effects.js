@@ -22,9 +22,13 @@ import {
   stepWorldParticle,
   drawWorldParticle,
   launchOf,
-  rocketTrail,
-  drawRocket,
-  drawShell,
+  bigRocketTrail,
+  drawBigRocket,
+  salvoRockets,
+  salvoProgress,
+  salvoPuff,
+  drawSalvoRocket,
+  artefactScreen,
   drawTowerReach,
   auraLevel,
   drainFxExtra,
@@ -32,8 +36,28 @@ import {
   ballsAlive,
 } from './towerFx.js';
 import { weaponKind } from './weapons.js';
-import { groundLight, lightAlpha, lightSpec, drawBurnPatch, drawPressureRing, onCanvas, CELL_RX } from './weaponFx.js';
-import { FX_MAX_PARTICLES, FX_LIGHT, FX_BURN, FX_THUNDER, KOLOSS_DEBRIS_SIDE_SPEED } from '../data/art.js';
+import {
+  groundLight,
+  lightAlpha,
+  lightSpec,
+  drawBurnPatch,
+  drawPressureRing,
+  drawBigImpact,
+  drawCrater,
+  drawMistFlow,
+  onCanvas,
+  CELL_RX,
+} from './weaponFx.js';
+import {
+  FX_MAX_PARTICLES,
+  FX_LIGHT,
+  FX_BURN,
+  FX_THUNDER,
+  FX_SALVO,
+  FX_BIG_BOOM,
+  FX_MIST,
+  KOLOSS_DEBRIS_SIDE_SPEED,
+} from '../data/art.js';
 import { drawGunship } from './gunship.js';
 import { sinceImpact } from '../sim/pods.js';
 import { SPRITE_SCALE, POD_ANCHORS, POD_PETALS, POD_PETAL_ORDER, POD_OPEN_SCALE } from './sprites/manifest.js';
@@ -187,14 +211,22 @@ export function createEffects() {
   const lights = [];
   const patches = [];
   const pressure = [];
-  const brighten = { a: 0, life: 0, max: 0 };
+  const brighten = { a: 0, life: 0, max: 0, colour: '236,232,255' };
   /** Real seconds since the effects began and when the picture last brightened, for the one-a-second rule. */
   let clock = 0;
   let lastBrighten = -Infinity;
   /** Fireballs alive, as of the last update; they share the ceiling of the muzzles. */
   let balls = 0;
-  /** The shells of siege mortars in flight and where they fall, to light the ground when one lands. */
-  const siegeShells = new Map();
+  /**
+   * The shells of the mortars in flight (rocket launchers and siege mortars) and where they fall. The simulation
+   * says only `explosion` with the doctrine, so what landed is read from the shell that was in flight.
+   */
+  const mortarShells = new Map();
+  /** The rockets of the launchers' salvos, from the first sight of a shell until the last has landed. */
+  const salvos = [];
+  /** The big impacts of the siege mortar (fireball) and the craters they leave. */
+  const impacts = [];
+  const craters = [];
 
   function kickLight(x, y, spec, key = null, k = 1) {
     const light = { key, x, y, r: spec.r, colour: spec.colour, a: spec.a * k, fade: spec.fade, level: 1 };
@@ -228,26 +260,121 @@ export function createEffects() {
     for (const p of extra.patches) addPatch(tower.id, p);
     // The picture brightens at most once a second, however many thunder towers there are; with reduced
     // motion it is at most a faint one.
-    if (extra.brighten && clock - lastBrighten >= FX_THUNDER.flash.every) {
-      lastBrighten = clock;
-      const a = reducedMotion ? Math.min(extra.brighten, FX_THUNDER.flash.reduced) : extra.brighten;
-      Object.assign(brighten, { a, life: FX_THUNDER.flash.seconds, max: FX_THUNDER.flash.seconds });
-    }
+    if (extra.brighten) tryBrighten(extra.brighten, FX_THUNDER.flash.seconds, reducedMotion, FX_THUNDER.flash.reduced, '236,232,255');
   }
 
-  /** The ground lights up where a shell of a siege mortar lands: seen as a shell that was in flight and is gone. */
-  function watchSiegeShells(state) {
+  /** The picture brightens at most once a second, however many things ask; at most a faint one with reduced motion. */
+  function tryBrighten(alpha, seconds, reducedMotion, reducedAlpha, colour) {
+    if (clock - lastBrighten < FX_THUNDER.flash.every) return;
+    lastBrighten = clock;
+    Object.assign(brighten, { a: reducedMotion ? Math.min(alpha, reducedAlpha) : alpha, life: seconds, max: seconds, colour });
+  }
+
+  /** The big impact of a siege mortar: fireball, ring, crater, dust, smoke columns, debris, ground light, a flash. */
+  function bigImpact(x, y, radius, reducedMotion) {
+    const B = FX_BIG_BOOM;
+    impacts.push({ x, y, r: radius, age: 0, max: B.life, seed: Math.floor(x * 31 + y * 17) });
+    if (pressure.length >= FX_THUNDER.ring.max) pressure.shift();
+    pressure.push({ x, y, r: radius, age: 0, max: B.ring, colour: '#ffb13b', width: 3.2, reduced: reducedMotion });
+    craters.push({ x, y, r: radius, age: 0, max: B.crater });
+    if (craters.length > 8) craters.shift();
+    const lift = liftAt(x, y);
+    const dust = reducedMotion ? B.dust >> 1 : B.dust;
+    for (let i = 0; i < dust; i++) {
+      const a = (i / dust) * Math.PI * 2 + Math.random() * 0.4;
+      const v = B.dustSpeed[0] + Math.random() * (B.dustSpeed[1] - B.dustSpeed[0]);
+      addWorldParticle({ kind: 'wsmoke', x, y, z: lift + 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 10, r0: 6, r1: 16, tone: 0, life: B.dustLife, floor: lift });
+    }
+    for (let i = 0; i < B.columns; i++) {
+      const a = (i / B.columns) * Math.PI * 2 + 0.7;
+      addWorldParticle({
+        kind: 'wsmoke', x: x + Math.cos(a) * radius * 0.25, y: y + Math.sin(a) * radius * 0.25, z: lift + 4, vx: 0, vy: 0,
+        vz: 50 + Math.random() * 40, r0: 6, r1: 22, tone: 1.6, life: B.columnLife, floor: lift,
+      });
+    }
+    if (!reducedMotion) {
+      for (let i = 0; i < B.debris; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const v = B.dustSpeed[0] + Math.random() * (B.dustSpeed[1] - B.dustSpeed[0]);
+        addWorldParticle({
+          kind: 'wdebris', x, y, z: lift + 6, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 140 + Math.random() * 120, size: 1.8 + Math.random() * 1.4,
+          rot: Math.random() * 6, vrot: -9 + Math.random() * 18, life: B.debrisLife, floor: lift,
+        });
+      }
+    }
+    tryBrighten(B.brighten.alpha, B.brighten.seconds, reducedMotion, B.brighten.reduced, B.brighten.colour);
+  }
+
+  /** One rocket of a salvo explodes: a small blast of FX_SALVO.boom of the splash radius. */
+  function salvoBoom(x, y, radius, reducedMotion) {
+    shots.push({ kind: 'blast', x, y, radius: radius * FX_SALVO.boom, colour: DOCTRINE_COLORS.mortar, life: 0.3 });
+    burst(x, y, 6, 'fire', reducedMotion ? 2 : FX_SALVO.fire, { speed: 70, size: 4, grow: 3, life: 0.4 });
+    burst(x, y, 6, 'smoke', reducedMotion ? 1 : FX_SALVO.smoke, { speed: 40, size: 5, grow: 7, life: 0.9, gravity: -20 });
+  }
+
+  /**
+   * Reads the shells of the mortars. A shell seen the first time starts its record (and, for a rocket launcher,
+   * its salvo); one that is gone has landed, and a siege mortar's shell lights the ground and makes its impact.
+   */
+  function watchShells(state, reducedMotion) {
     const live = new Set();
     for (const shell of state.projectiles) {
       const tower = towerById(state, shell.towerId);
-      if (!tower?.special || weaponKind(tower) !== 'siegeMortar') continue;
+      if (!tower || !isTurreted(tower)) continue;
       live.add(shell);
-      if (!siegeShells.has(shell)) siegeShells.set(shell, { x: shell.to.x, y: shell.to.y });
+      let known = mortarShells.get(shell);
+      if (!known) {
+        known = { siege: Boolean(tower.special) && weaponKind(tower) === 'siegeMortar', x: shell.to.x, y: shell.to.y, radius: shell.radius, exploded: false, salvo: false };
+        mortarShells.set(shell, known);
+      }
+      // The drawing ties a shell to its launch, which can be a frame after the shell was first seen here.
+      const rec = known.salvo ? null : launchOf(shell, tower, false);
+      if (!known.siege && rec) {
+        known.salvo = true;
+        // At most FX_SALVO.maxInFlight rockets of one emplacement are drawn at once.
+        const inFlight = salvos.reduce((n, v) => (v.towerId === tower.id ? n + v.rockets.filter((r) => !r.landed).length : n), 0);
+        const rockets = salvoRockets(rec.launch, shell, FX_SALVO.maxInFlight - inFlight).map((r) => ({ ...r, landed: false, puff: 0 }));
+        salvos.push({ towerId: tower.id, shell, flight: shell.flight, radius: shell.radius, T: shell.t, gone: 0, rockets });
+      }
     }
-    for (const [shell, at] of siegeShells) {
+    for (const [shell, at] of mortarShells) {
       if (live.has(shell)) continue;
-      siegeShells.delete(shell);
+      mortarShells.delete(shell);
+      if (!at.siege) continue;
       kickLight(at.x, at.y, lightSpec('siegeMortar', 'hit'));
+      bigImpact(at.x, at.y, at.radius, reducedMotion);
+    }
+  }
+
+  /** Flies the rockets of the salvos: smoke behind them, a small blast where each lands. */
+  function stepSalvos(state, dt, reducedMotion) {
+    const live = new Set(state.projectiles);
+    for (let i = salvos.length - 1; i >= 0; i--) {
+      const v = salvos[i];
+      // The shell's own clock while it flies; after it has landed (the last rockets are still on their way) the drawing's.
+      if (live.has(v.shell)) v.T = v.shell.t;
+      else v.T = v.flight + (v.gone += dt);
+      let left = 0;
+      for (const r of v.rockets) {
+        if (r.landed) continue;
+        const u = salvoProgress(r, v.T);
+        if (u < 0) {
+          left += 1;
+          continue;
+        }
+        if (u >= 1) {
+          r.landed = true;
+          salvoBoom(r.to.x, r.to.y, v.radius, reducedMotion);
+          continue;
+        }
+        left += 1;
+        r.puff -= dt;
+        if (r.puff <= 0) {
+          r.puff = FX_SALVO.trail;
+          addWorldParticle(salvoPuff(r, u));
+        }
+      }
+      if (!left) salvos.splice(i, 1);
     }
   }
 
@@ -397,6 +524,14 @@ export function createEffects() {
   }
 
   /** Takes one simulation event. Unknown events are ignored on purpose. */
+  /** The record of the mortar shell an `explosion` event belongs to, found by its end point; null if none. */
+  function shellOf(event) {
+    for (const rec of mortarShells.values()) {
+      if (!rec.exploded && rec.x === event.x && rec.y === event.y) return rec;
+    }
+    return null;
+  }
+
   function handle(event, state, reducedMotion) {
     const colour = DOCTRINE_COLORS[event.doctrine] ?? C.gold;
     // The turned weapons draw their own fire at the barrel (towerFx.js), those of the recipe emplacements
@@ -443,6 +578,14 @@ export function createEffects() {
     } else if (event.type === 'launch') {
       shots.push({ kind: 'shot', x: event.x, y: event.y, tx: event.tx, ty: event.ty, colour, life: FLASH_SECONDS });
       burst(event.x, event.y, 22, 'smoke', reducedMotion ? 2 : 5, { speed: 26, size: 4, grow: 6, life: 0.7, gravity: -10 });
+    } else if (event.type === 'explosion' && !event.source && shellOf(event)) {
+      // A shell of a mortar we have been watching: the rocket launcher's salvo makes its own small blasts (the
+      // middle rocket lands now), the siege mortar its big impact (watchShells). What stays is the scorch, and
+      // for the launcher the jolt; the big impact does not shake the picture.
+      const known = shellOf(event);
+      known.exploded = true;
+      addDecal({ kind: 'scorch', x: event.x, y: event.y, radius: event.radius, life: 12, max: 12 });
+      if (!known.siege) jolt(SHAKE.explosion * event.radius);
     } else if (event.type === 'explosion') {
       shots.push({ kind: 'blast', x: event.x, y: event.y, radius: event.radius, colour, life: 0.3 });
       if (event.source === 'orbitalStrike') {
@@ -661,13 +804,14 @@ export function createEffects() {
       if (extra) takeExtra(tower, extra, reducedMotion);
     }
     setBallRoom(Math.max(0, FX_MAX_PARTICLES - muzzleParticles - balls));
-    watchSiegeShells(state);
+    watchShells(state, reducedMotion);
+    stepSalvos(state, dt, reducedMotion);
     for (const shell of state.projectiles) {
       const tower = towerById(state, shell.towerId);
-      // The shell of the siege mortar is a heavy ball that leaves no trail.
-      if (!tower || !isTurreted(tower) || tower.special) continue;
+      // The rockets of the launcher smoke by salvo (stepSalvos); the heavy rocket of the siege mortar smokes thick.
+      if (!tower || !isTurreted(tower) || !tower.special) continue;
       const rec = launchOf(shell, tower, false);
-      if (rec) for (const spec of rocketTrail(rec, shell, dt)) addWorldParticle(spec);
+      if (rec) for (const spec of bigRocketTrail(rec, shell, dt)) addWorldParticle(spec);
     }
   }
 
@@ -716,7 +860,7 @@ export function createEffects() {
       lights[i].level -= dt / lights[i].fade;
       if (lights[i].level <= 0) lights.splice(i, 1);
     }
-    for (const list of [patches, pressure]) {
+    for (const list of [patches, pressure, impacts, craters]) {
       for (let i = list.length - 1; i >= 0; i--) {
         list[i].age += dt;
         if (list[i].age >= list[i].max) list.splice(i, 1);
@@ -807,6 +951,11 @@ export function createEffects() {
       const [x, y] = onPlane(p.x, p.y);
       if (!onCanvas(ctx, x, y, FX_BURN.glow)) continue;
       onGround(ctx, p.x, p.y, 1, () => drawBurnPatch(ctx, x, y, p.age / p.max, t, p.seed, reducedMotion, zoom >= FX_BURN.flameZoom));
+    }
+    for (const c of craters) {
+      const [x, y] = onPlane(c.x, c.y);
+      if (!onCanvas(ctx, x, y, c.r * CELL_RX)) continue;
+      onGround(ctx, c.x, c.y, Math.ceil(c.r) + 1, () => drawCrater(ctx, x, y, c.r, c.age / c.max));
     }
     for (const r of pressure) {
       if (r.age < 0) continue;
@@ -1051,39 +1200,20 @@ export function createEffects() {
   }
 
   /**
-   * The gold aura of the purge shrine on the ground: a dashed ring the size of its reach with a golden wash,
-   * and twelve runes on a smaller ring that turn slowly. The level (`auraLevel`) says how bright: dim while
-   * the shrine has nothing in reach, full while it works. The enemies inside are gilded where they stand.
+   * The aura of the purge shrine on the ground (since 0.11.21, issue 90): a flow of mist. It falls out of the
+   * artefact, runs in waves to the rim of the reach and lies there as a bank; a thin gold line marks the reach.
+   * The level (`auraLevel`) says how bright: dim while the shrine has nothing in reach, full while it works.
+   * The enemies inside are gilded where they stand. The twelve runes are gone.
    */
   function drawAura(ctx, tower, stats, t, reducedMotion) {
     const level = auraLevel(tower);
     const cx = tower.x + 0.5;
     const cy = tower.y + 0.5;
-    const R = stats.range * (reducedMotion ? 1 : 0.985 + 0.015 * Math.sin(t * 4));
-    const ring = (r, steps = 48) => {
-      ctx.beginPath();
-      for (let i = 0; i <= steps; i++) {
-        const a = (i / steps) * Math.PI * 2;
-        const [x, y] = project(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
-        if (i) ctx.lineTo(x, y);
-        else ctx.moveTo(x, y);
-      }
-    };
-    ring(R);
-    ctx.fillStyle = `rgba(255,190,70,${0.08 + 0.1 * level})`;
-    ctx.fill();
-    ctx.setLineDash([9, 7]);
-    ctx.lineWidth = 2.2;
-    ctx.strokeStyle = `rgba(255,214,110,${0.35 + 0.4 * level})`;
-    ctx.stroke();
-    ctx.setLineDash([]);
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2 + (reducedMotion ? 0 : t * 0.25);
-      const [x, y] = project(cx + Math.cos(a) * R * 0.82, cy + Math.sin(a) * R * 0.82);
-      ctx.globalAlpha = (0.35 + 0.4 * level) * (reducedMotion ? 1 : 0.7 + 0.3 * Math.sin(t * 3 + i));
-      poly(ctx, [[x, y - 4], [x + 3.2, y], [x, y + 4], [x - 3.2, y]], '#ffd23f', C.ink, 1);
-    }
-    ctx.globalAlpha = 1;
+    const R = stats.range;
+    const [ox, oy] = project(cx, cy);
+    if (!onCanvas(ctx, ox, oy, (R + 0.5) * CELL_RX)) return;
+    const pour = artefactScreen(tower) ?? [ox, oy - FX_MIST.pourHeight];
+    drawMistFlow(ctx, project, cx, cy, R, pour, level, t, reducedMotion);
   }
 
   /**
@@ -1166,7 +1296,7 @@ export function createEffects() {
       if (owner && isTurreted(owner)) {
         // Nothing for the one frame before the drawing has seen the shot leave.
         const rec = launchOf(shell, owner);
-        if (rec) (owner.special ? drawShell : drawRocket)(ctx, rec, shell);
+        if (rec && owner.special) drawBigRocket(ctx, rec, shell, DOCTRINE_COLORS.mortar, t);
         continue;
       }
       const u = Math.min(1, shell.t / shell.flight);
@@ -1176,6 +1306,18 @@ export function createEffects() {
       const [x, y] = project(shell.x, shell.y, height);
       ell(ctx, x, y, 4.5, 4.5, C.steelD, C.ink, 2);
       ell(ctx, x - 1, y - 1, 1.6, 1.6, C.steelL, null);
+    }
+
+    // The rockets of the salvos fly on after their shell has landed, so they are drawn from their own list.
+    for (const v of salvos) {
+      for (const r of v.rockets) {
+        const u = r.landed ? -1 : salvoProgress(r, v.T);
+        if (u >= 0 && u < 1) drawSalvoRocket(ctx, r, u);
+      }
+    }
+    for (const im of impacts) {
+      const [x, y] = project(im.x, im.y);
+      if (onCanvas(ctx, x, y, im.r * CELL_RX)) drawBigImpact(ctx, x, y, im.r, im.age, im.seed, reducedMotion);
     }
 
     // Beams, bolts, jets and pulses that run towards the camera (the others are behind their weapon).
@@ -1499,7 +1641,7 @@ export function createEffects() {
         // The thunder tower's strike: a cool brightening of the whole picture, at most once a second.
         const u = brighten.life / brighten.max;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.fillStyle = `rgba(236,232,255,${(brighten.a * u * u).toFixed(3)})`;
+        ctx.fillStyle = `rgba(${brighten.colour},${(brighten.a * u * u).toFixed(3)})`;
         ctx.fillRect(0, 0, view.width * view.dpr, view.height * view.dpr);
       }
       if (flash <= 0) return;
@@ -1524,14 +1666,17 @@ export function createEffects() {
       lights.length = 0;
       patches.length = 0;
       pressure.length = 0;
-      siegeShells.clear();
-      Object.assign(brighten, { a: 0, life: 0, max: 0 });
+      mortarShells.clear();
+      salvos.length = 0;
+      impacts.length = 0;
+      craters.length = 0;
+      Object.assign(brighten, { a: 0, life: 0, max: 0, colour: '236,232,255' });
       lastBrighten = -Infinity;
       balls = 0;
     },
     /** For the debug display. */
     counts() {
-      return { particles: particles.length, decals: decals.length, muzzle: muzzleParticles, balls, lights: lights.length, patches: patches.length };
+      return { particles: particles.length, decals: decals.length, muzzle: muzzleParticles, balls, lights: lights.length, patches: patches.length, salvos: salvos.length, impacts: impacts.length, craters: craters.length };
     },
   };
 }

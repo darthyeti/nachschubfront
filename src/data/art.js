@@ -323,6 +323,40 @@ export const FX_THUNDER = {
   colours: ['#ece8ff', '#8f9cff'],
 };
 
+// ---------- Weapon effects, step 2 (issue 90, study round 2 of issue 81) ----------
+// Presentation only. The rocket launcher's salvo, the siege mortar's rocket and impact, the mist of the shrine.
+
+/**
+ * Rocket launcher: `count` rockets per hit of the simulation, `gap` s apart, leaving three neighbouring tubes
+ * and landing within `spread` cells of the shell's point. The middle one lands at the time of the simulation,
+ * the others `gap` s before and after. Each explodes at `boom` times the splash radius. At most `maxInFlight`
+ * rockets of one emplacement are drawn at once; `trail` s between two puffs of smoke of one rocket.
+ */
+export const FX_SALVO = { count: 3, gap: 0.06, spread: 0.2, boom: 0.55, maxInFlight: 6, trail: 0.05, minFlight: 0.1, fire: 5, smoke: 2 };
+
+/** Siege mortar: the heavy rocket in flight (px, seconds) and the back blast it leaves at the muzzle. */
+export const FX_BIG_ROCKET = { ink: 8, body: 5, tail: 17, warhead: 3.8, flame: [9, 5], fin: 4.5, trail: 0.02, smoke: [5, 18], smokeLife: 1.5 };
+export const FX_BIG_BLAST = { dust: 10, reducedDust: 5, dustLife: 0.9, dustSpeed: [0.25, 0.7], dustSize: [4, 14] };
+
+/**
+ * Siege mortar impact: a white flash, a fireball of `lobes` lobes that lasts `life` s, a pressure ring to the
+ * splash radius over `ring` s, `dust` clouds, `columns` columns of smoke, `debris` chunks (none with reduced
+ * motion), a crater for `crater` s, and a brightening of the picture (`brighten`, through the shared
+ * once-a-second clock of the thunder tower; at most `brighten.reduced` with reduced motion). No screen shake.
+ */
+export const FX_BIG_BOOM = {
+  flash: 0.08, ring: 0.36, life: 0.7, lobes: 5, debris: 8, dust: 12, columns: 4, crater: 2.5,
+  dustLife: 1.0, dustSpeed: [0.8, 1.6], columnLife: 1.4, debrisLife: 0.9,
+  brighten: { alpha: 0.1, seconds: 0.12, reduced: 0.05, colour: '255,241,207' },
+};
+
+/**
+ * Purge shrine, the flow of mist: `waves` waves of `period` s each run from the foot to the rim, `lobes` points
+ * make the outline of a band, `band` is its width in cells, `lumpy` how uneven it is, `pour` puffs fall from the
+ * artefact (`pourHeight` px above the foot when its place is not known), `rim` the inner and outer edge of the bank.
+ */
+export const FX_MIST = { waves: 4, period: 3.2, lobes: 20, band: 0.5, lumpy: 0.12, pour: 3, pourHeight: 46, rim: [2.5, 2.9] };
+
 // ---------- Choosing a capsule (issue 50) ----------
 
 /** Opacity of the capsules, their light columns and plates that are not picked, while one is picked. */
