@@ -88,6 +88,16 @@ Wellen, Durchbruchswellen und verschwendeten Schaden aus. Fünf Strategien:
 `simple` (der Bot von vor M6, als Vergleichsmaß). Die Seeds kommen aus einem
 festen Zufallsstrom, zwei Läufe vergleichen also dieselben Karten.
 
+**Befördern (Regelversion 9, Issue #89).** Ab Nachschubstufe 8 befördern die Bots einmal je Planung
+die Stellung mit dem größten Wert aus Schadenszuwachs mal Routenfelder in Reichweite, vor
+Trümmern und Bollwerken, mit einem Abriss als Rücklage. Schalter für Vergleiche:
+`--promotion first|after|off`, `--ruleset 8` (alte Regel, die Bots nutzten die alte Aufwertung nie),
+`--supply 8` (Stufe 8 von Anfang an, nicht spielbar), `--per-wave` (Leben, Schaden, Requisition je
+Welle). **Maßstäbe unter Version 9 und Vergleich mit Version 8:**
+[`runden/bots-regelversion-9.md`](runden/bots-regelversion-9.md). Kurz: Die Bots erreichen Stufe 8
+selten (nur Labyrinth-Bauer und Veredler) und befördern 0,0 bis 0,8 mal je Partie; die Maßstäbe
+bleiben gegenüber Version 8 gleich.
+
 **`npm run calibrate`** stellt jede Strategie neben eine von Hand gespielte
 Partie auf demselben Seed und nennt den Abstand. Das ist der Punkt, an dem
 Bot-Zahlen überhaupt etwas bedeuten: Ohne Eichung sind sie Richtwerte.

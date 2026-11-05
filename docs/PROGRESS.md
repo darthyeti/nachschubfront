@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.11.18**, Regelversion **9**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
+Version **0.11.20**, Regelversion **9**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
 03.11.2026 **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md)): Farbtrennung und drei Biome,
 Licht und Schatten, Blockgelände, Diorama-Rahmen, Trümmer aus dem Baukasten, die neue Kapsel. Offen ist
 **M6 Balancing**. Von M8 steht noch Tills Prüfung auf dem iPad aus (Leistung, Speicher, Tippen auf hohe
@@ -53,7 +53,7 @@ Pull Request mit Label `spielgefuehl` nach `pr/<nr>/`; den Cache-Block in
 `sw.js` schreibt erst die Veröffentlichung, im Repository steht der
 Platzhalter. Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“.
 
-**Befördern (0.11.18, Regelversion 9, Issue 85, Akte E-44):** Ab Nachschubstufe 8 hebt der Spieler in der Planung eine Stellung für Requisition um einen Rang, ohne Kapsel, einmal je Planung; Preise 180 / 450 / 1100 / 2800 (auf Veteran bis Legende, `ECONOMY.promote`). Die „Aufwertung statt Bau“ entfällt. Bedienung über den Aufwerten-Knopf, jetzt „Befördern“ (Preis und Zielrang am Feld, gesperrt mit Grund). Protokolle der Regelversion 8 spielen sich mit der alten Regel nach (`state.ruleset`). Bestwerte der Version 8 liegen in eigener Liste. Die Bots befördern nicht; ob sie es sollten, ist offen. Regel in GDD Abschnitt 11, Vorschlag und Zahlen in `balancing/runden/geldsenke-vorschlag.md`. Tills Blick auf Spielgefühl und Balancing (Mittelspiel wird für starke Spieler leichter) steht aus.
+**Befördern (0.11.18, Regelversion 9, Issue 85, Akte E-44):** Ab Nachschubstufe 8 hebt der Spieler in der Planung eine Stellung für Requisition um einen Rang, ohne Kapsel, einmal je Planung; Preise 180 / 450 / 1100 / 2800 (auf Veteran bis Legende, `ECONOMY.promote`). Die „Aufwertung statt Bau“ entfällt. Bedienung über den Aufwerten-Knopf, jetzt „Befördern“ (Preis und Zielrang am Feld, gesperrt mit Grund). Protokolle der Regelversion 8 spielen sich mit der alten Regel nach (`state.ruleset`). Bestwerte der Version 8 liegen in eigener Liste. Die Bots befördern seit 0.11.20 (Issue 89, Maßstäbe in `balancing/runden/bots-regelversion-9.md`): Sie erreichen Stufe 8 aber selten und befördern 0,0 bis 0,8 mal je Partie, ihre Maßstäbe bleiben gegenüber Version 8 gleich. Regel in GDD Abschnitt 11, Vorschlag und Zahlen in `balancing/runden/geldsenke-vorschlag.md`. Tills Blick auf Spielgefühl und Balancing (Mittelspiel wird für starke Spieler leichter) steht aus.
 
 **Koloss als Grabwalze (0.11.17, Issue 80, Akte E-43):** Der Koloss ist eine Schwarmbestie (Segmentkriecher mit Pflugschädel) statt einer Kriegsmaschine, ein drehbares Modell aus Körpern mit eigenem Baukasten (`src/render/bodyKit.js`, `koloss.js`, Zahlen `KOLOSS_MODEL` in `src/data/art.js`); Drehung an der Ecke über die 0,6 s sichtbar, Kanone, Flak und Antenne entfallen, Trümmer der Schneise fliegen zur Seite. Regeln, Simulation und Balancing unverändert. Standbilder und Zahlen: `node tests/tools/koloss-modell.mjs`. Tills Blick auf Spielgefühl und iPad steht aus.
 
