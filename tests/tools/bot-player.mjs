@@ -51,7 +51,7 @@ export function playBotMatch({ seed, strategy = 'maze', supply = 1, onWave = nul
   const how = strategyById(strategy);
   const state = createGameState(seed, config);
   state.supplyLevel = supply;
-  startLog(state, RULESET_VERSION, 1);
+  startLog(state, state.ruleset, 1);
 
   let seen = 0;
   let stopped = 'played out';

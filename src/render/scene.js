@@ -464,7 +464,16 @@ function drawUpgradeOverlay(ctx, frames, state, armed, t, reducedMotion) {
       `rgba(232,200,114,${(isArmed ? 1 : 0.8) * alpha})`,
       isArmed ? 4 : 2.5,
     );
-    marked.push({ cell: { x: tower.x, y: tower.y }, cost: check.cost, kind: 'upgrade', affordable, armed: isArmed });
+    // The rank it would reach goes under the price (a recruit's chevrons alone
+    // do not say what the next one is).
+    marked.push({
+      cell: { x: tower.x, y: tower.y },
+      cost: check.cost,
+      kind: 'upgrade',
+      affordable,
+      armed: isArmed,
+      rank: STRINGS.ranks[tower.rank + 1],
+    });
   }
   return marked;
 }
@@ -476,9 +485,11 @@ function drawUpgradeOverlay(ctx, frames, state, armed, t, reducedMotion) {
  * way two labels on stalks would. The question itself goes to the banner.
  */
 function drawDemolishPrices(ctx, marked) {
-  for (const { cell, cost, affordable, armed } of marked) {
+  for (const { cell, cost, affordable, armed, rank } of marked) {
     const [x, y] = iso(cell.x + 0.5, cell.y + 0.5, cellLift(cell.x, cell.y));
-    comicText(ctx, String(cost), x, y + 5, armed ? 19 : 15, affordable ? C.gold : 'rgba(232,220,192,.4)');
+    const fill = affordable ? C.gold : 'rgba(232,220,192,.4)';
+    comicText(ctx, String(cost), x, y + 5, armed ? 19 : 15, fill);
+    if (rank) comicText(ctx, rank, x, y + 17, 11, fill);
   }
 }
 

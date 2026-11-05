@@ -85,24 +85,35 @@ export function giveUpSalvo(state, options) {
  * planning, only with no landing zone marked, never past Legende, never a
  * special emplacement (it has no rank), and only for what the mode charges.
  * @returns {{ok: true, cost: number, tower: object}
- *   | {ok: false, reason: 'phase' | 'zones' | 'tower' | 'special' | 'max' | 'off' | 'funds'}}
+ *   | {ok: false, reason: 'phase' | 'zones' | 'tower' | 'special' | 'max' | 'off' | 'funds'
+ *     | 'supply' | 'once'}}
+ *
+ * Under ruleset 9 the standard mode promotes (`UPGRADE_KINDS.promote`): the same
+ * question, but marked zones do not matter, supply level 8 is needed and once
+ * per planning phase is all there is (`supply`, `once`).
  */
 export function canUpgradeTower(state, towerId) {
   if (!canRequestSalvo(state)) return { ok: false, reason: 'phase' };
-  if (state.zones.length > 0) return { ok: false, reason: 'zones' };
+  const rule = upgradeKind(state);
+  // Promoting leaves the salvo alone, so marked zones do not matter to it.
+  if (rule.startsWave !== false && state.zones.length > 0) return { ok: false, reason: 'zones' };
   const tower = state.towers.find((t) => t.id === towerId);
   if (!tower) return { ok: false, reason: 'tower' };
   if (tower.special) return { ok: false, reason: 'special' };
   if (tower.rank >= MAX_RANK) return { ok: false, reason: 'max' };
-  const cost = upgradeKind(state).planningCost(state, tower);
+  const closed = rule.gate?.(state) ?? null;
+  if (closed) return { ok: false, reason: closed };
+  const cost = rule.planningCost(state, tower);
   if (cost === null || cost === undefined) return { ok: false, reason: 'off' };
   if (state.requisition < cost) return { ok: false, reason: 'funds' };
   return { ok: true, cost, tower };
 }
 
 /**
- * The round's action instead of a salvo: one emplacement goes up a rank. No
- * salvo, no capsule, no new rubble, and the wave starts at once (B5).
+ * One emplacement goes up a rank. In King of the Hill it is the round's action
+ * instead of a salvo: no capsule, no new rubble, the wave starts at once (B5).
+ * In the standard mode under ruleset 9 it is promoting: the same cost-only rank,
+ * but the round goes on and the salvo can still be requested.
  * @returns {{ok: true, tower: object, cost: number} | {ok: false, reason: string}}
  */
 export function upgradeTower(state, towerId) {
@@ -111,6 +122,14 @@ export function upgradeTower(state, towerId) {
   const { tower, cost } = check;
   state.requisition -= cost;
   tower.rank += 1;
+  if (upgradeKind(state).startsWave === false) {
+    // Promoting (ruleset 9): the round goes on, the salvo is still to come.
+    state.promotedRound = state.wave;
+    state.mapVersion += 1;
+    record(state, 'promote', { towerId });
+    state.events.push({ type: 'towerUpgraded', tower, cost });
+    return { ok: true, tower, cost };
+  }
   record(state, 'upgrade', { towerId });
   state.events.push({ type: 'towerUpgraded', tower, cost });
   setPhase(state, 'wave');

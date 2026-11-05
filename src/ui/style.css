@@ -2836,17 +2836,24 @@ button.mode-card.on {
     width: 100%;
     flex-wrap: nowrap;
     justify-content: space-between;
-    gap: 6px;
-    padding: 6px 8px;
+    gap: 4px;
+    padding: 6px 6px;
     box-shadow: none;
   }
 
   .rune-group {
-    gap: 4px;
+    gap: 2px;
   }
 
   .speed-group {
     gap: 2px;
+  }
+
+  /* Four tools since promoting (ruleset 9): at 360 px the bar only fits with the
+     discs at the smallest hit area the project allows. */
+  .rune-group .rune,
+  .speed-group .rune {
+    --disc: 44px;
   }
 
   /* Above the bottom bar, at the edge the right thumb reaches. */

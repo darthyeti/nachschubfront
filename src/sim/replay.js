@@ -29,7 +29,7 @@ import { buySupply, demolish, buildBulwark } from './economy.js';
 import { useCommand } from './commands.js';
 import { setLives, setWave, grant, forcePod, toggleInvulnerable } from './debug.js';
 import { startLog, protocolConfig } from './record.js';
-import { RULESET_VERSION } from '../data/rules.js';
+import { LEGACY_RULESET } from '../data/rules.js';
 
 /**
  * Steps a replay may take past the last recorded action before it is called
@@ -102,12 +102,14 @@ function when(state, action) {
  */
 export function replayMatch(protocol, { untilWave = Infinity, onWave = null, onSelection = null } = {}) {
   const { mode, difficulty } = protocolConfig(protocol);
-  const state = createGameState(protocol.seed, { mode, difficulty });
+  // Rules that changed since stay as they were for the protocol's ruleset.
+  const ruleset = protocol.ruleset ?? LEGACY_RULESET;
+  const state = createGameState(protocol.seed, { mode, difficulty, ruleset });
   state.supplyLevel = protocol.supplyStart ?? MIN_SUPPLY_LEVEL;
   // The replay records itself, so the wave lines come out of the same function
   // that wrote the protocol in the first place — one definition of what a wave
   // line is, for both sides of the comparison.
-  startLog(state, protocol.ruleset ?? RULESET_VERSION, protocol.id ?? 0);
+  startLog(state, ruleset, protocol.id ?? 0);
 
   // Sorted by the step they landed on; a stable sort keeps the recorded order
   // of two actions that happened between the same two steps.
@@ -264,6 +266,11 @@ function apply(state, action) {
       return passRound(state)
         ? `upgrade refused (${result.reason}), the wave started without it`
         : `upgrade refused: ${result.reason}`;
+    }
+    case 'promote': {
+      // Promoting leaves the round where it was, so a refusal needs no repair.
+      const result = upgradeTower(state, action.towerId);
+      return result.ok ? true : `promotion refused: ${result.reason}`;
     }
     case 'forfeit': {
       // Forced: the player gave this salvo up, and under changed numbers one of

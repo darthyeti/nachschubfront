@@ -76,6 +76,8 @@ test('refused with a marked landing zone, at Legende, without the requisition, o
 
 test('outside planning, and in a mode whose rule is another one, nothing is offered', () => {
   const { state, tower } = ready({ mode: 'standard' });
+  // The standard mode of ruleset 8 had the capsule upgrade; 9 promotes (promote.test.js).
+  state.ruleset = 8;
   assert.equal(canUpgradeTower(state, tower.id).reason, 'off', 'the standard upgrade is the pod one');
   const k = ready();
   k.state.phase = 'selection';
