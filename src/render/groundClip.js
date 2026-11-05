@@ -51,6 +51,24 @@ function build(field, cx, cy, reach, sweep, absolute) {
   return { ground, cuts };
 }
 
+function lookup(field, cx, cy, reach, sweep, absolute) {
+  if (!field) return null;
+  let perField = cache.get(field);
+  if (!perField) cache.set(field, (perField = new Map()));
+  const key = ((cy * 4096 + cx) * 16 + reach) * 128 + sweep + (absolute ? 0.5 : 0);
+  let hit = perField.get(key);
+  if (hit === undefined) perField.set(key, (hit = build(field, cx, cy, reach, sweep, absolute)));
+  return hit;
+}
+
+/**
+ * The ground that `clipToGround` would keep (same arguments), as a path, or null where it would not clip.
+ * For a test whether a picture reaches past it at all.
+ */
+export function groundPath(field, cx, cy, reach, sweep = 0, absolute = true) {
+  return lookup(field, cx, cy, reach, sweep, absolute)?.ground ?? null;
+}
+
 /**
  * Clips the context to the ground of the field (cx, cy) and what it may show, or does nothing where
  * the field lies in the open. Call between `save` and `restore`.
@@ -62,12 +80,7 @@ function build(field, cx, cy, reach, sweep, absolute) {
  * @returns {boolean} Whether a clip was set.
  */
 export function clipToGround(ctx, field, cx, cy, reach, sweep = 0, absolute = true, withCuts = true) {
-  if (!field) return false;
-  let perField = cache.get(field);
-  if (!perField) cache.set(field, (perField = new Map()));
-  const key = ((cy * 4096 + cx) * 16 + reach) * 128 + sweep + (absolute ? 0.5 : 0);
-  let hit = perField.get(key);
-  if (hit === undefined) perField.set(key, (hit = build(field, cx, cy, reach, sweep, absolute)));
+  const hit = lookup(field, cx, cy, reach, sweep, absolute);
   if (!hit) return false;
   ctx.clip(hit.ground);
   if (withCuts) for (const cut of hit.cuts) ctx.clip(cut, 'evenodd');

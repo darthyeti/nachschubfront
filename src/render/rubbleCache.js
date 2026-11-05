@@ -77,6 +77,79 @@ function entry(ob, index, pal, step, dpr) {
   return e;
 }
 
+/** Texels round every covered texel of a cell that count as covered too: the filter of a scaled `drawImage`. */
+const MASK_GROW = 2;
+
+/**
+ * The texels of a cached cell that its picture covers, grown by MASK_GROW, as one byte per texel. Made once
+ * per entry, on a canvas of its own (reading back the cached canvas would slow its blits down).
+ */
+function maskOf(e) {
+  if (e.mask) return e.mask;
+  const { width, height } = e.canvas;
+  const g = scratch(width, height);
+  g.drawImage(e.canvas, 0, 0);
+  const alpha = g.getImageData(0, 0, width, height).data;
+  const mask = new Uint8Array(width * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!alpha[(y * width + x) * 4 + 3]) continue;
+      for (let dy = -MASK_GROW; dy <= MASK_GROW; dy++) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= height) continue;
+        for (let dx = -MASK_GROW; dx <= MASK_GROW; dx++) {
+          const xx = x + dx;
+          if (xx >= 0 && xx < width) mask[yy * width + xx] = 1;
+        }
+      }
+    }
+  }
+  e.mask = mask;
+  return mask;
+}
+
+let scratchCanvas = null;
+function scratch(width, height) {
+  scratchCanvas ??= document.createElement('canvas');
+  scratchCanvas.width = width;
+  scratchCanvas.height = height;
+  const g = scratchCanvas.getContext('2d', { willReadFrequently: true });
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, width, height);
+  return g;
+}
+
+/**
+ * Whether the picture of a kit cell, as the cache draws it at the step in use, meets a region given as a
+ * path in world pixels without the lift of its field (the coordinates the cell is drawn in): `'touches'`
+ * when some of it lies in the region, `'leaves'` when some of it lies outside or on the soft edge of it.
+ * Then a clip to the region (or a cut of it) changes the picture; otherwise it can be left out (issue 95).
+ * Answered once per cached entry and `key`, then looked up; `path` is only asked for the first time.
+ */
+export function kitCellMeets(ob, index, pal, dpr, key, path, how) {
+  if (activeStep === null) return true;
+  const e = entry(ob, index, pal, activeStep, dpr);
+  e.meets ??= new Map();
+  let hit = e.meets.get(key);
+  if (hit !== undefined) return hit;
+  const mask = maskOf(e);
+  const { width, height } = e.canvas;
+  const k = width / BOX.w;
+  const g = scratch(width, height);
+  g.setTransform(k, 0, 0, k, -e.x * k, -e.y * k);
+  g.fillStyle = '#000';
+  g.fill(path());
+  const region = g.getImageData(0, 0, width, height).data;
+  hit = false;
+  for (let i = 0; i < mask.length && !hit; i++) {
+    if (!mask[i]) continue;
+    const a = region[i * 4 + 3];
+    hit = how === 'touches' ? a > 0 : a < 255;
+  }
+  e.meets.set(key, hit);
+  return hit;
+}
+
 /** Draws one kit cell from the cache (and fills it the first time) at the step in use. */
 export function drawKitCellCached(ctx, ob, index, pal, zoom, dpr) {
   if (activeStep === null) settle(zoom, performance.now());

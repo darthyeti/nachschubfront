@@ -398,7 +398,7 @@ try {
     if (only && !only.includes(scene.name)) continue;
     const r = await still(browser, scene);
     console.log(
-      `${scene.name}: Welle ${r.wave} ${r.phase}, ${r.enemies} Gegner, ${r.towers} Stellungen, ${r.obstacles} Hindernisse, Zoom ${r.camera.zoom.toFixed(2)}` +
+      `${scene.name}: Welle ${r.wave} ${r.phase}, ${r.enemies} Gegner, ${r.towers} Stellungen, ${r.obstacles} Hindernisse, Kamera ${r.camera.x.toFixed(2)},${r.camera.y.toFixed(2)} Zoom ${r.camera.zoom.toFixed(2)}` +
         (r.counts ? `, Aufkleber ${r.counts.decals}, Lichter ${r.counts.lights}, Teilchen ${r.counts.particles}` : '') +
         (r.problems.length ? ` · Konsole: ${r.problems.slice(0, 3).join(' | ')}` : ''),
     );
