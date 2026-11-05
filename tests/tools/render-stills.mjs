@@ -39,6 +39,8 @@ const SCENES = [
   { name: 'f7szgz-w30-planung', protocol: 'balancing/protokolle/nachschubfront-2026-11-04-F7SZGZ-welle38.json', wave: 30, seconds: null, zoom: null },
   { name: 'f7szgz-w30-welle', protocol: 'balancing/protokolle/nachschubfront-2026-11-04-F7SZGZ-welle38.json', wave: 30, seconds: 30, zoom: null },
   { name: 'f7szgz-w30-bloecke', protocol: 'balancing/protokolle/nachschubfront-2026-11-04-F7SZGZ-welle38.json', wave: 30, seconds: 30, zoom: 2 },
+  { name: 'kcgrpa-w20-welle', protocol: 'balancing/protokolle/nachschubfront-2026-11-05-KCGRPA-welle22.json', wave: 20, seconds: 22, zoom: null },
+  { name: 'f7szgz-w31-welle', protocol: 'balancing/protokolle/nachschubfront-2026-11-04-F7SZGZ-welle38.json', wave: 31, seconds: 20, zoom: 1.4 },
   { name: 'kcgrpa-w22-bloecke', protocol: 'balancing/protokolle/nachschubfront-2026-11-05-KCGRPA-welle22.json', wave: 22, seconds: 24, zoom: 2 },
 ];
 
