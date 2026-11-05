@@ -34,6 +34,9 @@ const BOTS = [
   { seed: 'GOLDEN', strategy: 'simple' },
   { seed: 'GOLDEN', strategy: 'firepower' },
   { seed: 'GOLDEN', strategy: 'recipes' },
+  // The three above die before supply level 8, where promoting opens (ruleset
+  // 9), so none of them ever promotes. This one starts there and does.
+  { seed: 'PROMO6', strategy: 'simple', supply: 8 },
 ];
 
 /** Everything about the end of a match that tells two matches apart. */
@@ -63,9 +66,9 @@ function actual() {
     const { state, waves } = replayMatch(parsed.match);
     out[`protocol ${file}`] = fingerprint(state, waves);
   }
-  for (const { seed, strategy } of BOTS) {
-    const { state, waves } = playBotMatch({ seed, strategy });
-    out[`bot ${strategy} ${seed}`] = fingerprint(state, waves);
+  for (const { seed, strategy, supply } of BOTS) {
+    const { state, waves } = playBotMatch({ seed, strategy, supply });
+    out[`bot ${strategy} ${seed}${supply ? ` supply ${supply}` : ''}`] = fingerprint(state, waves);
   }
   return out;
 }

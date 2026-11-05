@@ -34,6 +34,16 @@ import { strategyById } from './bot-strategies.mjs';
 const BULWARK_FROM_WAVE = 30;
 
 /**
+ * What a bot does with its surplus once promoting is open (ruleset 9, GDD
+ * section 11). Not a game number: a choice of the tool, so the effect of the
+ * rule can be measured against a bot that ignores it.
+ * - `first`: promote one emplacement, then the bulwarks and rubble take what is left (default).
+ * - `after`: bulwarks first from wave 30, promote with whatever they leave.
+ * - `off`: never promote (the bot from before issue 89, the baseline).
+ */
+export const PROMOTION_MODES = ['first', 'after', 'off'];
+
+/**
  * Plays one match.
  *
  * @param {object} options
@@ -42,14 +52,16 @@ const BULWARK_FROM_WAVE = 30;
  * @param {number} [options.supply]  Supply level to start on, for the debug case.
  * @param {(line: object) => void} [options.onWave]
  * @param {{mode?: string, difficulty?: string}} [options.config]  Run configuration (M7a).
+ * @param {'first' | 'after' | 'off'} [options.promotion]  See PROMOTION_MODES.
+ * @param {number} [options.ruleset]  Ruleset to play under (8 = the capsule upgrade, which the bot never uses).
  * @param {number} [options.upgradeEvery]  In a mode with the upgrade instead of a
  *   salvo (M7b): every n-th wave from wave 3 the bot raises an emplacement
  *   instead of calling a salvo, as the study's bots do. 0 never.
  * @returns {{log: object, state: object, waves: object[], stopped: string}}
  */
-export function playBotMatch({ seed, strategy = 'maze', supply = 1, onWave = null, config = undefined, upgradeEvery = 0 } = {}) {
+export function playBotMatch({ seed, strategy = 'maze', supply = 1, onWave = null, config = undefined, upgradeEvery = 0, promotion = 'first', ruleset = undefined } = {}) {
   const how = strategyById(strategy);
-  const state = createGameState(seed, config);
+  const state = createGameState(seed, ruleset === undefined ? config : { ...config, ruleset });
   state.supplyLevel = supply;
   startLog(state, state.ruleset, 1);
 
@@ -60,7 +72,7 @@ export function playBotMatch({ seed, strategy = 'maze', supply = 1, onWave = nul
     const coming = state.wave + 1;
     const raised = upgradeEvery > 0 && coming >= 3 && coming % upgradeEvery === 0 && raise(state);
     if (!raised) {
-      spend(state);
+      spend(state, promotion);
       mark(state, how);
       if (!requestSalvo(state)) {
         stopped = 'no salvo';
@@ -113,6 +125,41 @@ function raise(state) {
   return best !== null && upgradeTower(state, best.id).ok;
 }
 
+/**
+ * Promotes one emplacement (ruleset 9: once per planning, from supply level 8).
+ *
+ * Which one: the rank prices follow the damage a rank adds almost exactly
+ * (geldsenke-vorschlag.md, about 155 requisition per unit on every step), so the
+ * price does not tell the candidates apart. What does is where the emplacement
+ * stands: a promotion pays for as long as the enemy walks within range, so the
+ * bot takes the gain in damage times the number of route cells the emplacement
+ * covers. Ties go to the lower id, so the choice is deterministic. The reserve is
+ * the one the supply purchase keeps (one demolition, so a capsule on rubble can
+ * still be paid for). The surplus rule of the bulwarks, four demolitions, would
+ * keep a bot with 34 demolitions behind it (185 each) from ever promoting: it
+ * is a margin for clearing rubble, not for a rank.
+ * @returns {boolean}
+ */
+function promote(state) {
+  const budget = state.requisition - nextRubbleCost(state);
+  const lane = state.route?.cells ?? [];
+  let best = null;
+  let bestValue = 0;
+  for (const tower of state.towers) {
+    const check = canUpgradeTower(state, tower.id);
+    if (!check.ok || check.cost > budget) continue;
+    const range = towerStats(tower).range;
+    const exposure = lane.filter((c) => Math.hypot(c.x - tower.x, c.y - tower.y) <= range).length;
+    const gain = towerStats({ ...tower, rank: tower.rank + 1 }).damage - towerStats(tower).damage;
+    const value = gain * exposure;
+    if (value > bestValue) {
+      bestValue = value;
+      best = tower;
+    }
+  }
+  return best !== null && upgradeTower(state, best.id).ok;
+}
+
 /** Steps until `until`, calling `each` on every step. */
 function run(state, until, maxSeconds, each = null) {
   const steps = Math.round(maxSeconds / SIM_STEP);
@@ -130,23 +177,27 @@ function run(state, until, maxSeconds, each = null) {
  * a capsule that lands on rubble has to be paid for before it becomes a tower.
  * The bot before M6 spent everything and then could not take its own choice.
  */
-function spend(state) {
+function spend(state, promotion = 'first') {
   while (canBuySupply(state).ok && state.requisition - canBuySupply(state).cost >= nextRubbleCost(state)) {
     if (!buySupply(state).ok) break;
   }
 
   // From here on the purse only grows (Till's match: 1830 requisition lying
   // idle by wave 33), so the surplus goes into the two things there are to buy.
+  const late = state.wave + 1 >= BULWARK_FROM_WAVE;
+  if (promotion === 'first' || (promotion === 'after' && !late)) promote(state);
+
   const surplus = state.requisition - 4 * nextRubbleCost(state);
   if (surplus <= 0) return;
 
-  if (state.wave + 1 >= BULWARK_FROM_WAVE) {
+  if (late) {
     // A bulwark is what stops the Koloss ramming through the maze, and it is
     // the sink the GDD names for a late purse.
     for (const heap of rubbleCells(state)) {
       if (state.requisition - 4 * nextRubbleCost(state) <= 0) break;
       if (canBuildBulwark(state, heap).ok) buildBulwark(state, heap);
     }
+    if (promotion === 'after') promote(state);
     return;
   }
 

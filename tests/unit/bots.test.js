@@ -129,3 +129,26 @@ test('the maze builder lengthens the route more than the simple rule does', () =
   const maze = routeWith(state.map, strategyById('maze').zones(state, limit));
   assert.ok(maze.length >= plain.length, `${maze.length} vs ${plain.length}`);
 });
+
+test('from supply level 8 a bot promotes, deterministically, and the protocol replays', () => {
+  const run = () => playBotMatch({ seed: 'PROMO6', strategy: 'simple', supply: 8 });
+  const a = run();
+  const promoted = a.log.actions.filter((x) => x.a === 'promote');
+  assert.ok(promoted.length > 0, 'the bot never promoted');
+  // Once per planning phase (GDD section 11), so never two in one round.
+  const rounds = promoted.map((x) => x.w);
+  assert.ok(promoted.length >= 2, 'the seed was chosen for two promotions');
+  assert.equal(new Set(rounds).size, rounds.length, 'two promotions in one planning phase');
+  assert.deepEqual(run().log.actions, a.log.actions, 'the same seed gave other actions');
+
+  const { waves } = replayMatch(a.log);
+  assert.deepEqual(compareWaves(a.waves, waves), [], 'the replay of a promoting bot differs');
+
+  const without = playBotMatch({ seed: 'PROMO6', strategy: 'simple', supply: 8, promotion: 'off' });
+  assert.equal(without.log.actions.filter((x) => x.a === 'promote').length, 0);
+});
+
+test('a bot below supply level 8 never promotes', () => {
+  const run = playBotMatch({ seed: 'PROMO6', strategy: 'simple' });
+  assert.equal(run.log.actions.filter((x) => x.a === 'promote').length, 0);
+});
