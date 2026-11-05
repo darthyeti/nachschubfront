@@ -391,6 +391,44 @@ try {
       assert.equal(s.previewCells, null, 'preview cleared with the marker');
     });
 
+    await check('the frame of a landing zone stays visible on a heap of rubble', async () => {
+      // Issue 73: the frame lay on the ground and the rubble on the same field covered it.
+      const cell = await blockableRouteCell(page);
+      await page.evaluate((c) => {
+        window.__nachschub.debug.grant({ requisition: 500 });
+        window.__nachschub.debug.placeRubble(c);
+      }, cell);
+      await frames(page, 4);
+      const [x, y] = await screenOf(page, cell);
+      /** Pixels of the gold of the frame (#f2c14e) around the cell, read from the game canvas. */
+      const goldAround = () =>
+        page.evaluate(([cx, cy]) => {
+          const canvas = document.getElementById('game');
+          const k = canvas.width / canvas.clientWidth;
+          const w = Math.round(80 * k);
+          const h = Math.round(50 * k);
+          const px = canvas.getContext('2d').getImageData(Math.round((cx - 40) * k), Math.round((cy - 25) * k), w, h).data;
+          let n = 0;
+          for (let i = 0; i < px.length; i += 4) {
+            if (Math.abs(px[i] - 242) < 24 && Math.abs(px[i + 1] - 193) < 24 && Math.abs(px[i + 2] - 78) < 40) n++;
+          }
+          return n / (k * k);
+        }, [x, y]);
+      // The hover outline is gold too, so measure with the pointer's cell away from the rubble.
+      await page.evaluate(() => document.getElementById('game').dispatchEvent(new PointerEvent('pointerleave')));
+      const bare = await goldAround();
+      await page.touchscreen.tap(x, y);
+      await frames(page, 4);
+      assert.deepEqual((await game(page)).zones, [{ x: cell.x, y: cell.y }], 'the zone is marked on the rubble');
+      const after = await goldAround();
+      assert.ok(after - bare > 20, `gold pixels (CSS) around the rubble: ${bare.toFixed(0)} -> ${after.toFixed(0)}`);
+      await page.touchscreen.tap(x, y);
+      await frames(page);
+      assert.deepEqual((await game(page)).zones, [], 'tapping again clears it');
+      // The heap stays on the map; later checks count obstacles against this baseline.
+      before.obstacles += 1;
+    });
+
     await check('a long press opens the info panel, the close button shuts it', async () => {
       const [x, y] = await screenOf(page, (await game(page)).rift);
       await touch('touchStart', [[x, y]]);

@@ -49,7 +49,8 @@ import { clipToGround } from './groundClip.js';
 import { coverHulls, coverHullsOfSquare, plateBounds, coveringObstacles, shadowPlan } from './cover.js';
 import {
   createPodRenderer,
-  drawZoneMarker,
+  drawZoneFill,
+  drawZoneFrame,
   drawClearedMarker,
   drawPodTarget,
   drawPodHologram,
@@ -73,6 +74,8 @@ const KIND_BASTION = 3;
 const KIND_TOWER = 4;
 const KIND_POD = 5;
 const KIND_ENEMY = 6;
+// A frame on the ground of one field, drawn after everything standing on that field (docs/ART.md).
+const KIND_MARKER = 7;
 
 /**
  * Margin around the viewport in world pixels when deciding what to draw. Objects
@@ -279,18 +282,39 @@ function drawFlyerLine(ctx, line, t, reducedMotion) {
   ctx.stroke();
 }
 
-function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
+function drawCellFill(ctx, cell, fill) {
   const lift = cellLift(cell.x, cell.y);
   ctx.translate(0, -lift);
   cellPath(ctx, cell.x, cell.y, 0.04);
-  if (fill) {
-    ctx.fillStyle = fill;
-    ctx.fill();
-  }
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.translate(0, lift);
+}
+
+/** The outline of a field, at the height of the field (the caller does not lift). */
+function strokeCell(ctx, cell, stroke, lineWidth) {
+  cellPath(ctx, cell.x, cell.y, 0.04);
   ctx.strokeStyle = stroke;
   ctx.lineWidth = lineWidth;
   ctx.stroke();
+}
+
+function drawCellMarker(ctx, cell, fill, stroke, lineWidth = 2.5) {
+  if (fill) drawCellFill(ctx, cell, fill);
+  const lift = cellLift(cell.x, cell.y);
+  ctx.translate(0, -lift);
+  strokeCell(ctx, cell, stroke, lineWidth);
   ctx.translate(0, lift);
+}
+
+/**
+ * A marker whose fill lies on the ground and whose frame is drawn later, in the depth-sorted
+ * pass, so a heap of rubble or a wall on the same field cannot hide it (docs/ART.md).
+ * @param {{x: number, y: number, draw: Function}[]} frames  Collects the frames still to draw.
+ */
+function deferCellMarker(ctx, frames, cell, fill, stroke, lineWidth = 2.5) {
+  if (fill) drawCellFill(ctx, cell, fill);
+  frames.push({ x: cell.x, y: cell.y, draw: () => strokeCell(ctx, cell, stroke, lineWidth) });
 }
 
 /**
@@ -364,7 +388,7 @@ function drawKolossTarget(ctx, map, run, t, reducedMotion) {
  * @returns {{cell: object, cost: number, kind: string, affordable: boolean, armed: boolean}[]}
  *   The same cells again, so the prices can be written after the sprites.
  */
-function drawDemolishOverlay(ctx, state, armed, t, reducedMotion) {
+function drawDemolishOverlay(ctx, frames, state, armed, t, reducedMotion) {
   const cells = [
     ...state.map.obstacles.filter((o) => o.kind === 'rubble' || o.kind === 'bulwark').map((o) => o.cells[0]),
     ...state.towers.map(({ x, y }) => ({ x, y })),
@@ -378,8 +402,9 @@ function drawDemolishOverlay(ctx, state, armed, t, reducedMotion) {
     const isArmed = Boolean(armed && armed.x === cell.x && armed.y === cell.y);
     const rgb = target.kind === 'tower' ? '255,58,42' : '242,193,78';
     const alpha = (affordable ? 1 : 0.35) * (isArmed ? pulse : 1);
-    drawCellMarker(
+    deferCellMarker(
       ctx,
+      frames,
       cell,
       `rgba(${rgb},${(isArmed ? 0.34 : 0.16) * alpha})`,
       `rgba(${rgb},${(isArmed ? 1 : 0.8) * alpha})`,
@@ -395,7 +420,7 @@ function drawDemolishOverlay(ctx, state, armed, t, reducedMotion) {
  * mode has. Same marks as the demolish overlay, because the two modes are never
  * open at the same time and the button says which one is.
  */
-function drawBulwarkOverlay(ctx, state, armed, t, reducedMotion) {
+function drawBulwarkOverlay(ctx, frames, state, armed, t, reducedMotion) {
   const cost = nextBulwarkCost(state);
   const affordable = state.requisition >= cost;
   const pulse = reducedMotion ? 1 : 0.75 + 0.25 * Math.sin(t * 6);
@@ -405,8 +430,9 @@ function drawBulwarkOverlay(ctx, state, armed, t, reducedMotion) {
     const cell = obstacle.cells[0];
     const isArmed = Boolean(armed && armed.x === cell.x && armed.y === cell.y);
     const alpha = (affordable ? 1 : 0.35) * (isArmed ? pulse : 1);
-    drawCellMarker(
+    deferCellMarker(
       ctx,
+      frames,
       cell,
       `rgba(156,207,74,${(isArmed ? 0.34 : 0.16) * alpha})`,
       `rgba(156,207,74,${(isArmed ? 1 : 0.8) * alpha})`,
@@ -421,7 +447,7 @@ function drawBulwarkOverlay(ctx, state, armed, t, reducedMotion) {
  * King of the Hill's upgrade mode (M7b, B5): every emplacement that could go up
  * a rank instead of the salvo, with its price; the armed one pulses.
  */
-function drawUpgradeOverlay(ctx, state, armed, t, reducedMotion) {
+function drawUpgradeOverlay(ctx, frames, state, armed, t, reducedMotion) {
   const pulse = reducedMotion ? 1 : 0.75 + 0.25 * Math.sin(t * 6);
   const marked = [];
   for (const tower of state.towers) {
@@ -430,8 +456,9 @@ function drawUpgradeOverlay(ctx, state, armed, t, reducedMotion) {
     const affordable = check.ok;
     const isArmed = armed === tower.id;
     const alpha = (affordable ? 1 : 0.35) * (isArmed ? pulse : 1);
-    drawCellMarker(
+    deferCellMarker(
       ctx,
+      frames,
       tower,
       `rgba(232,200,114,${(isArmed ? 0.34 : 0.16) * alpha})`,
       `rgba(232,200,114,${(isArmed ? 1 : 0.8) * alpha})`,
@@ -803,6 +830,8 @@ export function createSceneRenderer(sprites) {
   const drawEnemySprite = createEnemySpriteRenderer(sprites);
   const drawPod = createPodRenderer(sprites);
   const items = [];
+  /** Marker frames of the frame, see KIND_MARKER. */
+  const frames = [];
   /** Render-side time of the last frame, for the ash drift. */
   let lastT = null;
   /** Blocks of terrain shown see-through: one layer per set of covering fields, fading in or out. */
@@ -882,21 +911,24 @@ export function createSceneRenderer(sprites) {
       drawFlyerLine(ctx, flyerPolyline(state.map, state.riftIndex ?? 0), t, ui.reducedMotion);
     }
 
+    // Frames of the markers: filled on the ground here, outlined later among the sorted objects.
+    frames.length = 0;
     // The demolish mode takes the map over: no zones are marked while it runs.
     let demolishable = null;
     if (state.phase === 'planning') {
       if (ui.demolishMode) {
-        demolishable = drawDemolishOverlay(ctx, state, ui.demolishArmed, t, ui.reducedMotion);
+        demolishable = drawDemolishOverlay(ctx, frames, state, ui.demolishArmed, t, ui.reducedMotion);
       } else if (ui.bulwarkMode) {
-        demolishable = drawBulwarkOverlay(ctx, state, ui.bulwarkArmed, t, ui.reducedMotion);
+        demolishable = drawBulwarkOverlay(ctx, frames, state, ui.bulwarkArmed, t, ui.reducedMotion);
       } else if (ui.upgradeMode) {
-        demolishable = drawUpgradeOverlay(ctx, state, ui.upgradeArmed, t, ui.reducedMotion);
+        demolishable = drawUpgradeOverlay(ctx, frames, state, ui.upgradeArmed, t, ui.reducedMotion);
       } else {
         state.zones.forEach((zone, i) => {
           const lift = cellLift(zone.x, zone.y);
           ctx.translate(0, -lift);
-          drawZoneMarker(ctx, zone, i, t, ui.reducedMotion);
+          drawZoneFill(ctx, zone);
           ctx.translate(0, lift);
+          frames.push({ x: zone.x, y: zone.y, draw: () => drawZoneFrame(ctx, zone, i, t, ui.reducedMotion) });
         });
       }
     }
@@ -964,7 +996,7 @@ export function createSceneRenderer(sprites) {
       }
     }
 
-    if (ui.hoverCell) drawCellMarker(ctx, ui.hoverCell, 'rgba(242,193,78,.12)', 'rgba(242,193,78,.8)', 2);
+    if (ui.hoverCell) deferCellMarker(ctx, frames, ui.hoverCell, 'rgba(242,193,78,.12)', 'rgba(242,193,78,.8)', 2);
     // While a command is aimed, the cell under the pointer shows its reach.
     if (ui.commandTarget && ui.hoverCell && ui.commandRadius) {
       ui.effects?.drawAiming(ctx, ui.hoverCell, ui.commandRadius);
@@ -1011,6 +1043,7 @@ export function createSceneRenderer(sprites) {
     for (const tower of state.towers) {
       if (onScreen(tower.x + 0.5, tower.y + 0.5)) items.push([tower.x + tower.y + 1, KIND_TOWER, tower, 0]);
     }
+    for (const f of frames) items.push([f.x + f.y + 1, KIND_MARKER, f, 0]);
     for (const pod of state.pods) items.push([pod.x + pod.y + 1, KIND_POD, pod, 0]);
     if (map.rifts) {
       // Every gate is a mouth of its own; the attacking rift's pulse (B8).
@@ -1049,6 +1082,7 @@ export function createSceneRenderer(sprites) {
       // height over level 0.
       let lift;
       if (kind === KIND_OBSTACLE) lift = cellLift(o.cells[i].x, o.cells[i].y);
+      else if (kind === KIND_MARKER) lift = cellLift(o.x, o.y);
       else if (kind === KIND_ENEMY) lift = o.flying ? 0 : liftAt(o.x, o.y);
       else lift = cellLift(o.x, o.y);
       ctx.translate(0, -lift);
@@ -1057,6 +1091,10 @@ export function createSceneRenderer(sprites) {
     }
 
     function drawItem(kind, o, i, lift) {
+      if (kind === KIND_MARKER) {
+        o.draw();
+        return;
+      }
       if (kind === KIND_OBSTACLE) {
         // Terrain in front of the field cuts the obstacle out as it cuts an emplacement; while the
         // field is looked at the cut part comes back at the opacity of the reveal.

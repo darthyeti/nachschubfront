@@ -436,7 +436,7 @@ export const STRINGS = {
     flame: 'Flamme',
     autocannon: 'Autokanone',
     laser: 'Laser',
-    mortar: 'Mörser',
+    mortar: 'Raketenwerfer',
     psi: 'Psi',
     tesla: 'Tesla',
   },
@@ -777,7 +777,7 @@ export const STRINGS = {
   gallery: {
     title: 'Sprite-Galerie',
     intro:
-      'Jede schräge Reihe ist eine Doktrin (hinten Flamme, dann Autokanone, Laser, Mörser, Psi, vorn Tesla). ' +
+      'Jede schräge Reihe ist eine Doktrin (hinten Flamme, dann Autokanone, Laser, Raketenwerfer, Psi, vorn Tesla). ' +
       'In jeder Reihe steigt der Rang von 1 (hinten rechts) bis 5 (vorn links). Davor die sechs Rezept-Stellungen. ' +
       'Gegner unten: erste Reihe läuft nach links, zweite nach rechts, dahinter die fünf Bosse. ' +
       'Ganz vorn die Nachschubkapsel in fünf Stufen: geschlossen bis vollständig geöffnet.',

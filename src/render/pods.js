@@ -48,12 +48,18 @@ const FOCUS_EASE = 7;
 const FOCUS_LIFT = 6;
 const FOCUS_GROW = 0.05;
 
-/** Marker of a planned landing zone: dashed ring with its number. */
-export function drawZoneMarker(ctx, zone, index, t, reducedMotion) {
+/** The tint of a planned landing zone, on the ground under everything. */
+export function drawZoneFill(ctx, zone) {
+  const [x, y] = iso(zone.x + 0.5, zone.y + 0.5);
+  ell(ctx, x, y, 26, 13, 'rgba(242,193,78,.15)', null, 0);
+}
+
+/** The dashed ring and the number of a zone: drawn after what stands on the field (docs/ART.md). */
+export function drawZoneFrame(ctx, zone, index, t, reducedMotion) {
   const [x, y] = iso(zone.x + 0.5, zone.y + 0.5);
   ctx.setLineDash([6, 5]);
   ctx.lineDashOffset = reducedMotion ? 0 : -t * 12;
-  ell(ctx, x, y, 26, 13, 'rgba(242,193,78,.15)', C.gold, 2.5);
+  ell(ctx, x, y, 26, 13, null, C.gold, 2.5);
   ctx.setLineDash([]);
   comicText(ctx, String(index + 1), x, y + 7, 22, C.gold);
 }
