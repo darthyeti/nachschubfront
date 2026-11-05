@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.11.16**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
+Version **0.11.17**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
 03.11.2026 **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md)): Farbtrennung und drei Biome,
 Licht und Schatten, Blockgelände, Diorama-Rahmen, Trümmer aus dem Baukasten, die neue Kapsel. Offen ist
 **M6 Balancing**. Von M8 steht noch Tills Prüfung auf dem iPad aus (Leistung, Speicher, Tippen auf hohe
@@ -52,6 +52,8 @@ Screenshots, Battle, Perf). Pages baut `main` in den Wurzelordner und jeden
 Pull Request mit Label `spielgefuehl` nach `pr/<nr>/`; den Cache-Block in
 `sw.js` schreibt erst die Veröffentlichung, im Repository steht der
 Platzhalter. Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“.
+
+**Koloss als Grabwalze (0.11.17, Issue 80, Akte E-43):** Der Koloss ist eine Schwarmbestie (Segmentkriecher mit Pflugschädel) statt einer Kriegsmaschine, ein drehbares Modell aus Körpern mit eigenem Baukasten (`src/render/bodyKit.js`, `koloss.js`, Zahlen `KOLOSS_MODEL` in `src/data/art.js`); Drehung an der Ecke über die 0,6 s sichtbar, Kanone, Flak und Antenne entfallen, Trümmer der Schneise fliegen zur Seite. Regeln, Simulation und Balancing unverändert. Standbilder und Zahlen: `node tests/tools/koloss-modell.mjs`. Tills Blick auf Spielgefühl und iPad steht aus.
 
 **Rahmen im Vordergrund (0.11.16, Issue 73):** Rahmen unter dem Zeiger und die markierten Landezonen (auch Abriss, Bollwerk, Aufwertung) liegen über Trümmern und anderen Hindernissen ihres Feldes; Einzelheiten in `docs/ART.md`.
 

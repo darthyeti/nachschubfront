@@ -181,9 +181,9 @@ Tempo in Feldern pro Sekunde.
 
 ### Späte Bedrohung: der Koloss
 
-Zusätzlich zur regulären Welle erscheint ab einer späten Welle ein **Koloss**: eine extrem zähe, gepanzerte Kriegsmaschine, deutlich robuster als ein normaler Boss. Eigenständiges Design, keine Anlehnung an geschützte Fahrzeugvorlagen.
+Zusätzlich zur regulären Welle erscheint ab einer späten Welle ein **Koloss**: eine riesige, extrem zähe Schwarmbestie, deutlich robuster als ein normaler Boss: ein langer Segmentkriecher mit Pflugschädel, der die Trümmer des Labyrinths wegschiebt. Eigenständiges Design, keine Anlehnung an geschützte Vorlagen.
 
-Name im Spiel: **Koloss**. Nicht „Titan" — das ist im Grimdark-Sci-Fi-Genre ein feststehender, markenrechtlich belegter Begriff für genau diese Art Kriegsmaschine.
+Name im Spiel: **Koloss**. Nicht „Titan" — das ist im Grimdark-Sci-Fi-Genre ein feststehender, markenrechtlich belegter Begriff für riesige Kampfgestalten.
 
 **Auftritt:** Welle 35 und 45 (Startwerte, als Datenwerte einstellbar). Das Update v3 nannte „ab Welle 30, alle 10 Wellen"; weil 30, 40 und 50 bereits Bosswellen sind, ist der Auftritt um fünf Wellen versetzt, damit Koloss und Boss einander nicht die Wirkung nehmen und der Spieler seine Kommandos gezielt für einen von beiden aufsparen kann (Entscheidung vom 24.09.2026). Der Abstand von 10 Wellen bleibt.
 
@@ -215,7 +215,7 @@ Name im Spiel: **Koloss**. Nicht „Titan" — das ist im Grimdark-Sci-Fi-Genre 
 
 **Wegfindung nach Schneise oder Stopp:**
 
-- Der Koloss sucht seinen eigenen Weg zur Bastion und **ignoriert die Signalfeuer** — eine Maschine, die gerade durchgebrochen ist, läuft keine Wegpunkte ab.
+- Der Koloss sucht seinen eigenen Weg zur Bastion und **ignoriert die Signalfeuer** — eine Bestie, die gerade durchgebrochen ist, läuft keine Wegpunkte ab.
 - **Trümmer sind für ihn passierbar, aber teuer:** Ein Trümmerfeld kostet in seiner Wegberechnung zusätzlich 6 Felder (Startwert). Er walzt also nur dann durch Trümmer, wenn der Umweg durch das Labyrinth deutlich länger wäre. Jedes überfahrene Trümmerfeld wird zerstört wie in der Schneise.
 - Bollwerke und Stellungen bleiben für ihn unpassierbar.
 - **Vollständig eingeschlossen** (kein Weg ohne Bollwerk oder Stellung): Er rammt das Hindernis in seiner aktuellen Fahrtrichtung, über dem Hindernis läuft ein sichtbarer Countdown von 8 s. Danach wird das Hindernis zu Trümmern, sofort zermalmt, und er fährt weiter.

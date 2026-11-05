@@ -1253,6 +1253,11 @@ try {
         { timeout: 30000 },
       );
       await page.screenshot({ path: join(OUT, 'koloss-arrived.png') });
+      // The beast is the swarm-beast model now: a few seconds on, it is still drawn and still walks.
+      await page.waitForTimeout(2500);
+      const walked = await page.evaluate(() => window.__nachschub.state().kolossEnemy);
+      assert.ok(walked, 'the Koloss is still on the field');
+      await page.screenshot({ path: join(OUT, 'koloss-walking.png') });
     });
 
     await context.close();

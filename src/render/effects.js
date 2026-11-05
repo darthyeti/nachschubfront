@@ -28,7 +28,7 @@ import {
   drawTowerReach,
   auraLevel,
 } from './towerFx.js';
-import { FX_MAX_PARTICLES } from '../data/art.js';
+import { FX_MAX_PARTICLES, KOLOSS_DEBRIS_SIDE_SPEED } from '../data/art.js';
 import { drawGunship } from './gunship.js';
 import { sinceImpact } from '../sim/pods.js';
 import { SPRITE_SCALE, POD_ANCHORS, POD_PETALS, POD_PETAL_ORDER, POD_OPEN_SCALE } from './sprites/manifest.js';
@@ -114,6 +114,14 @@ const PUFF_COLORS = {
 const CHUNK_COLORS = ['#4b3a2c', '#5e4a38', '#3a2e24'];
 const TAU = Math.PI * 2;
 const between = (a, b) => a + Math.random() * (b - a);
+
+/** The screen direction across a way driven along (dx, dy), as a unit vector. */
+function sidewaysOnScreen(dx, dy) {
+  const [ax, ay] = iso(0, 0);
+  const [bx, by] = iso(-dy, dx);
+  const len = Math.hypot(bx - ax, by - ay) || 1;
+  return [(bx - ax) / len, (by - ay) / len];
+}
 
 /**
  * World point to the pixel space the camera transform works in. `z` is the height above the
@@ -253,10 +261,12 @@ export function createEffects() {
   }
 
   /** The same, but from a point that is already in screen space (an anchor). */
-  function burstAt(sx, sy, kind, count, { speed = 60, size = 3, grow = 0, life = 0.5, gravity = 120 } = {}) {
+  function burstAt(sx, sy, kind, count, { speed = 60, size = 3, grow = 0, life = 0.5, gravity = 120, sideways = null } = {}) {
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
       const v = speed * (0.4 + Math.random() * 0.8);
+      // `sideways`: a screen direction; the piece goes out along it, to one side or the other.
+      const push = sideways ? (i % 2 ? 1 : -1) * v : 0;
       // One drawn lifetime, not two: a particle that lived longer than `life`
       // used to grow past its own size and end up with a negative radius.
       const span = life * (0.7 + Math.random() * 0.6);
@@ -264,8 +274,8 @@ export function createEffects() {
         kind,
         x: sx,
         y: sy,
-        vx: Math.cos(a) * v,
-        vy: Math.sin(a) * v * 0.5 - v * 0.35,
+        vx: sideways ? sideways[0] * push : Math.cos(a) * v,
+        vy: sideways ? sideways[1] * push - v * 0.35 : Math.sin(a) * v * 0.5 - v * 0.35,
         gravity,
         size: size * (0.7 + Math.random() * 0.6),
         grow,
@@ -386,12 +396,16 @@ export function createEffects() {
     } else if (event.type === 'kolossBreach') {
       // The ram goes through: dust and debris cell by cell along the swathe, and
       // a shout, because this is the moment the maze the player built gives way.
-      for (const c of event.cells) {
+      // The plough pushes the rubble to both sides of the swathe, across the way it drives.
+      const cells = event.cells;
+      const along = cells.length > 1 ? [Math.sign(cells[1].x - cells[0].x), Math.sign(cells[1].y - cells[0].y)] : null;
+      const sideways = along ? sidewaysOnScreen(along[0], along[1]) : null;
+      for (const c of cells) {
         burst(c.x + 0.5, c.y + 0.5, 0, 'dust', reducedMotion ? 6 : 16, {
-          speed: 140, size: 8, grow: 18, life: 1.2, gravity: -6,
+          speed: 140, size: 8, grow: 18, life: 1.2, gravity: -6, sideways,
         });
         burst(c.x + 0.5, c.y + 0.5, 8, 'debris', reducedMotion ? 4 : 12, {
-          speed: 130, size: 3.5, life: 1, gravity: 420,
+          speed: KOLOSS_DEBRIS_SIDE_SPEED, size: 3.5, life: 1, gravity: 420, sideways,
         });
       }
       addRing(event.x, event.y, { radius: 3.4, life: 0.7, width: 6 });

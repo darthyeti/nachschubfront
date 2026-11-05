@@ -301,3 +301,81 @@ export const TRAIL = {
   sample: 0.25,
   presence: { base: 0.3, gain: 0.6, cut: 0.12 },
 };
+
+/**
+ * The Koloss as a swarm beast, the "Grabwalze" (docs/ART.md, "Koloss"; study
+ * reference/studien/koloss-schwarm.html, decision E-43). All lengths in cells along the
+ * model's own axes (lx forward, ly sideways), heights in px. Presentation only: the
+ * simulation knows the Koloss as a point and the swathe as one cell wide.
+ */
+export const KOLOSS_MODEL = {
+  /** Colours of the brood, as in the enemy sprites (reference/konzept/gegner/). */
+  colours: {
+    chitinD: '#3e3026',
+    chitin: '#5f4a38',
+    boneD: '#b9a882',
+    bone: '#d8c9a8',
+    eye: '#ff6a2a',
+    hitWhite: [255, 246, 228],
+  },
+  /**
+   * The five shell segments from the skull back: middle `cx`, half width `hw`, height `h`
+   * and half length `hl`. Wider and taller in the middle, so the plates lie over each other.
+   */
+  segments: [
+    { cx: 0.6, hw: 0.7, h: 44, hl: 0.3 },
+    { cx: 0.04, hw: 0.68, h: 50, hl: 0.3 },
+    { cx: -0.5, hw: 0.62, h: 46, hl: 0.29 },
+    { cx: -1.02, hw: 0.52, h: 38, hl: 0.27 },
+    { cx: -1.48, hw: 0.4, h: 29, hl: 0.24 },
+  ],
+  /** Shape of a shell: foot height, how flat its crown is (0 pointed, 1 flat), taper front to back. */
+  shell: { foot: 4, crown: 0.38, taperFront: 1.04, taperBack: 0.92 },
+  /** The bone rim at the front edge of a shell: how far it reaches in front of and behind the edge. */
+  rim: { back: 0.02, front: 0.07, widen: 1.08, widenBack: 1.07 },
+  /** The plough: side profile (lx, z) and the profile of its edge in the middle; half width. */
+  plough: {
+    side: [[0.96, 2], [1.62, 0], [1.54, 12], [1.22, 32], [0.96, 38]],
+    edge: [[0.96, 2], [1.94, 0], [1.84, 14], [1.36, 38], [0.96, 44]],
+    halfWidth: 0.76,
+  },
+  /** The head capsule behind the plough: half width, height, foot, from lx to lx. */
+  head: { hw: 0.5, h: 44, foot: 18, from: 0.82, to: 1.18, taper: 0.82 },
+  /** Eyes on the head capsule: ly offsets, lx, height, radius, peak. */
+  eyes: { ly: [-0.24, 0.24], lx: 1.14, z: 42, r: 0.07, up: 5 },
+  /** Spine along the back: how far it lies back, how tall it stands (shrinks by `shrink` per segment). */
+  spine: { lean: 0.28, height: 26, shrink: 3, r0: 0.08, r1: 0.012 },
+  /** Side spines on the first `count` segments. */
+  sideSpine: { count: 3, out: 0.26, lean: 0.16, rise: 12, r0: 0.05, r1: 0.01 },
+  /** The tail tip behind the last segment: from, to, radii. */
+  tail: { from: [-1.66, 0, 16], to: [-2.0, 0, 10], r0: 0.22, r1: 0.05 },
+  /** Short legs, one pair under each segment, in a wave from the skull back. */
+  legs: { width: 3.8, hipZ: 10, kneeZ: 19, kneeOut: 0.22, footOut: 0.44, stride: 0.15, lift: 7, wave: 0.18, footAhead: 0.06 },
+  /** Walking: cells per gait cycle, seconds per cycle while turning on the spot. */
+  gait: { cellsPerCycle: 0.55, turnCycleSeconds: 0.9 },
+  /**
+   * Turning on the spot: the skull leads, each segment reaches the new heading a little later.
+   * `spread` stretches the quarter turn over the segments, `lag` is the delay per segment.
+   */
+  turn: { spread: 1.7, lag: 0.12 },
+  /** Breathing: height change in px and its speed. Still under reduced motion. */
+  breath: { amplitude: 1.2, speed: 2.2 },
+  /** Mandibles beside the plough: calm and while breaking through (closing speed, 1/s). */
+  mandible: { calm: 1.6, breach: 9, base: 0.3, swing: 0.3 },
+  /** How fast the breaking-through state fades after the swathe is done, per second. */
+  breachFade: 1.5,
+  /** Footprint for the cast shadow: skull tip, the half widths follow the segments, tail. */
+  shadow: { tip: [1.9, 0.7], tail: [-2.0, 0.15], pad: 0.08, height: 40 },
+  /** Health bar above the model: width in screen px, height above the ground in px. */
+  bar: { width: 90, z: 104 },
+};
+
+/**
+ * What a single airstrike can take off the Koloss at most, as a share of full health.
+ * The mark on the bar shows it, so the player sees what one run is worth before spending
+ * the points (docs/ART.md).
+ */
+export const KOLOSS_AIRSTRIKE_MARK = 0.7;
+
+/** Rubble the Koloss pushes aside: how fast the pieces of the swathe fly to both sides (screen px per second). */
+export const KOLOSS_DEBRIS_SIDE_SPEED = 150;
