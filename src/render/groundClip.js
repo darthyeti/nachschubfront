@@ -34,6 +34,7 @@ function build(field, cx, cy, reach, sweep, absolute) {
   }
   const seen = new Set();
   const cuts = [];
+  const bounds = [];
   for (const cover of covers) {
     cover.cells.forEach((c, i) => {
       const k = c.y * 4096 + c.x;
@@ -46,9 +47,11 @@ function build(field, cx, cy, reach, sweep, absolute) {
       cover.hulls[i].forEach(([px, py], j) => (j ? path.lineTo(px, py + dy) : path.moveTo(px, py + dy)));
       path.closePath();
       cuts.push(path);
+      const [x0, y0, x1, y1] = cover.bounds[i];
+      bounds.push([x0, y0 + dy, x1, y1 + dy]);
     });
   }
-  return { ground, cuts };
+  return { ground, cuts, bounds };
 }
 
 function lookup(field, cx, cy, reach, sweep, absolute) {
@@ -77,12 +80,25 @@ export function groundPath(field, cx, cy, reach, sweep = 0, absolute = true) {
  * @param {boolean} absolute  True when drawing in world pixels with the lift of the field already in the
  *   points (marks drawn with `project`); false inside a translation by the lift of the field (objects).
  * @param {boolean} withCuts  False to keep the level only, for a figure that is cut by the blocks in front elsewhere.
+ * @param {number[]|null} box  `[x0, y0, x1, y1]`, the box of what is drawn in the same coordinates: blocks clear of
+ *   it are not cut out. Null when the caller cannot say.
  * @returns {boolean} Whether a clip was set.
  */
-export function clipToGround(ctx, field, cx, cy, reach, sweep = 0, absolute = true, withCuts = true) {
+export function clipToGround(ctx, field, cx, cy, reach, sweep = 0, absolute = true, withCuts = true, box = null) {
   const hit = lookup(field, cx, cy, reach, sweep, absolute);
   if (!hit) return false;
   ctx.clip(hit.ground);
-  if (withCuts) for (const cut of hit.cuts) ctx.clip(cut, 'evenodd');
+  if (!withCuts) return true;
+  for (let i = 0; i < hit.cuts.length; i++) {
+    // A block whose picture stays clear of what is drawn cuts nothing out of it (issue 95).
+    if (box) {
+      const [x0, y0, x1, y1] = hit.bounds[i];
+      if (x0 - SLACK >= box[2] || x1 + SLACK <= box[0] || y0 - SLACK >= box[3] || y1 + SLACK <= box[1]) continue;
+    }
+    ctx.clip(hit.cuts[i], 'evenodd');
+  }
   return true;
 }
+
+/** Room round a box when a block is tested against it: the soft edge of a clip reaches about a pixel past it. */
+const SLACK = 2;
