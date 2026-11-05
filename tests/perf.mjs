@@ -123,14 +123,27 @@ try {
           `, stages made during run: ${turretsAfter.rasterized - turretsBefore.rasterized}`,
       );
       // Particles alive while the emplacements fire (M9 D3): the peak of a second's samples, and the share the muzzles hold.
-      let peak = { particles: 0, muzzle: 0 };
+      // The fireballs of the flames (issue 86) count against the same ceiling, so muzzles and balls together.
+      let peak = { particles: 0, muzzle: 0, together: 0, balls: 0, lights: 0, patches: 0 };
       for (let i = 0; i < 20; i++) {
         const c = await page.evaluate(() => window.__nachschub.particles());
-        peak = { particles: Math.max(peak.particles, c.particles), muzzle: Math.max(peak.muzzle, c.muzzle) };
+        peak = {
+          particles: Math.max(peak.particles, c.particles),
+          muzzle: Math.max(peak.muzzle, c.muzzle),
+          together: Math.max(peak.together, c.muzzle + c.balls),
+          balls: Math.max(peak.balls, c.balls),
+          lights: Math.max(peak.lights, c.lights),
+          patches: Math.max(peak.patches, c.patches),
+        };
         await page.waitForTimeout(50);
       }
-      report.push(`${label.padEnd(8)} zoom ${zoom.toFixed(2).padStart(4)}: particles alive, peak ${peak.particles} (of them from the muzzles ${peak.muzzle})`);
-      assert.ok(peak.muzzle <= 200, `${label}/${zoomLabel}: muzzle particles ${peak.muzzle}`);
+      report.push(
+        `${label.padEnd(8)} zoom ${zoom.toFixed(2).padStart(4)}: particles alive, peak ${peak.particles} (of them from the muzzles ${peak.muzzle}, fireballs ${peak.balls}, together ${peak.together})` +
+          `, ground lights ${peak.lights}, afterburn patches ${peak.patches}`,
+      );
+      assert.ok(peak.together <= 200, `${label}/${zoomLabel}: muzzle particles and fireballs ${peak.together}`);
+      assert.ok(peak.lights <= 24, `${label}/${zoomLabel}: ground lights ${peak.lights}`);
+      assert.ok(peak.patches <= 24, `${label}/${zoomLabel}: afterburn patches ${peak.patches}`);
       assert.equal(after - before, 0, `${label}/${zoomLabel}: SVG rasterized while running`);
       assert.equal(kitAfter - kitBefore, 0, `${label}/${zoomLabel}: rubble kit rastered while running`);
       if (hardware) {

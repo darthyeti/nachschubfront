@@ -14,6 +14,16 @@ import { C } from './palette.js';
 import { turnFrame, SOLID_K as K } from './model.js';
 import { weaponOf } from './weapons.js';
 import { siegeSight } from './specials.js';
+import {
+  glow,
+  lightSpec,
+  drawFireball,
+  ballRadius,
+  drawTeslaArc,
+  drawEmberThreads,
+  drawSkyStrike,
+  drawThunderHop,
+} from './weaponFx.js';
 import { CASING_PORT } from './turrets.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import {
@@ -38,20 +48,14 @@ import {
   FX_SHELL,
   FX_AURA_IDLE,
   FX_AURA_RATE,
+  FX_MAX_PARTICLES,
+  FX_LIGHT,
+  FX_BALLS,
+  FX_BURN,
+  FX_THUNDER,
   SPECIAL_CASING_PORT,
   SPECIAL_FIRE,
 } from '../data/art.js';
-
-/** Soft round glow without shadowBlur (CLAUDE.md): a radial gradient. */
-function glow(ctx, x, y, radius, colour, alpha) {
-  const g = ctx.createRadialGradient(x, y, radius * 0.1, x, y, radius);
-  g.addColorStop(0, `${colour}${Math.round(Math.max(0, Math.min(1, alpha)) * 255).toString(16).padStart(2, '0')}`);
-  g.addColorStop(1, `${colour}00`);
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fill();
-}
 
 // ======================================================================================
 // Fire at the barrel of the turned weapons
@@ -86,6 +90,15 @@ export function fxOf(tower) {
       pulses: [],
       pulseCd: 0,
       pending: null,
+      // Seconds since the last shot of a bolt (the doctrines of lightning draw by age), the fireballs of the
+      // flame in flight, and the accumulators of their emission and of the afterburn.
+      boltAge: 0,
+      balls: [],
+      ballAcc: 0,
+      burnAcc: 0,
+      // What the emplacement asks of the ground layer of effects.js (lights, pressure rings, burning patches,
+      // a brightening of the picture); effects.js takes it over each frame, like the queue of particles.
+      extra: { lights: [], rings: [], patches: [], brighten: 0 },
       // Everything the simulation said since the last shot (a volley reports one shot per target).
       events: [],
       launch: null,
@@ -117,6 +130,44 @@ const norm2 = (d) => {
 
 function queue(fx, p) {
   if (fx.queue.length < FX_QUEUE) fx.queue.push(p);
+}
+
+/** Most lights, rings and patches one emplacement hands over per frame. */
+const EXTRA_MAX = 8;
+
+/** Asks the ground layer for a light of the kind of this emplacement at (x, y); `key` keeps it one light. */
+function kickLight(fx, kind, x, y, which = null, key = null, k = 1) {
+  const spec = lightSpec(kind, which);
+  if (!spec || fx.extra.lights.length >= EXTRA_MAX) return;
+  fx.extra.lights.push({ x, y, r: spec.r, colour: spec.colour, a: spec.a * k, fade: spec.fade, key });
+}
+
+/** The volley's targets that get a light of their own: the first few. */
+const hitLights = (points) => points.slice(0, FX_LIGHT.hitsPerShot);
+
+/**
+ * Room for fireballs, in the ceiling the muzzles share (FX_MAX_PARTICLES): what is left after the
+ * particles of the muzzles and the balls alive. effects.js sets it every frame.
+ */
+let ballRoom = FX_MAX_PARTICLES;
+export function setBallRoom(n) {
+  ballRoom = n;
+}
+
+/** Fireballs alive over the given emplacements, for the shared ceiling. */
+export function ballsAlive(towers) {
+  let n = 0;
+  for (const tower of towers) n += states.get(tower)?.balls.length ?? 0;
+  return n;
+}
+
+/** What the emplacements asked of the ground layer since the last call, or null when nothing. */
+export function drainFxExtra(tower) {
+  const fx = states.get(tower);
+  const e = fx?.extra;
+  if (!e || (!e.lights.length && !e.rings.length && !e.patches.length && !e.brighten)) return null;
+  fx.extra = { lights: [], rings: [], patches: [], brighten: 0 };
+  return e;
 }
 
 function smokeSpec(fx, lift, x, y, z, vx, vy, vz, r0, r1, life, tone = 0) {
@@ -199,6 +250,7 @@ export function updateTurretFx(tower, o) {
   for (let k = 0; k < fx.flashK.length; k++) fx.flashK[k] = Math.max(0, fx.flashK[k] - dt);
   fx.beam = Math.max(0, fx.beam - dt);
   fx.bolt = Math.max(0, fx.bolt - dt);
+  fx.boltAge += dt;
 
   const aim = tower.aim ? [tower.aim.x, tower.aim.y] : [mw.x + mw.dir[0] * 3, mw.y + mw.dir[1] * 3];
   const dir = norm2(mw.dir);
@@ -235,6 +287,7 @@ export function updateTurretFx(tower, o) {
     } else if (doctrine === 'tesla') {
       fx.flash = FX_FLASH_SECONDS.tesla;
       fx.bolt = FX_BOLT_SECONDS;
+      fx.boltAge = 0;
       fx.boltSeed = Math.floor(t * 28);
       const legs = event && event.type === 'chain' ? event.points.slice(1).map((p) => [p.x, p.y]) : [];
       fx.boltPoints = legs.length ? legs : [aim];
@@ -259,10 +312,13 @@ export function updateTurretFx(tower, o) {
     } else if (doctrine === 'emberCauldron') {
       fx.flash = FX_FLASH_SECONDS.emberCauldron;
       fx.bolt = FX_SPECIAL_BOLT_SECONDS.emberCauldron;
+      fx.boltAge = 0;
       fx.boltSeed = Math.floor(t * 30);
       // One bolt to each target the volley hit.
       const legs = events.filter((e) => e.type === 'shot').map((e) => [e.tx, e.ty]);
       fx.boltPoints = legs.length ? legs : [aim];
+      kickLight(fx, doctrine, tower.x + HALF, tower.y + HALF);
+      for (const [hx, hy] of hitLights(fx.boltPoints)) kickLight(fx, doctrine, hx, hy, 'hit');
       if (!reducedMotion) {
         sparkSpec(fx, lift, mw.x, mw.y, mw.z, 4, 120, 0.25, '#ff8a2a');
         for (const [hx, hy] of fx.boltPoints) sparkSpec(fx, lift, hx, hy, liftAt(hx, hy) + FX_HIT_Z, 5, 150, 0.3, '#ff8a2a');
@@ -272,6 +328,7 @@ export function updateTurretFx(tower, o) {
       // The shell leaves the muzzle where the tube stood before it slid back.
       const at = muzzleWorld(tower, shown, theta, { ...pose, recoil: 0 }, 0);
       fx.launch = { x: at.x, y: at.y, z: at.z, dir: at.dir, lift };
+      kickLight(fx, doctrine, at.x, at.y, null, 'muzzle');
       // A pillar of smoke up the tube and a puff behind the weapon.
       const n = reducedMotion ? 3 : 8;
       for (let i = 0; i < n; i++) {
@@ -283,14 +340,28 @@ export function updateTurretFx(tower, o) {
       if (!reducedMotion) sparkSpec(fx, lift, at.x, at.y, at.z, 8, 140, 0.3, '#ffb02e');
     } else if (doctrine === 'thunderTower') {
       fx.flash = FX_FLASH_SECONDS.thunderTower;
-      fx.bolt = FX_SPECIAL_BOLT_SECONDS.thunderTower;
+      fx.boltAge = 0;
       fx.boltSeed = Math.floor(t * 30);
       const legs = event && event.type === 'chain' ? event.points.slice(1).map((p) => [p.x, p.y]) : [];
       fx.boltPoints = legs.length ? legs : [aim];
+      // The strike comes down at once, the chain then hops from target to target: the whole cascade lasts
+      // the life of the last hop after its start.
+      fx.bolt = FX_SPECIAL_BOLT_SECONDS.thunderTower + (fx.boltPoints.length - 1) * FX_THUNDER.delay;
+      const R = FX_THUNDER.ring;
+      fx.boltPoints.forEach(([hx, hy], i) => {
+        if (fx.extra.rings.length < EXTRA_MAX) {
+          fx.extra.rings.push({ x: hx, y: hy, r: i === 0 ? R.first : R.other, age: -i * FX_THUNDER.delay, max: R.seconds, colour: FX_THUNDER.colours[1], width: R.width });
+        }
+      });
+      kickLight(fx, doctrine, fx.boltPoints[0][0], fx.boltPoints[0][1], null, 'strike');
+      for (const [hx, hy] of hitLights(fx.boltPoints.slice(1))) kickLight(fx, doctrine, hx, hy, 'hit');
+      fx.extra.brighten = FX_THUNDER.flash.alpha;
       if (!reducedMotion) for (const [hx, hy] of fx.boltPoints.slice(0, 3)) sparkSpec(fx, lift, hx, hy, liftAt(hx, hy) + FX_HIT_Z, 5, 160, 0.3, '#bff2ff');
     } else if (doctrine === 'soulfireObelisk') {
       fx.beam = FX_OBELISK_BEAM_SECONDS;
       fx.beamEnd = event && event.type === 'soulfire' ? [event.tx, event.ty] : aim;
+      kickLight(fx, doctrine, mw.x, mw.y, null, 'muzzle');
+      kickLight(fx, doctrine, fx.beamEnd[0], fx.beamEnd[1], 'hit', 'hit');
       if (!reducedMotion) sparkSpec(fx, lift, fx.beamEnd[0], fx.beamEnd[1], liftAt(fx.beamEnd[0], fx.beamEnd[1]) + FX_HIT_Z, 14, 200, 0.5, '#b784ff');
     }
   }
@@ -307,6 +378,7 @@ export function updateTurretFx(tower, o) {
       const d = jetLength(tower, mw) * fx.jet;
       smokeSpec(fx, lift, mw.x + dir[0] * d, mw.y + dir[1] * d, mw.z + 12, dir[0] * 0.3, dir[1] * 0.3, 40, 6, 16, 1.1, 2);
     }
+    stepFlame(tower, fx, mw, dt, reducedMotion);
   } else if (doctrine === 'psi') {
     if (tower.firing) {
       fx.pulseCd -= dt;
@@ -321,6 +393,56 @@ export function updateTurretFx(tower, o) {
     if (fx.pulses.length && fx.pulses[0].age >= FX_PULSE_SECONDS) fx.pulses = fx.pulses.filter((pulse) => pulse.age < FX_PULSE_SECONDS);
   }
   return fx;
+}
+
+/**
+ * The ball flame (issue 86): while the emplacement fires, fireballs roll from the nozzle in a straight line
+ * to the target, swelling and darkening, and near the tip of the jet patches of ground burn on for a moment.
+ * Read from the state (`tower.firing`, `tower.aim`), nothing is reported. The balls belong to this
+ * emplacement (so they stay behind its weapon when the jet points away from the camera), count against the
+ * ceiling the muzzles share, and at most FX_BALLS.max live at once; the patches go to the ground layer.
+ * With reduced motion half as many balls and patches, and nothing wobbles.
+ */
+function stepFlame(tower, fx, mw, dt, reducedMotion) {
+  for (let i = fx.balls.length - 1; i >= 0; i--) {
+    const b = fx.balls[i];
+    b.age += dt;
+    if (b.age >= b.life) fx.balls.splice(i, 1);
+  }
+  if (!tower.firing || fx.jet < 0.3 || dt <= 0) {
+    fx.ballAcc = 0;
+    fx.burnAcc = 0;
+    return;
+  }
+  const to = tower.aim ? norm2([tower.aim.x - mw.x, tower.aim.y - mw.y]) : norm2(mw.dir);
+  const len = jetLength(tower, mw) * fx.jet;
+  const half = reducedMotion ? 0.5 : 1;
+  fx.ballAcc += dt * FX_BALLS.rate * half;
+  let guard = 4;
+  while (fx.ballAcc >= 1 && guard-- > 0) {
+    fx.ballAcc -= 1;
+    if (ballRoom <= 0 || fx.balls.length >= FX_BALLS.max) continue;
+    ballRoom -= 1;
+    const a = Math.atan2(to[1], to[0]) + rand(-FX_BALLS.spread, FX_BALLS.spread);
+    const dx = Math.cos(a);
+    const dy = Math.sin(a);
+    const L = len * rand(...FX_BALLS.lengthJitter);
+    fx.balls.push({
+      x0: mw.x, y0: mw.y, z0: mw.z, dx, dy, L,
+      zEnd: liftAt(mw.x + dx * L, mw.y + dy * L) + FX_HIT_Z,
+      age: 0, life: FX_BALLS.life * rand(0.85, 1.1), spin: rand(0, TAU), wob: rand(0, TAU),
+    });
+  }
+  if (fx.jet <= 0.6) return;
+  fx.burnAcc += dt;
+  if (fx.burnAcc >= FX_BURN.every / half) {
+    fx.burnAcc = 0;
+    const s = len * rand(...FX_BURN.reach);
+    const side = rand(-FX_BURN.side, FX_BURN.side) * s * 0.5;
+    if (fx.extra.patches.length < EXTRA_MAX) {
+      fx.extra.patches.push({ x: mw.x + to[0] * s - to[1] * side, y: mw.y + to[1] * s + to[0] * side, max: FX_BURN.life * rand(0.85, 1.15), seed: rand(0, 10) });
+    }
+  }
 }
 
 /** Reach of the jet in cells: the study's length, shortened when the target is closer. */
@@ -388,32 +510,20 @@ function bolt(ctx, a, b, seed, jitter, colour, width, core = '#ffffff') {
   }
 }
 
-/** The flame jet: blobs from the nozzle along the aim, white hot at the nozzle, dark at the tip. */
-function drawJet(ctx, fx, tower) {
-  if (fx.jet < 0.05) return;
+/**
+ * The flame: fireballs that roll from the nozzle in a straight line to the target (issue 86), the bright
+ * nozzle at the muzzle while it fires. Position by age, so nothing is stored but the start and the end.
+ */
+function drawFlameBalls(ctx, fx) {
   const f = fx.frame;
-  const dh = norm2(f.dir);
-  const len = jetLength(tower, f) * fx.jet;
-  const n = 13;
-  const origin = P(f.x, f.y, f.z);
-  const tipPoint = P(f.x + dh[0] * len, f.y + dh[1] * len, f.z + 10);
-  const ang = Math.atan2(tipPoint[1] - origin[1], tipPoint[0] - origin[0]);
-  const colours = ['#fff3c4', '#ffe38a', '#ffd23f', '#ffb02e', '#ff8a2a', '#e5601f', '#b8431a'];
-  for (let i = n - 1; i >= 0; i--) {
-    const u = i / (n - 1);
-    const wob = f.reducedMotion ? 0 : Math.sin(f.t * 24 + i * 1.7 + tower.x);
-    const dist = u * len;
-    const p = P(f.x + dh[0] * dist, f.y + dh[1] * dist, f.z + u * u * 14 + wob * 1.6);
-    const r = (3 + u * 15) * (0.88 + wob * 0.1);
-    const col = colours[Math.min(colours.length - 1, Math.floor(u * colours.length))];
-    ctx.save();
-    ctx.translate(p[0], p[1] + wob * 1.2);
-    ctx.rotate(ang);
-    ell(ctx, 0, 0, r * 1.25, r * 0.85, col, INK, 1.3);
-    ctx.restore();
+  for (const b of fx.balls) {
+    const u = Math.min(1, b.age / b.life);
+    const s = 1 - Math.pow(1 - u, 1.5);
+    const r = ballRadius(u);
+    const wob = f.reducedMotion ? 0 : Math.sin(f.t * 20 + b.wob) * 1.5;
+    const p = P(b.x0 + b.dx * s * b.L, b.y0 + b.dy * s * b.L, b.z0 + (b.zEnd - b.z0) * s);
+    drawFireball(ctx, p[0], p[1] + wob - r * 0.6, r, u, b.spin + (f.reducedMotion ? 0 : u * 3));
   }
-  // The white core shows at the nozzle only.
-  ell(ctx, origin[0], origin[1], 3.4, 2.8, '#ffffff', null);
 }
 
 /** The laser beam: from the lens along the aim, with a glow where it strikes. */
@@ -439,24 +549,18 @@ function drawBeam(ctx, fx, tower) {
   }
 }
 
-/** The tesla bolt: a jagged line from the tip to the target, a fork, and on to each further target. */
+/**
+ * The tesla bolt: a cold angular double strike (issue 86), from the tip to the target, a fork on the first
+ * leg, and on to each further target of the chain. Read by age, so the dark gap between the two strikes is
+ * the same on every frame.
+ */
 function drawBolt(ctx, fx) {
   const f = fx.frame;
   const u = fx.bolt / FX_BOLT_SECONDS;
-  const mp = P(f.x, f.y, f.z);
-  const colour = '#bff2ff';
-  let from = mp;
+  let from = P(f.x, f.y, f.z);
   fx.boltPoints.forEach(([x, y], i) => {
     const to = P(x, y, liftAt(x, y) + FX_HIT_Z);
-    if (i === 0) {
-      bolt(ctx, from, to, fx.boltSeed, 24 * (0.5 + u * 0.5), colour, 2.6 * (0.6 + u * 0.4));
-      // A fork a little before the target.
-      const fork = [mp[0] + (to[0] - mp[0]) * 0.55, mp[1] + (to[1] - mp[1]) * 0.55];
-      bolt(ctx, fork, [fork[0] + 16, fork[1] - 12], fx.boltSeed + 3, 8, colour, 1.6);
-    } else {
-      bolt(ctx, from, to, fx.boltSeed + i * 5, 14 * (0.5 + u * 0.5), colour, 1.9 * (0.6 + u * 0.4));
-    }
-    glow(ctx, to[0], to[1], 20, '#5fd4ff', 0.6 * u);
+    drawTeslaArc(ctx, from, to, fx.boltSeed + i * 7, fx.boltAge, u, f.reducedMotion, i === 0);
     from = to;
   });
 }
@@ -499,7 +603,7 @@ const laserCharge = (tower) => chargeOf(tower, FX_LASER_CHARGE_SECONDS);
 
 /** True when this weapon has fire that reaches out of the muzzle this frame. */
 function hasReach(fx, kind) {
-  if (kind === 'flame') return fx.jet >= 0.05;
+  if (kind === 'flame') return fx.jet >= 0.05 || fx.balls.length > 0;
   if (kind === 'laser') return fx.beam > 0 && Boolean(fx.beamEnd);
   if (kind === 'tesla' || kind === 'thunderTower' || kind === 'emberCauldron') return fx.bolt > 0 && Boolean(fx.boltPoints);
   if (kind === 'psi') return fx.pulses.length > 0;
@@ -545,38 +649,47 @@ export function drawTowerReach(ctx, tower, t) {
 
 function drawReach(ctx, fx, tower) {
   const kind = weaponOf(tower).kind;
-  if (kind === 'flame') drawJet(ctx, fx, tower);
+  if (kind === 'flame') drawFlameBalls(ctx, fx);
   else if (kind === 'laser') drawBeam(ctx, fx, tower);
   else if (kind === 'tesla') drawBolt(ctx, fx);
   else if (kind === 'psi') drawPulses(ctx, fx);
-  else if (kind === 'emberCauldron') drawEmberBolts(ctx, fx);
+  else if (kind === 'emberCauldron') drawEmberBolts(ctx, fx, tower);
   else if (kind === 'thunderTower') drawChain(ctx, fx);
   else if (kind === 'soulfireObelisk') drawSoulBeam(ctx, fx);
   else if (kind === 'siegeMortar') drawScope(ctx, fx, tower);
 }
 
-/** The bolts of the cauldron: from its electrode to every target the volley hit. */
-function drawEmberBolts(ctx, fx) {
+/** The threads of the cauldron: three fine glowing threads from its electrode to every target the volley hit. */
+function drawEmberBolts(ctx, fx, tower) {
   const f = fx.frame;
   const u = fx.bolt / FX_SPECIAL_BOLT_SECONDS.emberCauldron;
   const mp = P(f.x, f.y, f.z);
   fx.boltPoints.forEach(([x, y], i) => {
-    const to = P(x, y, liftAt(x, y) + FX_HIT_Z);
-    bolt(ctx, mp, to, fx.boltSeed + i * 5, 20 * (0.5 + u * 0.5), '#ff8a2a', 2.6 * (0.6 + u * 0.4), '#fff3c0');
-    glow(ctx, to[0], to[1], 18, '#ff8a2a', 0.55 * u);
+    drawEmberThreads(ctx, mp, P(x, y, liftAt(x, y) + FX_HIT_Z), i * 2.1 + tower.x, fx.boltAge, u, f.t, f.reducedMotion);
   });
 }
 
-/** The chain of the thunder tower: from the ball to the first, from each to the next, each hop a bolt of its own. */
+/**
+ * The thunder tower: the ball sends a short bolt up, the first target is struck from the sky, and the chain
+ * then hops from target to target, FX_THUNDER.delay s apart (issue 86). The simulation hits them all in one
+ * step; the cascade is only the drawing's.
+ */
 function drawChain(ctx, fx) {
   const f = fx.frame;
-  const u = fx.bolt / FX_SPECIAL_BOLT_SECONDS.thunderTower;
-  let from = P(f.x, f.y, f.z);
+  const T = FX_SPECIAL_BOLT_SECONDS.thunderTower;
+  const mp = P(f.x, f.y, f.z);
+  drawThunderHop(ctx, mp, [mp[0] + 4, mp[1] - 70], fx.boltSeed, Math.max(0, 1 - fx.boltAge / T));
   fx.boltPoints.forEach(([x, y], i) => {
+    const local = fx.boltAge - i * FX_THUNDER.delay;
+    if (local < 0) return;
+    const u = Math.max(0, 1 - local / T);
     const to = P(x, y, liftAt(x, y) + FX_HIT_Z);
-    bolt(ctx, from, to, fx.boltSeed + i * 7, 22 * (0.5 + u * 0.5), '#bff2ff', 2.8 * (0.6 + u * 0.4));
-    glow(ctx, to[0], to[1], 20, '#5fd4ff', 0.6 * u);
-    from = to;
+    if (i === 0) {
+      drawSkyStrike(ctx, to, fx.boltSeed, u, f.reducedMotion);
+    } else {
+      const [px, py] = fx.boltPoints[i - 1];
+      drawThunderHop(ctx, P(px, py, liftAt(px, py) + FX_HIT_Z), to, fx.boltSeed + i * 5, u);
+    }
   });
 }
 
@@ -687,6 +800,9 @@ function drawAtMuzzle(ctx, fx, tower) {
       ell(ctx, mp[0], mp[1], 2.6 * flick, 3.4 * flick, '#6fb7ff', INK, 1);
     } else {
       glow(ctx, mp[0], mp[1], 14, '#ff8a2a', 0.5 * fx.jet);
+      // The bright nozzle the balls leave from.
+      ell(ctx, mp[0], mp[1], 4.2, 3.4, '#fff3c4', INK, 1.2);
+      ell(ctx, mp[0], mp[1], 2.4, 2, '#ffffff', null);
     }
   } else if (doctrine === 'mortar' && fx.flash > 0) {
     const u = fx.flash / FX_FLASH_SECONDS.mortar;
@@ -821,6 +937,10 @@ function shootStorm(tower, fx, o, mw, events, aim) {
   // The tracer flies to one of the targets the volley hit, in turn.
   const hits = events.filter((e) => e.type === 'shot');
   const target = hits.length ? [hits[k % hits.length].tx, hits[k % hits.length].ty] : aim;
+  // One light at the muzzle and one at the lead target, each kept as a single light however fast it fires.
+  const lead = hits.length ? [hits[0].tx, hits[0].ty] : aim;
+  kickLight(fx, 'stormBattery', mw.x, mw.y, null, 'muzzle', 0.8 + 0.2 * Math.random());
+  kickLight(fx, 'stormBattery', lead[0], lead[1], 'hit', 'hit');
   const tx = target[0] + rand(-0.06, 0.06);
   const ty = target[1] + rand(-0.06, 0.06);
   const d = Math.sqrt((tx - mw.x) ** 2 + (ty - mw.y) ** 2);

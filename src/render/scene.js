@@ -955,7 +955,7 @@ export function createSceneRenderer(sprites) {
     }
 
     // Scorch marks, auras and flame cones lie on the ground, under the units.
-    ui.effects?.drawGround(ctx, state, t, ui.reducedMotion);
+    ui.effects?.drawGround(ctx, state, t, ui.reducedMotion, cam.zoom);
 
     // The gold ring of a recipe emplacement belongs here and not to the figure:
     // it lies flat on the ground and must never end up on a neighbour's socket

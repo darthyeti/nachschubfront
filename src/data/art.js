@@ -267,6 +267,62 @@ export const FX_SHELL = { lift: 90, perCell: 22, endZ: 0 };
 export const FX_AURA_IDLE = 0.35;
 export const FX_AURA_RATE = 3;
 
+// ---------- Weapon effects, step 1 (issue 86, study round 2 of issue 81) ----------
+// Presentation only. Ground light, the ball flame with its afterburn, and the three kinds of lightning.
+// Every size is a screen px at zoom 1 or a cell count; every time is seconds.
+
+/**
+ * Ground light by emplacement kind: radius in cells, colour, peak alpha on the ground and seconds to fade
+ * after its last kick; `hit` is the light where a shot lands, `idle` one that stays while the emplacement
+ * stands. `over` is the share drawn again over the figures. Mixing is the normal one (no composite mode).
+ */
+export const FX_LIGHT = {
+  stormBattery: { r: 2.2, colour: '#9fdcff', a: 0.55, fade: 0.18, hit: { r: 0.8, a: 0.22, fade: 0.1 } },
+  emberCauldron: { r: 2.4, colour: '#ff8a2a', a: 0.32, fade: 0.35, idle: { r: 1.4, a: 0.1 }, hit: { r: 0.9, a: 0.26, fade: 0.5 } },
+  siegeMortar: { r: 2.6, colour: '#ffb02e', a: 0.38, fade: 0.4, hit: { r: 2.6, a: 0.5, fade: 0.6 } },
+  thunderTower: { r: 3.0, colour: '#cfd8ff', a: 0.45, fade: 0.3, idle: { r: 1.2, a: 0.07 }, hit: { r: 1.3, a: 0.35, fade: 0.3 } },
+  soulfireObelisk: { r: 2.2, colour: '#b784ff', a: 0.3, fade: 0.3, hit: { r: 1.0, a: 0.28, fade: 0.3 } },
+  purgeShrine: { r: 2.8, colour: '#ffd36a', a: 0.16, fade: 0.5, idle: { r: 2.8, a: 0.06 } },
+  /** Share of the ground light drawn again over the figures, and how many px it is lifted and shrunk. */
+  over: { share: 0.35, lift: 10, shrink: 0.8 },
+  /** Most lights at once (kicked ones and idle ones together); a kicked light pushes out the oldest. */
+  max: 24,
+  /** At most this many targets of one volley get a light of their own. */
+  hitsPerShot: 3,
+};
+
+/**
+ * The flame jet as rolling fireballs, in a straight line from the nozzle to the target: `rate` balls a
+ * second, `life` s each, radius `r[0]` to `r[1]` px, at most `max` of one emplacement; `lick` is the
+ * size of the tongue standing on a ball, `spread` the angle (rad) the balls scatter in.
+ */
+export const FX_BALLS = { rate: 26, life: 0.42, r: [3, 13], max: 16, lick: 0.5, spread: 0.16, lengthJitter: [0.85, 1.05] };
+
+/**
+ * The afterburn: every `every` s a patch lies near the tip of the jet, `life` s each. At most `max` of
+ * one emplacement and `total` of all together. Below `flameZoom` only soot and glow are drawn.
+ */
+export const FX_BURN = { every: 0.12, life: 1.4, max: 6, total: 24, flames: 3, scorch: 9, glow: 14, flameZoom: 0.55, reach: [0.6, 1.0], side: 0.45 };
+
+/** Tesla: a cold angular double strike. Ink, colour and core widths, kinks, and the dark gap between strikes. */
+export const FX_TESLA = { ink: 2.6, colour: 1.4, core: 0.6, steps: 7, jitter: 13, gap: [0.05, 0.08], colours: ['#bff2ff', '#5fd4ff'] };
+
+/** Ember cauldron: three fine sinuous threads per target that crawl there over `crawl` s. */
+export const FX_EMBER = { strands: 3, ink: 1.5, colour: 0.9, core: 0.4, wave: 5, crawl: 0.08, colours: ['#ff5a1f', '#ffb13b', '#fff0b0'] };
+
+/**
+ * Thunder tower: a strike from `sky` px above the first target, then a cascade of `delay` s per hop; a
+ * pressure ring on the ground at every hit. The picture brightens at most once every `flash.every` s
+ * (alpha `flash.alpha` for `flash.seconds`), with reduced motion at most `flash.reduced`.
+ */
+export const FX_THUNDER = {
+  sky: 240, ink: 5.5, colour: 3.2, core: 1.4, aura: [{ width: 20, alpha: 0.14 }, { width: 9, alpha: 0.26 }],
+  hop: { ink: 3, colour: 1.7, core: 0.7 }, delay: 0.035,
+  ring: { first: 1.6, other: 1.0, seconds: 0.3, width: 3, max: 12 },
+  flash: { alpha: 0.16, seconds: 0.12, every: 1, reduced: 0.05 },
+  colours: ['#ece8ff', '#8f9cff'],
+};
+
 // ---------- Choosing a capsule (issue 50) ----------
 
 /** Opacity of the capsules, their light columns and plates that are not picked, while one is picked. */

@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.11.17**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
+Version **0.11.19**, Regelversion **8**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
 03.11.2026 **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md)): Farbtrennung und drei Biome,
 Licht und Schatten, Blockgelände, Diorama-Rahmen, Trümmer aus dem Baukasten, die neue Kapsel. Offen ist
 **M6 Balancing**. Von M8 steht noch Tills Prüfung auf dem iPad aus (Leistung, Speicher, Tippen auf hohe
@@ -52,6 +52,8 @@ Screenshots, Battle, Perf). Pages baut `main` in den Wurzelordner und jeden
 Pull Request mit Label `spielgefuehl` nach `pr/<nr>/`; den Cache-Block in
 `sw.js` schreibt erst die Veröffentlichung, im Repository steht der
 Platzhalter. Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“.
+
+**Waffeneffekte Schritt 1 (0.11.19, Issue 86, Akte E-46):** Bodenlicht (Mischung normal, höchstens 24 Lichter) für Sturmbatterie und die Spezialstellungen, Flamme als gerade rollende Feuerbälle mit Nachbrennen (24 Flecken, Bälle zählen zu `FX_MAX_PARTICLES`), Blitze nach Runde 2 der Studie (Tesla eckiger Doppelschlag, Glutkessel Glutfäden, Gewitterturm Einschlag von oben mit Kaskade und Druckring), Bildaufheller höchstens einmal je Sekunde (bei „Weniger Bewegung“ höchstens 5 %). Nur Darstellung (`src/render/weaponFx.js`, Maße `FX_LIGHT` und Verwandte in `src/data/art.js`). Offen: Schritt 2 (Raketenwerfer drei Raketen, Raketenturm, Schrein-Nebel), Tills Blick auf das Spielgefühl.
 
 **Koloss als Grabwalze (0.11.17, Issue 80, Akte E-43):** Der Koloss ist eine Schwarmbestie (Segmentkriecher mit Pflugschädel) statt einer Kriegsmaschine, ein drehbares Modell aus Körpern mit eigenem Baukasten (`src/render/bodyKit.js`, `koloss.js`, Zahlen `KOLOSS_MODEL` in `src/data/art.js`); Drehung an der Ecke über die 0,6 s sichtbar, Kanone, Flak und Antenne entfallen, Trümmer der Schneise fliegen zur Seite. Regeln, Simulation und Balancing unverändert. Standbilder und Zahlen: `node tests/tools/koloss-modell.mjs`. Tills Blick auf Spielgefühl und iPad steht aus.
 
