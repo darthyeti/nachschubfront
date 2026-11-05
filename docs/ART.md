@@ -33,7 +33,7 @@ Der eigene Betonsockel mit Warnstreifen (`sockel.svg`) entfällt: Der Bunker ist
 |---|---|---|
 | Autokanone | Drehlauf-Gehäuse, verkleinert (Faktor 0,78) | #f0e2b8 |
 | Flamme | Tankgehäuse mit Brennrohr, verkleinert (Faktor 0,78) | #ff8a2a |
-| Mörser | Steiles Rohr auf Lafette, unverändert | #d8ae5f |
+| Raketenwerfer (Kennung `mortar`; bis 05.11.2026 „Mörser“, Akte E-39) | Steiles Rohr auf Lafette, unverändert | #d8ae5f |
 | Tesla | Kleine Zylindersäule | #5fd4ff |
 | Laser | Kleine Scheibe mit kurzem Lauf | #ff4a4a |
 | Psi | Zwei Ringe, dazu eine **dauerhafte** gestrichelte violette Aura in Reichweitengröße auf dem Boden | #b784ff |
@@ -59,7 +59,7 @@ Die sechs Rezept-Stellungen (GDD Abschnitt 8) stehen seit v5 auf einer **gemeins
 | Gewitterturm | Sockel, Spule aus sieben blauen Ringen; darüber schwebt ein geneigter violetter Ring mit blauer Kugel (eigene Ebene über der Stufe) | Kettenblitz von der Kugel von Ziel zu Ziel, über allem gezeichnet |
 | Seelenfeuer-Obelisk | Schlanker Obelisk mit violetten Runen, Flammen am Fuß (Code); darüber schwebt das Auge (eigene Ebene) | Das Auge lädt sich über die letzten `FX_OBELISK_CHARGE_SECONDS` der Nachladung, dann Seelenstrahl aus der Pupille zum Ziel |
 
-Stufen-Cache wie bei den Standardstellungen (16 Richtungen, bei Bedarf), Ausnahmen: der Schrein ist nie auf einer Stufe, Sturmbatterie und Mörser werden gezeichnet, solange ein Lauf zurückgleitet, und die schwebenden Teile (Ring und Kugel, Auge) kommen jedes Bild aus dem Modell; der Schatten der Stufe enthält sie trotzdem. Höhe höchstens 10 Prozent über dem früheren Sprite (`tests/unit/specials.test.js` misst es). Die Sprite-Köpfe der v5 (`stop-*`) sind aus der Bibliothek entfernt.
+Stufen-Cache wie bei den Standardstellungen (16 Richtungen, bei Bedarf), Ausnahmen: der Schrein ist nie auf einer Stufe, Sturmbatterie und Raketenwerfer werden gezeichnet, solange ein Lauf zurückgleitet, und die schwebenden Teile (Ring und Kugel, Auge) kommen jedes Bild aus dem Modell; der Schatten der Stufe enthält sie trotzdem. Höhe höchstens 10 Prozent über dem früheren Sprite (`tests/unit/specials.test.js` misst es). Die Sprite-Köpfe der v5 (`stop-*`) sind aus der Bibliothek entfernt.
 
 Referenz: `reference/konzept/stellungen/d4-feuer.png` (die Waffen im Spiel feuernd), `d4-16-richtungen.png` (Kontaktbild in 16 Richtungen, erzeugt mit `node tests/tools/special-sheet.mjs 2 out.png`), `spezialstellungen.png` und die Studie im Modus „Spezial“. Die Blätter in `reference/konzept/spezialstellungen/` bleiben als Entwurfsstand v4 liegen.
 
@@ -495,7 +495,7 @@ Koloss und Gunship werden nicht als feste Flächen für eine Blickrichtung gezei
 
 ### Aufsätze als drehbare Modelle (seit 0.11.2, M9 D2)
 
-Die sechs Aufsätze (`src/render/turrets.js`, der Mörser als Raketenwerfer) sind Modelle aus Körpern in lokalen Koordinaten, nach Form und Maß der Studie `stellungen-rework-modell.js`. Anders als Koloss und Gunship drehen sie sich um **beliebige Winkel**, deshalb sortiert `model.js` für sie (`turnFrame`, `solidKit`, `renderSolids`) jede sichtbare Fläche einzeln nach der Tiefe ihrer Mitte entlang des Sehstrahls; lange Flächen werden vorher geteilt. Koloss und Gunship behalten ihren einfacheren Weg.
+Die sechs Aufsätze (`src/render/turrets.js`, der Raketenwerfer, Kennung `mortar`) sind Modelle aus Körpern in lokalen Koordinaten, nach Form und Maß der Studie `stellungen-rework-modell.js`. Anders als Koloss und Gunship drehen sie sich um **beliebige Winkel**, deshalb sortiert `model.js` für sie (`turnFrame`, `solidKit`, `renderSolids`) jede sichtbare Fläche einzeln nach der Tiefe ihrer Mitte entlang des Sehstrahls; lange Flächen werden vorher geteilt. Koloss und Gunship behalten ihren einfacheren Weg.
 
 - **Richtung.** Aus `tower.aim` (Weltpunkt des letzten Ziels). Der Darstellungswinkel lebt auf der Darstellungsseite (`towerSprites.js`, nicht im Zustand, nicht gespeichert, nicht aufgezeichnet) und dreht mit `TURRET_TURN_SPEED` (`src/data/art.js`) zum Ziel. Ohne Ziel bleibt die letzte Richtung.
 - **Stufen-Cache** (`src/render/turretCache.js`). Zeigt die Waffe auf ihr Ziel (Abweichung unter `TURRET_ALIGN`) oder hat sie keins, steht sie auf der nächsten von 16 Stufen. Eine Stufe entsteht erst bei Bedarf, je Doktrin und Rang, zugeschnitten auf den belegten Bereich, nur für die Rasterstufe des Zooms (Wechsel erst nach 160 ms Ruhe, wie bei den Trümmern). Je Stufe liegen der Silhouettenschatten (halbe Auflösung) und, bei Bedarf, die helle Variante für das Treffer-Aufblitzen im Speicher. Höchstens `TURRET_CACHE_BYTES` (32 MB) Pixelspeicher, die am längsten ungenutzten Stufen weichen; höchstens `TURRET_BUILDS_PER_FRAME` neue Stufen je Bild, sonst wird die Waffe in diesem Bild aus dem Modell gezeichnet. Eine Waffe zwischen zwei Stufen wird pro Bild aus dem Modell gezeichnet.

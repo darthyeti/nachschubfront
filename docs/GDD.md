@@ -86,7 +86,7 @@ Früh entsteht das Labyrinth schneller und die Karte füllt sich dort, wo noch P
 | Flamme | 18 pro Sekunde | Dauerfeuer | 2,0 | Boden | Kegel trifft mehrere Gegner, Brand 6/s für 3 s |
 | Autokanone | 6 pro Schuss | 5/s | 3,5 | Boden, Luft | Schnelles Einzelfeuer |
 | Laser | 40 pro Strahl | 0,8/s | 4,5 | Boden, Luft | Durchschlägt alle Gegner auf einer Linie |
-| Mörser | 30, Radius 1,2 | 0,45/s | 1,5 bis 7,0 | Boden | Flugzeit etwa 1 s, Mindestreichweite |
+| Raketenwerfer (Kennung `mortar`; bis 05.11.2026 „Mörser“, Akte E-39) | 30, Radius 1,2 | 0,45/s | 1,5 bis 7,0 | Boden | Flugzeit etwa 1 s, Mindestreichweite |
 | Psi | 4 pro Sekunde | Aura | 3,0 | Boden, Luft | Verlangsamt um 30 %, dreifacher Schaden gegen Schilde |
 | Tesla | 14 pro Blitz | 1/s | 3,0 | Boden, Luft | Springt auf bis zu 4 Ziele, je Sprung minus 20 % |
 
@@ -125,14 +125,14 @@ Angaben in Prozent.
 
 Ein Rezept besteht aus drei verschiedenen Doktrinen mit Mindestrang. Es kann in der Auswahlphase erfüllt werden, wenn die Kapseln dieser Salve zusammen mit bereits stehenden Stellungen alle Zutaten enthalten und mindestens eine Zutat aus der aktuellen Salve stammt. Die Spezialstellung entsteht auf dem Feld dieser Kapsel. Verbrauchte bestehende Stellungen werden zu Trümmern, die übrigen Kapseln ebenfalls.
 
-Die Rollen sind klar getrennt: Der Schrein ist eine reine Schadensaura, der Kessel ein sich ausbreitendes Feuer, die Batterie Dauerfeuer, der Mörser Artillerie auf Distanz, der Turm eine Kette, der Obelisk die Bosswaffe. Alle Zahlen sind Startwerte, stehen in `src/data/` und werden im Balancing endgültig bestimmt.
+Die Rollen sind klar getrennt: Der Schrein ist eine reine Schadensaura, der Kessel ein sich ausbreitendes Feuer, die Batterie Dauerfeuer, der Raketenwerfer Artillerie auf Distanz, der Turm eine Kette, der Obelisk die Bosswaffe. Alle Zahlen sind Startwerte, stehen in `src/data/` und werden im Balancing endgültig bestimmt.
 
 | Spezialstellung | Zutaten | Mindestrang | Wirkung (Startwerte) |
 |---|---|---|---|
-| Reinigungsschrein | Flamme, Psi, Mörser | Veteran | Kein Geschoss. Dauerhafte goldene Aura, Radius 2,8. Jeder Gegner darin erleidet 11 Schaden/s und ist verlangsamt, solange er in der Aura ist. Betroffene Gegner leuchten golden statt den violetten Verlangsamungsring zu tragen |
+| Reinigungsschrein | Flamme, Psi, Raketenwerfer | Veteran | Kein Geschoss. Dauerhafte goldene Aura, Radius 2,8. Jeder Gegner darin erleidet 11 Schaden/s und ist verlangsamt, solange er in der Aura ist. Betroffene Gegner leuchten golden statt den violetten Verlangsamungsring zu tragen |
 | Sturmbatterie | Autokanone, Laser, Tesla | Veteran | Schnellfeuer mit blauer Leuchtspurmunition, Radius 3,2, verteilt auf die 3 vordersten Gegner, 5 Schaden pro Schuss, Schusstakt 0,06 s, stark gegen Luft |
 | Glutkessel | Flamme, Tesla, Autokanone | Veteran | Keine Aura. Alle 1,2 s Feuerblitze auf die 3 vordersten Gegner in Radius 3,2: 6 Schaden plus Brand 3 s (9 Schaden/s). Der Brand springt alle 0,45 s auf einen nicht brennenden Gegner innerhalb 0,85 Feldern über (dort 2,2 s) |
-| Belagerungsmörser | Mörser, Laser, Autokanone | Elite | Radius 6,6, Mindestabstand 1,5. Zielt 0,8 s mit sichtbarem Laser, dann Granate mit Vorhalt, riesiger Explosionsradius, Nachladezeit 3,2 s |
+| Belagerungsmörser | Raketenwerfer, Laser, Autokanone | Elite | Radius 6,6, Mindestabstand 1,5. Zielt 0,8 s mit sichtbarem Laser, dann Granate mit Vorhalt, riesiger Explosionsradius, Nachladezeit 3,2 s |
 | Gewitterturm | Tesla, Psi, Laser | Elite | Radius 3,1, alle 1,3 s Kettenblitz über bis zu 8 Ziele (Sprungweite 1,8), 14 Schaden und 0,5 s Betäubung pro Ziel |
 | Seelenfeuer-Obelisk | Psi, Flamme, Tesla | Held | Radius 4,2, alle 1,6 s Seelenstrahl: 22 % der maximalen Lebenspunkte des Ziels. Gegen Bosse und den Koloss gedeckelt auf 5 % pro Treffer |
 
@@ -149,7 +149,7 @@ Weitere Rezepte folgen nach den ersten Tests. Rezepte sind im Spiel über ein Na
 | Flamme | 1,5 | 0,5 | 1,0 | 0 |
 | Autokanone | 1,0 | 0,75 | 0,5 | 1,5 |
 | Laser | 0,75 | 1,5 | 1,0 | 1,0 |
-| Mörser | 1,5 | 1,0 | 1,0 | 0 |
+| Raketenwerfer | 1,5 | 1,0 | 1,0 | 0 |
 | Psi | 1,0 | 0,5 | 3,0 | 1,0 |
 | Tesla | 1,25 | 0,5 | 1,5 | 1,0 |
 
