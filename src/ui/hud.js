@@ -17,6 +17,7 @@ import { supplyCalls } from './nudges.js';
 import { pointsVisible } from './commands.js';
 import { burst } from './burst.js';
 import { RULES } from '../data/rules.js';
+import { ECONOMY } from '../data/economy.js';
 
 const T = STRINGS.hud;
 
@@ -366,16 +367,39 @@ export function createHud(root, { debug, onAction, onUnlock = () => {}, onFold =
       });
 
       // Same rule as the demolish disc: the purse guards the way in, never out.
-      if (upgradeKind(state).inPlanning) {
+      const upgradeRule = upgradeKind(state);
+      if (upgradeRule.inPlanning) {
+        const promoting = upgradeRule.startsWave === false;
+        upgradeDisc.retitle(
+          promoting
+            ? { label: T.promoteName, hint: T.promoteHint, caption: T.promoteCaption }
+            : { label: T.upgradeName, hint: T.upgradeHint, caption: L.upgrade },
+        );
         const offers = state.towers.map((tower) => canUpgradeTower(state, tower.id));
         const cheapest = Math.min(...offers.filter((o) => o.ok || o.reason === 'funds').map((o) => o.cost ?? Infinity));
+        const closed = promoting && state.phase === 'planning' ? upgradeRule.gate(state) : null;
         upgradeDisc.el.hidden = false;
-        upgradeDisc.update({
-          state: 'ready',
-          note: Number.isFinite(cheapest) ? T.upgradeNote(cheapest) : null,
-          enabled: offers.some((o) => o.ok) || ui.upgradeMode,
-          on: ui.upgradeMode,
-        });
+        if (closed) {
+          // Locked with its reason, but still tappable: a disabled button says
+          // nothing on touch, so the tap answers with the reason (main.js).
+          const reason = closed === 'supply' ? T.promoteLocked(ECONOMY.promote.fromSupplyLevel) : T.promoteSpent;
+          upgradeDisc.setHint(reason);
+          upgradeDisc.update({
+            state: 'locked',
+            badge: closed === 'supply' ? String(ECONOMY.promote.fromSupplyLevel) : null,
+            note: null,
+            on: false,
+            name: T.promoteName,
+          });
+        } else {
+          if (promoting) upgradeDisc.setHint(T.promoteHint);
+          upgradeDisc.update({
+            state: 'ready',
+            note: Number.isFinite(cheapest) ? T.upgradeNote(cheapest) : null,
+            enabled: offers.some((o) => o.ok) || ui.upgradeMode,
+            on: ui.upgradeMode,
+          });
+        }
       } else {
         upgradeDisc.el.hidden = true;
       }

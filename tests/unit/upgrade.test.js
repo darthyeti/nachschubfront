@@ -19,7 +19,8 @@ import { chooseSelection } from '../../src/sim/actions.js';
  * before it, which is what the phase actually holds.
  */
 function ready({ fighting = ECONOMY.upgradeFromWave, requisition = 5000, podRank = 4 } = {}) {
-  const state = createGameState('AUFWERTUNG');
+  // The capsule upgrade is the rule of ruleset 8; 9 replaced it (promote.test.js).
+  const state = createGameState('AUFWERTUNG', { ruleset: 8 });
   state.wave = fighting - 1;
   state.phase = 'selection';
   state.requisition = requisition;
@@ -120,7 +121,7 @@ test('an upgrade is recorded and replays to the same match', () => {
 test('a bot match still replays with the option in the game', () => {
   // The option changes what selectionOptions returns for every late salvo, so
   // the guarantee the whole measurement chain rests on is checked again here.
-  const run = playBotMatch({ seed: 'AUFWERTBOT', strategy: 'simple' });
+  const run = playBotMatch({ seed: 'AUFWERTBOT', strategy: 'simple', config: { ruleset: 8 } });
   const again = replayMatch(run.log);
   assert.deepEqual(compareWaves(run.waves, again.waves), []);
 });

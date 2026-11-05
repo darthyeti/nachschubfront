@@ -1267,7 +1267,7 @@ try {
   // The fourth option in the selection phase, from wave 30. Checked in the
   // browser because it is a button that has to appear, say what it costs, and
   // leave the board with no new emplacement on it.
-  console.log('upgrade instead of build (tablet, touch)');
+  console.log('promoting (tablet, touch)');
   {
     const { context, page } = await openGame({
       viewport: { width: 1180, height: 820 },
@@ -1275,49 +1275,71 @@ try {
       hasTouch: true,
       isMobile: true,
     });
+    const ui = () => page.evaluate(() => window.__nachschub.ui());
+    const banner = () => page.locator('.hud-banner').textContent();
+    const promote = page.getByRole('button', { name: /Stellung befördern/ });
 
-    await check('from wave 30 a capsule can go into an emplacement that stands', async () => {
-      // One emplacement of a known doctrine first, then the wave the rule names.
-      await page.evaluate(() => {
-        // One emplacement will not hold a wave on its own, and a defeat here
-        // would never reach the planning phase the jump needs.
-        window.__nachschub.debug.setLives(500);
-        window.__nachschub.debug.grant({ requisition: 6000 });
-        window.__nachschub.debug.forcePod({ doctrine: 'flame', rank: 3 });
+    await check('locked below supply level 8, and the tap says why', async () => {
+      await page.evaluate(() => window.__nachschub.debug.grant({ requisition: 5000 }));
+      await frames(page);
+      const box = await promote.boundingBox();
+      assert.ok(box.width >= 44 && box.height >= 44, `the disc is ${box.width}x${box.height}`);
+      assert.equal(await promote.getAttribute('data-state'), 'locked');
+      await promote.tap();
+      await frames(page);
+      assert.match(await banner(), /ab Nachschubstufe 8/);
+      assert.equal((await ui()).upgradeMode, false, 'no mode that would refuse every tap');
+    });
+
+    await check('from level 8 a tap on an emplacement raises it one rank, for requisition alone', async () => {
+      // An emplacement beside the route, where it blocks nothing.
+      const cell = await page.evaluate(() => {
+        const route = window.__nachschub.state().routeCells;
+        for (const step of route) {
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const c = { x: step.x + dx, y: step.y + dy };
+            if (window.__nachschub.canPlace(c.x, c.y) && !route.some((r) => r.x === c.x && r.y === c.y)) return c;
+          }
+        }
+        return null;
       });
-      await page.getByRole('button', { name: 'Salve anfordern' }).click();
-      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
-      await page.getByRole('button', { name: 'Behalten' }).click();
-      await page.waitForFunction(() => window.__nachschub.state().towers.length === 1, null, { timeout: 10000 });
-
-      // The jump is only allowed from the planning phase, so the wave that just
-      // started has to run out first; at 3x that is a few seconds.
-      await setTempo(page, 3, 'click');
-      await page.waitForFunction(() => window.__nachschub.state().phase === 'planning', null, { timeout: 120000 });
-      await page.evaluate(() => window.__nachschub.debug.setWave(30));
-      await page.evaluate(() => {
-        window.__nachschub.debug.grant({ requisition: 6000 });
-        window.__nachschub.debug.forcePod({ doctrine: 'flame', rank: 3 });
-      });
-      await page.getByRole('button', { name: 'Salve anfordern' }).click();
-      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
-
-      const button = page.getByRole('button', { name: /^Aufwerten:/ }).first();
-      await button.waitFor({ state: 'visible', timeout: 10000 });
-      const box = await button.boundingBox();
-      assert.ok(box.height >= 44, `the button is ${box.height} px tall`);
-
+      assert.ok(cell, 'a free cell beside the route');
+      await page.evaluate((c) => {
+        window.__nachschub.debug.placeTower({ ...c, doctrine: 'flame', rank: 1 });
+        window.__nachschub.debug.setSupply(8);
+      }, cell);
+      await frames(page, 3);
+      assert.equal(await promote.getAttribute('data-state'), 'ready');
       const before = await game(page);
-      // Two taps on a touch screen, the rule a recipe already follows: the first
-      // marks the emplacement on the map, the second spends the requisition.
-      await button.tap();
-      assert.equal((await game(page)).phase, 'selection', 'the first tap buys nothing');
-      await button.tap();
-      await page.waitForFunction(() => window.__nachschub.state().phase === 'wave', null, { timeout: 10000 });
+
+      await promote.tap();
+      await frames(page);
+      assert.equal((await ui()).upgradeMode, true);
+      const [x, y] = await screenOf(page, cell);
+      // On touch the first tap names rank and price, the second one pays.
+      await page.touchscreen.tap(x, y);
+      await frames(page);
+      assert.match(await banner(), /Auf Veteran befördern\? 180/);
+      assert.equal((await game(page)).towers[0].rank, 1, 'the first tap buys nothing');
+      await page.touchscreen.tap(x, y);
+      await frames(page);
+
       const after = await game(page);
-      assert.equal(after.towers.length, before.towers.length, 'no new emplacement was built');
-      assert.ok(after.towers.some((t) => t.rank === 4), 'the standing one went up a rank');
-      assert.ok(after.requisition < before.requisition, 'and it was paid for');
+      assert.equal(after.towers[0].rank, 2, 'the emplacement went up a rank');
+      assert.equal(after.requisition, before.requisition - 180, 'for 180');
+      assert.equal(after.phase, 'planning', 'the round goes on');
+      assert.equal(after.pods.length, 0, 'no capsule was used');
+      assert.equal((await ui()).upgradeMode, false);
+    });
+
+    await check('once per planning phase: locked again with its reason, and the salvo still comes', async () => {
+      assert.equal(await promote.getAttribute('data-state'), 'locked');
+      await promote.tap();
+      await frames(page);
+      assert.match(await banner(), /schon befördert/);
+      await page.getByRole('button', { name: 'Salve anfordern' }).click();
+      await page.waitForFunction(() => window.__nachschub.state().phase === 'selection', null, { timeout: 90000 });
+      assert.equal((await game(page)).towers[0].rank, 2, 'the rank stands');
     });
 
     await context.close();

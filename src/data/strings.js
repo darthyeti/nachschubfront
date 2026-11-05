@@ -35,6 +35,10 @@ export const STRINGS = {
     demolishDisc: ['Abreißen', 'Räumt ein Trümmerfeld und gibt das Feld frei.'],
     bulwarkDisc: ['Bollwerk', 'Macht aus Trümmern ein Bollwerk, das Rammstößen standhält.'],
     upgradeDisc: ['Aufwerten', 'Statt einer Salve steigt eine Stellung einen Rang. Die Welle beginnt sofort.'],
+    promoteDisc: [
+      'Befördern',
+      'Hebt eine Stellung für Requisition um einen Rang, ohne Kapsel. Ab Nachschubstufe 8, einmal je Planung.',
+    ],
     salvo: ['Salve', 'Startet die Runde: Kapseln landen, du wählst eine Stellung, die Welle beginnt.'],
     pause: ['Pause', 'Hält die Partie an und setzt sie fort. Leertaste.'],
     tempo: ['Tempo', 'Schaltet reihum auf einfache, doppelte und dreifache Geschwindigkeit. Tasten 1, 2 und 3.'],
@@ -127,6 +131,15 @@ export const STRINGS = {
     upgradeNote: (cost) => `ab ${cost}`,
     upgradeConfirm: (rank, cost) => `Auf ${rank} aufwerten? ${cost}`,
     upgradeConfirmDetail: 'Keine Salve — die Welle beginnt sofort.',
+    /** Promoting (GDD section 11, ruleset 9): a rank for requisition alone, in planning. */
+    promoteName: 'Stellung befördern',
+    promoteCaption: 'Befördern',
+    promoteHint:
+      'Hebt eine stehende Stellung für Requisition um einen Rang. Keine Kapsel, die Salve bleibt unberührt. Ab Nachschubstufe 8, einmal je Planung.',
+    promoteLocked: (level) => `Befördern ab Nachschubstufe ${level}`,
+    promoteSpent: 'Diese Planung schon befördert',
+    promoteConfirm: (rank, cost) => `Auf ${rank} befördern? ${cost}`,
+    promoteConfirmDetail: 'Ohne Kapsel. Danach kommt die Salve wie gewohnt.',
     newGame: 'Neue Partie',
     pause: 'Pause',
     speedGroup: 'Spielgeschwindigkeit',
@@ -717,6 +730,9 @@ export const STRINGS = {
     tower: 'Hier steht keine Stellung',
     special: 'Spezialstellungen haben keinen Rang',
     max: 'Schon Legende',
+    /** Why an emplacement cannot be promoted (ruleset 9). */
+    supply: 'Erst ab Nachschubstufe 8',
+    once: 'Schon befördert in dieser Planung',
     off: 'Hier nicht möglich',
     upgraded: (rank) => `${rank}!`,
     /**

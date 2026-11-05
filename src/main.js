@@ -18,6 +18,8 @@ import {
   upgradeTower,
 } from './sim/actions.js';
 import { towerAt, addTower } from './sim/towers.js';
+import { upgradeKind } from './sim/selection.js';
+import { ECONOMY } from './data/economy.js';
 import { toggleZone } from './sim/zones.js';
 import { buySupply, demolish, canDemolish, buildBulwark, canBuildBulwark } from './sim/economy.js';
 import { useCommand, canUseCommand } from './sim/commands.js';
@@ -351,7 +353,11 @@ function applyUpgradeTap(cell, pointerType = 'mouse') {
   }
   if (pointerType !== 'mouse' && ui.upgradeArmed !== tower.id) {
     ui.upgradeArmed = tower.id;
-    showBanner(STRINGS.hud.upgradeConfirm(STRINGS.ranks[tower.rank + 1], check.cost), STRINGS.hud.upgradeConfirmDetail);
+    const promoting = upgradeKind(state).startsWave === false;
+    const [confirm, detail] = promoting
+      ? [STRINGS.hud.promoteConfirm, STRINGS.hud.promoteConfirmDetail]
+      : [STRINGS.hud.upgradeConfirm, STRINGS.hud.upgradeConfirmDetail];
+    showBanner(confirm(STRINGS.ranks[tower.rank + 1], check.cost), detail);
     return;
   }
   const result = upgradeTower(state, tower.id);
@@ -629,8 +635,14 @@ function onAction(action) {
       leaveUpgradeMode();
     }
   } else if (action === 'upgradeMode') {
+    const closed = state.phase === 'planning' ? (upgradeKind(state).gate?.(state) ?? null) : null;
     if (ui.upgradeMode) leaveUpgradeMode();
-    else {
+    else if (closed) {
+      // Promoting is not open yet or already used: say why instead of opening a
+      // mode in which every tap would be refused.
+      const texts = STRINGS.hud;
+      showBanner(closed === 'supply' ? texts.promoteLocked(ECONOMY.promote.fromSupplyLevel) : texts.promoteSpent);
+    } else {
       ui.upgradeMode = true;
       ui.upgradeArmed = null;
       ui.obstacleMode = false;
@@ -1205,6 +1217,10 @@ if (debug) {
     debug: {
       setLives: (n) => setLives(state, n),
       grant: (value) => grant(state, value),
+      /** Sets the supply level directly, for checks of what opens at a level. Not recorded. */
+      setSupply: (level) => {
+        state.supplyLevel = level;
+      },
       setWave: (n) => setWave(state, n),
       /** Fixes what the next salvo contains, so a check can set up a doctrine. */
       forcePod: (content) => forcePod(state, content),

@@ -7,6 +7,11 @@
  * scores are stored with this number (M5) so the two never end up in one list.
  * Raise it whenever a change makes old results incomparable.
  *
+ * 9 since 05.11.2026: promoting (issue 85, file E-44). From supply level 8 a
+ * standing emplacement goes up a rank in planning for requisition alone, once
+ * per planning phase; the capsule upgrade of wave 30 is gone. Matches of
+ * ruleset 8 replay with the old rule (state.ruleset).
+ *
  * 8 since 09.10.2026: balancing round 5 capped the brood mother's trail at 30
  * swarmers. Uncapped it grew with how long she lived, and on a long maze she
  * lived long.
@@ -31,7 +36,13 @@
  * first fix replayed to a defeat in wave 35 where the player had won in wave 50.
  * Matches from 2 are therefore neither comparable nor replayable here.
  */
-export const RULESET_VERSION = 8;
+export const RULESET_VERSION = 9;
+
+/**
+ * What a protocol without a ruleset number was played under, and the highest
+ * ruleset that still has the capsule upgrade of GDD section 11.
+ */
+export const LEGACY_RULESET = 8;
 
 /**
  * True while the numbers are still being tuned (M6). It turns on what only a

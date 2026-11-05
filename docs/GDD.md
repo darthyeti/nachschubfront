@@ -25,7 +25,7 @@ Optik: 2D-Isometrie im Comicstil mit dicken Tuschekonturen, harter Zellschattier
 
 Eine Partie besteht aus bis zu 50 Wellen. Jede Runde hat vier Phasen:
 
-1. **Planung** (ohne Zeitdruck): Der Spieler markiert bis zu so viele Landezonen auf freien Feldern, wie die kommende Salve Kapseln hat. Die aktuelle Route der Gegner wird als gestrichelte Linie mit Längenangabe angezeigt und aktualisiert sich bei jeder Markierung. Eine Markierung, die den Weg blockieren würde, wird rot angezeigt und ist ungültig. In dieser Phase kann auch Requisition ausgegeben werden. Nicht markierte Zonen werden beim Anfordern zufällig ergänzt.
+1. **Planung** (ohne Zeitdruck): Der Spieler markiert bis zu so viele Landezonen auf freien Feldern, wie die kommende Salve Kapseln hat. Die aktuelle Route der Gegner wird als gestrichelte Linie mit Längenangabe angezeigt und aktualisiert sich bei jeder Markierung. Eine Markierung, die den Weg blockieren würde, wird rot angezeigt und ist ungültig. In dieser Phase kann auch Requisition ausgegeben werden, auch zum Befördern einer Stellung (Abschnitt 11). Nicht markierte Zonen werden beim Anfordern zufällig ergänzt.
 2. **Salve:** Die Kapseln schlagen gestaffelt ein (Vorwarnung, Absturz, Bremstriebwerke, Einschlag, Öffnen, Hologramm). Jede enthält eine zufällige Doktrin mit einem Rang gemäß Nachschubstufe.
 3. **Auswahl:** Der Spieler wählt genau eine der Optionen:
    - eine Stellung behalten,
@@ -90,7 +90,7 @@ Früh entsteht das Labyrinth schneller und die Karte füllt sich dort, wo noch P
 | Psi | 4 pro Sekunde | Aura | 3,0 | Boden, Luft | Verlangsamt um 30 %, dreifacher Schaden gegen Schilde |
 | Tesla | 14 pro Blitz | 1/s | 3,0 | Boden, Luft | Springt auf bis zu 4 Ziele, je Sprung minus 20 % |
 
-Reichweiten in Feldern. Stellungen können nicht aufgewertet, verkauft oder versetzt werden. Stärker werden sie nur über Verschmelzen und Rezepte.
+Reichweiten in Feldern. Stellungen können nicht verkauft oder versetzt werden. Stärker werden sie über Verschmelzen, Rezepte und ab Nachschubstufe 8 durch Befördern (Abschnitt 11).
 
 ### Ränge
 
@@ -245,7 +245,7 @@ Weil der Grundweg mit zwei Signalfeuern kürzer ist, sind die ersten Wellen ents
 ## 10. Wirtschaft
 
 - **Requisition** gibt es pro Abschuss (Belohnung laut Tabelle) und als Wellenbonus (10 plus Wellennummer).
-- Ausgaben: Nachschubstufe erhöhen (Abschnitt 7), Abreißen und Bollwerke bauen.
+- Ausgaben: Nachschubstufe erhöhen (Abschnitt 7), Abreißen, Bollwerke bauen und ab Nachschubstufe 8 Stellungen befördern (Abschnitt 11).
 - Abreißen gilt für Trümmer **und** eigene Stellungen, damit späte Karten umgebaut werden können. Trümmer kosten 15, jedes weitere Abreißen in derselben Partie 5 mehr. Eine Stellung kostet das Dreifache des aktuellen Trümmerpreises und gibt nichts zurück.
 - Abgerissen wird nur in der Planungsphase. Der Weg muss danach offen bleiben, sonst wird abgelehnt.
 - **Kommandopunkte** sind eine eigene Währung: 3 pro besiegtem Boss, 1 pro Welle ohne Durchbruch.
@@ -268,18 +268,18 @@ Einsatz jederzeit während einer Welle, außer wo anders angegeben. Sie setzen k
 | Heiliges Banner | 2 KP | 30 | 2 Wellen | Stellungen im Radius 2,5 verursachen eine Welle lang 50 % mehr Schaden |
 | Luftschlag | 4 KP | 30 | 4 Wellen | Linienziel: Start- und Endpunkt markieren. Die Linie **rastet auf eine der vier Rasterachsen ein** — der Endpunkt wird auf die Zeile oder Spalte des Startpunkts gezogen, je nachdem, welche Achse näher liegt. Nach 1,1 s Vorwarnung (gelbe gestrichelte Linie und Einschlagmarken) überfliegt ein Gunship die Linie in Achsrichtung und wirft 8 Bomben, abwechselnd leicht links und rechts der Linie. Flächenschaden entlang des ganzen Streifens, mit Bonus gegen die Rüstungsart Panzer. Gegen Bosse und den Koloss höchstens 30 % ihrer maximalen Lebenspunkte pro Einsatz |
 
-### Aufwertung statt Bau
+### Befördern
 
-Ab Welle 30 gibt es in der Auswahlphase eine vierte Möglichkeit: Die Kapsel wird **nicht gebaut**, sondern in eine bereits stehende Stellung derselben Doktrin gegeben und hebt sie um einen Rang. Es entsteht keine neue Stellung, kein Feld wird belegt, und die ganze Salve — auch die gewählte Kapsel — wird zu Trümmern.
+Ab Nachschubstufe 8 kann der Spieler in der Planungsphase eine stehende Stellung für Requisition um **einen Rang** heben. Es wird keine Kapsel verbraucht, kein Feld belegt, und die Salve bleibt unberührt: Sie wird danach wie gewohnt angefordert, auch mit schon markierten Landezonen. (Regelversion 9, Tills Entscheidung in Akte E-44 nach `balancing/runden/geldsenke-vorschlag.md`, Variante A. Sie ersetzt die „Aufwertung statt Bau“ der Regelversionen 6 bis 8.)
 
-Zwei Bedingungen, beide aus Balancing-Runde 3:
+- **Ab Nachschubstufe 8.** Vorher konkurriert das Befördern mit der Nachschubstufe, die alle künftigen Kapseln hebt; auf Stufe 8 bleibt die Requisition ohnehin liegen. Wer Nachschub spät kauft, schaltet das Befördern spät frei.
+- **Einmal je Planungsphase.** Das macht es zu einer Entscheidung jeder Runde und verhindert, dass ein Polster kurz vor dem Koloss in einem Zug in mehrere Legenden fließt.
+- **Preis nach dem erreichten Rang, steil steigend:** 180 auf Veteran, 450 auf Elite, 1100 auf Held, 2800 auf Legende. Das ist das 1,5-Fache der Preise bis Regelversion 8 (120 / 300 / 750 / 1875), weil der Spieler jetzt nur noch Requisition zahlt und keine Kapsel mehr. Der Preis je gewonnenem Schaden liegt auf jedem Rang bei etwa dem Gleichen.
+- **Nur Stellungen mit Rang**, höchstens bis Legende. Spezialstellungen haben keinen Rang, und ein Rezept ist keine Stufe auf derselben Leiter.
+- **Rezepte:** Eine beförderte Stellung zählt als Zutat mit ihrem neuen Rang.
+- **Bedienung:** Abschnitt 13.
 
-- **Die Kapsel muss mindestens den Rang der Stellung haben.** Ein Rekrut befördert keinen Helden. Ohne diese Regel wäre jede niedrige Kapsel in einer hohen Stellung mehr wert als an jedem Bauplatz, und es gäbe keinen Grund mehr zu verschmelzen.
-- **Es kostet Requisition, steil steigend mit dem erreichten Rang:** 120 auf Veteran, 300 auf Elite, 750 auf Held, 1875 auf Legende. Der Grund für die Option ist, dass späte Requisition keine Verwendung hatte — eine kostenlose Aufwertung würde die Langeweile beheben und die Kasse voll lassen.
-
-Spezialstellungen werden nicht aufgewertet: Sie haben keinen Rang, und ein Rezept ist keine Stufe auf derselben Leiter.
-
-Angeboten wird eine Möglichkeit je Rangstufe, nicht je Stellung — ab Welle 30 stehen Dutzende, und zwanzig Schaltflächen sind keine Wahl. Welche Stellung einer Stufe es trifft, entscheidet das Spiel wie beim Rezept (die älteste) und zeigt sie vor dem Antippen auf der Karte.
+King of the Hill behält seine eigene Aufwertung anstelle der Salve (Abschnitt 15). Protokolle der Regelversion 8 und früher spielen sich mit der alten Regel nach: Eine Kapsel der Salve wird in eine stehende Stellung gegeben, ab Welle 30, gegen Requisition.
 
 ## 12. Sieg, Niederlage, Wertung
 
@@ -299,6 +299,8 @@ Angeboten wird eine Möglichkeit je Rangstufe, nicht je Stellung — ab Welle 30
 
 **Abbruchmodus.** Eigener Knopf in der Planungsphase. Ist er aktiv, werden alle abreißbaren Felder hervorgehoben und der Preis steht am jeweiligen Feld. Antippen reißt ab, auf dem Tablet mit kurzer Bestätigung. Der Modus bleibt aktiv, bis er beendet wird, damit mehrere Felder nacheinander geräumt werden können. Solange er aktiv ist, können keine Landezonen markiert werden.
 
+**Befördern.** Eigener Knopf in der Planungsphase, gebaut wie der Abbruchmodus. Ist er aktiv, tragen alle beförderbaren Stellungen den Preis und den Rang, den sie erreichen würden, am Feld; eine nicht bezahlbare ist abgeblendet. Antippen befördert, auf dem Tablet mit kurzer Bestätigung, die den Rang und den Preis nennt. Vor Nachschubstufe 8 und nach der Beförderung dieser Planung ist der Knopf gesperrt (Schloss): Antippen nennt den Grund, ohne den Modus zu öffnen. Eine Stellung, die nicht gehoben werden kann (Legende, Spezialstellung, zu wenig Requisition), antwortet mit dem Grund.
+
 **Nachschubstufe.** Der Knopf heißt nicht "Nachschub ausbauen", sondern nennt Stufe und Preis, zum Beispiel "Nachschubstufe 3 auf 4, 80". Darunter stehen die neuen Rangchancen als Zeile (zum Beispiel 40 / 40 / 20 / 0 / 0) oder als kleine Balken, jeweils in den Rangfarben. Langes Drücken oder Hover zeigt eine kurze Erklärung: Die Stufe beeinflusst nur künftige Kapseln, nicht bestehende Stellungen.
 
 Regeln: Nichts darf ausschließlich über Hover erreichbar sein. Trefferflächen mindestens 44 x 44 CSS-Pixel. Die Standard-Zoomstufe auf dem Tablet sorgt dafür, dass ein Feld mindestens etwa 40 Pixel breit ist. Wichtige Knöpfe liegen in Daumenreichweite am unteren Rand. Zwischen Tippen und Ziehen wird über eine kleine Bewegungsschwelle unterschieden, damit beim Verschieben keine Markierungen entstehen.
@@ -312,7 +314,8 @@ Regeln: Nichts darf ausschließlich über Hover erreichbar sein. Trefferflächen
 - Weitere Rezepte, Karten, Endlosmodus-Details.
 - Sprites für Gegner (Blender mit Toon-Shader) falls die Code-Grafik nicht reicht.
 - **Unbegrenzte Nachschubstufe (vorgemerkt, noch nicht umsetzen).** Aus der Auswertung von Spieltest 2 stammt die Idee, die Nachschubstufe über Stufe 8 hinaus weiterführbar zu machen: jede weitere Stufe eine leicht höhere Legende-Chance bei stark steigendem Preis, damit auch ganz späte Requisitionsüberschüsse gebunden werden. Mit Till nicht final abgestimmt und deshalb nicht Teil von v3. Separat aufgreifen, falls Bollwerk und teurere Kommandos allein nicht reichen.
-- ~~Aufwertung statt Bau~~ — **umgesetzt in Balancing-Runde 3 (29.09.2026), siehe Abschnitt 11.**
+- ~~Aufwertung statt Bau~~ — umgesetzt in Balancing-Runde 3 (29.09.2026), **mit Regelversion 9 ersetzt durch Befördern, siehe Abschnitt 11.**
+- **Feldstandarte (vorgemerkt, noch nicht umsetzen).** Dauerhafter Aura-Ausbau einer Stellung für Requisition, nicht stapelbar, wirkt mal dem Heiligen Banner. Zahlen und Abschätzung im Vorschlag `balancing/runden/geldsenke-vorschlag.md`, Variante B. Sinnvoll als eigene Runde, falls nach dem Befördern noch Geld liegen bleibt.
 
 ## 15. Spielmodi
 
@@ -321,7 +324,7 @@ Eine neue Partie hat neben dem Seed eine **Lauf-Konfiguration**: Modus und Schwi
 - **Standard** ist das Spiel, das dieses Dokument beschreibt. Gibt es nur einen wählbaren Modus, startet „Neue Partie" direkt; seit Version 0.9.5 sind es zwei.
 - **Mehr als ein Modus:** „Neue Partie" führt auf einen Bildschirm mit einer Karte je Modus (Name, ein Satz Beschreibung, Bestwert, Kennzeichen „Experimentell"). Antippen markiert nur, „Los" startet. Vorgewählt ist der zuletzt gespielte Modus.
 - **Schwierigkeit:** vorerst nur „Normal". Die Auswahl erscheint, sobald es eine zweite gibt; Zahlen dafür kommen erst nach der Abstimmung in M6.
-- **Regeln, die sich zwischen Modi unterscheiden, sind Daten.** Der Modus-Datensatz in `src/data/modes.js` nennt für jede solche Regel eine Variante, die Simulation schlägt nach, was sie tut. Erste Regel dieser Art ist die Aufwertung (`upgrade.kind`): im Standard `'pod'`, die Regel aus Abschnitt 11.
+- **Regeln, die sich zwischen Modi unterscheiden, sind Daten.** Der Modus-Datensatz in `src/data/modes.js` nennt für jede solche Regel eine Variante, die Simulation schlägt nach, was sie tut. Erste Regel dieser Art ist die Aufwertung (`upgrade.kind`): im Standard `'pod'`, ab Regelversion 9 mit der Regel „Befördern“ aus Abschnitt 11 (`promote`, die Simulation schlägt es nach `state.ruleset` nach, damit ältere Protokolle sich unverändert nachspielen).
 - Ein Modus hat einen eigenen Stand (`rev`). Er steigt, wenn eine Regeländerung in diesem Modus alte Ergebnisse unvergleichbar macht, so wie `RULESET_VERSION` für das ganze Spiel.
 
 ### King of the Hill (experimentell)
@@ -333,7 +336,7 @@ Auftrag: `docs/meilensteine/M7b-king-of-the-hill.md`, Studie `reference/studien/
 - **Eine Landung, die irgendeinen Riss von der Bastion abschneidet, ist verboten** — auch einen, der gerade nicht angreift.
 - **Geschützt:** Bastion, Torfelder und je ein Feld Umkreis, dazu die **Sperrzone**: jedes Feld, dessen Mittelpunkt höchstens 4 Felder von der Kartenmitte entfernt ist. Dort kein Bau, keine Landung, keine Ruine. Sie richtet sich gegen den Ring um die Bastion, der sonst alle vier Arme zugleich abdeckt.
 - **Ruinen:** 12 bis 20 einzelne Felder aus dem Seed, jede gegen alle vier Risse geprüft. Mauerreste gibt es hier nicht.
-- **Aufwertung statt Salve:** In der Planung kann statt der Salve eine Stellung einen Rang steigen, für 120, 300, 750 oder 1875 Requisition (auf Veteran, Elite, Held, Legende). Nur ohne markierte Landezonen; keine Kapseln, keine neuen Trümmer, die Welle beginnt sofort. Ab Welle 1, der Preis regelt die Häufigkeit. **Das ist eine andere Regel als „Aufwertung statt Bau" in Abschnitt 11**, nur die Preise sind dieselben; der Standardmodus behält seine.
+- **Aufwertung statt Salve:** In der Planung kann statt der Salve eine Stellung einen Rang steigen, für 120, 300, 750 oder 1875 Requisition (auf Veteran, Elite, Held, Legende). Nur ohne markierte Landezonen; keine Kapseln, keine neuen Trümmer, die Welle beginnt sofort. Ab Welle 1, der Preis regelt die Häufigkeit. **Das ist eine andere Regel als „Befördern" in Abschnitt 11** (dort kommt die Salve danach noch, und die Preise sind höher); King of the Hill behält seine.
 
 **Abweichungen vom Standard**, alle als Werte des Modus (`src/data/modes.js`), keine im Standardmodus:
 
@@ -342,7 +345,7 @@ Auftrag: `docs/meilensteine/M7b-king-of-the-hill.md`, Studie `reference/studien/
 | Kapseln in Welle 1 | 6 | 8 | Studienwert (Entscheidung 02.10.2026) |
 | Start-Requisition | 0 | 30 | Studienwert |
 | Gegner-Lebenspunkte | x 1 | x 0,1 | Die Wege sind etwa halb so lang; Platzhalter der Studie, siehe `balancing/runden/koth-1.md` |
-| Aufwertung | Kapsel in Stellung, ab Welle 30 | statt Salve, ab Welle 1 | siehe oben |
+| Aufwertung | Befördern: Rang gegen Requisition, ab Nachschubstufe 8, einmal je Planung | statt Salve, ab Welle 1 | siehe oben |
 
 Die Wellenregeln (Abschnitt 9) gelten unverändert, der Faktor kommt obendrauf.
 

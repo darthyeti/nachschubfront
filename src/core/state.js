@@ -1,6 +1,6 @@
 // Game state as plain data. Systems in sim/ mutate it, render/ only reads it.
 
-import { RULES } from '../data/rules.js';
+import { RULES, RULESET_VERSION } from '../data/rules.js';
 import { ECONOMY } from '../data/economy.js';
 import { MIN_SUPPLY_LEVEL } from '../data/supply.js';
 import { createRng } from './random.js';
@@ -11,13 +11,16 @@ import { resolveConfig, DEFAULT_CONFIG } from '../data/modes.js';
 
 /**
  * @param {string} seed  Shown to the player; the same seed gives the same map.
- * @param {{mode?: string, difficulty?: string}} [config]  Run configuration
+ * @param {{mode?: string, difficulty?: string, ruleset?: number}} [config]  Run configuration
  *   (src/data/modes.js). Unknown ids throw; callers that take a configuration
  *   from outside pass it through sanitizeConfig first. Later fields (a campaign
  *   carrying something over) are meant to arrive in here as well.
  */
 export function createGameState(seed, config = DEFAULT_CONFIG) {
   const { mode, difficulty } = resolveConfig(config);
+  // Which ruleset the match is played under. A replay of an older protocol
+  // passes its own, so rules that changed since keep their old form there.
+  const ruleset = Number.isInteger(config?.ruleset) ? config.ruleset : RULESET_VERSION;
   const rng = createRng(seed);
   const map = generateMap(rng.fork('map'), mode.map);
   // The rift of wave 1; sim/rifts.js keeps it in step from then on.
@@ -28,6 +31,10 @@ export function createGameState(seed, config = DEFAULT_CONFIG) {
     /** The mode record (not just its id) and the difficulty id; never change. */
     mode,
     difficulty: difficulty.id,
+    /** RULESET_VERSION the match is played under; never changes (src/data/rules.js). */
+    ruleset,
+    /** Round (state.wave) in which an emplacement was last promoted, or null (ruleset 9). */
+    promotedRound: null,
     map,
     /**
      * The rift the coming or running wave uses (M7b); always 0 on a map with one

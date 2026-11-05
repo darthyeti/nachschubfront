@@ -37,6 +37,22 @@ export const ECONOMY = {
   /** ... and every rank above that multiplies it by this much. */
   upgradeCostPerRank: 2.5,
 
+  /**
+   * Promoting (GDD section 11, ruleset 9): in planning, a standing emplacement
+   * goes up one rank for requisition alone, no capsule. It replaces the capsule
+   * upgrade above, which stays only for protocols of rulesets before 9.
+   */
+  promote: {
+    /** First ruleset that has it (and no longer the capsule upgrade). */
+    fromRuleset: 9,
+    /** Supply level from which it is open; below, supply is the better buy. */
+    fromSupplyLevel: 8,
+    /** Promotions per planning phase. */
+    perPlanning: 1,
+    /** Price of the rank reached: Veteran, Elite, Held, Legende (1.5 x the old ones). */
+    prices: [180, 450, 1100, 2800],
+  },
+
   /** Command points for a defeated boss. */
   pointsPerBoss: 3,
   /** Command points for a wave without a single breakthrough. */

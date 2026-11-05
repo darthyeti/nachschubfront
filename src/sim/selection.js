@@ -14,6 +14,7 @@ import { addTower, removeTower, towerById } from './towers.js';
 import { addRubble, clearRubble, isRubble } from './rubble.js';
 import { nextRubbleCost } from './economy.js';
 import { ECONOMY, upgradeCost } from '../data/economy.js';
+import { RULESET_VERSION } from '../data/rules.js';
 import { clearZones } from './zones.js';
 
 /** Pods of the salvo grouped by doctrine and rank, in pod order. */
@@ -130,6 +131,9 @@ export function selectionOptions(state) {
  *
  * `planningCost(state, tower)` is the price of that upgrade in planning, or null
  * where the rule offers none.
+ * - `promote`: ruleset 9, the standard mode: in planning, for requisition alone,
+ *   from supply level 8, once per planning phase; the round goes on (GDD
+ *   section 11).
  * - `off`: no upgrades.
  */
 export const UPGRADE_KINDS = {
@@ -144,11 +148,28 @@ export const UPGRADE_KINDS = {
   // spoil the game (B5). Never the value of a mode a player gets.
   free: { inPlanning: true, selectionOptions: () => [], planningCost: () => 0 },
   off: { selectionOptions: () => [], planningCost: () => null },
+  // Ruleset 9 and later, where the standard mode's `pod` was: in planning, for
+  // requisition alone, no capsule, no salvo given up and the round goes on.
+  // `gate` names the reason it is closed for the whole map, or null.
+  promote: {
+    inPlanning: true,
+    startsWave: false,
+    selectionOptions: () => [],
+    planningCost: (state, tower) => ECONOMY.promote.prices[tower.rank - 1] ?? null,
+    gate: (state) => {
+      if (state.supplyLevel < ECONOMY.promote.fromSupplyLevel) return 'supply';
+      if (state.promotedRound === state.wave) return 'once';
+      return null;
+    },
+  },
 };
 
 /** The upgrade rule of the running mode. */
 export function upgradeKind(state) {
-  const kind = state.mode?.upgrade?.kind ?? 'pod';
+  let kind = state.mode?.upgrade?.kind ?? 'pod';
+  // The capsule upgrade of the standard mode became promoting with ruleset 9; a
+  // match of an older ruleset (a replay) keeps the old rule.
+  if (kind === 'pod' && (state.ruleset ?? RULESET_VERSION) >= ECONOMY.promote.fromRuleset) kind = 'promote';
   const rule = UPGRADE_KINDS[kind];
   if (!rule) throw new Error(`Unknown upgrade kind: ${kind}`);
   return rule;

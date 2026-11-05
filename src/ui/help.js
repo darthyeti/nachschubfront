@@ -27,7 +27,7 @@ export function commandMeta(command) {
  *
  * @returns {{title: string, rows: {icon: string, name: string, text: string, meta?: string}[]}[]}
  */
-export function sheetSections(commands = COMMANDS) {
+export function sheetSections(commands = COMMANDS, { promoting = true } = {}) {
   const row = (iconName, [name, text], meta) => ({ icon: iconName, name, text, ...(meta ? { meta } : {}) });
   const firstCommandWave = railOrder(commands)[0].fromWave;
   return [
@@ -50,7 +50,7 @@ export function sheetSections(commands = COMMANDS) {
         row('supply', T.supplyDisc),
         row('demolish', T.demolishDisc),
         row('bulwark', T.bulwarkDisc),
-        row('upgrade', T.upgradeDisc),
+        row('upgrade', promoting ? T.promoteDisc : T.upgradeDisc),
         row('tempo-0', T.pause),
         row('tempo-2', T.tempo),
       ],
