@@ -9,7 +9,7 @@
 
 import { ell } from './draw.js';
 import { C } from './palette.js';
-import { FX_LIGHT, FX_BALLS, FX_BURN, FX_TESLA, FX_EMBER, FX_THUNDER } from '../data/art.js';
+import { FX_LIGHT, FX_BALLS, FX_BURN, FX_TESLA, FX_EMBER, FX_THUNDER, FX_BIG_ROCKET, FX_BIG_BOOM, FX_MIST } from '../data/art.js';
 
 const INK = C.ink;
 const TAU = Math.PI * 2;
@@ -315,4 +315,179 @@ export function drawPressureRing(ctx, x, y, r, u, colour, width, reduced) {
   ctx.globalAlpha = alpha * 0.25;
   ell(ctx, x, y, R * 0.92, R * 0.46, colour, null);
   ctx.globalAlpha = 1;
+}
+
+// ======================================================================================
+// Rockets of the siege mortar (step 2)
+// ======================================================================================
+
+/** The heavy rocket of the siege mortar: a thick body, a long exhaust flame and big fins. (x, y) is the nose, (ux, uy) the way it flies. */
+export function drawHeavyRocket(ctx, x, y, ux, uy, accent, flick = 1) {
+  const S = FX_BIG_ROCKET;
+  const tail = [x - ux * S.tail, y - uy * S.tail];
+  const nx = -uy;
+  const ny = ux;
+  glow(ctx, tail[0] - ux * 6, tail[1] - uy * 6, S.flame[0] * 3.2, '#ffb02e', 0.5);
+  // A long exhaust flame: an ink kite in orange, then a white one inside.
+  for (const [len, wid, col, ink] of [[S.flame[0] * 2.6 * flick, S.flame[1], '#ff8a2a', true], [S.flame[0] * 1.5 * flick, S.flame[1] * 0.55, '#fff3c4', false]]) {
+    ctx.beginPath();
+    ctx.moveTo(tail[0] + nx * wid, tail[1] + ny * wid);
+    ctx.quadraticCurveTo(tail[0] - ux * len * 0.4 + nx * wid, tail[1] - uy * len * 0.4 + ny * wid, tail[0] - ux * len, tail[1] - uy * len);
+    ctx.quadraticCurveTo(tail[0] - ux * len * 0.4 - nx * wid, tail[1] - uy * len * 0.4 - ny * wid, tail[0] - nx * wid, tail[1] - ny * wid);
+    ctx.closePath();
+    ctx.fillStyle = col;
+    ctx.fill();
+    if (ink) {
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+  }
+  ctx.fillStyle = '#717884';
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1.2;
+  for (const sd of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(tail[0] + ux * 5, tail[1] + uy * 5);
+    ctx.lineTo(tail[0] + nx * S.fin * sd - ux * 2, tail[1] + ny * S.fin * sd - uy * 2);
+    ctx.lineTo(tail[0] + ux * 0.5, tail[1] + uy * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  strokes(ctx, [tail, [x - ux * 2, y - uy * 2]], [[S.ink, INK], [S.body, '#a6adb8'], [S.body * 0.35, '#d3d8de']]);
+  // A band in the colour of the doctrine behind the warhead.
+  const band = [x - ux * S.tail * 0.42, y - uy * S.tail * 0.42];
+  strokes(ctx, [[band[0] - ux * 1.2, band[1] - uy * 1.2], [band[0] + ux * 1.2, band[1] + uy * 1.2]], [[S.body, accent]]);
+  ell(ctx, x, y, S.warhead, S.warhead, accent, INK, 1.3);
+  ell(ctx, x - 1, y - 1, S.warhead * 0.4, S.warhead * 0.4, '#ffe3a0', null);
+}
+
+/**
+ * The fire of the big impact on the ground point (x, y) (screen px): a white flash and a fireball of several
+ * lobes that rises and darkens. `r` is the splash radius in cells, `age` seconds. The pressure ring is the
+ * ground layer's (it lies under the figures); dust, smoke and debris are particles of the caller.
+ */
+export function drawBigImpact(ctx, x, y, r, age, seed, reduced) {
+  const B = FX_BIG_BOOM;
+  if (age > B.life) return;
+  const u = age / B.life;
+  if (age < B.flash) glow(ctx, x, y - 10, r * CELL_RX * 0.7, '#fff6d8', 0.85 * (1 - age / B.flash) * (reduced ? 0.5 : 1));
+  const R = r * 32 * 0.42 * (0.55 + 0.45 * Math.sqrt(u));
+  const ramp = ['#fff3b0', '#ffd23f', '#ffb13b', '#ff8a2a', '#e2531f', '#7a2e14', '#3a2a22'];
+  const col = ramp[Math.min(ramp.length - 1, Math.floor(u * ramp.length))];
+  const lift = u * 26;
+  ctx.globalAlpha = Math.max(0, 1 - Math.max(0, u - 0.6) / 0.4);
+  ctx.beginPath();
+  for (let i = 0; i < B.lobes; i++) {
+    const a = (i / B.lobes) * TAU + seed;
+    const lr = R * (0.5 + 0.18 * hash(seed + i));
+    const lx = x + Math.cos(a) * R * 0.55;
+    const ly = y - R * 0.55 - lift + Math.sin(a) * R * 0.3;
+    ctx.moveTo(lx + lr, ly);
+    ctx.arc(lx, ly, lr, 0, TAU);
+  }
+  ctx.moveTo(x + R * 0.7, y - R * 0.6 - lift);
+  ctx.arc(x, y - R * 0.6 - lift, R * 0.7, 0, TAU);
+  ctx.lineWidth = 2.6;
+  ctx.strokeStyle = INK;
+  ctx.stroke();
+  ctx.fillStyle = col;
+  ctx.fill();
+  if (u < 0.5) ell(ctx, x - R * 0.15, y - R * 0.75 - lift, R * 0.4, R * 0.3, ramp[0], null);
+  ctx.globalAlpha = 1;
+}
+
+/** The crater of the big impact: a dark patch, a pit with a rim, a last glow; fades over its life (u 0 to 1). */
+export function drawCrater(ctx, x, y, r, u) {
+  const k = Math.min(1, u * 8);
+  const fade = 1 - u;
+  ell(ctx, x, y, r * CELL_RX * 0.55 * k, r * CELL_RX * 0.27 * k, `rgba(14,10,8,${(0.35 * fade).toFixed(3)})`, null);
+  ell(ctx, x, y, 14 * k, 7 * k, `rgba(42,33,27,${(0.9 * fade).toFixed(3)})`, `rgba(0,0,0,${(0.8 * fade).toFixed(3)})`, 1.6);
+  glow(ctx, x, y, 12, '#ff8a2a', 0.35 * Math.max(0, 1 - u * 3));
+}
+
+// ======================================================================================
+// Mist of the purge shrine (step 2)
+// ======================================================================================
+
+/** A smooth closed path through screen points (quadratic curves through the midpoints). */
+function smoothClosed(ctx, pts) {
+  const n = pts.length;
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  ctx.beginPath();
+  const m0 = mid(pts[n - 1], pts[0]);
+  ctx.moveTo(m0[0], m0[1]);
+  for (let i = 0; i < n; i++) {
+    const p = pts[i];
+    const m = mid(p, pts[(i + 1) % n]);
+    ctx.quadraticCurveTo(p[0], p[1], m[0], m[1]);
+  }
+  ctx.closePath();
+}
+
+/**
+ * The flow of mist of the purge shrine. A pour of mist falls from the artefact to the foot, and from there
+ * waves run out over the ground to the rim of the aura (`R` cells), slowing and thinning; at the rim the mist
+ * lies as a bank. Gradients only, no ink. `project(x, y)` is the screen point of a ground point, `pour` the
+ * screen point of the artefact, `level` the aura level (dim while idle). A thin gold line marks the reach.
+ * With reduced motion the waves stand still.
+ */
+export function drawMistFlow(ctx, project, cx, cy, R, pour, level, t, reduced) {
+  const M = FX_MIST;
+  const [ox, oy] = project(cx, cy);
+  // Work on the ground plane: points relative to the centre, height doubled, so a circle of the world is a
+  // circle here and a radial gradient follows it.
+  const ring = (r, lumpy, phase) => {
+    const pts = [];
+    for (let i = 0; i < M.lobes; i++) {
+      const a = (i / M.lobes) * TAU;
+      const bump = 1 + lumpy * Math.sin(i * 2.4 + phase) * (i % 2 ? 1 : 0.5);
+      const [x, y] = project(cx + Math.cos(a) * r * bump, cy + Math.sin(a) * r * bump);
+      pts.push([x - ox, (y - oy) * 2]);
+    }
+    return pts;
+  };
+  ctx.save();
+  ctx.translate(ox, oy);
+  ctx.scale(1, 0.5);
+  const band = (r0, r1, peak, alpha, lumpy, phase) => {
+    if (alpha <= 0.005) return;
+    const g = ctx.createRadialGradient(0, 0, Math.max(0, r0 * CELL_RX), 0, 0, r1 * CELL_RX * (1 + lumpy));
+    g.addColorStop(0, 'rgba(255,243,220,0)');
+    g.addColorStop(peak, `rgba(255,243,220,${alpha.toFixed(3)})`);
+    g.addColorStop(1, 'rgba(255,243,220,0)');
+    smoothClosed(ctx, ring(r1 * (1 + lumpy), lumpy, phase));
+    ctx.fillStyle = g;
+    ctx.fill();
+  };
+  // A thin veil over the whole aura, so its reach stays readable.
+  band(0, R, 0.85, 0.08 + 0.1 * level, 0.02, t * 0.7);
+  // The waves, outermost first; each is soft on both sides and thins as it runs out.
+  const waves = [];
+  for (let k = 0; k < M.waves; k++) waves.push(reduced ? k / M.waves + 0.12 : (t / M.period + k / M.waves) % 1);
+  waves.sort((a, b) => b - a);
+  for (const phi of waves) {
+    const ease = 1 - Math.pow(1 - phi, 1.7);
+    const r = 0.45 + (M.rim[0] - 0.45) * ease;
+    const w = M.band * (1.2 - 0.5 * phi);
+    const alpha = Math.min(1, phi / 0.12) * (1 - phi * 0.75) * (0.22 + 0.3 * level);
+    band(Math.max(0, r - w), r, 0.7, alpha, M.lumpy * (0.4 + phi), t * 1.3 + phi * 6);
+  }
+  // The bank at the rim, where the mist comes to rest.
+  band(M.rim[0] - 0.4, M.rim[1], 0.62, 0.24 + 0.24 * level, 0.05, t * 0.9);
+  ctx.restore();
+  ctx.globalAlpha = 0.25 + 0.3 * level;
+  ell(ctx, ox, oy, R * CELL_RX, R * CELL_RX * 0.5, null, '#ffd66e', 1.2);
+  // The pour: mist falling from the artefact to the foot, and a pool there.
+  for (let i = 0; i < M.pour; i++) {
+    const f = reduced ? (i + 0.5) / M.pour : (t * 1.4 + i / M.pour) % 1;
+    const qx = pour[0] + (ox - pour[0]) * f + (reduced ? 0 : Math.sin(t * 3 + i * 2) * 2);
+    const qy = pour[1] + (oy - pour[1]) * f;
+    const rr = 3 + f * 7;
+    ctx.globalAlpha = (0.25 + 0.35 * level) * Math.sin(Math.PI * f);
+    ell(ctx, qx, qy, rr, rr * 0.8, '#fff3d8', null);
+  }
+  ctx.globalAlpha = 1;
+  glow(ctx, ox, oy, 22, '#fff1cf', 0.35 + 0.3 * level);
 }

@@ -23,6 +23,7 @@ import {
   drawEmberThreads,
   drawSkyStrike,
   drawThunderHop,
+  drawHeavyRocket,
 } from './weaponFx.js';
 import { CASING_PORT } from './turrets.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
@@ -53,6 +54,9 @@ import {
   FX_BALLS,
   FX_BURN,
   FX_THUNDER,
+  FX_SALVO,
+  FX_BIG_ROCKET,
+  FX_BIG_BLAST,
   SPECIAL_CASING_PORT,
   SPECIAL_FIRE,
 } from '../data/art.js';
@@ -295,7 +299,13 @@ export function updateTurretFx(tower, o) {
       if (!reducedMotion) sparkSpec(fx, lift, hx, hy, liftAt(hx, hy) + FX_HIT_Z, 6, 180, 0.3);
     } else if (doctrine === 'mortar') {
       fx.flash = FX_FLASH_SECONDS.mortar;
-      fx.launch = { x: mw.x, y: mw.y, z: mw.z, dir: mw.dir, lift };
+      // The salvo leaves three neighbouring tubes: the one that fired and the next two.
+      const tubes = [{ x: mw.x, y: mw.y, z: mw.z, dir: mw.dir, lift }];
+      for (let k = 1; k < FX_SALVO.count; k++) {
+        const m = muzzleWorld(tower, shown, theta, { ...pose, recoil: 0, tube: (o.tube + k) % model.tubes }, o.push);
+        tubes.push({ x: m.x, y: m.y, z: m.z, dir: m.dir, lift });
+      }
+      fx.launch = { x: mw.x, y: mw.y, z: mw.z, dir: mw.dir, lift, tubes };
       // The back blast leaves behind the pod, against the line of the tube.
       const back = [-mw.dir[0], -mw.dir[1], -mw.dir[2]];
       const n = reducedMotion ? 2 : 5;
@@ -329,6 +339,18 @@ export function updateTurretFx(tower, o) {
       const at = muzzleWorld(tower, shown, theta, { ...pose, recoil: 0 }, 0);
       fx.launch = { x: at.x, y: at.y, z: at.z, dir: at.dir, lift };
       kickLight(fx, doctrine, at.x, at.y, null, 'muzzle');
+      // The back blast throws dust along the ground, mostly behind the weapon.
+      const B = FX_BIG_BLAST;
+      const nd = reducedMotion ? B.reducedDust : B.dust;
+      for (let i = 0; i < nd; i++) {
+        const a = Math.atan2(-at.dir[1], -at.dir[0]) + rand(-1.5, 1.5);
+        const sp = rand(B.dustSpeed[0], B.dustSpeed[1]);
+        queue(fx, {
+          kind: 'wsmoke', x: tower.x + HALF + Math.cos(a) * 0.15, y: tower.y + HALF + Math.sin(a) * 0.15, z: lift + 3,
+          vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: rand(4, 14), r0: B.dustSize[0], r1: rand(B.dustSize[1] * 0.7, B.dustSize[1]),
+          tone: 0, life: B.dustLife * rand(0.8, 1.1), floor: lift,
+        });
+      }
       // A pillar of smoke up the tube and a puff behind the weapon.
       const n = reducedMotion ? 3 : 8;
       for (let i = 0; i < n; i++) {
@@ -964,11 +986,11 @@ function shootStorm(tower, fx, o, mw, events, aim) {
 // hold), in world coordinates: x, y in cells, z in px above level 0.
 
 /** Kinds that effects.js hands over to `stepWorldParticle` and `drawWorldParticle`. */
-export const WORLD_KINDS = new Set(['wsmoke', 'wspark', 'wcasing', 'wtracer']);
+export const WORLD_KINDS = new Set(['wsmoke', 'wspark', 'wcasing', 'wtracer', 'wdebris']);
 
 /** Moves a particle in the world by `dt` seconds. */
 export function stepWorldParticle(p, dt) {
-  if (p.kind === 'wcasing' || p.kind === 'wspark') {
+  if (p.kind === 'wcasing' || p.kind === 'wspark' || p.kind === 'wdebris') {
     p.vz -= FX_GRAVITY * dt;
     p.x += p.vx * dt;
     p.y += p.vy * dt;
@@ -976,7 +998,7 @@ export function stepWorldParticle(p, dt) {
     const floor = liftAt(p.x, p.y);
     if (p.z < floor) {
       p.z = floor;
-      p.vz = p.kind === 'wcasing' && Math.abs(p.vz) > 60 ? -p.vz * 0.3 : 0;
+      p.vz = (p.kind === 'wcasing' || p.kind === 'wdebris') && Math.abs(p.vz) > 60 ? -p.vz * 0.3 : 0;
       p.vx *= 0.4;
       p.vy *= 0.4;
     }
@@ -1011,6 +1033,21 @@ export function drawWorldParticle(ctx, p, u) {
     ctx.moveTo(a[0], a[1]);
     ctx.lineTo(b[0], b[1]);
     ctx.stroke();
+    ctx.globalAlpha = 1;
+  } else if (p.kind === 'wdebris') {
+    const [x, y] = P(p.x, p.y, p.z);
+    ctx.globalAlpha = u > 0.75 ? (1 - u) / 0.25 : 1;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(p.rot + p.vrot * u * p.max);
+    ctx.fillStyle = '#5a4d40';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.rect(-p.size, -p.size * 0.7, p.size * 2, p.size * 1.4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
     ctx.globalAlpha = 1;
   } else if (p.kind === 'wcasing') {
     const [x, y] = P(p.x, p.y, p.z);
@@ -1072,8 +1109,13 @@ export function launchOf(shell, tower, claim = true) {
  * is the drawing's: a curve that leaves along the barrel and falls on the target.
  */
 export function rocketPosition(launch, shell, u = Math.min(1, shell.t / shell.flight)) {
+  return rocketAlong(launch, shell.to, u);
+}
+
+/** The same curve to any end point `to` ({x, y}); the rockets of a salvo land beside the shell's point. */
+export function rocketAlong(launch, to, u) {
   const P0 = [launch.x, launch.y, launch.z];
-  const P2 = [shell.to.x, shell.to.y, liftAt(shell.to.x, shell.to.y) + FX_ROCKET.endZ];
+  const P2 = [to.x, to.y, liftAt(to.x, to.y) + FX_ROCKET.endZ];
   const d = Math.sqrt((P2[0] - P0[0]) ** 2 + (P2[1] - P0[1]) ** 2);
   const reach = d * FX_ROCKET.reach;
   const P1 = [P0[0] + launch.dir[0] * reach, P0[1] + launch.dir[1] * reach, P0[2] + launch.dir[2] * reach * K + FX_ROCKET.lift];
@@ -1103,8 +1145,11 @@ export function rocketTrail(rec, shell, dt) {
 /** A rocket in flight: exhaust flame, body, warhead in the colour of the mortar doctrine. */
 export function drawRocket(ctx, rec, shell) {
   const u = Math.min(1, shell.t / shell.flight);
-  const pos = rocketPosition(rec.launch, shell, u);
-  const before = rocketPosition(rec.launch, shell, Math.max(0, u - 0.04 / shell.flight));
+  drawRocketOn(ctx, rocketPosition(rec.launch, shell, u), rocketPosition(rec.launch, shell, Math.max(0, u - 0.04 / shell.flight)));
+}
+
+/** A rocket at world point `pos`, having come from `before` a moment ago. */
+export function drawRocketOn(ctx, pos, before) {
   const a = P(pos[0], pos[1], pos[2]);
   const b = P(before[0], before[1], before[2]);
   const l = Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) || 1;
@@ -1151,4 +1196,80 @@ export function drawShell(ctx, rec, shell) {
   ell(ctx, s[0], s[1], 5.4, 5.4, '#3a3630', INK, 1.8);
   ell(ctx, s[0] - 1.6, s[1] - 1.6, 1.6, 1.6, '#8a857a', null);
   ell(ctx, s[0], s[1], 5.4, 1.6, null, '#e0b83e', 1.2);
+}
+
+// ---------- the salvo of the rocket launcher (issue 90) ----------
+
+/**
+ * The rockets of one hit of the simulation. Rocket `k` leaves tube `k` at `k * gap` s and flies `flight - gap`
+ * s, so the middle one lands when the shell of the simulation does and the others `gap` s before and after.
+ * `landing` is where each lands, within FX_SALVO.spread cells of the shell's point (the middle exactly on it).
+ * @returns {{k: number, start: number, flight: number, launch: object, to: {x: number, y: number}}[]}
+ */
+export function salvoRockets(launch, shell, room = FX_SALVO.count) {
+  const S = FX_SALVO;
+  const tubes = launch.tubes ?? [launch];
+  const flight = Math.max(S.minFlight, shell.flight - S.gap);
+  const a = (Math.sin(shell.id * 12.9898) * 43758.5453) % TAU;
+  const out = [];
+  // The middle one first: it is the one the simulation's time belongs to, so it is the last to go if there is no room.
+  for (const k of [1, 0, 2].slice(0, Math.max(1, Math.min(S.count, room)))) {
+    const ang = a + (k === 0 ? 0 : 2.4);
+    const off = k === 1 ? 0 : S.spread;
+    out.push({
+      k, start: k * S.gap, flight, launch: tubes[k % tubes.length],
+      to: { x: shell.to.x + Math.cos(ang) * off, y: shell.to.y + Math.sin(ang) * off },
+    });
+  }
+  return out;
+}
+
+/** Progress of a rocket of a salvo at the shell's clock `T` (seconds since launch): 0 to 1, or -1 before it leaves. */
+export const salvoProgress = (r, T) => (T < r.start ? -1 : Math.min(1, (T - r.start) / r.flight));
+
+/** Puff of smoke behind a rocket of a salvo. */
+export function salvoPuff(r, u) {
+  const [x, y, z] = rocketAlong(r.launch, r.to, u);
+  return { kind: 'wsmoke', x, y, z, vx: 0, vy: 0, vz: 8, r0: 2.5, r1: 7, tone: 0, life: 0.7, floor: r.launch.lift ?? 0 };
+}
+
+/** Draws one rocket of a salvo at progress `u` (0 to 1). */
+export function drawSalvoRocket(ctx, r, u) {
+  drawRocketOn(ctx, rocketAlong(r.launch, r.to, u), rocketAlong(r.launch, r.to, Math.max(0, u - 0.04 / r.flight)));
+}
+
+// ---------- the heavy rocket of the siege mortar (issue 90) ----------
+
+/** Smoke the heavy rocket leaves behind it this frame: dense and thick, one puff each FX_BIG_ROCKET.trail seconds. */
+export function bigRocketTrail(rec, shell, dt) {
+  const B = FX_BIG_ROCKET;
+  const out = [];
+  rec.trail -= dt;
+  let guard = 4;
+  while (rec.trail <= 0 && guard-- > 0) {
+    rec.trail += B.trail;
+    const [x, y, z] = shellPosition(rec.launch, shell);
+    out.push({ kind: 'wsmoke', x, y, z, vx: 0, vy: 0, vz: 6, r0: B.smoke[0], r1: B.smoke[1], tone: 1.2, life: B.smokeLife, floor: rec.launch.lift });
+  }
+  if (rec.trail < 0) rec.trail = 0;
+  return out;
+}
+
+/** The siege mortar's rocket in flight on the high arc of its shell, with its shadow on the ground. */
+export function drawBigRocket(ctx, rec, shell, accent, t) {
+  const u = Math.min(1, shell.t / shell.flight);
+  const pos = shellPosition(rec.launch, shell, u);
+  const before = shellPosition(rec.launch, shell, Math.max(0, u - 0.03 / shell.flight));
+  const g = P(pos[0], pos[1], liftAt(pos[0], pos[1]));
+  ell(ctx, g[0], g[1], 8, 3.8, 'rgba(10,6,4,.3)', null);
+  const a = P(pos[0], pos[1], pos[2]);
+  const b = P(before[0], before[1], before[2]);
+  const l = Math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) || 1;
+  drawHeavyRocket(ctx, a[0], a[1], (a[0] - b[0]) / l, (a[1] - b[1]) / l, accent, 0.9 + 0.1 * Math.sin(t * 40));
+}
+
+/** Screen point of the artefact of the shrine as it was shown last, or null before it was drawn. */
+export function artefactScreen(tower) {
+  const f = states.get(tower)?.frame;
+  return f ? P(f.x, f.y, f.z) : null;
 }
