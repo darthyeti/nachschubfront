@@ -27,8 +27,13 @@ import {
   drawShell,
   drawTowerReach,
   auraLevel,
+  drainFxExtra,
+  setBallRoom,
+  ballsAlive,
 } from './towerFx.js';
-import { FX_MAX_PARTICLES, KOLOSS_DEBRIS_SIDE_SPEED } from '../data/art.js';
+import { weaponKind } from './weapons.js';
+import { groundLight, lightAlpha, lightSpec, drawBurnPatch, drawPressureRing, onCanvas, CELL_RX } from './weaponFx.js';
+import { FX_MAX_PARTICLES, FX_LIGHT, FX_BURN, FX_THUNDER, KOLOSS_DEBRIS_SIDE_SPEED } from '../data/art.js';
 import { drawGunship } from './gunship.js';
 import { sinceImpact } from '../sim/pods.js';
 import { SPRITE_SCALE, POD_ANCHORS, POD_PETALS, POD_PETAL_ORDER, POD_OPEN_SCALE } from './sprites/manifest.js';
@@ -174,6 +179,78 @@ export function createEffects() {
   let shake = 0;
   let flash = 0;
 
+  // Weapon effects of step 1 (issue 86), handed over by the emplacements (towerFx.js `drainFxExtra`):
+  // the ground lights (at most FX_LIGHT.max, kicked ones and idle ones together), the patches of the
+  // afterburn (at most FX_BURN.total, FX_BURN.max of one emplacement), the pressure rings of the thunder
+  // tower and the brightening of the whole picture.
+  /** Lights a shot kicked; each fades by itself. */
+  const lights = [];
+  const patches = [];
+  const pressure = [];
+  const brighten = { a: 0, life: 0, max: 0 };
+  /** Real seconds since the effects began and when the picture last brightened, for the one-a-second rule. */
+  let clock = 0;
+  let lastBrighten = -Infinity;
+  /** Fireballs alive, as of the last update; they share the ceiling of the muzzles. */
+  let balls = 0;
+  /** The shells of siege mortars in flight and where they fall, to light the ground when one lands. */
+  const siegeShells = new Map();
+
+  function kickLight(x, y, spec, key = null, k = 1) {
+    const light = { key, x, y, r: spec.r, colour: spec.colour, a: spec.a * k, fade: spec.fade, level: 1 };
+    if (key) {
+      const same = lights.find((l) => l.key === key);
+      if (same) {
+        Object.assign(same, light);
+        return;
+      }
+    }
+    if (lights.length >= FX_LIGHT.max) lights.shift();
+    lights.push(light);
+  }
+
+  function addPatch(owner, p) {
+    const mine = patches.filter((q) => q.owner === owner);
+    if (mine.length >= FX_BURN.max) patches.splice(patches.indexOf(mine[0]), 1);
+    if (patches.length >= FX_BURN.total) patches.shift();
+    patches.push({ owner, x: p.x, y: p.y, age: 0, max: p.max, seed: p.seed });
+  }
+
+  /** Takes over what an emplacement asked of the ground layer this frame. */
+  function takeExtra(tower, extra, reducedMotion) {
+    for (const l of extra.lights) {
+      kickLight(l.x, l.y, l, l.key ? `${tower.id}:${l.key}` : null);
+    }
+    for (const r of extra.rings) {
+      if (pressure.length >= FX_THUNDER.ring.max) pressure.shift();
+      pressure.push({ ...r, reduced: reducedMotion });
+    }
+    for (const p of extra.patches) addPatch(tower.id, p);
+    // The picture brightens at most once a second, however many thunder towers there are; with reduced
+    // motion it is at most a faint one.
+    if (extra.brighten && clock - lastBrighten >= FX_THUNDER.flash.every) {
+      lastBrighten = clock;
+      const a = reducedMotion ? Math.min(extra.brighten, FX_THUNDER.flash.reduced) : extra.brighten;
+      Object.assign(brighten, { a, life: FX_THUNDER.flash.seconds, max: FX_THUNDER.flash.seconds });
+    }
+  }
+
+  /** The ground lights up where a shell of a siege mortar lands: seen as a shell that was in flight and is gone. */
+  function watchSiegeShells(state) {
+    const live = new Set();
+    for (const shell of state.projectiles) {
+      const tower = towerById(state, shell.towerId);
+      if (!tower?.special || weaponKind(tower) !== 'siegeMortar') continue;
+      live.add(shell);
+      if (!siegeShells.has(shell)) siegeShells.set(shell, { x: shell.to.x, y: shell.to.y });
+    }
+    for (const [shell, at] of siegeShells) {
+      if (live.has(shell)) continue;
+      siegeShells.delete(shell);
+      kickLight(at.x, at.y, lightSpec('siegeMortar', 'hit'));
+    }
+  }
+
   function jolt(amount, flashLevel = 0) {
     shake = Math.min(MAX_SHAKE, shake + amount);
     flash = Math.max(flash, flashLevel);
@@ -187,7 +264,7 @@ export function createEffects() {
 
   /** A particle in the world that an emplacement or a rocket threw off (towerFx.js). */
   function addWorldParticle(spec) {
-    if (muzzleParticles >= FX_MAX_PARTICLES) return;
+    if (muzzleParticles + balls >= FX_MAX_PARTICLES) return;
     const before = particles.length;
     addParticle({ ...spec, world: true, max: spec.life });
     if (particles.length > before) muzzleParticles += 1;
@@ -572,11 +649,19 @@ export function createEffects() {
    * Takes over what the muzzles queued during the last drawing, and lets the rockets in flight leave
    * their smoke. The rocket follows the shell of the simulation; this only draws a trail behind it.
    */
-  function takeOverMuzzleFire(state, dt) {
+  function takeOverMuzzleFire(state, dt, reducedMotion) {
+    // The fireballs of the flames count against the ceiling of the muzzles: they are alive over the
+    // emplacements, so they are counted before the queued particles are let in, and what is left once those
+    // are in is the room the flames may throw new ones into until the next update.
+    balls = ballsAlive(state.towers);
     for (const tower of state.towers) {
       const queued = drainFxQueue(tower);
       if (queued) for (const spec of queued) addWorldParticle(spec);
+      const extra = drainFxExtra(tower);
+      if (extra) takeExtra(tower, extra, reducedMotion);
     }
+    setBallRoom(Math.max(0, FX_MAX_PARTICLES - muzzleParticles - balls));
+    watchSiegeShells(state);
     for (const shell of state.projectiles) {
       const tower = towerById(state, shell.towerId);
       // The shell of the siege mortar is a heavy ball that leaves no trail.
@@ -616,7 +701,8 @@ export function createEffects() {
     for (const event of state.events) handle(event, state, reducedMotion);
     collectDamage(state, dt);
     stagePods(state, dt, reducedMotion);
-    takeOverMuzzleFire(state, dt);
+    clock += dt;
+    takeOverMuzzleFire(state, dt, reducedMotion);
 
     // Fast decay: the jolt should be over before the next shot lands.
     shake = Math.max(0, shake * Math.pow(0.02, dt) - dt * 2);
@@ -626,6 +712,17 @@ export function createEffects() {
       shots[i].life -= dt;
       if (shots[i].life <= 0) shots.splice(i, 1);
     }
+    for (let i = lights.length - 1; i >= 0; i--) {
+      lights[i].level -= dt / lights[i].fade;
+      if (lights[i].level <= 0) lights.splice(i, 1);
+    }
+    for (const list of [patches, pressure]) {
+      for (let i = list.length - 1; i >= 0; i--) {
+        list[i].age += dt;
+        if (list[i].age >= list[i].max) list.splice(i, 1);
+      }
+    }
+    if (brighten.life > 0) brighten.life = Math.max(0, brighten.life - dt);
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       if (p.delay > 0) {
@@ -676,8 +773,51 @@ export function createEffects() {
 
   // ---------- Drawing ----------
 
+  /**
+   * The lights that stay while an emplacement stands: the fire of the cauldron, the ball of the thunder
+   * tower, the shrine (brighter the more its aura is up). They fill what the kicked lights leave of the
+   * FX_LIGHT.max.
+   */
+  function idleLights(state, t, reducedMotion) {
+    const out = [];
+    for (const tower of state.towers) {
+      if (lights.length + out.length >= FX_LIGHT.max) break;
+      const kind = weaponKind(tower);
+      const L = FX_LIGHT[kind];
+      if (!L?.idle) continue;
+      const flick = reducedMotion ? 1 : 0.85 + 0.15 * Math.sin(t * 13 + tower.x);
+      const a = (L.idle.a + (kind === 'purgeShrine' ? L.a * auraLevel(tower) : 0)) * flick;
+      out.push({ x: tower.x + 0.5, y: tower.y + 0.5, r: L.idle.r, colour: L.colour, a });
+    }
+    return out;
+  }
+
+  /** A light on the ground of its field, kept on its own level like the other marks lying there. */
+  function drawLight(ctx, l, alpha) {
+    const [x, y] = onPlane(l.x, l.y);
+    if (!onCanvas(ctx, x, y, l.r * CELL_RX)) return;
+    onGround(ctx, l.x, l.y, Math.ceil(l.r) + 1, () => groundLight(ctx, x, y, l.r, l.colour, alpha));
+  }
+
+  /** The ground side of the weapon effects: lights, burning patches, pressure rings. */
+  function drawWeaponGround(ctx, state, t, reducedMotion, zoom) {
+    for (const l of idleLights(state, t, reducedMotion)) drawLight(ctx, l, l.a);
+    for (const l of lights) drawLight(ctx, l, lightAlpha(l));
+    for (const p of patches) {
+      const [x, y] = onPlane(p.x, p.y);
+      if (!onCanvas(ctx, x, y, FX_BURN.glow)) continue;
+      onGround(ctx, p.x, p.y, 1, () => drawBurnPatch(ctx, x, y, p.age / p.max, t, p.seed, reducedMotion, zoom >= FX_BURN.flameZoom));
+    }
+    for (const r of pressure) {
+      if (r.age < 0) continue;
+      const [x, y] = onPlane(r.x, r.y);
+      if (!onCanvas(ctx, x, y, r.r * CELL_RX)) continue;
+      onGround(ctx, r.x, r.y, Math.ceil(r.r) + 1, () => drawPressureRing(ctx, x, y, r.r, r.age / r.max, r.colour, r.width, reducedMotion));
+    }
+  }
+
   /** Scorch marks, goo and the ground side of auras and cones. */
-  function drawGround(ctx, state, t, reducedMotion) {
+  function drawGround(ctx, state, t, reducedMotion, zoom = 1) {
     for (const d of decals) {
       const a = Math.min(1, d.life / 2);
       const [x, y] = onPlane(d.x, d.y);
@@ -759,6 +899,7 @@ export function createEffects() {
       // of the weapons are drawn at their nozzle (towerFx.js).
       if (stats.behaviour === 'aura') drawAura(ctx, tower, stats, t, reducedMotion);
     }
+    drawWeaponGround(ctx, state, t, reducedMotion, zoom);
     drawBlaze(ctx);
   }
 
@@ -1040,6 +1181,13 @@ export function createEffects() {
     // Beams, bolts, jets and pulses that run towards the camera (the others are behind their weapon).
     for (const tower of state.towers) {
       if (isTurreted(tower)) drawTowerReach(ctx, tower, t);
+    }
+
+    // The same lights again, weaker and a little higher, so the emplacement and its targets are lit too.
+    for (const l of lights) {
+      const [x, y] = project(l.x, l.y);
+      if (!onCanvas(ctx, x, y, l.r * CELL_RX)) continue;
+      groundLight(ctx, x, y - FX_LIGHT.over.lift, l.r * FX_LIGHT.over.shrink, l.colour, lightAlpha(l) * FX_LIGHT.over.share);
     }
 
     for (const s of shots) {
@@ -1347,6 +1495,13 @@ export function createEffects() {
 
     /** White flash over everything, drawn last. Damped with prefers-reduced-motion. */
     drawFlash(ctx, view, reducedMotion) {
+      if (brighten.life > 0) {
+        // The thunder tower's strike: a cool brightening of the whole picture, at most once a second.
+        const u = brighten.life / brighten.max;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = `rgba(236,232,255,${(brighten.a * u * u).toFixed(3)})`;
+        ctx.fillRect(0, 0, view.width * view.dpr, view.height * view.dpr);
+      }
       if (flash <= 0) return;
       const a = reducedMotion ? flash * REDUCED_FLASH : flash;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1366,10 +1521,17 @@ export function createEffects() {
       fields.length = 0;
       shake = 0;
       flash = 0;
+      lights.length = 0;
+      patches.length = 0;
+      pressure.length = 0;
+      siegeShells.clear();
+      Object.assign(brighten, { a: 0, life: 0, max: 0 });
+      lastBrighten = -Infinity;
+      balls = 0;
     },
     /** For the debug display. */
     counts() {
-      return { particles: particles.length, decals: decals.length, muzzle: muzzleParticles };
+      return { particles: particles.length, decals: decals.length, muzzle: muzzleParticles, balls, lights: lights.length, patches: patches.length };
     },
   };
 }
