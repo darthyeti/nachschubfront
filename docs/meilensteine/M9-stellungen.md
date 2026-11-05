@@ -13,7 +13,7 @@ Referenz: `reference/studien/stellungen-rework.html` mit `stellungen-rework.js` 
 
 ## Entscheidungen vom 03.11.2026 zur Freigabe (E-18)
 
-1. **Raketenwerfer statt Mörser.** Sechs Rohre, Rauchspur, Bogenflug. Der Mörser der Studie entfällt im Spiel. Name und Doktrin bleiben „Mörser“, solange GDD und Doktrin nicht umbenannt werden; eine Umbenennung wäre eine eigene Akte.
+1. **Raketenwerfer statt Mörser.** Sechs Rohre, Rauchspur, Bogenflug. Der Mörser der Studie entfällt im Spiel. Name und Doktrin bleiben „Mörser“, solange GDD und Doktrin nicht umbenannt werden; eine Umbenennung wäre eine eigene Akte. Diese Akte ist E-39 (05.11.2026): Die Doktrin heißt jetzt „Raketenwerfer“ (Kennung `mortar` bleibt), der Belagerungsmörser behält seinen Namen bis zu seinem Rework.
 2. **Spezialstellungen** kommen als Schritt D4 nach D3, nach der Studie `reference/studien/spezialstellungen-rework.html` (A-21, PR #38), so wie sie ist (E-19, 04.11.2026).
 3. **Rang 2** bekommt einen kräftigeren Rand in der Doktrinfarbe, damit er sich auch bei kleinem Zoom von Rang 3 abhebt.
 

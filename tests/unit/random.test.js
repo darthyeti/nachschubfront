@@ -53,7 +53,7 @@ test('range(), chance(), pick() and shuffle() behave', () => {
   assert.equal(rng.chance(0), false);
   assert.equal(rng.chance(1), true);
 
-  const items = ['Flamme', 'Autokanone', 'Laser', 'Mörser', 'Psi', 'Tesla'];
+  const items = ['Flamme', 'Autokanone', 'Laser', 'Raketenwerfer', 'Psi', 'Tesla'];
   assert.ok(items.includes(rng.pick(items)));
   assert.throws(() => rng.pick([]), RangeError);
 
