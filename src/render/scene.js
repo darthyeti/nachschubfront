@@ -26,7 +26,7 @@ import {
 import { createEnemySpriteRenderer, ENEMY_TOP } from './enemySprites.js';
 import { createBackdropLayer } from './backdrop.js';
 import { createAtmosphere } from './atmosphere.js';
-import { warmKit } from './rubbleCache.js';
+import { warmKit, kitCellMeets } from './rubbleCache.js';
 import {
   biomeOf,
   paletteOf,
@@ -45,7 +45,7 @@ import { snapToAxis } from '../sim/commands.js';
 import { drawKoloss, kolossDepth, isKolossEnemy } from './koloss.js';
 import { laneStart } from '../sim/koloss.js';
 import { drawTowerSprite, drawSpecialRing, towerAnchor, towerPictureBox } from './towerSprites.js';
-import { clipToGround } from './groundClip.js';
+import { clipToGround, groundPath } from './groundClip.js';
 import { coverHulls, coverHullsOfSquare, plateBounds, coveringObstacles, shadowPlan } from './cover.js';
 import {
   createPodRenderer,
@@ -657,6 +657,15 @@ function drawFoundation(ctx, tower, field, opacity = 1) {
 
 /** The area round a field that is cut out, in world pixels: sideways, above its middle and below it. */
 const COVER_REACH = { x: 160, up: 300, down: 80 };
+/**
+ * Room round the box of a figure when it is tested against a block: the soft edge of a clip reaches about a
+ * pixel past the block, and the hulls are already grown by CUT_GROW.
+ */
+const COVER_SLACK = 2;
+/** The plate of an emplacement round the middle of its field (FOUNDATION_INSET outside the field, with its lines). */
+const PLATE_BOX = [-42, -23, 42, 23];
+/** The gold ring of a recipe emplacement round the middle of its field (`drawSpecialRing`, with its line). */
+const RING_BOX = [-33, -18, 33, 18];
 
 /**
  * Draws a figure that stands on a field behind the terrain in front of it. Blocks of terrain that
@@ -667,11 +676,26 @@ const COVER_REACH = { x: 160, up: 300, down: 80 };
  * looked at (the see-through of issue 35) `fade` is above 0 and `draw` is called once more for each
  * block, clipped to it and at that opacity; `again` is true then (and `fade` is passed on), so a
  * caller can leave out what must only happen once (the movement of a weapon).
+ * Only the blocks that can touch the figure are cut out (issue 95), and with no block left nothing is
+ * clipped at all: the picture is the same, a clip that cannot cut anything only costs. `meets` tells which:
+ * either the box of the figure in the coordinates of the context at the call (`[x0, y0, x1, y1]`, inside
+ * the area of COVER_REACH), and a block whose box stays clear of it is left out, or a function of the
+ * index of the block. Without it the figure may reach the whole area (an emplacement: its fire reaches
+ * far), and every block is cut out as before.
  * @param {number} applied  How far the context is translated up at the call: 0 in the ground pass,
  *   the lift of the field inside the depth-sorted loop.
  */
-function drawBehindTerrain(ctx, { hulls }, mx, my, applied, fade, draw) {
-  if (!hulls.length) {
+function drawBehindTerrain(ctx, { hulls, bounds }, mx, my, applied, fade, draw, meets = null) {
+  let near = hulls;
+  if (meets && hulls.length) {
+    near = null;
+    for (let k = 0; k < hulls.length; k++) {
+      if (typeof meets === 'function' ? !meets(k) : clearOf(bounds[k], applied, meets)) continue;
+      (near ??= []).push(hulls[k]);
+    }
+    near ??= NO_HULLS;
+  }
+  if (!near.length) {
     draw(false);
     return;
   }
@@ -680,7 +704,7 @@ function drawBehindTerrain(ctx, { hulls }, mx, my, applied, fade, draw) {
     ctx.closePath();
   };
   ctx.save();
-  for (const hull of hulls) {
+  for (const hull of near) {
     ctx.beginPath();
     ctx.rect(mx - COVER_REACH.x, my - COVER_REACH.up, 2 * COVER_REACH.x, COVER_REACH.up + COVER_REACH.down);
     trace(hull);
@@ -689,7 +713,7 @@ function drawBehindTerrain(ctx, { hulls }, mx, my, applied, fade, draw) {
   draw(false);
   ctx.restore();
   if (fade <= 0) return;
-  for (const hull of hulls) {
+  for (const hull of near) {
     ctx.save();
     ctx.beginPath();
     trace(hull);
@@ -698,6 +722,26 @@ function drawBehindTerrain(ctx, { hulls }, mx, my, applied, fade, draw) {
     draw(true, fade);
     ctx.restore();
   }
+}
+
+const NO_HULLS = [];
+
+/** Whether the box of a block (moved down by `applied`) stays clear of the box of a figure. */
+function clearOf([x0, y0, x1, y1], applied, box) {
+  return (
+    x0 - COVER_SLACK >= box[2] ||
+    x1 + COVER_SLACK <= box[0] ||
+    y0 + applied - COVER_SLACK >= box[3] ||
+    y1 + applied + COVER_SLACK <= box[1]
+  );
+}
+
+/** A hull of a block as a path in the coordinates a figure on a field of that lift is drawn in. */
+function hullPath(hull, lift) {
+  const path = new Path2D();
+  hull.forEach(([px, py], k) => (k ? path.lineTo(px, py + lift) : path.moveTo(px, py + lift)));
+  path.closePath();
+  return path;
 }
 
 /** How much of a field's see-through is in force: the strongest layer that holds every block covering it. */
@@ -973,15 +1017,18 @@ export function createSceneRenderer(sprites) {
     // (docs/ART.md). After the scorch marks, so a burnt cell does not hide it.
     if (ui.art === 'sprites') {
       // Terrain in front of an emplacement cuts its plate and ring as it cuts the figure.
-      const behind = (tower, draw) => {
+      // Both lie flat on the field, raised by its lift: only a block that reaches down over the field cuts them.
+      const behind = (tower, [bx0, by0, bx1, by1], draw) => {
         const cover = coverHulls(field, tower.x, tower.y);
         const [mx, my] = iso(tower.x + 0.5, tower.y + 0.5);
-        drawBehindTerrain(ctx, cover, mx, my, 0, coverFade(revealLayers, cover.cells), draw);
+        const lift = cellLift(tower.x, tower.y);
+        const box = [mx + bx0, my - lift + by0, mx + bx1, my - lift + by1];
+        drawBehindTerrain(ctx, cover, mx, my, 0, coverFade(revealLayers, cover.cells), draw, box);
       };
-      for (const tower of state.towers) behind(tower, (again, fade) => drawFoundation(ctx, tower, field, again ? fade : 1));
+      for (const tower of state.towers) behind(tower, PLATE_BOX, (again, fade) => drawFoundation(ctx, tower, field, again ? fade : 1));
       for (const tower of state.towers) {
         if (!tower.special) continue;
-        behind(tower, () => {
+        behind(tower, RING_BOX, () => {
           const lift = cellLift(tower.x, tower.y);
           ctx.translate(0, -lift);
           drawSpecialRing(ctx, tower);
@@ -1118,16 +1165,25 @@ export function createSceneRenderer(sprites) {
         // Capsule remains and craters lie flat: what they spread over a lower neighbour or up the slope of a
         // higher one is clipped away (the parts that stand keep their height, `sweep`).
         const flat = o.kind === 'rubble' || o.kind === 'crater';
+        const sweep = o.kind === 'rubble' ? 20 : 24;
+        // A cell of the kit is one cached picture: a block or a clip to the ground that does not meet what is
+        // drawn on it is left out (issue 95). A bulwark is drawn live; it keeps every cut.
+        const kit = o.kind !== 'bulwark';
+        const meets = kit
+          ? (k) => kitCellMeets(o, i, palette, view.dpr, `h${k}`, () => hullPath(cover.hulls[k], lift), 'touches')
+          : null;
+        const ground = flat && groundPath(field, cell.x, cell.y, 1, sweep, false);
+        const keepGround = ground && (!kit || kitCellMeets(o, i, palette, view.dpr, `g${sweep}`, () => ground, 'leaves'));
         drawBehindTerrain(ctx, cover, mx, my, lift, coverFade(revealLayers, cover.cells), () => {
-          if (!flat) {
+          if (!keepGround) {
             drawObstacleCell(ctx, o, i, palette, obstacleRaster);
             return;
           }
           ctx.save();
-          clipToGround(ctx, field, cell.x, cell.y, 1, o.kind === 'rubble' ? 20 : 24, false, false);
+          clipToGround(ctx, field, cell.x, cell.y, 1, sweep, false, false);
           drawObstacleCell(ctx, o, i, palette, obstacleRaster);
           ctx.restore();
-        });
+        }, meets);
         ctx.globalAlpha = 1;
       }
       else if (kind === KIND_RIFT) {

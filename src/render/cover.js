@@ -23,10 +23,26 @@ const OBSTACLE_REACH = 4;
 /** Per field: the covering blocks and their hulls for every cell, filled when first asked. */
 const hullCache = new WeakMap();
 
+/** The box round the points of a hull, `[x0, y0, x1, y1]` in world pixels. */
+function hullBounds(hull) {
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const [px, py] of hull) {
+    if (px < x0) x0 = px;
+    if (px > x1) x1 = px;
+    if (py < y0) y0 = py;
+    if (py > y1) y1 = py;
+  }
+  return [x0, y0, x1, y1];
+}
+
 /**
  * The blocks of terrain in front of the field (cx, cy) that are higher than it and cover it, with
- * the outline of their picture. Cached per height field, so asking every frame costs a lookup.
- * @returns {{cells: {x: number, y: number}[], hulls: number[][][]}}
+ * the outline of their picture and the box round it (`bounds`, to tell quickly whether a block can
+ * touch a figure at all). Cached per height field, so asking every frame costs a lookup.
+ * @returns {{cells: {x: number, y: number}[], hulls: number[][][], bounds: number[][]}}
  */
 export function coverHulls(field, cx, cy) {
   let perCell = hullCache.get(field);
@@ -35,7 +51,8 @@ export function coverHulls(field, cx, cy) {
   let hit = perCell.get(key);
   if (!hit) {
     const cells = occludersOf(field, cx, cy);
-    hit = { cells, hulls: cells.map((c) => blockHull(field, c.x, c.y, CUT_GROW)) };
+    const hulls = cells.map((c) => blockHull(field, c.x, c.y, CUT_GROW));
+    hit = { cells, hulls, bounds: hulls.map(hullBounds) };
     perCell.set(key, hit);
   }
   return hit;
@@ -46,7 +63,7 @@ export function coverHulls(field, cx, cy) {
  * King of the Hill covers 2 x 2): the covering blocks of every field of the square, without
  * duplicates and without the fields of the square itself, which the figure stands on. Cached like
  * `coverHulls`.
- * @returns {{cells: {x: number, y: number}[], hulls: number[][][]}}
+ * @returns {{cells: {x: number, y: number}[], hulls: number[][][], bounds: number[][]}}
  */
 export function coverHullsOfSquare(field, x, y, size) {
   if (size <= 1) return coverHulls(field, x, y);
@@ -71,7 +88,7 @@ export function coverHullsOfSquare(field, x, y, size) {
         });
       }
     }
-    hit = { cells, hulls };
+    hit = { cells, hulls, bounds: hulls.map(hullBounds) };
     perCell.set(key, hit);
   }
   return hit;

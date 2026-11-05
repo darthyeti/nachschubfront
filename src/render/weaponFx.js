@@ -52,25 +52,50 @@ const hash = (n) => {
 
 /**
  * A light on the ground: an ellipse on the ground plane (2 : 1) filled with a radial gradient, bright in the
- * middle and fading to nothing at `r` cells. One gradient and one fill; the colour is laid over the ground
- * with the normal mixing.
+ * middle and fading to nothing at `r` cells. One `drawImage` of a picture of the gradient, made once per
+ * colour and size (issue 95); the colour is laid over the ground with the normal mixing.
  */
 export function groundLight(ctx, x, y, r, colour, alpha) {
   if (alpha <= 0.004 || r <= 0) return;
   const R = r * CELL_RX;
-  const a = (k) => Math.round(Math.max(0, Math.min(1, alpha * k)) * 255).toString(16).padStart(2, '0');
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(1, 0.5);
-  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, R);
-  g.addColorStop(0, `${colour}${a(1)}`);
-  g.addColorStop(0.35, `${colour}${a(0.55)}`);
-  g.addColorStop(1, `${colour}00`);
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(0, 0, R, 0, TAU);
-  ctx.fill();
+  // The gradient at full strength comes from a picture made once per colour and size (issue 95); the
+  // strength of this light is the opacity it is laid down with.
+  const m = ctx.getTransform?.();
+  const scale = m && typeof m.a === 'number' ? Math.max(Math.hypot(m.a, m.b), Math.hypot(m.c, m.d)) : 1;
+  ctx.globalAlpha *= Math.max(0, Math.min(1, alpha));
+  ctx.drawImage(lightPicture(colour, 2 * R * scale), -R, -R, 2 * R, 2 * R);
   ctx.restore();
+}
+
+/** Pictures of the ground light at full strength, per colour and size in canvas px (a power of two). */
+const lightPictures = new Map();
+/** Smallest and largest picture of a ground light, in canvas px across. */
+const LIGHT_PICTURE = { min: 32, max: 512 };
+
+function lightPicture(colour, across) {
+  let size = LIGHT_PICTURE.min;
+  while (size < across && size < LIGHT_PICTURE.max) size *= 2;
+  const key = `${colour}|${size}`;
+  let canvas = lightPictures.get(key);
+  if (canvas) return canvas;
+  canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const g = canvas.getContext('2d');
+  const h = size / 2;
+  const grad = g.createRadialGradient(h, h, 0, h, h, h);
+  grad.addColorStop(0, `${colour}ff`);
+  grad.addColorStop(0.35, `${colour}8c`);
+  grad.addColorStop(1, `${colour}00`);
+  g.fillStyle = grad;
+  g.beginPath();
+  g.arc(h, h, h, 0, TAU);
+  g.fill();
+  lightPictures.set(key, canvas);
+  return canvas;
 }
 
 /** Alpha of a kicked light at its level: it falls off quickly at first, like a flash. */

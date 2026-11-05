@@ -169,11 +169,12 @@ function onPlane(x, y) {
 /**
  * Draws a mark that lies on the ground of the field around (x, y) and reaches `reach` fields from it:
  * it stays on the fields of its own level and behind the higher blocks in front (`clipToGround`), so
- * it never hangs over a cliff or climbs a slope.
+ * it never hangs over a cliff or climbs a slope. `box`, the box of the mark in world px where the caller
+ * knows it, leaves out the blocks that cannot cut it.
  */
-function onGround(ctx, x, y, reach, draw) {
+function onGround(ctx, x, y, reach, draw, box = null) {
   ctx.save();
-  clipToGround(ctx, activeTerrain(), Math.floor(x), Math.floor(y), reach);
+  clipToGround(ctx, activeTerrain(), Math.floor(x), Math.floor(y), reach, 0, true, true, box);
   draw();
   ctx.restore();
 }
@@ -940,7 +941,8 @@ export function createEffects() {
   function drawLight(ctx, l, alpha) {
     const [x, y] = onPlane(l.x, l.y);
     if (!onCanvas(ctx, x, y, l.r * CELL_RX)) return;
-    onGround(ctx, l.x, l.y, Math.ceil(l.r) + 1, () => groundLight(ctx, x, y, l.r, l.colour, alpha));
+    const R = l.r * CELL_RX;
+    onGround(ctx, l.x, l.y, Math.ceil(l.r) + 1, () => groundLight(ctx, x, y, l.r, l.colour, alpha), [x - R, y - R / 2, x + R, y + R / 2]);
   }
 
   /** The ground side of the weapon effects: lights, burning patches, pressure rings. */
@@ -973,12 +975,14 @@ export function createEffects() {
       // The burn mark reaches two fields, a scorch as far as its radius, goo one.
       const reach = d.kind === 'crater' ? 2 : d.kind === 'scorch' ? Math.ceil(d.radius) + 1 : 1;
       ctx.globalAlpha = a;
+      // A scorch is a square of its gradient squashed to half the height; the other marks do not say their box.
+      const r = d.radius * 32;
+      const box = d.kind === 'scorch' ? [x - r, y - r / 2, x + r, y + r / 2] : null;
       onGround(ctx, d.x, d.y, reach, () => {
         if (d.kind === 'scorch') {
           ctx.save();
           ctx.translate(x, y);
           ctx.scale(1, 0.5);
-          const r = d.radius * 32;
           const g = ctx.createRadialGradient(0, 0, 2, 0, 0, r);
           g.addColorStop(0, 'rgba(18,12,9,.8)');
           g.addColorStop(1, 'rgba(18,12,9,0)');
@@ -990,7 +994,7 @@ export function createEffects() {
         } else {
           ell(ctx, x, y, d.radius * 26, d.radius * 13, C.toxicD, 'rgba(26,20,16,.6)', 1);
         }
-      });
+      }, box);
     }
     ctx.globalAlpha = 1;
 
@@ -1001,6 +1005,8 @@ export function createEffects() {
       const spread = ring.wash ? 1 - (1 - u) * (1 - u) : u;
       const rx = (0.3 + spread) * ring.radius * 32;
       ctx.globalAlpha = (1 - u) * 0.9;
+      const half = ring.width / 2 + 1;
+      const box = [x - rx - half, y - rx / 2 - half, x + rx + half, y + rx / 2 + half];
       onGround(ctx, ring.x, ring.y, Math.ceil(ring.radius) + 1, () => {
         ctx.strokeStyle = ring.colour;
         ctx.lineWidth = ring.width * (1 - u * 0.6);
@@ -1011,7 +1017,7 @@ export function createEffects() {
           ctx.fill();
         }
         ctx.stroke();
-      });
+      }, box);
     }
     ctx.globalAlpha = 1;
 
