@@ -209,6 +209,16 @@ damit auf. Einem Protokoll im Format 1 fehlen die Felder, es gilt als
 bleibt gespeichert, wird aber beim Laden und beim Testeinstieg mit einer
 deutschen Meldung abgelehnt, nicht erst im Nachspielen.
 
+**Regelversion im Protokoll (seit Regelversion 9).** Das Feld `ruleset` bestimmt,
+nach welchen Regeln nachgespielt wird: Das Nachspielen reicht es an den
+Spielzustand (`state.ruleset`) weiter, und Regeln, die sich geändert haben,
+schlagen dort nach. Ein Protokoll der Regelversion 8 oder früher (oder ohne Feld,
+das gilt als 8) spielt sich mit der Aufwertung durch Kapseln nach, eines ab 9 mit
+dem Befördern. Das Protokollformat selbst bleibt bei 2: Neu ist nur die Aktion
+`promote` (`{a: 'promote', towerId}`, Planungsphase, ohne Phasenwechsel), die ein
+Build vor 9 nicht kennt. Bestwerte stehen wie immer in der Liste ihrer
+Regelversion, die der Version 9 also getrennt von denen der Version 8.
+
 ## Offline und Updates
 
 Der dritte Speicher ist der Cache des Service Workers (`sw.js`).

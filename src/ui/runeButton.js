@@ -177,6 +177,22 @@ export function createRuneButton({ iconName, label, hint, caption, bubbleExtra, 
       if (bubbleText.textContent !== text) bubbleText.textContent = text;
     },
 
+    /**
+     * Another name, caption and sentence for a disc whose job depends on the
+     * match (the upgrade disc: promoting in the standard mode, the ladder in
+     * King of the Hill).
+     */
+    retitle({ label: nextLabel, hint: nextHint, caption: nextCaption }) {
+      const title = bubble.querySelector('b');
+      if (title.textContent !== nextLabel) title.textContent = nextLabel;
+      flash.textContent = nextLabel;
+      if (bubbleText.textContent !== nextHint) bubbleText.textContent = nextHint;
+      captionEl.textContent = nextCaption ?? '';
+      captionEl.hidden = !nextCaption;
+      label = nextLabel;
+      shown = null;
+    },
+
     /** @param {RuneFace} next */
     update(next) {
       const key = JSON.stringify(next);
