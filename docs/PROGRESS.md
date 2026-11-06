@@ -7,7 +7,7 @@ gewachsen und wird vor jeder Aufgabe mitgelesen.
 
 ## Stand
 
-Version **0.11.23**, Regelversion **9**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
+Version **0.11.24**, Regelversion **9**. Alle Inhalts-Meilensteine sind abgenommen, dazu seit dem
 03.11.2026 **M8 Optik** (Auftrag [`M8-optik.md`](meilensteine/M8-optik.md)): Farbtrennung und drei Biome,
 Licht und Schatten, Blockgelände, Diorama-Rahmen, Trümmer aus dem Baukasten, die neue Kapsel. Offen ist
 **M6 Balancing**. Von M8 steht noch Tills Prüfung auf dem iPad aus (Leistung, Speicher, Tippen auf hohe
@@ -56,6 +56,8 @@ Platzhalter. Ablauf in `docs/ARBEITSWEISE.md`, Abschnitt „GitHub“.
 **Waffeneffekte Schritt 1 (0.11.19, Issue 86, Akte E-46):** Bodenlicht (Mischung normal, höchstens 24 Lichter) für Sturmbatterie und die Spezialstellungen, Flamme als gerade rollende Feuerbälle mit Nachbrennen (24 Flecken, Bälle zählen zu `FX_MAX_PARTICLES`), Blitze nach Runde 2 der Studie (Tesla eckiger Doppelschlag, Glutkessel Glutfäden, Gewitterturm Einschlag von oben mit Kaskade und Druckring), Bildaufheller höchstens einmal je Sekunde (bei „Weniger Bewegung“ höchstens 5 %). Nur Darstellung (`src/render/weaponFx.js`, Maße `FX_LIGHT` und Verwandte in `src/data/art.js`). Schritt 2 siehe unten.
 
 **Waffeneffekte Schritt 2 (0.11.21, Issue 90, Akte E-46):** Raketenwerfer mit drei gestaffelten Raketen je Treffer (die mittlere landet zum Zeitpunkt der Simulation), Raketenturm (damals noch Belagerungsmörser) mit dicker Rakete, Rückstrahl, großem Einschlag mit Krater und ohne Bildwackeln, Schrein mit Nebelfluss statt Runen. Bildaufheller nur über den gemeinsamen Zeitgeber. Nur Darstellung (`src/render/weaponFx.js`, `towerFx.js`, `effects.js`; Maße `FX_SALVO` und Verwandte in `src/data/art.js`; Beschreibung `docs/ART.md`, „Waffeneffekte, Schritt 2“). Offen: Tills Blick auf das Spielgefühl.
+
+**Raketenton (0.11.24, Issue 101, Akte E-55):** Raketenwerfer spielt `rocket` (leicht), Raketenturm `rocketHeavy` (schwer), je Salve einmal; der alte Ton `launch` entfällt. Zuordnung `soundForEvent` in `src/audio/index.js` schlägt die Stellung über `towerId` nach (`special === 'siegeMortar'`), die Simulation ist unberührt. `voiceCap` je Rezept (8) hält viele Werfer unter der Stimmenobergrenze.
 
 **Raketenturm (0.11.23, Issue 99, Akte E-53):** Der Belagerungsmörser heißt im Spiel „Raketenturm“ und hat das Modell B „Startschienen“ der Studie (Issue 96): zwei Raketen auf Schienen, je Schuss geht eine ab (abwechselnd), die neue steigt zwischen 20 und 70 % der Nachladezeit aus der Kiste, Zustand aus dem Nachladezähler gelesen (`updateTurret` in `towerSprites.js`). Ruhend eine Stufe im Cache; solange eine Rakete geladen wird oder das Fernrohr zielt, Stufe ohne Raketen plus Live-Ebene (Raketen, Lampen, Fernrohr), wie beim Gewitterturm. Kennung `siegeMortar` und alle Werte unverändert (Protokolle, Speicherstände, Golden-Test). Maße `SPECIAL_MUZZLE.siegeMortar`, `SPECIAL_BUSY_LAYER` in `src/data/art.js`. Tills Blick auf das Aussehen im Spiel steht aus.
 

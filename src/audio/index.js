@@ -13,7 +13,8 @@ const EVENT_SOUNDS = {
   shot: 'shot',
   beam: 'beam',
   chain: 'chain',
-  launch: 'launch',
+  // `launch` is resolved per tower, see soundForEvent().
+  launch: 'rocket',
   explosion: 'explosion',
   leak: 'leak',
   podImpact: 'podImpact',
@@ -25,6 +26,22 @@ const EVENT_SOUNDS = {
   command: 'command',
   stasis: 'command',
 };
+
+/**
+ * The sound for one simulation event. A launch from the rocket tower (special
+ * siegeMortar) is the heavy rocket; every other launch is the light one. Read
+ * only: the event carries `towerId`, the tower is looked up in the state.
+ * @param {{type: string, towerId?: number}} event
+ * @param {{towers: Array<{id: number, special?: string|null}>}} state
+ * @returns {string|undefined}
+ */
+export function soundForEvent(event, state) {
+  if (event.type === 'launch') {
+    const tower = state.towers.find((t) => t.id === event.towerId);
+    return tower?.special === 'siegeMortar' ? 'rocketHeavy' : 'rocket';
+  }
+  return EVENT_SOUNDS[event.type];
+}
 
 /**
  * @param {ReturnType<import('../core/prefs.js').createPrefs>} prefs
@@ -42,6 +59,8 @@ export function createAudio(prefs) {
   let voices = 0;
   /** When each sound was last played, for its own throttle. */
   const lastPlayed = new Map();
+  /** Voices per sound, for recipes with a `voiceCap`. */
+  const voicesOf = new Map();
   /** Music scheduling: the next bar and when we last looked ahead. */
   let nextBar = 0;
   let bars = 0;
@@ -154,13 +173,17 @@ export function createAudio(prefs) {
       const now = ctx.currentTime;
       if (sound.throttle && now - (lastPlayed.get(name) ?? -1) < sound.throttle) return;
       if (voices >= MAX_VOICES) return;
+      const layerCount = (sound.layers ?? [sound]).length;
+      if (sound.voiceCap && (voicesOf.get(name) ?? 0) + layerCount > sound.voiceCap) return;
       lastPlayed.set(name, now);
       const used = playSound(ctx, sfxGain, sound, { gain, rate, at: now });
       voices += used;
+      if (sound.voiceCap) voicesOf.set(name, (voicesOf.get(name) ?? 0) + used);
       // The voices are gone once their envelope has run out.
       const seconds = Math.max(...(sound.layers ?? [sound]).map((l) => l.seconds));
       setTimeout(() => {
         voices = Math.max(0, voices - used);
+        if (sound.voiceCap) voicesOf.set(name, Math.max(0, (voicesOf.get(name) ?? 0) - used));
       }, (seconds + 0.1) * 1000);
     },
 
@@ -177,7 +200,7 @@ export function createAudio(prefs) {
           if (event.phase === 'defeat') api.play('defeat');
           else if (event.phase === 'victory') api.play('victory');
         } else {
-          const name = EVENT_SOUNDS[event.type];
+          const name = soundForEvent(event, state);
           if (name) api.play(name);
         }
       }

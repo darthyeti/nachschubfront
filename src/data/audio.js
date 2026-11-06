@@ -38,12 +38,32 @@ export const SOUNDS = {
     ],
     throttle: 0.08,
   },
-  launch: {
+  // The rocket launcher (doctrine mortar) and the rocket tower (siegeMortar) used to share one sound
+  // (study reference/studien/waffeneffekte.js, ROCKET_SOUNDS). One sound per salvo, however many
+  // rockets it carries. `voiceCap` keeps a field of launchers from filling the voice pool.
+  rocket: {
     layers: [
-      { kind: 'tone', wave: 'sine', from: 180, to: 60, seconds: 0.22, attack: 0.004, gain: 0.5, sweep: 'exp' },
-      { kind: 'noise', seconds: 0.2, attack: 0.002, gain: 0.3, filter: ['lowpass', 900, 0.8] },
+      // Ignition: a short dry crack.
+      { kind: 'noise', seconds: 0.05, attack: 0.001, gain: 0.42, filter: ['highpass', 2600, 0.8] },
+      // Thump of the tube as the rocket leaves.
+      { kind: 'tone', wave: 'sine', from: 150, to: 62, seconds: 0.12, attack: 0.002, gain: 0.34, sweep: 'exp' },
+      // The motor: a hissing roar that swells for a moment and dies away with distance.
+      { kind: 'noise', seconds: 0.62, attack: 0.04, gain: 0.36, filter: ['bandpass', 1500, 0.6] },
+      // The whine of the motor rising as the rocket gains speed.
+      { kind: 'tone', wave: 'sawtooth', from: 260, to: 720, seconds: 0.5, attack: 0.05, gain: 0.06, sweep: 'exp', filter: ['lowpass', 2200, 0.7] },
     ],
     throttle: 0.09,
+    voiceCap: 8,
+  },
+  rocketHeavy: {
+    layers: [
+      { kind: 'noise', seconds: 0.07, attack: 0.001, gain: 0.45, filter: ['highpass', 1900, 0.8] },
+      { kind: 'tone', wave: 'sine', from: 110, to: 40, seconds: 0.22, attack: 0.002, gain: 0.5, sweep: 'exp' },
+      { kind: 'noise', seconds: 0.95, attack: 0.06, gain: 0.42, filter: ['bandpass', 900, 0.55] },
+      { kind: 'tone', wave: 'sawtooth', from: 170, to: 430, seconds: 0.8, attack: 0.08, gain: 0.07, sweep: 'exp', filter: ['lowpass', 1500, 0.7] },
+    ],
+    throttle: 0.2,
+    voiceCap: 8,
   },
   flame: {
     // A loop would be better, but a short breath every few frames carries it.
