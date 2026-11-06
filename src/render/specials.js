@@ -39,7 +39,7 @@ const GOLD = '#e0b83e';
 
 /** Pose of a weapon at one moment: everything the model needs besides the angle. */
 export function specialRestPose(accent) {
-  return { accent, bob: 0, gyro: 0.6, recoil: 0, bar: [0, 0, 0, 0], tube: 0, glow: 0, layer: 'all' };
+  return { accent, bob: 0, gyro: 0.6, recoil: 0, bar: [0, 0, 0, 0], tube: 0, glow: 0, layer: 'all', load: [1, 1], seek: 0 };
 }
 
 const STORM = SPECIAL_MUZZLE.stormBattery;
@@ -48,22 +48,35 @@ const THUNDER_Z = SPECIAL_MUZZLE.thunderTower.z;
 const EYE_Z = SPECIAL_MUZZLE.soulfireObelisk.z;
 const OBELISK_TOP = 62;
 
-/** The tube of the siege mortar: its two ends, with the push back by recoil (cells along the tube). */
-function siegeAxis(p) {
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const smooth = (u) => u * u * (3 - 2 * u);
+
+/** The tilted axis of the rails of the rocket tower: points along it, `ly` sideways, `h` cells above it. */
+function siegeAxis() {
   const c = Math.cos(SIEGE.elevation);
   const s = Math.sin(SIEGE.elevation);
-  const shift = -SIEGE.recoil * p.recoil;
-  const a = [-SIEGE.back * c + shift * c, 0, SIEGE.pivot[2] - SIEGE.back * s * K + shift * s * K];
-  const b = [a[0] + SIEGE.length * c, 0, a[2] + SIEGE.length * s * K];
-  return { a, b, c, s, dir: [c, 0, s] };
+  const pivot = SIEGE.pivot;
+  const at = (t, ly = 0, h = 0) => [pivot[0] + t * c - h * s, ly, pivot[2] + (t * s + h * c) * K];
+  const xz = (t, h = 0) => {
+    const q = at(t, 0, h);
+    return [q[0], q[2]];
+  };
+  return { c, s, at, xz, dir: [c, 0, s] };
 }
 
-/** The scope lens of the siege mortar: where the red line starts, local. */
+/** Where a rocket sits down the rails at load `u` (0 in the crate, 1 ready), in cells along them. */
+const slide = (u) => -(1 - smooth(clamp01(u))) * SIEGE.travel;
+
+/** Load of the empty rocket at reload progress `prog` (0 just after the shot, 1 at the next one). */
+export const siegeLoadAt = (prog) => clamp01((prog - SIEGE.loadFrom) / (SIEGE.loadTo - SIEGE.loadFrom));
+
+/** The scope lens of the rocket tower, on the left cheek: where the red line starts, local. */
 export function siegeSight() {
-  const c = Math.cos(SIEGE.elevation);
-  const s = Math.sin(SIEGE.elevation);
-  return [0.36 * c - 0.12 * s, -0.1, SIEGE.pivot[2] + (0.36 * s + 0.12 * c) * K];
+  return siegeAxis().at(0.1, -0.25, 0.02);
 }
+
+/** The nozzle of rocket `k`, ready: where the back blast comes out, local. */
+export const siegeNozzle = (k) => siegeAxis().at(SIEGE.base, SIEGE.rails[k], SIEGE.over);
 
 /**
  * Where the shot leaves each weapon, local, and the direction it leaves in (local, true units).
@@ -77,7 +90,11 @@ export const SPECIAL_MUZZLES = {
     return { at: [STORM.x - STORM.recoil * p.bar[k], ly, STORM.axisZ + dz], dir: [1, 0, 0] };
   },
   emberCauldron: () => ({ at: [SPECIAL_MUZZLE.emberCauldron.x, 0, SPECIAL_MUZZLE.emberCauldron.z], dir: [1, 0, 0] }),
-  siegeMortar: (p) => ({ at: siegeAxis(p).b, dir: siegeAxis(p).dir }),
+  // Rocket `p.tube` leaves from the nose of its rail, ready.
+  siegeMortar: (p) => {
+    const ax = siegeAxis();
+    return { at: ax.at(SIEGE.tip, SIEGE.rails[(p.tube ?? 0) % SIEGE.rails.length], SIEGE.over), dir: ax.dir };
+  },
   thunderTower: (p) => ({ at: [0, 0, THUNDER_Z + p.bob], dir: [1, 0, 0] }),
   soulfireObelisk: (p) => ({ at: [SPECIAL_MUZZLE.soulfireObelisk.x, 0, EYE_Z + p.bob], dir: [1, 0, 0] }),
 };
@@ -89,6 +106,32 @@ export const SPECIAL_IDS = Object.keys(SPECIAL_MUZZLES);
 export const hasFloat = (id) => SPECIAL_FLOATS.includes(id);
 /** True when the weapon is never taken from a stage (the artefact of the shrine hovers between the pillars). */
 export const isLiveAlways = (id) => SPECIAL_LIVE_ALWAYS.includes(id);
+
+/**
+ * A heavy rocket along an axis: body, a dark band, the warhead in the guide colour and three fins at the
+ * tail (up and to both sides; the one below would hide in the rail). `base` and `tip` are cells along the
+ * axis, `R` the radius, `span` the reach of a fin. `ax` gives `at(t, ly, h)` and `xz(t, h)`.
+ */
+function siegeRocket(T, parts, ax, ly, base, tip, R, acc, layer, span) {
+  const len = tip - base;
+  const head = base + len * 0.66;
+  const neck = base + len * 0.84;
+  const th = 0.009;
+  parts.push(T.tube(ax.at(base, ly), ax.at(head, ly), R, R, '#d6d9de', { n: 8, layer, capA: [{ k: 0.6, c: DARK }, { k: 0.3, c: '#14100c' }], capB: false, lw: 1.2 }));
+  parts.push(T.tube(ax.at(base + len * 0.5, ly), ax.at(base + len * 0.56, ly), R + 0.006, R + 0.006, DARK, { n: 8, layer: layer + 0.02, sides: true, lw: 0.9 }));
+  parts.push(T.tube(ax.at(head, ly), ax.at(neck, ly), R, R * 0.72, acc, { n: 8, layer: layer + 0.03, capA: false, capB: false, lw: 0.9 }));
+  parts.push(T.tube(ax.at(neck, ly), ax.at(tip, ly), R * 0.72, 0.006, acc, { n: 8, layer: layer + 0.04, capA: false, capB: false, lw: 0.8 }));
+  const f0 = base + 0.01;
+  const f1 = base + len * 0.2;
+  // Upper fin: a plate in the plane of the axis, standing up from the body.
+  parts.push(T.prism([ax.xz(f0, R), ax.xz(f1, R), ax.xz(f0 + 0.03, R + span), ax.xz(f0 - 0.03, R + span)], ly - th, ly + th, STEEL_D, { layer: layer + 0.05, lw: 1.1 }));
+  // Side fins: plates in the plane of the axis and the sideways line.
+  for (const side of [-1, 1]) {
+    const y0 = ly + side * R * 0.7;
+    const y1 = ly + side * (R + span);
+    parts.push(T.prism([ax.xz(f0, -th * 1.6), ax.xz(f1, -th * 1.6), ax.xz(f1, th * 1.6), ax.xz(f0, th * 1.6)], Math.min(y0, y1), Math.max(y0, y1), STEEL_D, { layer: layer + 0.05, lw: 1.1 }));
+  }
+}
 
 /**
  * Builds a weapon: its parts, local points for the shadow and the bounds, and the muzzle.
@@ -191,36 +234,57 @@ export function buildSpecial(id, F, p, part = 'all') {
       parts.push(T.gem([c * 0.225, s * 0.225, 30], 0.036, 3.6, 1, i === 0 ? '#ffb02e' : '#5fd4ff', { n: 4, layer: 1.5, lw: 1.1 }));
     }
   } else if (id === 'siegeMortar') {
-    const { a, b, c, s } = siegeAxis(p);
+    // The rocket tower: a low carriage with an armoured shield in front and the crate behind, two rails on
+    // it with a blast deflector, and on the rails two whole rockets. The carriage and rails stand still
+    // (the cached 'base'); the rockets, the lamps and the scope move while it reloads and aims, so they are
+    // the layer of their own ('float') drawn live over it.
+    const ax = siegeAxis();
     const [px, , pz] = SIEGE.pivot;
-    turret(0.24);
-    parts.push(T.column(0, 0, 0.22, 0.2, 4, 6.5, STEEL_D, { n: 8, layer: 0.5, lw: 1.8 }));
-    // A wedge carriage: two cheeks, a cross brace and the shell crate behind.
-    for (const y0 of [-0.185, 0.135]) {
-      parts.push(T.prism([[-0.22, 6.5], [0.2, 6.5], [0.2, 13], [0.04, 25], [-0.14, 25], [-0.22, 15]], y0, y0 + 0.05, STEEL, { layer: 1 }));
+    const over = (t, y, h = 0) => ax.at(t, y, h + SIEGE.over);
+    const overXz = (t, h = 0) => ax.xz(t, h + SIEGE.over);
+    if (base) {
+      turret(0.25);
+      parts.push(T.column(0, 0, 0.23, 0.21, 4, 6.5, STEEL_D, { n: 8, layer: 0.5, lw: 1.8 }));
+      parts.push(T.box(-0.22, 0.16, -0.2, 0.2, 6.5, 13, STEEL_D, { layer: 0.9 }));
+      for (const y0 of [-0.205, 0.16]) {
+        parts.push(T.prism([[-0.12, 12], [0.06, 12], [0.02, pz + 3], [-0.1, pz + 3]], y0, y0 + 0.045, STEEL, { layer: 1 }));
+      }
+      parts.push(T.box(-0.42, -0.2, -0.19, 0.19, 6.5, 14, COPPER, { layer: 0.9, lw: 1.5 }));
+      parts.push(T.box(-0.422, -0.418, -0.19, 0.19, 6.5, 9, GOLD, { layer: 0.95, lw: 1 }));
+      parts.push(T.prism([[0.17, 6.5], [0.26, 6.5], [0.22, 15], [0.16, 15]], -0.22, 0.22, STEEL, { layer: 1.05, lw: 1.7 }));
+      parts.push(T.prism([[0.16, 15], [0.22, 15], [0.215, 16.6], [0.155, 16.6]], -0.222, 0.222, GOLD, { layer: 1.08, lw: 1.1 }));
+      parts.push(T.tube([px, -0.22, pz], [px, 0.22, pz], 0.045, 0.05, STEEL_DD, { n: 8, layer: 1.2, lw: 1.5 }));
+      // The launch frame: a spine, two rails with cross members, a blast deflector at the back.
+      parts.push(T.prism([ax.xz(SIEGE.base, -0.06), ax.xz(SIEGE.tip - 0.18, -0.06), ax.xz(SIEGE.tip - 0.18, 0), ax.xz(SIEGE.base, 0)], -0.04, 0.04, STEEL_DD, { layer: 1.25, lw: 1.4 }));
+      for (const t of [SIEGE.base + 0.06, 0.26]) {
+        parts.push(T.tube(ax.at(t, -0.17, 0), ax.at(t, 0.17, 0), 0.02, 0.02, STEEL_D, { n: 6, layer: 1.27, lw: 1.1 }));
+      }
+      SIEGE.rails.forEach((ly, k) => {
+        parts.push(T.prism([ax.xz(SIEGE.base - 0.02, 0), ax.xz(SIEGE.tip - 0.12, 0), ax.xz(SIEGE.tip - 0.12, SIEGE.over - SIEGE.radius), ax.xz(SIEGE.base - 0.02, SIEGE.over - SIEGE.radius)], ly - 0.022, ly + 0.022, STEEL, { layer: 1.3 + k * 0.01, lw: 1.3 }));
+      });
+      parts.push(T.prism([ax.xz(SIEGE.base - 0.03, -0.07), ax.xz(SIEGE.base, -0.07), ax.xz(SIEGE.base, 0.2), ax.xz(SIEGE.base - 0.03, 0.2)], -0.21, 0.21, STEEL_DD, { layer: 1.22, lw: 1.4 }));
     }
-    parts.push(T.box(-0.2, 0.18, -0.14, 0.14, 6.5, 13, STEEL_D, { layer: 0.9 }));
-    parts.push(T.box(-0.32, -0.2, -0.12, 0.12, 6.5, 14, COPPER, { layer: 0.9, lw: 1.5 }));
-    parts.push(T.box(-0.322, -0.318, -0.12, 0.12, 6.5, 8, GOLD, { layer: 0.95, lw: 1 }));
-    parts.push(T.tube([px, -0.215, pz], [px, 0.215, pz], 0.055, 0.055, STEEL_DD, { n: 8, layer: 1.2, lw: 1.5 }));
-    // Buffer sleeve (does not recoil), the long tube (does), recoil rods, gold collar, muzzle brake.
-    const sleeveA = [-SIEGE.back * c, 0, pz - SIEGE.back * s * K];
-    const sleeveB = [sleeveA[0] + 0.34 * c, 0, sleeveA[2] + 0.34 * s * K];
-    parts.push(T.tube(sleeveA, sleeveB, 0.115, 0.115, STEEL_D, { n: 10, layer: 1.3, capA: [{ k: 0.5, c: DARK }], capB: false }));
-    for (const side of [-1, 1]) {
-      const ly = side * 0.125;
-      parts.push(T.tube([sleeveA[0] + 0.1 * c, ly, sleeveA[2] + 0.1 * s * K], [sleeveA[0] + 0.42 * c, ly, sleeveA[2] + 0.42 * s * K], 0.026, 0.026, STEEL_M, { n: 5, layer: 1.35, capA: false, capB: false, lw: 1.2 }));
+    if (top) {
+      // The lamps on the rails: red while the rocket is loaded, the guide colour when it is ready.
+      SIEGE.rails.forEach((ly, k) => {
+        const ready = (p.load[k] ?? 1) >= 1;
+        parts.push(T.gem(ax.at(SIEGE.tip - 0.14, ly + Math.sign(ly) * 0.03, 0.01), 0.026, 2.4, 1.2, ready ? acc : '#5a1c1c', { n: 6, layer: 1.34, lw: 1 }));
+        // The rocket: it rises out of the crate up the rail while it is loaded (nothing of it shows at first).
+        const u = p.load[k] ?? 1;
+        if (u > SIEGE.hiddenBelow) {
+          const d = slide(u);
+          siegeRocket(T, parts, { at: over, xz: overXz }, ly, SIEGE.base + d, SIEGE.tip + d, SIEGE.radius, acc, 1.5 + k * 0.01, SIEGE.fins);
+        }
+      });
+      // The scope on the left cheek: the lens glows while it aims, the red line comes from it.
+      const lens = siegeSight();
+      const len = 0.3;
+      const back = [lens[0] - len * ax.c, lens[1], lens[2] - len * ax.s * K];
+      const mid = [(lens[0] + back[0]) / 2, lens[1], (lens[2] + back[2]) / 2];
+      parts.push(T.tube([mid[0], mid[1], mid[2] - 5], mid, 0.016, 0.016, STEEL_DD, { n: 5, layer: 1.68, capA: false, capB: false, lw: 1 }));
+      parts.push(T.tube(back, lens, 0.036, 0.042, STEEL_DD, { n: 8, layer: 1.7, lw: 1.3, capB: [{ k: 0.74, c: '#3a1010' }, { k: 0.42, c: p.seek > 0 ? '#ff4a4a' : '#7a2a2a' }] }));
+      parts.push(T.tube([lens[0] - 0.06 * ax.c, lens[1], lens[2] - 0.06 * ax.s * K], [lens[0] - 0.035 * ax.c, lens[1], lens[2] - 0.035 * ax.s * K], 0.048, 0.048, acc, { n: 8, layer: 1.72, sides: true, lw: 1 }));
     }
-    parts.push(T.tube(a, b, 0.078, 0.07, STEEL, { n: 10, layer: 1.4, capA: false, capB: false }));
-    const along = (t) => [a[0] + t * c, 0, a[2] + t * s * K];
-    parts.push(T.tube(along(SIEGE.length - 0.16), along(SIEGE.length - 0.12), 0.1, 0.1, GOLD, { n: 10, layer: 1.6, sides: true, lw: 1.3 }));
-    parts.push(T.tube(along(SIEGE.length - 0.07), b, 0.095, 0.095, STEEL_DD, { n: 10, layer: 1.62, capA: false, capB: [{ k: 0.62, c: '#14100c' }], lw: 1.6 }));
-    // The scope on the left cheek, with the lens that casts the red line.
-    const sight = siegeSight();
-    const sBack = [sight[0] - 0.34 * c, sight[1], sight[2] - 0.34 * s * K];
-    parts.push(T.box(-0.02, 0.05, -0.215, -0.1, pz + 1.5, pz + 3.8, STEEL_DD, { layer: 1.45, lw: 1.2 }));
-    parts.push(T.tube(sBack, sight, 0.036, 0.04, STEEL_DD, { n: 6, layer: 1.7, lw: 1.3, capB: [{ k: 0.72, c: '#4a1414' }, { k: 0.4, c: '#ff4a4a' }] }));
-    parts.push(T.tube([sight[0] - 0.05 * c, sight[1], sight[2] - 0.05 * s * K], [sight[0] - 0.02 * c, sight[1], sight[2] - 0.02 * s * K], 0.05, 0.05, acc, { n: 6, layer: 1.72, sides: true, lw: 1.1 }));
   } else if (id === 'thunderTower') {
     if (base) {
       // Cylinder plinth with a gold band, then seven blue coil rings.

@@ -8,7 +8,7 @@ import { buildTurret, restPose as turretRestPose, MOUNT_Z, TURRET_SCALE, MUZZLE,
 import { buildSpecial, specialRestPose, SPECIAL_MUZZLES, SPECIAL_IDS, SPECIAL_MOUNT_Z, specialScale, hasFloat, isLiveAlways } from './specials.js';
 import { DOCTRINE_COLORS } from '../data/doctrines.js';
 import { specialDef } from '../data/specials.js';
-import { TURRET_TURN_SPEED, TURRET_RECOIL, TURRET_ROCKET, SPECIAL_TURN_SPEED, SPECIAL_MUZZLE, FX_TIP_AHEAD } from '../data/art.js';
+import { TURRET_TURN_SPEED, TURRET_RECOIL, TURRET_ROCKET, SPECIAL_TURN_SPEED, SPECIAL_MUZZLE, SPECIAL_BUSY_LAYER, FX_TIP_AHEAD } from '../data/art.js';
 
 /**
  * @typedef {object} WeaponModel
@@ -22,6 +22,8 @@ import { TURRET_TURN_SPEED, TURRET_RECOIL, TURRET_ROCKET, SPECIAL_TURN_SPEED, SP
  * @property {string} accent  guide colour of the doctrine the weapon is built from
  * @property {string[]} staged  the layers a resting weapon takes from the cache
  * @property {string[]} live  the layers that are always drawn from the model, over the stage
+ * @property {string[]|null} settled  the layers a weapon takes from the cache while nothing moves on it (it
+ *   then needs no live layer); null when `staged` and `live` always apply. Only the rocket tower has it.
  * @property {boolean} always  true when the weapon is never taken from a stage
  * @property {number} turnSpeed  radians per second of the drawing
  * @property {number} recoil  cells the whole stage is shoved back along the barrel by a shot
@@ -52,15 +54,16 @@ export function weaponModel(kind) {
       build: (F, pose, layer) => buildSpecial(kind, F, pose, layer),
       restPose: (accent) => specialRestPose(accent),
       accent: DOCTRINE_COLORS[specialDef(kind).doctrine],
-      staged: hasFloat(kind) ? ['base'] : ['all'],
-      live: hasFloat(kind) ? ['float'] : [],
+      staged: hasFloat(kind) || SPECIAL_BUSY_LAYER.includes(kind) ? ['base'] : ['all'],
+      live: hasFloat(kind) || SPECIAL_BUSY_LAYER.includes(kind) ? ['float'] : [],
+      settled: SPECIAL_BUSY_LAYER.includes(kind) ? ['all'] : null,
       always: isLiveAlways(kind),
       turnSpeed: SPECIAL_TURN_SPEED[kind],
       recoil: 0,
       ahead: 0,
-      tubes: kind === 'stormBattery' ? SPECIAL_MUZZLE.stormBattery.barrels.length : 1,
+      tubes: kind === 'stormBattery' ? SPECIAL_MUZZLE.stormBattery.barrels.length : kind === 'siegeMortar' ? SPECIAL_MUZZLE.siegeMortar.rails.length : 1,
       bobs: kind !== 'stormBattery' && kind !== 'emberCauldron' && kind !== 'siegeMortar',
-      recoilLive: kind === 'stormBattery' || kind === 'siegeMortar',
+      recoilLive: kind === 'stormBattery',
     };
   } else if (TURRET_DOCTRINES.includes(kind)) {
     m = {
@@ -74,6 +77,7 @@ export function weaponModel(kind) {
       accent: DOCTRINE_COLORS[kind],
       staged: kind === 'psi' ? ['base', 'float'] : ['all'],
       live: [],
+      settled: null,
       always: false,
       turnSpeed: TURRET_TURN_SPEED[kind],
       recoil: TURRET_RECOIL[kind] ?? 0,

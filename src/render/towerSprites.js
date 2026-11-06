@@ -13,10 +13,11 @@ import { C } from './palette.js';
 import { drawSprite, drawSpriteShadow } from './sprites/rasterizer.js';
 import { towerSpriteSet, specialSpriteSet, DOCTRINES, SPECIALS } from './sprites/compose.js';
 import { RANK_COUNT } from './sprites/manifest.js';
-import { TURRET_ALIGN, TURRET_REST_ANGLE, SPECIAL_BAR_DECAY, SPECIAL_RECOIL_DECAY } from '../data/art.js';
+import { TURRET_ALIGN, TURRET_REST_ANGLE, SPECIAL_BAR_DECAY, SPECIAL_RECOIL_DECAY, FX_SIGHT_SECONDS } from '../data/art.js';
 import { updateTurretFx, drawTurretFx } from './towerFx.js';
 import { turnFrame, renderSolids } from './model.js';
 import { autocannonBores } from './turrets.js';
+import { siegeLoadAt } from './specials.js';
 import { weaponOf, weaponBox, weaponMuzzle } from './weapons.js';
 import { stageEntry, stageIndex, STAGE_STEP, drawStage, drawStageShadow } from './turretCache.js';
 
@@ -183,6 +184,11 @@ function updateTurret(tower, model, dt, reducedMotion) {
       bar: [0, 0, 0, 0],
       shot: false,
       cooldown: tower.cooldown,
+      // The rocket tower: the reload time of the last shot, the load of each rocket (1 ready) and whether
+      // the scope is aiming. Read from the reload counter like the shot, never reported by the simulation.
+      reload: 0,
+      load: [1, 1],
+      seek: 0,
     };
     motion.set(tower, m);
   }
@@ -192,6 +198,14 @@ function updateTurret(tower, model, dt, reducedMotion) {
     m.tube = m.next;
     m.next = (m.next + 1) % model.tubes;
     if (model.kind === 'stormBattery') m.bar[m.tube] = 1;
+    m.reload = tower.cooldown;
+  }
+  if (model.kind === 'siegeMortar') {
+    // The rocket that left is empty and is loaded over the reload; the other waits ready. A tower seen
+    // for the first time has both.
+    m.seek = tower.aim && tower.cooldown > 0 && tower.cooldown < FX_SIGHT_SECONDS ? 1 : 0;
+    const prog = m.reload > 0 ? 1 - tower.cooldown / m.reload : 1;
+    m.load = model.tubes ? Array.from({ length: model.tubes }, (_, k) => (k === m.tube && m.reload > 0 ? siegeLoadAt(prog) : 1)) : m.load;
   }
   m.cooldown = tower.cooldown;
   m.recoil = Math.max(0, m.recoil - dt * SPECIAL_RECOIL_DECAY);
@@ -238,7 +252,12 @@ function drawTurretTower(ctx, cache, set, back, tower, zoom, dpr, t, dt, reduced
 
   // The stages the weapon is nearest to; they carry the shadow even while it is drawn live.
   const k = stageIndex(m.theta);
-  const entries = model.staged.map((layer) => stageEntry(kind, rank, layer, k, zoom, dpr));
+  // The rocket tower rests as one stage; while a rocket is loaded or the scope aims it takes the stage
+  // without them and draws them live over it.
+  const resting = model.settled && m.seek === 0 && m.load.every((u) => u >= 1);
+  const layers = resting ? model.settled : model.staged;
+  const liveLayers = resting ? [] : model.live;
+  const entries = layers.map((layer) => stageEntry(kind, rank, layer, k, zoom, dpr));
   const recoiling = model.recoilLive && (m.recoil > 0.01 || m.bar.some((b) => b > 0.01));
   const staged = m.aligned && !model.always && !recoiling && entries.every(Boolean);
   m.shown = staged ? k * STAGE_STEP : m.theta;
@@ -259,6 +278,8 @@ function drawTurretTower(ctx, cache, set, back, tower, zoom, dpr, t, dt, reduced
     tube: m.tube,
     gyro: m.gyro,
     bar: m.bar,
+    load: m.load,
+    seek: m.seek,
   };
 
   // The fire at the barrel (towerFx.js): its muzzle is the one of the model. What reaches away from the
@@ -286,11 +307,11 @@ function drawTurretTower(ctx, cache, set, back, tower, zoom, dpr, t, dt, reduced
   if (staged) {
     entries.forEach((entry, i) => {
       // The hovering rings of the psi weapon bob over a pedestal that stands still.
-      const lift = model.staged[i] === 'float' ? [0, -bob] : null;
+      const lift = layers[i] === 'float' ? [0, -bob] : null;
       drawStage(ctx, entry, sx, sy, { shift: lift ? [shift[0] + lift[0], shift[1] + lift[1]] : shift, flash });
     });
     // The floating parts that are drawn live over the stage: ring and ball, eye.
-    for (const layer of model.live) {
+    for (const layer of liveLayers) {
       ctx.save();
       ctx.translate(sx, sy);
       renderSolids(ctx, model.build(F, pose, layer).parts);

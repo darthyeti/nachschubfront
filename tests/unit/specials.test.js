@@ -163,11 +163,14 @@ test('the barrels end where the muzzle is, so fire cannot start anywhere else', 
     const near = built.samples.filter((p) => Math.abs(p[1] - ly) < 0.05 && Math.abs(p[2] - z) < 1.5);
     assert.ok(near.length && Math.max(...near.map((p) => p[0])) >= built.muzzle.at[0] - 0.03, `barrel ${tube}`);
   }
-  // The tube of the mortar ends at the muzzle, in the direction the tube points.
+  // The rockets of the rocket tower leave from the noses of their rails, raised, one on each side.
   const siege = buildSpecial('siegeMortar', F, specialRestPose('#fff'));
   const front = Math.max(...siege.samples.map((p) => p[0]));
-  assert.ok(Math.abs(front - siege.muzzle.at[0]) < 0.12, 'the brake is at the end of the tube');
+  assert.ok(Math.abs(front - siege.muzzle.at[0]) < 0.12, 'the nose is at the front of the model');
   assert.ok(siege.muzzle.dir[2] > 0.5, 'which is raised');
+  const left = SPECIAL_MUZZLES.siegeMortar({ tube: 0 }).at;
+  const right = SPECIAL_MUZZLES.siegeMortar({ tube: 1 }).at;
+  assert.ok(left[1] < 0 && right[1] > 0 && left[0] === right[0] && left[2] === right[2], 'two rails, side by side');
   // The scope lens sits on the left cheek and is not on the barrel.
   assert.ok(siegeSight()[1] < 0);
 });
@@ -299,13 +302,20 @@ test('firing alone does not make the thunder tower, the cauldron or the obelisk 
     assert.equal(turretView(t).staged, true, `${id}: still on its stage while it fires`);
     assert.equal(turretStats.rasterized, before, `${id}: nothing was made for it`);
   }
-  for (const id of ['stormBattery', 'siegeMortar']) {
-    const t = special(id);
+  {
+    const t = special('stormBattery');
     frames(t, 90);
     frames(t, 1, { shoot: true });
-    assert.equal(turretView(t).staged, false, `${id}: the barrel slides back in the model`);
+    assert.equal(turretView(t).staged, false, 'stormBattery: the barrel slides back in the model');
     frames(t, 40);
-    assert.equal(turretView(t).staged, true, `${id}: and it is back on its stage afterwards`);
+    assert.equal(turretView(t).staged, true, 'stormBattery: and it is back on its stage afterwards');
+  }
+  {
+    // The rocket tower has no sliding barrel: the fired rocket is simply gone, so it stays on its stage.
+    const t = special('siegeMortar');
+    frames(t, 90);
+    frames(t, 1, { shoot: true });
+    assert.equal(turretView(t).staged, true, 'siegeMortar: a shot does not draw it from the model');
   }
 });
 

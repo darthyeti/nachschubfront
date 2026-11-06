@@ -101,7 +101,11 @@ test('a part that hovers is a layer of its own, and the shrine is always drawn l
   assert.deepEqual(weaponOf(emplacement('thunderTower')).live, ['float']);
   assert.deepEqual(weaponOf(emplacement('soulfireObelisk')).live, ['float']);
   assert.equal(weaponOf(emplacement('purgeShrine')).always, true);
-  for (const id of ['stormBattery', 'emberCauldron', 'siegeMortar']) assert.deepEqual(weaponOf(emplacement(id)).live, [], id);
+  for (const id of ['stormBattery', 'emberCauldron']) assert.deepEqual(weaponOf(emplacement(id)).live, [], id);
+  // The rocket tower rests as one stage and has a live layer only while a rocket is loaded or the scope aims.
+  const tower = weaponOf(emplacement('siegeMortar'));
+  assert.deepEqual(tower.live, ['float']);
+  assert.deepEqual(tower.settled, ['all']);
 });
 
 test('every emplacement is a base and a top, and nothing in front of them', () => {

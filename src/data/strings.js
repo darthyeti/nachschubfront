@@ -467,7 +467,7 @@ export const STRINGS = {
     purgeShrine: { name: 'Reinigungsschrein', effect: 'Großer Flammenring, verlangsamt, Brand stapelt' },
     stormBattery: { name: 'Sturmbatterie', effect: 'Schnellfeuer auf drei Ziele, stark gegen Luft' },
     emberCauldron: { name: 'Glutkessel', effect: 'Brennende Aura, Blitze entzünden' },
-    siegeMortar: { name: 'Belagerungsmörser', effect: 'Sehr große Reichweite, riesiger Explosionsradius' },
+    siegeMortar: { name: 'Raketenturm', effect: 'Sehr große Reichweite, riesiger Explosionsradius' },
     thunderTower: { name: 'Gewitterturm', effect: 'Kette über 8 Ziele, kurze Betäubung' },
     soulfireObelisk: {
       name: 'Seelenfeuer-Obelisk',

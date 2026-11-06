@@ -153,7 +153,7 @@ export const SPECIAL_RECOIL_DECAY = 7;
  * The muzzle of each special weapon in local coordinates (as TURRET_MUZZLE): `x` along the barrel in
  * cells, `z` above the plate in px before the scale. The battery has four barrels (`barrels`: sideways
  * offset in cells and height offset in px, two over two, fired in turn) that each slide back by `recoil`
- * cells. The siege mortar is a long tube on a low elevation about `pivot`. The shrine, the thunder tower
+ * cells. The siege mortar (the rocket tower) is two rockets on rails tilted about `pivot`. The shrine, the thunder tower
  * and the obelisk fire from the middle of a part that floats, which bobs on top of `z`.
  */
 export const SPECIAL_MUZZLE = {
@@ -165,7 +165,26 @@ export const SPECIAL_MUZZLE = {
     barrels: [[0.085, 3.1], [-0.085, -3.1], [-0.085, 3.1], [0.085, -3.1]],
   },
   emberCauldron: { x: 0.225, z: 31.5 },
-  siegeMortar: { elevation: (50 * Math.PI) / 180, length: 0.8, pivot: [0, 0, 20], back: 0.12, recoil: 0.09 },
+  // The rocket tower (draft B "Startschienen" of reference/studien/raketenturm-modell.js): two whole rockets on
+  // two rails, tilted about `pivot`. `base` and `tip` are cells along the rails, `over` the height of a rocket's
+  // axis over its rail in cells, `radius` its body. A rocket sits `travel` cells down the rail while it is still
+  // in the crate. The empty rail is loaded from `loadFrom` to `loadTo` of the reload (0 is the shot, 1 the next
+  // one), so the aiming phase always shows two ready rockets.
+  siegeMortar: {
+    elevation: (38 * Math.PI) / 180,
+    pivot: [-0.04, 0, 23],
+    rails: [-0.15, 0.15],
+    radius: 0.1,
+    base: -0.34,
+    tip: 0.5,
+    over: 0.11,
+    travel: 0.62,
+    fins: 0.075,
+    loadFrom: 0.2,
+    loadTo: 0.7,
+    /** Below this load a rocket is not drawn: it is still inside the crate. */
+    hiddenBelow: 0.12,
+  },
   thunderTower: { z: 42 },
   soulfireObelisk: { x: 0.06, z: 74 },
 };
@@ -183,6 +202,12 @@ export const SPECIAL_FIRE = {
 /** Special weapons whose floating part is a layer of its own over a cached stage; the shrine is always drawn live. */
 export const SPECIAL_FLOATS = ['thunderTower', 'soulfireObelisk'];
 export const SPECIAL_LIVE_ALWAYS = ['purgeShrine'];
+/**
+ * Special weapons that rest as one cached stage and only while something moves on them (the rockets of the
+ * rocket tower while one is loaded, its scope while it aims) take the stage without those parts and draw
+ * them live over it.
+ */
+export const SPECIAL_BUSY_LAYER = ['siegeMortar'];
 
 // ---------- Muzzle fire and effects at the barrel (M9 D3) ----------
 // Presentation only: how long the flashes last, how far a jet reaches, how many particles the

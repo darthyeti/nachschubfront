@@ -132,7 +132,7 @@ Die Rollen sind klar getrennt: Der Schrein ist eine reine Schadensaura, der Kess
 | Reinigungsschrein | Flamme, Psi, Raketenwerfer | Veteran | Kein Geschoss. Dauerhafte goldene Aura, Radius 2,8. Jeder Gegner darin erleidet 11 Schaden/s und ist verlangsamt, solange er in der Aura ist. Betroffene Gegner leuchten golden statt den violetten Verlangsamungsring zu tragen |
 | Sturmbatterie | Autokanone, Laser, Tesla | Veteran | Schnellfeuer mit blauer Leuchtspurmunition, Radius 3,2, verteilt auf die 3 vordersten Gegner, 5 Schaden pro Schuss, Schusstakt 0,06 s, stark gegen Luft |
 | Glutkessel | Flamme, Tesla, Autokanone | Veteran | Keine Aura. Alle 1,2 s Feuerblitze auf die 3 vordersten Gegner in Radius 3,2: 6 Schaden plus Brand 3 s (9 Schaden/s). Der Brand springt alle 0,45 s auf einen nicht brennenden Gegner innerhalb 0,85 Feldern über (dort 2,2 s) |
-| Belagerungsmörser | Raketenwerfer, Laser, Autokanone | Elite | Radius 6,6, Mindestabstand 1,5. Zielt 0,8 s mit sichtbarem Laser, dann Granate mit Vorhalt, riesiger Explosionsradius, Nachladezeit 3,2 s |
+| Raketenturm | Raketenwerfer, Laser, Autokanone | Elite | Radius 6,6, Mindestabstand 1,5. Zielt 0,8 s mit sichtbarem Laser, dann eine dicke Rakete mit Vorhalt (Kennung im Code `siegeMortar`), riesiger Explosionsradius, Nachladezeit 3,2 s |
 | Gewitterturm | Tesla, Psi, Laser | Elite | Radius 3,1, alle 1,3 s Kettenblitz über bis zu 8 Ziele (Sprungweite 1,8), 14 Schaden und 0,5 s Betäubung pro Ziel |
 | Seelenfeuer-Obelisk | Psi, Flamme, Tesla | Held | Radius 4,2, alle 1,6 s Seelenstrahl: 22 % der maximalen Lebenspunkte des Ziels. Gegen Bosse und den Koloss gedeckelt auf 5 % pro Treffer |
 
